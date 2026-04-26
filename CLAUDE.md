@@ -31,7 +31,7 @@ cairn/
 │   ├── plans/                 # 살아있는 plan (YYYY-MM-DD-<slug>.md 누적)
 │   │   └── README.md          # plan 인덱스
 │   ├── progress/              # 작업 일지 (YYYY-MM-DD-<slug>.md 누적)
-│   │   └── README.md          # 단계 진행률 표 + 일지 인덱스
+│   │   └── README.md          # 단계 진행률 표 (일지는 디렉토리가 인덱스)
 │   ├── decisions/             # ADR (비자명한 결정)
 │   ├── SETUP.md               # 머신별 셋업 가이드
 │   ├── SECURITY.md, PROMPT.md
@@ -61,8 +61,8 @@ pnpm format:check    # Prettier --check
 ## 결정/진행 기록
 
 - **비자명한 결정**: `docs/decisions/NNNN-kebab-case.md` ADR 추가 (`.claude/rules/decisions-workflow.md` 참조)
-- **작업 시작 시**: `docs/progress/YYYY-MM-DD-<slug>.md` 일지 생성 + README 갱신 (`.claude/rules/progress-update.md` 참조)
-- **단계 완료 시**: 진행률 표 ✅ + version bump + develop으로 PR 머지
+- **작업 시작 시**: `docs/progress/YYYY-MM-DD-<slug>.md` 일지 파일만 생성 (README는 안 건드림 — `.claude/rules/progress-update.md` 참조)
+- **단계 완료 시**: 진행률 표 ✅ + version bump + main으로 PR 머지
 
 ## 커밋 / PR 컨벤션 (GitHub Flow — ADR 0006)
 
