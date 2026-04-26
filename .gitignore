@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+*.tsbuildinfo
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# runtime data (cairn local state lives at ~/.cairn/, but never commit if mirrored)
+.cairn/
+
+# logs
+*.log
+logs/
+
+# coverage / test artifacts
+coverage/
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.eslintcache
+
+# Claude Code per-machine local settings (project .claude/settings.json is committed)
+.claude/settings.local.json
