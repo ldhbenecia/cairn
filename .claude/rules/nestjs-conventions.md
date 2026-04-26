@@ -42,6 +42,12 @@ PascalCase + 타입 suffix.
 - `@Injectable()` 명시
 - 인터페이스는 `src/contracts/` 또는 모듈 내 `*.interface.ts`
 
+## import / barrel
+
+- **`index.ts` (barrel re-export) 만들지 않는다** — NestJS 공식 컨벤션 그대로
+- import는 항상 구체 파일 경로: `import { Foo } from './foo/foo.service.js'`
+- 이유: 빌드 성능 / 순환 의존 함정 회피 / `nest generate`도 barrel을 만들지 않음
+
 ## standalone application
 
 - HTTP 서버 없음 → `NestFactory.createApplicationContext`

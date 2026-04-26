@@ -2,17 +2,17 @@
 
 ## 위치 / 파일명
 
-- 디렉토리: `docs/progress/`
-- 인덱스: `docs/progress/README.md` (단계별 진행률 표 + 일지 시간 역순)
+- 디렉토리: `docs/progress/` (디렉토리 자체가 인덱스 — README에 일지 한 줄씩 모으지 않는다)
+- README: `docs/progress/README.md` (단계별 진행률 표만 둠 + 작성 규칙)
 - 일지 파일: `docs/progress/YYYY-MM-DD-<slug>.md` (KST 기준)
   - slug는 작업 주제, kebab-case (예: `repo-scaffold`, `github-collector`, `debug-husky`, `agent-harness-design`, `notion-publisher`, `auth-redesign`)
   - 한 날에 여러 작업이면 여러 파일 OK
 
 ## 언제 작성하나
 
-- **작업 시작 시**: 새 일지 파일 생성 + README의 "일지" 목록에 한 줄 추가
+- **작업 시작 시**: 새 일지 파일 생성 (README는 건드리지 않음)
 - **sub-task 완료 시**: 해당 일지의 "완료" 섹션에 즉시 추가
-- **단계 전체 완료 시**: README의 진행률 표 갱신 (✅ + 완료 일자) + `package.json` version bump + develop으로 PR 머지
+- **단계 전체 완료 시**: README의 진행률 표 갱신 (✅ + 완료 일자) + `package.json` version bump + main으로 PR 머지
 
 ## 일지 파일 형식 (예시)
 
@@ -40,7 +40,7 @@
 
 - `docs(progress): YYYY-MM-DD-<slug>` (새 일지 생성)
 - `docs(progress): update <slug>` (기존 일지 갱신)
-- `docs(progress): mark stage N complete` (단계 완료, README + 일지 둘 다 갱신)
+- `docs(progress): mark stage N complete` (단계 완료, README 진행률 표 + 일지 갱신)
 
 ## 중복 방지
 
