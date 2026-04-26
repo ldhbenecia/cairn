@@ -1,7 +1,7 @@
 # 2026-04-26 — repo scaffold
 
-> 진행 단계: **0 — 레포 + 문서 + 품질 도구 셋업** (시작)
-> 상태: 진행 중
+> 진행 단계: **0 — 레포 + 문서 + 품질 도구 셋업** ✅ (2026-04-26 완료)
+> 상태: 완료
 
 ## 완료
 
@@ -12,9 +12,16 @@
 - commit 4 — `chore(repo): VSCode settings + recommended extensions`
 - commit 5 — `docs(repo): CLAUDE.md and .claude/rules` (rules 4개)
 
-## 진행 중
+## 추가 완료 (commit 6 이후)
 
-- commit 6 — `docs(plan): docs/plan.md and docs/progress/` (이 파일 포함)
+- commit 6 — `docs(plan): living plan + progress 일지 누적 구조` (PROGRESS.md → docs/progress/, plan.md → docs/plans/)
+- commit 7 — `docs(decisions): 핵심 정책 5종 ADR 정리 (0001-0005)`
+- commit 8 — `chore(github): PR template 추가`
+- commit 9 — `docs(repo): README scaffold`
+- `develop` 브랜치 생성 (main에서 분기)
+- 단계 0 마무리 commit (progress 갱신 + version 0.1.0 bump)
+- main으로 merge (develop → main은 merge commit)
+- GitHub public 레포 생성 + push (이 파일 포함)
 
 ## 시행착오 / 결정
 
@@ -25,12 +32,12 @@
 - **PROGRESS 구조 변경**: 단일 `docs/PROGRESS.md` → `docs/progress/YYYY-MM-DD-<slug>.md` 누적 + `README.md` 인덱스. 사용자 피드백.
 - **Node 버전**: `.nvmrc`에 `v24.15.0` (현재 active LTS) 고정. 머신은 `nvm install --lts`로 업그레이드.
 
-## 다음
+## 다음 (단계 1로)
 
-- commit 6 (이 일지를 포함하는 plan/progress 셋업)
-- commit 7 — ADR 0001-0005 작성
-- commit 8 — `.github/pull_request_template.md`
-- commit 9 — README scaffold (다른 사람이 레포만 보고도 이해 가능하게 풍부하게)
-- develop 브랜치 생성
-- (선택) GitHub 레포 생성 + push + branch protection
-- 단계 0 완료 시 `package.json` version `0.0.0` → `0.1.0`
+- NestJS 의존성 + standalone application 베이스 (`createApplicationContext`)
+- CLI 인자 파싱 (`--mode`, `--date`, `--dry-run`, `--source`, `--force`)
+- ConfigModule + .env 로딩, LoggingModule, SecretsModule
+- GithubModule: GithubApiClient (Octokit + throttling/retry)
+- GithubCollectorService: 4 search queries (KST→UTC 윈도우)
+- 검증: `node dist/main.js --date=$(date +%F) --dry-run --source=github`
+- 단계 1 완료 시 `0.1.0` → `0.2.0`
