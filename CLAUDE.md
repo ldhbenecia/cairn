@@ -66,7 +66,7 @@ pnpm format:check    # Prettier --check
 
 ## 커밋 / PR 컨벤션 (GitHub Flow — ADR 0006)
 
-- 모든 작업은 main에서 `feature/<slug>` (또는 `fix/`, `refactor/`, `docs/`, `chore/`) 브랜치를 파서 진행 → PR(target: main) → 머지 → 브랜치 삭제 → main pull
+- 모든 작업은 main에서 `feature/<slug>` (또는 `fix/`, `refactor/`, `docs/`, `chore/`) 브랜치를 파서 진행 → PR(target: main) → 머지 → 로컬 main pull. 브랜치는 머지 후에도 **삭제하지 않고 보관** (이력 추적용)
 - main 직접 push 금지
 - 머지 정책: rebase merge (잘 쪼갠 커밋 보존)
 - Conventional Commits: `type(scope): 한국어 주제` (subject 한국어 우선, 영어 명사구 OK; body 한국어)
