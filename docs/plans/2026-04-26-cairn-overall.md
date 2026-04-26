@@ -24,7 +24,7 @@
 ### 브랜치 전략 (GitHub Flow — ADR 0006)
 - **`main`** 단일 트렁크. 직접 push 금지.
 - **작업 브랜치** — `feature/<slug>`, `fix/<slug>`, `refactor/<slug>`, `docs/<slug>`, `chore/<slug>` (prefix 풀네임). main에서 분기 → PR(target: main) → 머지 → 브랜치 삭제 → 로컬 main pull.
-- **머지 정책**: **rebase merge** (잘 쪼갠 커밋을 그대로 보존, linear history). wip 커밋 많은 PR은 squash.
+- **머지 정책**: **merge commit** (ADR 0007). `git log --first-parent main` 으로 PR 단위 훑기, 일반 `git log` 로 세부 커밋. rebase merge / squash 사용 X.
 - **PR 단위 원칙**: 한 PR은 한 가지 일만. 리뷰 30분 안에 끝나는 크기. 단계가 크면 잘게 쪼개기 (예: 1단계 = PR 2~3개: nestjs-skeleton / github-client / github-collector).
 - **단계 0의 흔적**: PR #1은 develop → main으로 진행됐음 (단계 0 종료 후 develop 폐기). 이후엔 모두 작업 브랜치 → main 패턴.
 
