@@ -16,6 +16,7 @@
 
 ## Checklist
 
+- [ ] PR 제목이 Conventional Commits 형식: `type(scope): 한국어 주제`
 - [ ] 커밋이 의미 단위로 잘게 분할됨
 - [ ] `package.json` version bump (단계 완료 PR은 minor, 그 외 patch — ADR 0005)
 - [ ] `docs/progress/` 일지 갱신, 단계 완료 시 진행률 표도 갱신

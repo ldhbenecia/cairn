@@ -64,12 +64,15 @@ pnpm format:check    # Prettier --check
 - **작업 시작 시**: `docs/progress/YYYY-MM-DD-<slug>.md` 일지 생성 + README 갱신 (`.claude/rules/progress-update.md` 참조)
 - **단계 완료 시**: 진행률 표 ✅ + version bump + develop으로 PR 머지
 
-## 커밋 / PR 컨벤션
+## 커밋 / PR 컨벤션 (GitHub Flow — ADR 0006)
 
-- Conventional Commits: `type(scope): subject` (subject 영어, body 한국어)
+- 모든 작업은 main에서 `feature/<slug>` (또는 `fix/`, `refactor/`, `docs/`, `chore/`) 브랜치를 파서 진행 → PR(target: main) → 머지 → 브랜치 삭제 → main pull
+- main 직접 push 금지
+- 머지 정책: rebase merge (잘 쪼갠 커밋 보존)
+- Conventional Commits: `type(scope): 한국어 주제` (subject 한국어 우선, 영어 명사구 OK; body 한국어)
 - 의미 단위로 잘게 분할 (한 PR = 한 커밋 금지)
-- feature → develop는 rebase merge, develop → main은 merge commit
-- PR마다 `package.json` version SemVer 따라 bump
+- PR마다 `package.json` version SemVer 따라 bump (ADR 0005)
+- PR 제목도 Conventional Commits 형식 (`Stage 0:` 같은 형식 X)
 
 ## 살아있는 plan
 

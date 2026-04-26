@@ -21,17 +21,17 @@
 
 ## Git / PR 워크플로우
 
-### 브랜치 전략 (Git Flow lite)
-- **`main`** — 안정. 직접 푸시 금지. `develop`에서만 머지.
-- **`develop`** — 작업 통합 브랜치. feature 브랜치에서 PR로만 머지.
-- **작업 브랜치** — `feat/<short-desc>`, `fix/<short-desc>`, `refactor/<short-desc>`, `docs/<short-desc>`, `chore/<short-desc>`. 단계 단위 또는 더 잘게.
-- **머지 정책**: feature → develop는 **rebase merge** (잘 쪼갠 커밋을 그대로 보존, linear history). develop → main은 **merge commit** (릴리즈 시점 보존).
-- **PR 단위 원칙**: 한 PR은 한 가지 일만. 리뷰 30분 안에 끝나는 크기. 단계가 크면 잘게 쪼개기 (예: 1단계 = PR 3개: skeleton / github client / github collector).
+### 브랜치 전략 (GitHub Flow — ADR 0006)
+- **`main`** 단일 트렁크. 직접 push 금지.
+- **작업 브랜치** — `feature/<slug>`, `fix/<slug>`, `refactor/<slug>`, `docs/<slug>`, `chore/<slug>` (prefix 풀네임). main에서 분기 → PR(target: main) → 머지 → 브랜치 삭제 → 로컬 main pull.
+- **머지 정책**: **rebase merge** (잘 쪼갠 커밋을 그대로 보존, linear history). wip 커밋 많은 PR은 squash.
+- **PR 단위 원칙**: 한 PR은 한 가지 일만. 리뷰 30분 안에 끝나는 크기. 단계가 크면 잘게 쪼개기 (예: 1단계 = PR 2~3개: nestjs-skeleton / github-client / github-collector).
+- **단계 0의 흔적**: PR #1은 develop → main으로 진행됐음 (단계 0 종료 후 develop 폐기). 이후엔 모두 작업 브랜치 → main 패턴.
 
 ### 커밋 단위 원칙
-- PR 안에서도 커밋은 **의미 단위로 잘게**. "한 PR = 한 커밋" 금지. rebase merge라 develop에 그대로 들어감.
+- PR 안에서도 커밋은 **의미 단위로 잘게**. "한 PR = 한 커밋" 금지. rebase merge라 main에 그대로 들어감.
 - 한 커밋 = 한 가지 변경 + 그것만으로 빌드/테스트가 깨지지 않는 상태.
-- 머지 직전 `git rebase -i develop`으로 fixup/reorder 정리.
+- 머지 직전 `git rebase -i main`으로 fixup/reorder 정리.
 - 좋은 분할 예시 (PR "feat(github): GitHub collector"):
   1. `chore(github): add octokit + plugin dependencies`
   2. `feat(github): add GithubApiClient with throttling and retry`
@@ -93,7 +93,7 @@
 - **commitlint + Husky `commit-msg`** — 형식 위반 커밋 차단
 - **lint-staged + Husky `pre-commit`** — staged 파일에 `prettier --write` + `eslint --fix` 자동 적용 (커밋 시점에 자동 정리되므로 린트 일탈 자체가 불가능한 구조)
 - **`pre-push` 훅** — `pnpm typecheck && pnpm lint && pnpm test --silent --bail` (느리면 test만 수동)
-- **GitHub branch protection** (수동 설정): `main`/`develop` 직접 푸시 금지, PR 필수
+- **GitHub branch protection** (수동 설정): `main` 직접 푸시 금지, PR 필수
 - **CHANGELOG 자동화**는 v1 밖.
 
 ### 코드 품질 도구 (0단계에서 완성, 이후 손대지 않음)
@@ -371,8 +371,8 @@ cairn/
      7. `docs(decisions): add ADR 0001-0004`
      8. `chore(github): add PR template`
      9. `docs(repo): add README scaffold`
-   - main에 위 커밋들 → `git checkout -b develop` → 이후 모든 작업은 develop에서 분기.
-   - GitHub 레포 생성 후 push, branch protection(main/develop 보호) 수동 설정.
+   - 단계 0 시점에는 develop을 만들었으나 단계 0 종료 후 폐기 → ADR 0006. 이후 모든 작업은 main에서 작업 브랜치를 파서 진행.
+   - GitHub 레포 생성 후 push, branch protection(main 보호) 수동 설정.
 1. **NestJS 스켈레톤 + GitHub 수집** (1~2일) — `nest new` 후 `--dry-run --source=github`, 본인 PR/리뷰/코멘트 콘솔 출력. PROGRESS.md 1단계 ✅
 2. **로컬 Git 수집** (1일) — pushed/unpushed 분류, merge commit 제외 검증.
 3. **Notion 수집** (0.5일) — `MY_NOTION_USER_ID` 헬퍼 CLI 포함.
