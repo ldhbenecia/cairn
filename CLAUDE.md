@@ -28,12 +28,14 @@ cairn/
 ├── CLAUDE.md                  # 이 파일
 ├── .claude/rules/             # Claude가 따라야 할 세부 규칙들
 ├── docs/
-│   ├── plan.md                # 살아있는 plan (변경은 여기서)
-│   ├── PROGRESS.md            # 단계별 체크리스트
+│   ├── plans/                 # 살아있는 plan (YYYY-MM-DD-<slug>.md 누적)
+│   │   └── README.md          # plan 인덱스
+│   ├── progress/              # 작업 일지 (YYYY-MM-DD-<slug>.md 누적)
+│   │   └── README.md          # 단계 진행률 표 + 일지 인덱스
 │   ├── decisions/             # ADR (비자명한 결정)
 │   ├── SETUP.md               # 머신별 셋업 가이드
 │   ├── SECURITY.md, PROMPT.md
-│   └── notes/                 # 개발 중 시행착오
+│   └── notes/                 # 짧은 메모 (일지·ADR로 옮길 정도는 아닌 것)
 ├── src/                       # NestJS standalone application
 ├── ops/                       # launchd plist + install script
 └── .github/pull_request_template.md
@@ -52,14 +54,15 @@ pnpm format:check    # Prettier --check
 
 ## 작업 시작 전 체크
 
-1. `docs/PROGRESS.md` 읽고 현재 단계 파악
+1. `docs/progress/README.md`로 현재 단계 파악, 최근 일지 한두 개 훑기
 2. 관련 ADR(`docs/decisions/`) 확인
 3. `.claude/rules/` 의 규칙 떠올리기
 
 ## 결정/진행 기록
 
 - **비자명한 결정**: `docs/decisions/NNNN-kebab-case.md` ADR 추가 (`.claude/rules/decisions-workflow.md` 참조)
-- **단계 완료 시**: `docs/PROGRESS.md` 갱신 + 커밋 (`.claude/rules/progress-update.md` 참조)
+- **작업 시작 시**: `docs/progress/YYYY-MM-DD-<slug>.md` 일지 생성 + README 갱신 (`.claude/rules/progress-update.md` 참조)
+- **단계 완료 시**: 진행률 표 ✅ + version bump + develop으로 PR 머지
 
 ## 커밋 / PR 컨벤션
 
@@ -70,4 +73,4 @@ pnpm format:check    # Prettier --check
 
 ## 살아있는 plan
 
-전체 설계는 [docs/plan.md](docs/plan.md). 변경사항은 거기에 직접 반영.
+큰 그림은 [docs/plans/2026-04-26-cairn-overall.md](docs/plans/2026-04-26-cairn-overall.md). plan은 `docs/plans/YYYY-MM-DD-<slug>.md`로 누적. 인덱스: [docs/plans/README.md](docs/plans/README.md).

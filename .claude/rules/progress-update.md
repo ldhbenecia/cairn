@@ -1,44 +1,54 @@
-# PROGRESS.md 갱신 규칙
+# Progress 일지 작성 규칙
 
-## 언제 갱신하나
+## 위치 / 파일명
 
-- **단계 시작 시**: 해당 단계의 sub-task가 시작됨을 표시 (`- [ ]` → `- [-]` 또는 그냥 진행 중 표시)
-- **sub-task 완료 시**: `- [ ]` → `- [x]`
-- **단계 전체 완료 시**: 단계 헤더 옆에 ✅ + 완료 일자 (YYYY-MM-DD KST), 다음 단계로 명시적으로 이동
+- 디렉토리: `docs/progress/`
+- 인덱스: `docs/progress/README.md` (단계별 진행률 표 + 일지 시간 역순)
+- 일지 파일: `docs/progress/YYYY-MM-DD-<slug>.md` (KST 기준)
+  - slug는 작업 주제, kebab-case (예: `repo-scaffold`, `github-collector`, `debug-husky`, `agent-harness-design`, `notion-publisher`, `auth-redesign`)
+  - 한 날에 여러 작업이면 여러 파일 OK
 
-## 어떻게 갱신하나
+## 언제 작성하나
 
-1. `docs/PROGRESS.md` 파일을 직접 수정
-2. **갱신은 별도 commit**으로 (한 PR의 마지막 커밋이 PROGRESS 업데이트가 되는 패턴이 자연스러움)
-3. 메시지: `docs(progress): mark stage N <짧은 설명>`
-   - 예: `docs(progress): complete stage 0 (repo scaffold)`
+- **작업 시작 시**: 새 일지 파일 생성 + README의 "일지" 목록에 한 줄 추가
+- **sub-task 완료 시**: 해당 일지의 "완료" 섹션에 즉시 추가
+- **단계 전체 완료 시**: README의 진행률 표 갱신 (✅ + 완료 일자) + `package.json` version bump + develop으로 PR 머지
 
-## 형식 (예시)
+## 일지 파일 형식 (예시)
 
 ```markdown
-# PROGRESS
+# YYYY-MM-DD — <slug>
 
-## 단계 0: 레포 + 문서 + 품질 도구 셋업 ✅ (2026-04-26)
-- [x] git init + 디렉토리 트리
-- [x] pnpm + TypeScript
-- [x] ESLint + Prettier
-- [x] Husky + commitlint + lint-staged
-- [x] VSCode 설정
-- [x] CLAUDE.md + .claude/rules
-- [x] docs/plan.md + PROGRESS.md
-- [x] ADR 0001-0005
-- [x] PR template
-- [x] README scaffold
-- [x] develop 브랜치
+> 진행 단계: **N — <단계 제목>** (시작 / 진행 중 / 마무리)
+> 상태: 진행 중 | 완료
 
-## 단계 1: NestJS 스켈레톤 + GitHub 수집 (진행 중)
-- [ ] nest 베이스 셋업 (수동, NestJS 공식 컨벤션 따라)
-- [ ] GithubApiClient (Octokit 래퍼)
-- [ ] GithubCollectorService (4 search queries)
-- [ ] dry-run CLI
+## 완료
+- ...
+
+## 진행 중
+- ...
+
+## 시행착오 / 결정
+- ...
+- 비자명한 결정은 별도 ADR(`docs/decisions/`)로도 옮김
+
+## 다음
+- ...
 ```
 
-## 안 하는 것
+## 갱신 commit
 
-- 진행 중 sub-task의 자세한 상태/이슈 적기 (그건 `docs/notes/`에)
-- 한 번에 묶어서 며칠치 갱신하기 (sub-task 완료마다 즉시 갱신, 가끔 잊어도 같은 PR 안에선 정리)
+- `docs(progress): YYYY-MM-DD-<slug>` (새 일지 생성)
+- `docs(progress): update <slug>` (기존 일지 갱신)
+- `docs(progress): mark stage N complete` (단계 완료, README + 일지 둘 다 갱신)
+
+## 중복 방지
+
+- 같은 slug를 한 날에 두 번 만들지 말 것 (이어쓰기)
+- 다른 작업이면 다른 slug
+
+## ADR과의 관계
+
+- 일지의 "시행착오 / 결정"은 그날의 흐름·맥락 기록 (왜 그 시점에 그렇게 결정했는지)
+- 그중 **장기적으로 살아남을 결정**은 ADR로 옮김 (`docs/decisions/NNNN-<slug>.md`)
+- 일지에서 ADR을 참조: `→ ADR 0006`
