@@ -20,6 +20,13 @@
 
 - (없음 — PR #8 마감)
 
+## 추가 (PR 진행 중 합쳐진 작업)
+
+- **CLAUDE.md 재구성**: "Behavioral guidelines to reduce common LLM coding mistakes" 4 섹션 + 마지막 `## Project context (cairn)` 섹션. 기존 cairn 특화 내용은 룰/ADR 인덱스 형태로만 남김.
+- **`.claude/rules/work-start-checklist.md`** 신설 — 작업 시작 시 progress/ADR/plan/룰 잡는 순서 (기존 CLAUDE.md "작업 시작 전 체크" 발췌)
+- **`.claude/rules/git-conventions.md`** 신설 — 브랜치/커밋/PR 컨벤션. subject 한국어 명사구 우선, body bullet 강제, Co-Authored-By 는 자유
+- **README.md 영어 정리** — 한국어·주저리주저리·아키텍처 다이어그램 제거, 표준 OSS 톤 (Description / Status / Requirements / Setup / Commands / Usage / Documentation / License)
+
 ## 시행착오 / 결정
 
 - **파일명 = `worklog.config.json` (plan 그대로)**: cairn 으로 이름 바꾼 후에도 plan 표기는 worklog.config.json. 새 이름(`cairn.config.json`)으로 갈지 고민했지만 plan 결정 뒤집을 가치 없어서 plan 따름.
