@@ -9,6 +9,8 @@ export const envSchema = z.object({
   NOTION_TOKEN: z.string().optional(),
   ANTHROPIC_OAUTH_TOKEN: z.string().optional(),
   MY_NOTION_USER_ID: z.string().optional(),
+
+  CAIRN_CONFIG_PATH: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
