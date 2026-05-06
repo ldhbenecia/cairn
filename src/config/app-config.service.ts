@@ -18,6 +18,10 @@ export class AppConfigService {
     return this.config.get('LOG_LEVEL', { infer: true });
   }
 
+  get cairnConfigPath(): string | undefined {
+    return this.config.get('CAIRN_CONFIG_PATH', { infer: true });
+  }
+
   get isProduction(): boolean {
     return this.nodeEnv === 'production';
   }
