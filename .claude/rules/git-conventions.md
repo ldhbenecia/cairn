@@ -1,0 +1,42 @@
+# Git / 커밋 / PR 컨벤션
+
+## 브랜치 (GitHub Flow — ADR 0006)
+
+- `main` 단일 트렁크. 직접 push 금지
+- 작업 브랜치: `feature/<slug>`, `fix/<slug>`, `refactor/<slug>`, `docs/<slug>`, `chore/<slug>` (prefix 풀네임)
+- 흐름: main → 분기 → PR(target: main) → 머지 → 로컬 main pull. 브랜치는 머지 후 **삭제하지 않고 보관**(이력 추적)
+- 머지 정책: **merge commit** (ADR 0007). rebase merge / squash X. `git log --first-parent main` 으로 PR 단위 훑기
+
+## 커밋 (Conventional Commits)
+
+- 형식: `type(scope): subject`
+- type: `feat` | `fix` | `refactor` | `perf` | `docs` | `test` | `chore` | `build` | `ci` | `style` | `revert`
+- scope 예: `github`, `local-git`, `notion`, `summarizer`, `rollup`, `state`, `ops`, `config`, `repo`, `release`
+- **subject 톤**: 한국어 명사구 우선. 영어 명령형 동사(`add`, `update`) 가능하면 피함
+  - 좋음: `feat(github): GithubCollectorService — 4 search queries + dedup`
+  - 피함: `feat(github): add github collector`
+- **body 톤**: 반드시 bullet (`- `). 일반 문장 단락 X
+  - 한 줄에 한 변경/이유. 읽는 쪽이 훑기 쉽게
+- WHY 를 적음. WHAT 은 diff 가 말해줌
+- footer: `Refs:`, `Closes #N`, `BREAKING CHANGE:`
+- **Co-Authored-By 트레일러**: Claude 가 만든 커밋이면 붙여도 OK, 안 붙여도 OK (강제 아님). 일관성보다는 그때그때 자연스럽게
+
+## 의미 단위 커밋
+
+- 한 PR 안에서도 커밋은 의미 단위로 잘게. **"한 PR = 한 커밋" 금지**
+- 한 커밋 = 한 가지 변경 + 빌드/테스트가 깨지지 않는 상태
+- 좋은 분할 예 (PR "feat: GitHub collector"):
+  1. `chore(github): octokit + plugin 의존`
+  2. `feat(github): GithubApiClient — throttling + retry`
+  3. `feat(contracts): GithubActivity 화이트리스트 타입`
+  4. `feat(github): GithubCollectorService — 4 search queries`
+  5. `docs(progress): mark stage 1 ✅`
+- 피함: `feat(github): everything for github collector`
+
+## PR
+
+- 제목도 Conventional Commits 형식 (`Stage 0:` 같은 형식 X)
+- 본문은 [.github/pull_request_template.md](../../.github/pull_request_template.md) 양식 그대로 (체크리스트 빠뜨리지 말 것)
+- PR 단위: 한 PR 은 한 가지 일. 리뷰 30 분 이내 사이즈
+- PR 마다 `package.json` version SemVer bump (ADR 0005)
+- PR 직렬화: 다음 작업은 직전 PR 머지 후 시작
