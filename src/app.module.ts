@@ -4,6 +4,7 @@ import { AppConfigModule } from './config/app-config.module.js';
 import { GithubModule } from './github/github.module.js';
 import { LocalGitModule } from './local-git/local-git.module.js';
 import { LoggingModule } from './logging/logging.module.js';
+import { NotionModule } from './notion/notion.module.js';
 import { SecretsModule } from './secrets/secrets.module.js';
 import { WorklogConfigModule } from './worklog-config/worklog-config.module.js';
 
@@ -15,6 +16,7 @@ import { WorklogConfigModule } from './worklog-config/worklog-config.module.js';
     WorklogConfigModule,
     GithubModule,
     LocalGitModule,
+    NotionModule,
     CairnModule,
   ],
 })
