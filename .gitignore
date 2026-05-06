@@ -10,6 +10,9 @@ dist/
 .env.*
 !.env.example
 
+# machine-local config (absolute repo paths inside, never commit)
+worklog.config.json
+
 # runtime data (cairn local state lives at ~/.cairn/, but never commit if mirrored)
 .cairn/
 
