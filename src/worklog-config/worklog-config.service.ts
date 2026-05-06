@@ -3,10 +3,14 @@ import { resolve } from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { AppConfigService } from '../config/app-config.service.js';
-import { worklogConfigSchema, type WorklogConfig } from './worklog-config.schema.js';
+import {
+  worklogConfigSchema,
+  type NotionWorkspaceConfig,
+  type WorklogConfig,
+} from './worklog-config.schema.js';
 
 const DEFAULT_FILENAME = 'worklog.config.json';
-const EMPTY_CONFIG: WorklogConfig = { localGitRepos: [] };
+const EMPTY_CONFIG: WorklogConfig = { localGitRepos: [], notionWorkspaces: [] };
 
 @Injectable()
 export class WorklogConfigService {
@@ -32,7 +36,11 @@ export class WorklogConfigService {
     const parsed: unknown = JSON.parse(raw);
     this.cached = worklogConfigSchema.parse(parsed);
     this.logger.info(
-      { path, localGitRepoCount: this.cached.localGitRepos.length },
+      {
+        path,
+        localGitRepoCount: this.cached.localGitRepos.length,
+        notionWorkspaceCount: this.cached.notionWorkspaces.length,
+      },
       'worklog config loaded',
     );
     return this.cached;
@@ -40,6 +48,10 @@ export class WorklogConfigService {
 
   getLocalGitRepos(): readonly string[] {
     return this.load().localGitRepos;
+  }
+
+  getNotionWorkspaces(): readonly NotionWorkspaceConfig[] {
+    return this.load().notionWorkspaces;
   }
 
   private resolvePath(): string {

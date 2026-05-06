@@ -10,32 +10,25 @@ export class SecretsService {
     return this.config.get('GITHUB_TOKEN', { infer: true });
   }
 
-  notionToken(): string | undefined {
-    return this.config.get('NOTION_TOKEN', { infer: true });
-  }
-
   anthropicOauthToken(): string | undefined {
     return this.config.get('ANTHROPIC_OAUTH_TOKEN', { infer: true });
   }
 
-  myNotionUserId(): string | undefined {
-    return this.config.get('MY_NOTION_USER_ID', { infer: true });
+  getEnv(name: string): string | undefined {
+    const value = process.env[name];
+    return value && value.length > 0 ? value : undefined;
   }
 
   requireGithubToken(): string {
     return this.requireOne(this.githubToken(), 'GITHUB_TOKEN');
   }
 
-  requireNotionToken(): string {
-    return this.requireOne(this.notionToken(), 'NOTION_TOKEN');
-  }
-
   requireAnthropicOauthToken(): string {
     return this.requireOne(this.anthropicOauthToken(), 'ANTHROPIC_OAUTH_TOKEN');
   }
 
-  requireMyNotionUserId(): string {
-    return this.requireOne(this.myNotionUserId(), 'MY_NOTION_USER_ID');
+  requireEnv(name: string): string {
+    return this.requireOne(this.getEnv(name), name);
   }
 
   private requireOne(value: string | undefined, name: string): string {
