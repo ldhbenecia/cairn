@@ -6,9 +6,7 @@ export const envSchema = z.object({
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
 
   GITHUB_TOKEN: z.string().optional(),
-  NOTION_TOKEN: z.string().optional(),
   ANTHROPIC_OAUTH_TOKEN: z.string().optional(),
-  MY_NOTION_USER_ID: z.string().optional(),
 
   CAIRN_CONFIG_PATH: z.string().optional(),
 });
