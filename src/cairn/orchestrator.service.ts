@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { GithubCollectorService } from '../github/github-collector.service.js';
+import { LocalGitCollectorService } from '../local-git/local-git-collector.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
 
 @Injectable()
 export class OrchestratorService {
   constructor(
     private readonly githubCollector: GithubCollectorService,
+    private readonly localGitCollector: LocalGitCollectorService,
     @InjectPinoLogger(OrchestratorService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -27,23 +29,44 @@ export class OrchestratorService {
   }
 
   private async runDaily(options: RunOptions): Promise<void> {
-    if (!wantsSource(options.sources, 'github')) {
-      this.logger.warn({ sources: options.sources }, 'daily: github source not enabled — skipping');
+    const wantsGithub = wantsSource(options.sources, 'github');
+    const wantsLocalGit = wantsSource(options.sources, 'local-git');
+
+    if (!wantsGithub && !wantsLocalGit) {
+      this.logger.warn(
+        { sources: options.sources },
+        'daily: no enabled source — skipping (publisher not implemented yet)',
+      );
       return;
     }
 
-    const githubActivity = await this.githubCollector.collect(options.date);
+    const [githubActivity, localGitActivity] = await Promise.all([
+      wantsGithub ? this.githubCollector.collect(options.date) : Promise.resolve(null),
+      wantsLocalGit ? this.localGitCollector.collect(options.date) : Promise.resolve(null),
+    ]);
 
     if (options.dryRun) {
-      process.stdout.write('--- github activity (dry-run) ---\n');
-      process.stdout.write(JSON.stringify(githubActivity, null, 2));
-      process.stdout.write('\n');
-    } else {
-      this.logger.info(
-        { prCount: githubActivity.prs.length },
-        'daily: github activity collected (publisher not implemented yet)',
-      );
+      if (githubActivity) {
+        process.stdout.write('--- github activity (dry-run) ---\n');
+        process.stdout.write(JSON.stringify(githubActivity, null, 2));
+        process.stdout.write('\n');
+      }
+      if (localGitActivity) {
+        process.stdout.write('--- local-git activity (dry-run) ---\n');
+        process.stdout.write(JSON.stringify(localGitActivity, null, 2));
+        process.stdout.write('\n');
+      }
+      return;
     }
+
+    this.logger.info(
+      {
+        prCount: githubActivity?.prs.length ?? 0,
+        repoCount: localGitActivity?.repos.length ?? 0,
+        commitCountTotal: localGitActivity?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0,
+      },
+      'daily: activity collected (publisher not implemented yet)',
+    );
   }
 }
 
