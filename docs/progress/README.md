@@ -11,7 +11,7 @@
 |------|------|------|
 | 0 | 레포 + 문서 + 품질 도구 셋업 | ✅ 2026-04-26 |
 | 1 | NestJS 스켈레톤 + GitHub 수집 | ✅ 2026-04-26 |
-| 2 | 로컬 Git 수집 | — |
+| 2 | 로컬 Git 수집 | ✅ 2026-05-06 |
 | 3 | Notion 수집 | — |
 | 4 | Notion publisher (일지) | — |
 | 5 | Summarizer agent harness (daily) | — |
