@@ -27,7 +27,7 @@
     ]
   },
   "packageManager": "pnpm@10.33.2",
-  "license": "UNLICENSED",
+  "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "@commitlint/cli": "^20.5.2",
     "@commitlint/config-conventional": "^20.5.0",
