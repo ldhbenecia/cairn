@@ -1,7 +1,7 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { AppConfigService } from '../config/app-config.service.js';
 import {
   worklogConfigSchema,
@@ -52,6 +52,48 @@ export class WorklogConfigService {
 
   getNotionWorkspaces(): readonly NotionWorkspaceConfig[] {
     return this.load().notionWorkspaces;
+  }
+
+  persistWorklogTarget(
+    workspaceLabel: string,
+    ids: { databaseId: string; dataSourceId: string },
+  ): void {
+    const path = this.resolvePath();
+    if (!existsSync(path)) {
+      throw new Error(`persistWorklogTarget: config not found at ${path}`);
+    }
+
+    const raw = readFileSync(path, 'utf8');
+    const parsed: unknown = JSON.parse(raw);
+    const config = worklogConfigSchema.parse(parsed);
+
+    let matched = false;
+    const next: WorklogConfig = {
+      ...config,
+      notionWorkspaces: config.notionWorkspaces.map((ws) => {
+        if (ws.label !== workspaceLabel) return ws;
+        matched = true;
+        return {
+          ...ws,
+          worklog: {
+            ...ws.worklog,
+            databaseId: ids.databaseId,
+            dataSourceId: ids.dataSourceId,
+          },
+        };
+      }),
+    };
+
+    if (!matched) {
+      throw new Error(`persistWorklogTarget: workspace ${workspaceLabel} not found in config`);
+    }
+
+    writeFileSync(path, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+    this.cached = next;
+    this.logger.info(
+      { workspace: workspaceLabel, ...ids, path },
+      'worklog config: worklog.databaseId / dataSourceId 자동 저장',
+    );
   }
 
   private resolvePath(): string {
