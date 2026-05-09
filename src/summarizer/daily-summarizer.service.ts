@@ -79,17 +79,32 @@ export class DailySummarizerService {
       });
 
       for await (const message of q) {
-        if (message.type === 'assistant') {
-          const inner = (message as { message?: { usage?: unknown } }).message;
-          if (inner?.usage && typeof inner.usage === 'object') {
-            const u = inner.usage as { input_tokens?: number; output_tokens?: number };
-            inputTokens += typeof u.input_tokens === 'number' ? u.input_tokens : 0;
-            outputTokens += typeof u.output_tokens === 'number' ? u.output_tokens : 0;
-          }
-        } else if (message.type === 'result') {
+        if (message.type === 'result') {
           resultSubtype = message.subtype;
           if ('total_cost_usd' in message && typeof message.total_cost_usd === 'number') {
             costUsd = message.total_cost_usd;
+          }
+          const modelUsage = (
+            message as {
+              modelUsage?: Record<
+                string,
+                {
+                  inputTokens?: number;
+                  outputTokens?: number;
+                  cacheReadInputTokens?: number;
+                  cacheCreationInputTokens?: number;
+                }
+              >;
+            }
+          ).modelUsage;
+          if (modelUsage) {
+            for (const u of Object.values(modelUsage)) {
+              inputTokens +=
+                (typeof u.inputTokens === 'number' ? u.inputTokens : 0) +
+                (typeof u.cacheReadInputTokens === 'number' ? u.cacheReadInputTokens : 0) +
+                (typeof u.cacheCreationInputTokens === 'number' ? u.cacheCreationInputTokens : 0);
+              outputTokens += typeof u.outputTokens === 'number' ? u.outputTokens : 0;
+            }
           }
         }
       }
