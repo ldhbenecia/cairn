@@ -66,4 +66,8 @@ Modes: `daily`, `weekly`, `monthly`. Sources can be limited with repeated `--sou
 
 ## License
 
-UNLICENSED. Personal tool; public for reference. Fork freely.
+[AGPL-3.0-or-later](LICENSE). Copyright (C) 2026 Donghyeok Lim.
+
+Source code is public for reference and forks. Any derivative work — including
+modifications and any service that exposes this software over a network — must
+also be licensed under AGPL-3.0-or-later and provide its full source to users.

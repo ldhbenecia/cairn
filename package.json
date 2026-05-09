@@ -1,6 +1,6 @@
 {
   "name": "cairn",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "private": true,
   "description": "Automatic worklog and rollup tool that aggregates GitHub, local Git, and Notion activity into Notion pages.",
   "engines": {
@@ -27,7 +27,7 @@
     ]
   },
   "packageManager": "pnpm@10.33.2",
-  "license": "UNLICENSED",
+  "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "@commitlint/cli": "^20.5.2",
     "@commitlint/config-conventional": "^20.5.0",
