@@ -79,15 +79,17 @@ export class DailySummarizerService {
       });
 
       for await (const message of q) {
-        if (message.type === 'result') {
+        if (message.type === 'assistant') {
+          const inner = (message as { message?: { usage?: unknown } }).message;
+          if (inner?.usage && typeof inner.usage === 'object') {
+            const u = inner.usage as { input_tokens?: number; output_tokens?: number };
+            inputTokens += typeof u.input_tokens === 'number' ? u.input_tokens : 0;
+            outputTokens += typeof u.output_tokens === 'number' ? u.output_tokens : 0;
+          }
+        } else if (message.type === 'result') {
           resultSubtype = message.subtype;
           if ('total_cost_usd' in message && typeof message.total_cost_usd === 'number') {
             costUsd = message.total_cost_usd;
-          }
-          if ('usage' in message && message.usage && typeof message.usage === 'object') {
-            const u = message.usage as { input_tokens?: number; output_tokens?: number };
-            inputTokens = typeof u.input_tokens === 'number' ? u.input_tokens : 0;
-            outputTokens = typeof u.output_tokens === 'number' ? u.output_tokens : 0;
           }
         }
       }
