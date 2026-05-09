@@ -17,10 +17,12 @@ export interface GithubPrSummary {
   categories: readonly GithubActivityCategory[];
 }
 
+import type { CairnError } from '../common/error.js';
+
 export interface GithubActivity {
   date: string;
   rangeStart: string;
   rangeEnd: string;
   prs: readonly GithubPrSummary[];
-  error?: string;
+  error?: CairnError;
 }

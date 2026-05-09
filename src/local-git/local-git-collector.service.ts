@@ -1,6 +1,7 @@
 import { basename } from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { CairnError } from '../common/error.js';
 import type {
   LocalGitActivity,
   LocalGitCommitSummary,
@@ -44,8 +45,9 @@ export class LocalGitCollectorService {
       if (result.status === 'fulfilled') return result.value;
       const path = repoPaths[idx];
       const repo = path ? basename(path) : 'unknown';
-      this.logger.warn({ path, err: errorMessage(result.reason) }, 'local-git repo failed');
-      return { repo, commitCount: 0, commits: [], error: errorMessage(result.reason) };
+      const error = CairnError.from(result.reason, 'local-git');
+      this.logger.warn({ path, error }, 'local-git repo failed');
+      return { repo, commitCount: 0, commits: [], error };
     });
 
     this.logger.info(
@@ -68,12 +70,12 @@ export class LocalGitCollectorService {
     const repo = basename(repoPath);
 
     if (!(await this.client.checkIsRepo(repoPath))) {
-      return { repo, commitCount: 0, commits: [], error: 'not a git repository' };
+      return { repo, commitCount: 0, commits: [], error: CairnError.gitRepoNotFound() };
     }
 
     const email = await this.client.getUserEmail(repoPath);
     if (!email) {
-      return { repo, commitCount: 0, commits: [], error: 'git config user.email is empty' };
+      return { repo, commitCount: 0, commits: [], error: CairnError.gitEmailMissing() };
     }
 
     const raw = await this.client.listCommits(repoPath, since, until, email);
@@ -111,9 +113,4 @@ function pickBranch(branches: readonly string[]): string | null {
 function isTrunkBranch(branch: string): boolean {
   if (TRUNK_NAMES.has(branch)) return true;
   return TRUNK_PREFIXES.some((prefix) => branch.startsWith(prefix));
-}
-
-function errorMessage(reason: unknown): string {
-  if (reason instanceof Error) return reason.message;
-  return String(reason);
 }

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { CairnError } from '../common/error.js';
 import type {
   NotionActivity,
   NotionPageEdit,
@@ -55,11 +56,9 @@ export class NotionCollectorService {
       if (result.status === 'fulfilled') return result.value;
       const cfg = workspaceConfigs[idx];
       const label = cfg?.label ?? 'unknown';
-      this.logger.warn(
-        { workspace: label, err: errorMessage(result.reason) },
-        'notion workspace failed',
-      );
-      return { workspace: label, pageCount: 0, pages: [], error: errorMessage(result.reason) };
+      const error = CairnError.from(result.reason, 'notion');
+      this.logger.warn({ workspace: label, error }, 'notion workspace failed');
+      return { workspace: label, pageCount: 0, pages: [], error };
     });
 
     this.logger.info(
@@ -85,7 +84,7 @@ export class NotionCollectorService {
         workspace: cfg.label,
         pageCount: 0,
         pages: [],
-        error: `env var ${cfg.tokenEnv} is empty`,
+        error: CairnError.notionTokenMissing(cfg.tokenEnv),
       };
     }
 
@@ -133,9 +132,4 @@ function toEdit(raw: RawNotionPage): NotionPageEdit {
     lastEditedAt: raw.lastEditedTime,
     parentType: raw.parentType,
   };
-}
-
-function errorMessage(reason: unknown): string {
-  if (reason instanceof Error) return reason.message;
-  return String(reason);
 }

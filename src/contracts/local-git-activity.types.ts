@@ -6,11 +6,13 @@ export interface LocalGitCommitSummary {
   pushed: boolean;
 }
 
+import type { CairnError } from '../common/error.js';
+
 export interface LocalGitRepoActivity {
   repo: string;
   commitCount: number;
   commits: readonly LocalGitCommitSummary[];
-  error?: string;
+  error?: CairnError;
 }
 
 export interface LocalGitActivity {
