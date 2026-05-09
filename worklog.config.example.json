@@ -4,12 +4,14 @@
     {
       "label": "personal",
       "tokenEnv": "NOTION_TOKEN_PERSONAL",
-      "myUserId": "00000000-0000-0000-0000-000000000000"
+      "myUserId": "00000000-0000-0000-0000-000000000000",
+      "worklogParentPageId": "00000000-0000-0000-0000-000000000000"
     },
     {
       "label": "work",
       "tokenEnv": "NOTION_TOKEN_WORK",
-      "myUserId": "ffffffff-ffff-ffff-ffff-ffffffffffff"
+      "myUserId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "worklogParentPageId": "ffffffff-ffff-ffff-ffff-ffffffffffff"
     }
   ]
 }
