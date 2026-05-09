@@ -72,4 +72,15 @@ describe('assertNoForbiddenPayload', () => {
     expect(() => assertNoForbiddenPayload('safe Korean text 안전한 문자열', 'test')).not.toThrow();
     expect(() => assertNoForbiddenPayload('contains diff word', 'test')).toThrow(/diff-keyword/);
   });
+
+  it('PR body 시뮬레이션 — 정상 markdown 통과', () => {
+    const clean =
+      '## 📝 요약\n\n작업 내용 요약. graceful fallback / typed error 정리.\n\n## 🛠 작업 사항\n\n- 첫 번째 변경\n- 두 번째 변경';
+    expect(() => assertNoForbiddenPayload(clean, 'pr-body')).not.toThrow();
+  });
+
+  it('PR body 시뮬레이션 — unified-diff hunk 차단', () => {
+    const dirty = '## 변경\n\n```\n@@ -1,2 +1,2 @@\n- old\n+ new\n```';
+    expect(() => assertNoForbiddenPayload(dirty, 'pr-body')).toThrow(/unified-diff-hunk/);
+  });
 });
