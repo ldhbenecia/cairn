@@ -23,6 +23,7 @@ const githubActivity: GithubActivity = {
       mergedAt: '2026-05-09T05:00:00Z',
       changedFileNames: ['error.ts'],
       categories: ['authored', 'authored_merged'],
+      body: 'CairnError class + ErrorSource/ErrorCode enum 통합',
     },
     {
       repo: 'cairn',
@@ -37,6 +38,7 @@ const githubActivity: GithubActivity = {
       mergedAt: null,
       changedFileNames: ['schema.ts'],
       categories: ['authored'],
+      body: null,
     },
   ],
 };
