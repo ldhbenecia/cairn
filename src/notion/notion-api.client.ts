@@ -18,6 +18,32 @@ export interface SearchPagesResult {
   nextCursor: string | null;
 }
 
+export interface CreateWorklogDatabaseInput {
+  token: string;
+  parentPageId: string;
+  title: string;
+}
+
+export interface CreateWorklogDatabaseResult {
+  databaseId: string;
+  dataSourceId: string;
+}
+
+export interface CreateWorklogPageInput {
+  token: string;
+  dataSourceId: string;
+  date: string;
+  title: string;
+  sourceCounts: string;
+  tags?: readonly string[];
+  children?: readonly unknown[];
+}
+
+export interface ExistingWorklogPage {
+  pageId: string;
+  status: string | null;
+}
+
 interface NotionTitleProperty {
   type: 'title';
   title: readonly { plain_text: string }[];
@@ -61,6 +87,102 @@ export class NotionApiClient {
     }
 
     return { pages, nextCursor: res.has_more ? res.next_cursor : null };
+  }
+
+  async createWorklogDatabase(
+    input: CreateWorklogDatabaseInput,
+  ): Promise<CreateWorklogDatabaseResult> {
+    const client = this.getClient(input.token);
+    const res = await client.databases.create({
+      parent: { type: 'page_id', page_id: input.parentPageId },
+      title: [{ type: 'text', text: { content: input.title } }],
+      initial_data_source: {
+        properties: {
+          Title: { title: {} },
+          Date: { date: {} },
+          Tags: {
+            multi_select: {
+              options: [
+                { name: 'auto', color: 'default' },
+                { name: 'daily', color: 'blue' },
+              ],
+            },
+          },
+          'Source counts': { rich_text: {} },
+          Status: {
+            select: {
+              options: [
+                { name: 'draft', color: 'yellow' },
+                { name: 'final', color: 'green' },
+              ],
+            },
+          },
+        },
+      },
+    });
+    const dataSources = (res as { data_sources?: Array<{ id?: string }> }).data_sources;
+    const dataSourceId = dataSources?.[0]?.id;
+    if (!dataSourceId) {
+      throw new Error('createWorklogDatabase: response missing data_sources[0].id');
+    }
+    return { databaseId: res.id, dataSourceId };
+  }
+
+  async getPrimaryDataSourceId(token: string, databaseId: string): Promise<string> {
+    const client = this.getClient(token);
+    const res = await client.databases.retrieve({ database_id: databaseId });
+    const dataSources = (res as { data_sources?: Array<{ id?: string }> }).data_sources;
+    const dataSourceId = dataSources?.[0]?.id;
+    if (!dataSourceId) {
+      throw new Error(`getPrimaryDataSourceId: database ${databaseId} has no data_sources`);
+    }
+    return dataSourceId;
+  }
+
+  async findWorklogPageByDate(
+    token: string,
+    dataSourceId: string,
+    isoDate: string,
+  ): Promise<ExistingWorklogPage | null> {
+    const client = this.getClient(token);
+    const res = await client.dataSources.query({
+      data_source_id: dataSourceId,
+      filter: { property: 'Date', date: { equals: isoDate } },
+      page_size: 1,
+    });
+    const first = res.results[0];
+    if (!first || !('properties' in first)) return null;
+    const props = (first as { properties: Record<string, unknown> }).properties;
+    const statusProp = props.Status as { select?: { name?: string } | null } | undefined;
+    const status = statusProp?.select?.name ?? null;
+    return { pageId: first.id, status };
+  }
+
+  async createWorklogPage(
+    input: CreateWorklogPageInput,
+  ): Promise<{ id: string; url: string | null }> {
+    const client = this.getClient(input.token);
+    const tags = input.tags ?? ['auto', 'daily'];
+    const res = await client.pages.create({
+      parent: { type: 'data_source_id', data_source_id: input.dataSourceId },
+      properties: {
+        Title: { title: [{ type: 'text', text: { content: input.title } }] },
+        Date: { date: { start: input.date } },
+        Tags: { multi_select: tags.map((t) => ({ name: t })) },
+        'Source counts': {
+          rich_text: [{ type: 'text', text: { content: input.sourceCounts } }],
+        },
+        Status: { select: { name: 'draft' } },
+      },
+      ...(input.children ? { children: input.children as never } : {}),
+    });
+    const url = 'url' in res && typeof res.url === 'string' ? res.url : null;
+    return { id: res.id, url };
+  }
+
+  async archivePage(token: string, pageId: string): Promise<void> {
+    const client = this.getClient(token);
+    await client.pages.update({ page_id: pageId, archived: true });
   }
 
   private getClient(token: string): Client {
