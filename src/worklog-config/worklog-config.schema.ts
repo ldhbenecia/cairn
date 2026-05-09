@@ -1,12 +1,16 @@
 import { z } from 'zod';
 
+export const worklogTargetSchema = z.object({
+  pageId: z.uuid().optional(),
+  databaseId: z.uuid().optional(),
+  dataSourceId: z.uuid().optional(),
+});
+
 export const notionWorkspaceConfigSchema = z.object({
   label: z.string().min(1),
   tokenEnv: z.string().min(1),
   myUserId: z.uuid(),
-  worklogParentPageId: z.uuid().optional(),
-  worklogDatabaseId: z.uuid().optional(),
-  worklogDataSourceId: z.uuid().optional(),
+  worklog: worklogTargetSchema.optional(),
 });
 
 export const worklogConfigSchema = z.object({

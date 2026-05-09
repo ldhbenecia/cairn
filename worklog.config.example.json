@@ -5,13 +5,17 @@
       "label": "personal",
       "tokenEnv": "NOTION_TOKEN_PERSONAL",
       "myUserId": "00000000-0000-0000-0000-000000000000",
-      "worklogParentPageId": "00000000-0000-0000-0000-000000000000"
+      "worklog": {
+        "pageId": "00000000-0000-0000-0000-000000000000"
+      }
     },
     {
       "label": "work",
       "tokenEnv": "NOTION_TOKEN_WORK",
       "myUserId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
-      "worklogParentPageId": "ffffffff-ffff-ffff-ffff-ffffffffffff"
+      "worklog": {
+        "pageId": "ffffffff-ffff-ffff-ffff-ffffffffffff"
+      }
     }
   ]
 }
