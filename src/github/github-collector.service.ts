@@ -27,39 +27,56 @@ export class GithubCollectorService {
     const range = searchRangeFragment(window);
     this.logger.info({ date, range }, 'github collect start');
 
-    const [authored, authoredMerged, reviewed, commented] = await Promise.all([
-      this.client.searchPrs(`author:@me updated:${range}`),
-      this.client.searchPrs(`author:@me merged:${range}`),
-      this.client.searchPrs(`reviewed-by:@me updated:${range}`),
-      this.client.searchPrs(`commenter:@me updated:${range}`),
-    ]);
+    try {
+      const [authored, authoredMerged, reviewed, commented] = await Promise.all([
+        this.client.searchPrs(`author:@me updated:${range}`),
+        this.client.searchPrs(`author:@me merged:${range}`),
+        this.client.searchPrs(`reviewed-by:@me updated:${range}`),
+        this.client.searchPrs(`commenter:@me updated:${range}`),
+      ]);
 
-    const buckets = new Map<string, PrBucket>();
-    this.tag(buckets, authored, 'authored');
-    this.tag(buckets, authoredMerged, 'authored_merged');
-    this.tag(buckets, reviewed, 'reviewed');
-    this.tag(buckets, commented, 'commented');
+      const buckets = new Map<string, PrBucket>();
+      this.tag(buckets, authored, 'authored');
+      this.tag(buckets, authoredMerged, 'authored_merged');
+      this.tag(buckets, reviewed, 'reviewed');
+      this.tag(buckets, commented, 'commented');
 
-    const prs = await Promise.all([...buckets.values()].map((bucket) => this.toPrSummary(bucket)));
+      const prs = await Promise.all(
+        [...buckets.values()].map((bucket) => this.toPrSummary(bucket)),
+      );
 
-    this.logger.info(
-      {
+      this.logger.info(
+        {
+          date,
+          prCount: prs.length,
+          authored: authored.length,
+          authoredMerged: authoredMerged.length,
+          reviewed: reviewed.length,
+          commented: commented.length,
+        },
+        'github collect done',
+      );
+
+      return {
         date,
-        prCount: prs.length,
-        authored: authored.length,
-        authoredMerged: authoredMerged.length,
-        reviewed: reviewed.length,
-        commented: commented.length,
-      },
-      'github collect done',
-    );
-
-    return {
-      date,
-      rangeStart: window.startIso,
-      rangeEnd: window.endIso,
-      prs,
-    };
+        rangeStart: window.startIso,
+        rangeEnd: window.endIso,
+        prs,
+      };
+    } catch (err) {
+      const message = errorMessage(err);
+      this.logger.warn(
+        { date, err: message },
+        'github collect failed — returning empty activity (token / rate limit / network)',
+      );
+      return {
+        date,
+        rangeStart: window.startIso,
+        rangeEnd: window.endIso,
+        prs: [],
+        error: message,
+      };
+    }
   }
 
   private tag(
@@ -105,4 +122,9 @@ export class GithubCollectorService {
 function deriveState(item: SearchPrItem): GithubPrState {
   if (item.mergedAt) return 'merged';
   return item.state;
+}
+
+function errorMessage(reason: unknown): string {
+  if (reason instanceof Error) return reason.message;
+  return String(reason);
 }

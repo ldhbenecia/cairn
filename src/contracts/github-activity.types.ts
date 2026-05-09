@@ -22,4 +22,5 @@ export interface GithubActivity {
   rangeStart: string;
   rangeEnd: string;
   prs: readonly GithubPrSummary[];
+  error?: string;
 }
