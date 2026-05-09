@@ -6,6 +6,7 @@ import { LocalGitModule } from './local-git/local-git.module.js';
 import { LoggingModule } from './logging/logging.module.js';
 import { NotionModule } from './notion/notion.module.js';
 import { SecretsModule } from './secrets/secrets.module.js';
+import { SummarizerModule } from './summarizer/summarizer.module.js';
 import { WorklogConfigModule } from './worklog-config/worklog-config.module.js';
 
 @Module({
@@ -17,6 +18,7 @@ import { WorklogConfigModule } from './worklog-config/worklog-config.module.js';
     GithubModule,
     LocalGitModule,
     NotionModule,
+    SummarizerModule,
     CairnModule,
   ],
 })
