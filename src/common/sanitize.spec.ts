@@ -26,15 +26,17 @@ describe('assertNoForbiddenPayload', () => {
     expect(() => assertNoForbiddenPayload(safe, 'test')).not.toThrow();
   });
 
-  it('throws on diff keyword', () => {
-    expect(() => assertNoForbiddenPayload({ msg: 'see the diff below' }, 'test')).toThrow(
-      /diff-keyword/,
-    );
+  it('passes single "diff" / "patch" word in normal prose (no false positive)', () => {
+    expect(() => assertNoForbiddenPayload({ msg: 'see the diff below' }, 'test')).not.toThrow();
+    expect(() => assertNoForbiddenPayload({ msg: 'apply this patch' }, 'test')).not.toThrow();
+    expect(() =>
+      assertNoForbiddenPayload({ msg: 'patch bump 0.5.x 운영 안정화' }, 'test'),
+    ).not.toThrow();
   });
 
-  it('throws on patch keyword', () => {
-    expect(() => assertNoForbiddenPayload({ msg: 'apply this patch please' }, 'test')).toThrow(
-      /patch-keyword/,
+  it('throws on git diff header', () => {
+    expect(() => assertNoForbiddenPayload({ snippet: 'diff --git a/foo b/foo' }, 'test')).toThrow(
+      /diff-git-header/,
     );
   });
 
@@ -70,7 +72,9 @@ describe('assertNoForbiddenPayload', () => {
 
   it('accepts string payload directly', () => {
     expect(() => assertNoForbiddenPayload('safe Korean text 안전한 문자열', 'test')).not.toThrow();
-    expect(() => assertNoForbiddenPayload('contains diff word', 'test')).toThrow(/diff-keyword/);
+    expect(() => assertNoForbiddenPayload('/Users/ldhbenecia/.env', 'test')).toThrow(
+      /absolute-mac-path/,
+    );
   });
 
   it('PR body 시뮬레이션 — 정상 markdown 통과', () => {
