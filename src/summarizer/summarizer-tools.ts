@@ -100,7 +100,7 @@ export function buildSummarizerTools(input: SummarizerInput): SummarizerToolsBun
 
   const getActivity = tool(
     'get_activity',
-    '오늘 활동 데이터를 한 번에 반환합니다 — 머지된 PR / pushed commit (Done) + open PR / unpushed commit (In Progress) + Notion 편집 페이지 (Notes) + sourceErrors. 정확히 한 번 호출한 뒤 submit_summary 로 한국어 일지 결과를 제출하세요.',
+    "Returns today's activity in one call: done (merged PRs + pushed commits), inProgress (open PRs + unpushed commits), notes (edited Notion pages), and sourceErrors. Call this exactly once, then call submit_summary.",
     {},
     // eslint-disable-next-line @typescript-eslint/require-await
     async () => {
@@ -124,12 +124,12 @@ export function buildSummarizerTools(input: SummarizerInput): SummarizerToolsBun
 
   const submitSummary = tool(
     'submit_summary',
-    '한국어 일지 요약을 제출하고 작업을 종료합니다. get_activity 호출로 컨텍스트를 모은 뒤 정확히 한 번 호출하세요.',
+    'Submit the Korean worklog summary and exit. Call exactly once after get_activity has provided context. paragraphKo + bullets must be Korean.',
     submitSummarySchema.shape,
     // eslint-disable-next-line @typescript-eslint/require-await
     async (raw) => {
       submission = submitSummarySchema.parse(raw);
-      return { content: [{ type: 'text', text: '요약 제출됨. 종료합니다.' }] };
+      return { content: [{ type: 'text', text: 'Summary submitted. Exiting.' }] };
     },
   );
 
