@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { Client } from '@notionhq/client';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
-export type NotionParentTypeRaw = 'database_id' | 'page_id' | 'workspace' | 'block_id';
+export type NotionParentTypeRaw =
+  | 'database_id'
+  | 'data_source_id'
+  | 'page_id'
+  | 'workspace'
+  | 'block_id';
 
 export interface RawNotionPage {
   id: string;
@@ -10,6 +15,7 @@ export interface RawNotionPage {
   lastEditedTime: string;
   lastEditedById: string;
   parentType: NotionParentTypeRaw;
+  parentId: string | null;
   title: string;
 }
 
@@ -49,13 +55,20 @@ interface NotionTitleProperty {
   title: readonly { plain_text: string }[];
 }
 
+type SearchPageParent =
+  | { type: 'database_id'; database_id: string }
+  | { type: 'data_source_id'; data_source_id: string }
+  | { type: 'page_id'; page_id: string }
+  | { type: 'workspace'; workspace: true }
+  | { type: 'block_id'; block_id: string };
+
 interface SearchPageItem {
   object: 'page';
   id: string;
   url: string;
   last_edited_time: string;
   last_edited_by: { id: string };
-  parent: { type: NotionParentTypeRaw };
+  parent: SearchPageParent;
   properties: Record<string, { type: string } & Partial<NotionTitleProperty>>;
 }
 
@@ -218,8 +231,24 @@ function toRawPage(page: SearchPageItem): RawNotionPage {
     lastEditedTime: page.last_edited_time,
     lastEditedById: page.last_edited_by.id,
     parentType: page.parent.type,
+    parentId: extractParentId(page.parent),
     title: extractTitle(page),
   };
+}
+
+function extractParentId(parent: SearchPageParent): string | null {
+  switch (parent.type) {
+    case 'database_id':
+      return parent.database_id;
+    case 'data_source_id':
+      return parent.data_source_id;
+    case 'page_id':
+      return parent.page_id;
+    case 'block_id':
+      return parent.block_id;
+    case 'workspace':
+      return null;
+  }
 }
 
 function extractTitle(page: SearchPageItem): string {
