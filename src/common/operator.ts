@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
-const OPERATOR_SECRET_HASH: string | null = null;
+const OPERATOR_SECRET_HASH: string | null =
+  'b6e23b5bdac3a730e57dc59de56afe86a984a8223cab7ac57e7e32b979616d97';
 
 let cached: boolean | undefined;
 

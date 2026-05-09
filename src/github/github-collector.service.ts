@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { CairnError } from '../common/error.js';
+import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type {
   GithubActivity,
   GithubActivityCategory,
@@ -9,6 +10,8 @@ import type {
 } from '../contracts/github-activity.types.js';
 import { kstDateToUtcWindow, searchRangeFragment } from './date-window.js';
 import { GithubApiClient, type SearchPrItem } from './github-api.client.js';
+
+const PR_BODY_MAX_CHARS = 800;
 
 interface PrBucket {
   item: SearchPrItem;
@@ -98,11 +101,10 @@ export class GithubCollectorService {
 
   private async toPrSummary(bucket: PrBucket): Promise<GithubPrSummary> {
     const { item, categories } = bucket;
-    const changedFileNames = await this.client.listPrFileBasenames(
-      item.owner,
-      item.repo,
-      item.number,
-    );
+    const [changedFileNames, body] = await Promise.all([
+      this.client.listPrFileBasenames(item.owner, item.repo, item.number),
+      this.fetchSafeBody(item),
+    ]);
     return {
       repo: item.repo,
       number: item.number,
@@ -116,7 +118,33 @@ export class GithubCollectorService {
       mergedAt: item.mergedAt,
       changedFileNames,
       categories: [...categories],
+      body,
     };
+  }
+
+  private async fetchSafeBody(item: SearchPrItem): Promise<string | null> {
+    let raw: string | null;
+    try {
+      raw = await this.client.fetchPrBody(item.owner, item.repo, item.number);
+    } catch (err) {
+      this.logger.warn(
+        { repo: item.repo, number: item.number, err: CairnError.from(err, 'github').code },
+        'pr body fetch failed — body null',
+      );
+      return null;
+    }
+    if (!raw) return null;
+    const truncated = raw.length > PR_BODY_MAX_CHARS ? raw.slice(0, PR_BODY_MAX_CHARS) : raw;
+    try {
+      assertNoForbiddenPayload(truncated, `github.pr-body.${item.repo}#${item.number}`);
+    } catch (err) {
+      this.logger.warn(
+        { repo: item.repo, number: item.number, err: CairnError.from(err, 'github').message },
+        'pr body contains forbidden pattern — body dropped',
+      );
+      return null;
+    }
+    return truncated;
   }
 }
 

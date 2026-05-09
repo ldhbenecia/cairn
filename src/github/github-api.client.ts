@@ -75,6 +75,15 @@ export class GithubApiClient {
     return data.map((f) => basename(f.filename));
   }
 
+  async fetchPrBody(owner: string, repo: string, pullNumber: number): Promise<string | null> {
+    const { data } = await this.getOctokit().rest.pulls.get({
+      owner,
+      repo,
+      pull_number: pullNumber,
+    });
+    return data.body ?? null;
+  }
+
   private getOctokit(): CairnOctokit {
     if (this.octokit) return this.octokit;
 

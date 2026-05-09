@@ -35,6 +35,7 @@ interface DonePrItem {
   mergedAt: string;
   categories: readonly GithubActivityCategory[];
   htmlUrl: string;
+  body: string | null;
 }
 
 interface DoneCommitItem {
@@ -56,6 +57,7 @@ interface OpenPrItem {
   categories: readonly GithubActivityCategory[];
   htmlUrl: string;
   updatedAt: string;
+  body: string | null;
 }
 
 interface UnpushedCommitItem {
@@ -162,6 +164,7 @@ function computeDonePrs(input: SummarizerInput): DonePrItem[] {
         mergedAt: pr.mergedAt,
         categories: pr.categories,
         htmlUrl: pr.htmlUrl,
+        body: pr.body,
       });
     }
   }
@@ -201,6 +204,7 @@ function computeOpenPrs(input: SummarizerInput): OpenPrItem[] {
         categories: pr.categories,
         htmlUrl: pr.htmlUrl,
         updatedAt: pr.updatedAt,
+        body: pr.body,
       });
     }
   }

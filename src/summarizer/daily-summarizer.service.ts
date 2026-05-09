@@ -19,7 +19,7 @@ const SYSTEM_PROMPT = [
   'Output rules (strict):',
   '- Output language MUST be Korean.',
   '- paragraphKo: 1-3 short Korean sentences capturing the day theme at the project level. e.g. "cairn 의 단계 4 (Notion publisher) 마무리 + 단계 5 (Summarizer) 본격 구현. 0.5.x 일련의 운영 안정화 동반."',
-  '- doneBullets: 3-10 phrases. Format: "[프로젝트명] 의미 있는 한국어 작업 단위". 프로젝트명은 repo 이름 (e.g. [cairn], [other-repo]). 같은 repo 의 관련 commits/PRs 를 의미 단위로 group.',
+  '- doneBullets: 3-10 phrases. Format: "[프로젝트명] 의미 있는 한국어 작업 단위". 프로젝트명은 repo 이름 (e.g. [cairn], [other-repo]). 같은 repo 의 관련 commits/PRs 를 의미 단위로 group. PR.body 가 있으면 그 안의 핵심 키워드 / 작업 사항을 반드시 활용해서 구체적으로 작성 (추상화로 정보 손실 방지).',
   '- inProgressBullets: same format as doneBullets, ongoing work.',
   '- notesBullets: Notion pages edited today, with Korean context. Format: "[Notion] 페이지 제목 — 짧은 컨텍스트".',
   '- Empty arrays are OK if no items in that category.',
@@ -84,10 +84,27 @@ export class DailySummarizerService {
           if ('total_cost_usd' in message && typeof message.total_cost_usd === 'number') {
             costUsd = message.total_cost_usd;
           }
-          if ('usage' in message && message.usage && typeof message.usage === 'object') {
-            const u = message.usage as { input_tokens?: number; output_tokens?: number };
-            inputTokens = typeof u.input_tokens === 'number' ? u.input_tokens : 0;
-            outputTokens = typeof u.output_tokens === 'number' ? u.output_tokens : 0;
+          const modelUsage = (
+            message as {
+              modelUsage?: Record<
+                string,
+                {
+                  inputTokens?: number;
+                  outputTokens?: number;
+                  cacheReadInputTokens?: number;
+                  cacheCreationInputTokens?: number;
+                }
+              >;
+            }
+          ).modelUsage;
+          if (modelUsage) {
+            for (const u of Object.values(modelUsage)) {
+              inputTokens +=
+                (typeof u.inputTokens === 'number' ? u.inputTokens : 0) +
+                (typeof u.cacheReadInputTokens === 'number' ? u.cacheReadInputTokens : 0) +
+                (typeof u.cacheCreationInputTokens === 'number' ? u.cacheCreationInputTokens : 0);
+              outputTokens += typeof u.outputTokens === 'number' ? u.outputTokens : 0;
+            }
           }
         }
       }
