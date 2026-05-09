@@ -131,6 +131,8 @@ export class NotionApiClient {
               ],
             },
           },
+          'Created at': { created_time: {} },
+          'Last edited at': { last_edited_time: {} },
         },
       },
     });
