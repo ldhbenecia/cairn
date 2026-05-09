@@ -15,7 +15,7 @@
 | 3 | Notion 수집 | ✅ 2026-05-06 |
 | 4 | Notion publisher (일지) | ✅ 2026-05-09 |
 | 5 | Summarizer agent harness (daily) | ✅ 2026-05-09 |
-| 6 | launchd daily | — |
+| 6 | launchd daily | ✅ 2026-05-09 |
 | 7 | 롤업 (weekly + monthly) | — |
 | 8 | 셋업 가이드 + v1.0.0 | — |
 
