@@ -109,6 +109,7 @@ export class NotionApiClient {
     const res = await client.databases.create({
       parent: { type: 'page_id', page_id: input.parentPageId },
       title: [{ type: 'text', text: { content: input.title } }],
+      is_inline: true,
       initial_data_source: {
         properties: {
           Title: { title: {} },
