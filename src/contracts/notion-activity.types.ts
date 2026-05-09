@@ -13,11 +13,13 @@ export interface NotionPageEdit {
   parentType: NotionParentType;
 }
 
+import type { CairnError } from '../common/error.js';
+
 export interface NotionWorkspaceActivity {
   workspace: string;
   pageCount: number;
   pages: readonly NotionPageEdit[];
-  error?: string;
+  error?: CairnError;
 }
 
 export interface NotionActivity {
