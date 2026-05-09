@@ -45,7 +45,22 @@ worklog.config.json 에서 활성 collector 선택:
 
 각 source 는 별도 plugin (`packages/collector-gitlab` 같은 식 — monorepo 시점). 비-Git 사용자는 git 관련 collector 모두 비활성, Notion / 일정만.
 
-## 시나리오 3 — Notion 외 출력처
+## 시나리오 3 — 다국어 일지 (multi-language summary)
+
+v1 cairn 은 LLM output 한국어 hardcode (`paragraphKo` / Korean bullets). 본인용이라 충분하지만:
+
+- **다른 언어 사용자** — 영어 / 일본어 / 중국어 등 본인 자연어로 일지 받고 싶을 수 있음
+- **혼합 워크 컨텍스트** — 회사는 영어 / 개인 메모는 한국어 같이 분리
+
+미래 design:
+- `worklog.config.json` 의 `summary.language: 'ko' | 'en' | 'ja' | 'zh' | ...` (default: 'ko')
+- DailySummarizerService 의 system prompt 동적 생성 — "Output language MUST be {language}"
+- `submitSummarySchema` 의 `paragraphKo` → `paragraph` 로 generic rename (단계 5 PR 시점에 결정)
+- LLM output 이 사용자 지정 언어로
+
+→ 데스크톱 앱 시점 (시나리오 1) 의 settings UI 와 자연스럽게 묶임. 사용자가 앱 settings 에서 언어 선택 → cairn core 가 그 언어로 일지 발행.
+
+## 시나리오 4 — Notion 외 출력처
 
 일지 발행도 Notion 만이 아닐 수 있음:
 
