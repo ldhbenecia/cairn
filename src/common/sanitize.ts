@@ -15,7 +15,7 @@ export function sanitizeCairnError(e: CairnError): CairnErrorExternal {
 }
 
 const FORBIDDEN_PATTERNS: readonly { name: string; pattern: RegExp }[] = [
-  { name: 'unified-diff-hunk', pattern: /@@/ },
+  { name: 'unified-diff-hunk', pattern: /@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@/ },
   { name: 'unified-diff-old', pattern: /^---\s/m },
   { name: 'unified-diff-new', pattern: /^\+\+\+\s/m },
   { name: 'diff-git-header', pattern: /\bdiff --git\b/ },
