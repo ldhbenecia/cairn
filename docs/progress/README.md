@@ -13,7 +13,7 @@
 | 1 | NestJS 스켈레톤 + GitHub 수집 | ✅ 2026-04-26 |
 | 2 | 로컬 Git 수집 | ✅ 2026-05-06 |
 | 3 | Notion 수집 | ✅ 2026-05-06 |
-| 4 | Notion publisher (일지) | — |
+| 4 | Notion publisher (일지) | ✅ 2026-05-09 |
 | 5 | Summarizer agent harness (daily) | — |
 | 6 | launchd daily | — |
 | 7 | 롤업 (weekly + monthly) | — |

@@ -1,4 +1,9 @@
-export type NotionParentType = 'database_id' | 'page_id' | 'workspace' | 'block_id';
+export type NotionParentType =
+  | 'database_id'
+  | 'data_source_id'
+  | 'page_id'
+  | 'workspace'
+  | 'block_id';
 
 export interface NotionPageEdit {
   id: string;

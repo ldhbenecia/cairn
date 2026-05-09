@@ -89,6 +89,12 @@ export class NotionCollectorService {
       };
     }
 
+    const selfReferentialIds = new Set<string>(
+      [cfg.worklog?.databaseId, cfg.worklog?.dataSourceId].filter(
+        (id): id is string => typeof id === 'string',
+      ),
+    );
+
     const pages: NotionPageEdit[] = [];
     let cursor: string | undefined;
 
@@ -106,6 +112,7 @@ export class NotionCollectorService {
           break;
         }
         if (raw.lastEditedById !== cfg.myUserId) continue;
+        if (raw.parentId && selfReferentialIds.has(raw.parentId)) continue;
         pages.push(toEdit(raw));
       }
 
