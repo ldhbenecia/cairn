@@ -37,7 +37,12 @@ const REDACT_PATHS = [
             ? undefined
             : {
                 target: 'pino-pretty',
-                options: { colorize: true, singleLine: false, translateTime: 'SYS:HH:MM:ss.l' },
+                options: {
+                  colorize: true,
+                  singleLine: false,
+                  translateTime: 'SYS:HH:MM:ss.l',
+                  ignore: 'pid,hostname,machine',
+                },
               },
         },
       }),
