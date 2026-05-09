@@ -82,12 +82,28 @@ interface SourceErrorsView {
   notion?: { workspace: string; error: ReturnType<typeof sanitizeCairnError> }[];
 }
 
-interface ActivityPayload {
+export interface ActivityPayload {
   date: string;
   done: { prs: DonePrItem[]; commits: DoneCommitItem[] };
   inProgress: { prs: OpenPrItem[]; commits: UnpushedCommitItem[] };
   notes: NoteItem[];
   sourceErrors: SourceErrorsView;
+}
+
+export function buildActivityPayload(input: SummarizerInput): ActivityPayload {
+  return {
+    date: input.date,
+    done: {
+      prs: computeDonePrs(input),
+      commits: computeDoneCommits(input),
+    },
+    inProgress: {
+      prs: computeOpenPrs(input),
+      commits: computeUnpushedCommits(input),
+    },
+    notes: computeNotes(input),
+    sourceErrors: computeSourceErrors(input),
+  };
 }
 
 export interface SummarizerToolsBundle {
@@ -104,19 +120,7 @@ export function buildSummarizerTools(input: SummarizerInput): SummarizerToolsBun
     {},
     // eslint-disable-next-line @typescript-eslint/require-await
     async () => {
-      const payload: ActivityPayload = {
-        date: input.date,
-        done: {
-          prs: computeDonePrs(input),
-          commits: computeDoneCommits(input),
-        },
-        inProgress: {
-          prs: computeOpenPrs(input),
-          commits: computeUnpushedCommits(input),
-        },
-        notes: computeNotes(input),
-        sourceErrors: computeSourceErrors(input),
-      };
+      const payload = buildActivityPayload(input);
       assertNoForbiddenPayload(payload, 'tool.get_activity');
       return { content: [{ type: 'text', text: JSON.stringify(payload) }] };
     },

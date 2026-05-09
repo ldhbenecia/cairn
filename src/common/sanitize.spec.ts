@@ -1,0 +1,75 @@
+import { describe, expect, it } from 'vitest';
+import { CairnError } from './error.js';
+import { assertNoForbiddenPayload, sanitizeCairnError } from './sanitize.js';
+
+describe('sanitizeCairnError', () => {
+  it('strips message and keeps source / code / status', () => {
+    const e = new CairnError('github', 'auth_failed', 'leaked /Users/me/.env content here', 401);
+    const out = sanitizeCairnError(e);
+    expect(out).toEqual({ source: 'github', code: 'auth_failed', status: 401 });
+    expect(out).not.toHaveProperty('message');
+  });
+
+  it('omits status when undefined', () => {
+    const e = new CairnError('local-git', 'unknown', 'oops');
+    const out = sanitizeCairnError(e);
+    expect(out).toEqual({ source: 'local-git', code: 'unknown' });
+  });
+});
+
+describe('assertNoForbiddenPayload', () => {
+  it('passes a clean payload', () => {
+    const safe = {
+      date: '2026-05-09',
+      items: [{ repo: 'cairn', title: 'feat: 새 기능 추가' }],
+    };
+    expect(() => assertNoForbiddenPayload(safe, 'test')).not.toThrow();
+  });
+
+  it('throws on diff keyword', () => {
+    expect(() => assertNoForbiddenPayload({ msg: 'see the diff below' }, 'test')).toThrow(
+      /diff-keyword/,
+    );
+  });
+
+  it('throws on patch keyword', () => {
+    expect(() => assertNoForbiddenPayload({ msg: 'apply this patch please' }, 'test')).toThrow(
+      /patch-keyword/,
+    );
+  });
+
+  it('throws on absolute /Users path', () => {
+    expect(() => assertNoForbiddenPayload({ p: '/Users/john/secret/.env' }, 'test')).toThrow(
+      /absolute-mac-path/,
+    );
+  });
+
+  it('throws on Notion token prefix', () => {
+    expect(() => assertNoForbiddenPayload({ token: `ntn_${'a'.repeat(40)}` }, 'test')).toThrow(
+      /notion-token/,
+    );
+  });
+
+  it('throws on Anthropic token prefix', () => {
+    expect(() => assertNoForbiddenPayload({ token: `sk-ant-${'a'.repeat(30)}` }, 'test')).toThrow(
+      /anthropic-token/,
+    );
+  });
+
+  it('throws on GitHub PAT prefix', () => {
+    expect(() => assertNoForbiddenPayload({ token: `ghp_${'a'.repeat(35)}` }, 'test')).toThrow(
+      /github-token-classic/,
+    );
+  });
+
+  it('throws on unified diff hunk @@', () => {
+    expect(() => assertNoForbiddenPayload({ snippet: '@@ -1,2 +1,2 @@' }, 'test')).toThrow(
+      /unified-diff-hunk/,
+    );
+  });
+
+  it('accepts string payload directly', () => {
+    expect(() => assertNoForbiddenPayload('safe Korean text 안전한 문자열', 'test')).not.toThrow();
+    expect(() => assertNoForbiddenPayload('contains diff word', 'test')).toThrow(/diff-keyword/);
+  });
+});
