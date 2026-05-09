@@ -15,6 +15,7 @@ export interface GithubPrSummary {
   mergedAt: string | null;
   changedFileNames: readonly string[];
   categories: readonly GithubActivityCategory[];
+  body: string | null;
 }
 
 import type { CairnError } from '../common/error.js';
