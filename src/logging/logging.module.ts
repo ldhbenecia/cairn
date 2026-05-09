@@ -1,7 +1,11 @@
+import { homedir } from 'node:os';
+import { resolve } from 'node:path';
 import { Global, Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 import { AppConfigModule } from '../config/app-config.module.js';
 import { AppConfigService } from '../config/app-config.service.js';
+
+const LOG_FILE_BASE = resolve(homedir(), '.cairn', 'logs', 'cairn');
 
 const REDACT_PATHS = [
   '*.token',
@@ -34,7 +38,16 @@ const REDACT_PATHS = [
           redact: { paths: REDACT_PATHS, censor: '[REDACTED]' },
           timestamp: () => `,"time":"${new Date().toISOString()}"`,
           transport: config.isProduction
-            ? undefined
+            ? {
+                target: 'pino-roll',
+                options: {
+                  file: LOG_FILE_BASE,
+                  frequency: 'daily',
+                  mkdir: true,
+                  extension: '.log',
+                  dateFormat: 'yyyy-MM-dd',
+                },
+              }
             : {
                 target: 'pino-pretty',
                 options: {
