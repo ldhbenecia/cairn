@@ -3,6 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { GithubCollectorService } from '../github/github-collector.service.js';
 import { LocalGitCollectorService } from '../local-git/local-git-collector.service.js';
 import { NotionCollectorService } from '../notion/notion-collector.service.js';
+import { NotionPublisherService } from '../notion/notion-publisher.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class OrchestratorService {
     private readonly githubCollector: GithubCollectorService,
     private readonly localGitCollector: LocalGitCollectorService,
     private readonly notionCollector: NotionCollectorService,
+    private readonly notionPublisher: NotionPublisherService,
     @InjectPinoLogger(OrchestratorService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -36,10 +38,7 @@ export class OrchestratorService {
     const wantsNotion = wantsSource(options.sources, 'notion');
 
     if (!wantsGithub && !wantsLocalGit && !wantsNotion) {
-      this.logger.warn(
-        { sources: options.sources },
-        'daily: no enabled source — skipping (publisher not implemented yet)',
-      );
+      this.logger.warn({ sources: options.sources }, 'daily: no enabled source — skipping');
       return;
     }
 
@@ -68,16 +67,24 @@ export class OrchestratorService {
       return;
     }
 
+    const result = await this.notionPublisher.publish({
+      date: options.date,
+      force: options.force,
+      github: githubActivity,
+      localGit: localGitActivity,
+      notion: notionActivity,
+    });
+
     this.logger.info(
       {
+        date: options.date,
         prCount: githubActivity?.prs.length ?? 0,
-        repoCount: localGitActivity?.repos.length ?? 0,
         commitCountTotal: localGitActivity?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0,
-        notionWorkspaceCount: notionActivity?.workspaces.length ?? 0,
         notionPageCountTotal:
           notionActivity?.workspaces.reduce((acc, w) => acc + w.pageCount, 0) ?? 0,
+        publishResult: result,
       },
-      'daily: activity collected (publisher not implemented yet)',
+      'daily: publish done',
     );
   }
 }
