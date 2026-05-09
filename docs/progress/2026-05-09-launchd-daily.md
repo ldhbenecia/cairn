@@ -15,6 +15,7 @@
   - `created` / `recreated` — `cairn 일지` 발행 / 재발행 + sourceCounts (gh/git/notion)
   - `skipped` — `cairn 일지` skip 사유 + `--force` 안내
   - `no-target` — `cairn 설정 필요` + worklog.config.json / token 안내
+- `Orchestrator.runDaily` — collection 직후 `prCount + commitCount + notionPageCount === 0` 이면 summarizer / publisher 호출 skip + `cairn 일지 — 활동 없음, 일지 생략` 알림. 주말·휴일 등 활동 0 인 날 launchd 가 매일 두 번 깨우는데 그때마다 Claude 토큰 / Notion 발행 / 빈 일지 만들기 비용 모두 절약
 - `ops/com.user.cairn-daily.plist.template` — launchd plist (placeholder 형태). StartCalendarInterval 19:00 + 23:00 두 슬롯 (sleep 보강), WorkingDirectory + NODE_ENV=production, StandardOut/ErrorPath, RunAtLoad/KeepAlive false
 - `ops/install.sh` — bash 헬퍼. which node / pwd / $HOME 자동 감지 + sed 치환 + `~/Library/LaunchAgents/` 배치 + `launchctl bootstrap gui/$UID`. `--uninstall` 옵션도 지원. 기존 등록 시 자동 해제 후 재등록 (멱등)
 - 진행률 표 단계 6 ✅ 2026-05-09
@@ -29,6 +30,7 @@
 - **`pino-roll` extension 옵션** — file 의 base 가 `~/.cairn/logs/cairn` 이고 `.log` extension + dateFormat 결합 시 `cairn-YYYY-MM-DD.log` 형태. 일자별 분리 + grep 친화
 - **알림 문구 한국어** — 사용자 본인이 보는 거라 한국어 자연스러움. title `cairn 일지` / `cairn 실패` / `cairn 설정 필요` 분기. body 에 sourceCounts 같이 상태 정보
 - **production 분기로 dev 알림 차단** — 개발자가 dry-run / 직접 실행할 때 매번 알림 뜨면 noise. NODE_ENV=production (launchd) 일 때만 알림
+- **활동 0 일 때 summarizer / publisher skip** — 주말 등 PR/commit/notion 0건인 날도 launchd 는 매일 두 번 깨운다. 그때마다 Claude Agent SDK 호출 (Max quota 안이긴 해도 토큰 카운트는 됨) + Notion 페이지 / DB row 생성 / source error 메모만 박힌 빈 일지 → 의미 없음. collection 카운트 합 0 이면 summarizer 손도 대지 않고 알림만 띄우고 종료
 
 ## 다음
 

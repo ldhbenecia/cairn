@@ -85,6 +85,20 @@ export class OrchestratorService {
       return;
     }
 
+    const prCount = githubActivity?.prs.length ?? 0;
+    const commitCount = localGitActivity?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
+    const notionPageCount =
+      notionActivity?.workspaces.reduce((acc, w) => acc + w.pageCount, 0) ?? 0;
+
+    if (prCount + commitCount + notionPageCount === 0) {
+      this.logger.info(
+        { date: options.date },
+        'daily: no activity collected — skipping summarizer + publisher',
+      );
+      await this.notification.notify('cairn 일지', `${options.date} 활동 없음 — 일지 생략`);
+      return;
+    }
+
     const summary = await this.summarizer.summarize({
       date: options.date,
       github: githubActivity,
@@ -100,11 +114,6 @@ export class OrchestratorService {
       notion: notionActivity,
       summary,
     });
-
-    const prCount = githubActivity?.prs.length ?? 0;
-    const commitCount = localGitActivity?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
-    const notionPageCount =
-      notionActivity?.workspaces.reduce((acc, w) => acc + w.pageCount, 0) ?? 0;
 
     this.logger.info(
       {
