@@ -1,6 +1,6 @@
 {
   "name": "cairn",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "private": true,
   "description": "Automatic worklog and rollup tool that aggregates GitHub, local Git, and Notion activity into Notion pages.",
   "engines": {
