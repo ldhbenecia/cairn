@@ -4,6 +4,7 @@ import { GithubCollectorService } from '../github/github-collector.service.js';
 import { LocalGitCollectorService } from '../local-git/local-git-collector.service.js';
 import { NotionCollectorService } from '../notion/notion-collector.service.js';
 import { NotionPublisherService } from '../notion/notion-publisher.service.js';
+import { DailySummarizerService } from '../summarizer/daily-summarizer.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class OrchestratorService {
     private readonly localGitCollector: LocalGitCollectorService,
     private readonly notionCollector: NotionCollectorService,
     private readonly notionPublisher: NotionPublisherService,
+    private readonly summarizer: DailySummarizerService,
     @InjectPinoLogger(OrchestratorService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -67,12 +69,20 @@ export class OrchestratorService {
       return;
     }
 
+    const summary = await this.summarizer.summarize({
+      date: options.date,
+      github: githubActivity,
+      localGit: localGitActivity,
+      notion: notionActivity,
+    });
+
     const result = await this.notionPublisher.publish({
       date: options.date,
       force: options.force,
       github: githubActivity,
       localGit: localGitActivity,
       notion: notionActivity,
+      summary,
     });
 
     this.logger.info(
@@ -82,6 +92,7 @@ export class OrchestratorService {
         commitCountTotal: localGitActivity?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0,
         notionPageCountTotal:
           notionActivity?.workspaces.reduce((acc, w) => acc + w.pageCount, 0) ?? 0,
+        summarizerOk: !!summary,
         publishResult: result,
       },
       'daily: publish done',
