@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { CairnError } from '../common/error.js';
 import type {
   GithubActivity,
   GithubActivityCategory,
@@ -64,9 +65,9 @@ export class GithubCollectorService {
         prs,
       };
     } catch (err) {
-      const message = errorMessage(err);
+      const error = CairnError.from(err, 'github');
       this.logger.warn(
-        { date, err: message },
+        { date, error },
         'github collect failed — returning empty activity (token / rate limit / network)',
       );
       return {
@@ -74,7 +75,7 @@ export class GithubCollectorService {
         rangeStart: window.startIso,
         rangeEnd: window.endIso,
         prs: [],
-        error: message,
+        error,
       };
     }
   }
@@ -122,9 +123,4 @@ export class GithubCollectorService {
 function deriveState(item: SearchPrItem): GithubPrState {
   if (item.mergedAt) return 'merged';
   return item.state;
-}
-
-function errorMessage(reason: unknown): string {
-  if (reason instanceof Error) return reason.message;
-  return String(reason);
 }
