@@ -8,7 +8,7 @@ The tool runs locally on macOS via `launchd` and uses the Claude Agent SDK (no d
 
 ## Status
 
-Stage 1 of 8 complete (NestJS skeleton + GitHub collector). Current state: [docs/progress/](docs/progress/).
+Stage 7 of 8 complete (daily + weekly/monthly rollup pipeline + launchd). Current state: [docs/progress/](docs/progress/).
 
 ## Requirements
 

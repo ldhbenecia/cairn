@@ -11,6 +11,7 @@ export const notionWorkspaceConfigSchema = z.object({
   tokenEnv: z.string().min(1),
   myUserId: z.uuid(),
   worklog: worklogTargetSchema.optional(),
+  rollup: worklogTargetSchema.optional(),
 });
 
 export const worklogConfigSchema = z.object({
