@@ -19,18 +19,11 @@ export interface RollupDailySummaryText {
   notesBullets: readonly string[];
 }
 
-export interface RollupRepoActivity {
-  repo: string;
-  prCount: number;
-  commitCount: number;
-}
-
 export interface RollupMetrics {
   prCount: number;
   commitCount: number;
   notionPageCount: number;
   dailyCount: number;
-  activeRepos: readonly RollupRepoActivity[];
 }
 
 export interface RollupActivity {
