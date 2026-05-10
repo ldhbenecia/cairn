@@ -8,7 +8,7 @@ The tool runs locally on macOS via `launchd` and uses the Claude Agent SDK (no d
 
 ## Status
 
-Stage 7 of 8 complete (daily + weekly/monthly rollup pipeline + launchd). Current state: [docs/progress/](docs/progress/).
+v1.0.0 — all 8 stages complete. Current state: [docs/progress/](docs/progress/).
 
 ## Requirements
 
@@ -21,6 +21,10 @@ Stage 7 of 8 complete (daily + weekly/monthly rollup pipeline + launchd). Curren
 
 ## Setup
 
+Full step-by-step guide: [docs/SETUP.md](docs/SETUP.md) ([한국어](docs/SETUP.ko.md)).
+
+Quick start:
+
 ```bash
 git clone <repo-url> cairn
 cd cairn
@@ -32,6 +36,8 @@ cp worklog.config.example.json worklog.config.json
 # fill in tokens in .env and absolute repo paths in worklog.config.json
 
 pnpm build
+node dist/main.js --mode=daily --date=$(date +%F) --dry-run
+ops/install.sh   # register daily + weekly + monthly launchd jobs
 ```
 
 ## Commands
@@ -58,6 +64,7 @@ Modes: `daily`, `weekly`, `monthly`. Sources can be limited with repeated `--sou
 
 | Path | Contents |
 |------|----------|
+| [docs/SETUP.md](docs/SETUP.md) ([한국어](docs/SETUP.ko.md)) | Step-by-step setup guide |
 | [docs/plans/](docs/plans/) | Living design plans |
 | [docs/progress/](docs/progress/) | Work log entries and stage progress |
 | [docs/decisions/](docs/decisions/) | Architecture Decision Records |
