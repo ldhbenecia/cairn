@@ -9,6 +9,12 @@ import {
   NotionPublisherService,
   type PublishWorklogResult,
 } from '../notion/notion-publisher.service.js';
+import { RollupCollectorService } from '../rollup/rollup-collector.service.js';
+import {
+  RollupPublisherService,
+  type PublishRollupResult,
+} from '../rollup/rollup-publisher.service.js';
+import { RollupSummarizerService } from '../rollup/rollup-summarizer.service.js';
 import { DailySummarizerService } from '../summarizer/daily-summarizer.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
 
@@ -21,6 +27,9 @@ export class OrchestratorService {
     private readonly notionPublisher: NotionPublisherService,
     private readonly summarizer: DailySummarizerService,
     private readonly notification: NotificationService,
+    private readonly rollupCollector: RollupCollectorService,
+    private readonly rollupSummarizer: RollupSummarizerService,
+    private readonly rollupPublisher: RollupPublisherService,
     @InjectPinoLogger(OrchestratorService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -28,23 +37,23 @@ export class OrchestratorService {
   async run(options: RunOptions): Promise<void> {
     this.logger.info({ options }, 'orchestrator.run start');
 
-    if (options.mode === 'daily') {
-      try {
+    try {
+      if (options.mode === 'daily') {
         await this.runDaily(options);
-      } catch (err) {
-        const error = CairnError.from(err, 'config');
-        this.logger.error({ options, error }, 'orchestrator.run failed');
-        await this.notification.notify(
-          'cairn 실패',
-          `${options.date} 일지 생성 실패 — ${error.message.slice(0, 120)}`,
-        );
-        throw err;
+      } else {
+        await this.runRollup(options.mode, options);
       }
-    } else {
-      this.logger.warn(
-        { mode: options.mode, date: options.date },
-        `${options.mode} mode: rollup not implemented yet`,
-      );
+    } catch (err) {
+      const error = CairnError.from(err, 'config');
+      this.logger.error({ options, error }, 'orchestrator.run failed');
+      const failTitle =
+        options.mode === 'daily' ? 'cairn 실패' : `cairn ${rollupKor(options.mode)} 실패`;
+      const failBody =
+        options.mode === 'daily'
+          ? `${options.date} 일지 생성 실패 — ${error.message.slice(0, 120)}`
+          : `${options.date} ${rollupKor(options.mode)} 생성 실패 — ${error.message.slice(0, 120)}`;
+      await this.notification.notify(failTitle, failBody);
+      throw err;
     }
 
     this.logger.info({ options }, 'orchestrator.run done');
@@ -167,8 +176,87 @@ export class OrchestratorService {
       );
     }
   }
+
+  private async runRollup(period: 'weekly' | 'monthly', options: RunOptions): Promise<void> {
+    const activity = await this.rollupCollector.collect(period, options.date);
+    const periodKor = rollupKor(period);
+    const titleKor = `cairn ${periodKor}`;
+
+    if (options.dryRun) {
+      process.stdout.write(`--- rollup activity (dry-run, ${period}) ---\n`);
+      process.stdout.write(JSON.stringify(activity, null, 2));
+      process.stdout.write('\n');
+      return;
+    }
+
+    if (activity.metrics.dailyCount === 0) {
+      this.logger.info(
+        { period, rangeStart: activity.rangeStart, rangeEnd: activity.rangeEnd },
+        'rollup: no daily pages in range — skipping summarizer + publisher',
+      );
+      await this.notification.notify(
+        titleKor,
+        `${activity.rangeStart} ~ ${activity.rangeEnd} 일지 없음 — ${periodKor} 생략`,
+      );
+      return;
+    }
+
+    const summary = await this.rollupSummarizer.summarize({ activity });
+
+    const result = await this.rollupPublisher.publish({
+      activity,
+      force: options.force,
+      summary,
+    });
+
+    this.logger.info(
+      {
+        period,
+        rangeStart: activity.rangeStart,
+        rangeEnd: activity.rangeEnd,
+        ...activity.metrics,
+        summarizerOk: !!summary,
+        publishResult: result,
+      },
+      'rollup: publish done',
+    );
+
+    await this.notifyRollup(period, activity.rangeStart, activity.rangeEnd, result, !!summary);
+  }
+
+  private async notifyRollup(
+    period: 'weekly' | 'monthly',
+    rangeStart: string,
+    rangeEnd: string,
+    result: PublishRollupResult,
+    summarizerOk: boolean,
+  ): Promise<void> {
+    const titleKor = `cairn ${rollupKor(period)}`;
+    const range = `${rangeStart} ~ ${rangeEnd}`;
+    const summary_tag = summarizerOk ? '' : ' [요약 실패]';
+
+    if (result.kind === 'created') {
+      await this.notification.notify(titleKor, `${range} 발행${summary_tag}`);
+    } else if (result.kind === 'recreated') {
+      await this.notification.notify(titleKor, `${range} 재발행${summary_tag}`);
+    } else if (result.kind === 'skipped') {
+      await this.notification.notify(
+        titleKor,
+        `${range} skip — ${result.reason} (--force 로 재생성)`,
+      );
+    } else if (result.kind === 'no-target') {
+      await this.notification.notify(
+        'cairn 설정 필요',
+        `${range} 롤업 대상 없음 — worklog.config.json 의 rollup.pageId 또는 token 확인`,
+      );
+    }
+  }
 }
 
 function wantsSource(sources: RunOptions['sources'], source: RunSource): boolean {
   return sources === 'all' || sources.includes(source);
+}
+
+function rollupKor(period: 'weekly' | 'monthly'): string {
+  return period === 'weekly' ? '주간 정리' : '월간 정리';
 }

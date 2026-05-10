@@ -19,7 +19,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
   });
 
   const mode = assertMode(values.mode);
-  const date = values.date ?? todayKstIsoDate();
+  const date = values.date ?? defaultDateForMode(mode);
   assertIsoDate(date);
   const sources = parseSources(values.source);
 
@@ -30,6 +30,18 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
     force: values.force ?? false,
     sources,
   };
+}
+
+function defaultDateForMode(mode: RunMode): string {
+  if (mode === 'weekly') return kstIsoDateOffset(-7);
+  if (mode === 'monthly') return kstIsoDateOffset(-5);
+  return todayKstIsoDate();
+}
+
+function kstIsoDateOffset(dayOffset: number): string {
+  const kstOffsetMs = 9 * 60 * 60 * 1000;
+  const ms = Date.now() + kstOffsetMs + dayOffset * 24 * 60 * 60 * 1000;
+  return new Date(ms).toISOString().slice(0, 10);
 }
 
 function assertMode(value: unknown): RunMode {
