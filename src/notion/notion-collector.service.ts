@@ -10,7 +10,8 @@ import { kstDateToUtcWindow } from '../github/date-window.js';
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
-import { NotionApiClient, type RawNotionPage } from './notion-api.client.js';
+import { NotionApiClient } from './notion-api.client.js';
+import type { RawNotionPage } from './notion-api.types.js';
 
 const MAX_SEARCH_PAGES = 50;
 

@@ -1,54 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { Client } from '@notionhq/client';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-
-export type NotionParentTypeRaw =
-  | 'database_id'
-  | 'data_source_id'
-  | 'page_id'
-  | 'workspace'
-  | 'block_id';
-
-export interface RawNotionPage {
-  id: string;
-  url: string;
-  lastEditedTime: string;
-  lastEditedById: string;
-  parentType: NotionParentTypeRaw;
-  parentId: string | null;
-  title: string;
-}
-
-export interface SearchPagesResult {
-  pages: RawNotionPage[];
-  nextCursor: string | null;
-}
-
-export interface CreateWorklogDatabaseInput {
-  token: string;
-  parentPageId: string;
-  title: string;
-}
-
-export interface CreateWorklogDatabaseResult {
-  databaseId: string;
-  dataSourceId: string;
-}
-
-export interface CreateWorklogPageInput {
-  token: string;
-  dataSourceId: string;
-  date: string;
-  title: string;
-  sourceCounts: string;
-  tags?: readonly string[];
-  children?: readonly unknown[];
-}
-
-export interface ExistingWorklogPage {
-  pageId: string;
-  status: string | null;
-}
+import type {
+  CreateWorklogDatabaseInput,
+  CreateWorklogDatabaseResult,
+  CreateWorklogPageInput,
+  ExistingWorklogPage,
+  ExtractedBlock,
+  RawNotionPage,
+  SearchPagesResult,
+  WorklogPageInRange,
+} from './notion-api.types.js';
 
 interface NotionTitleProperty {
   type: 'title';
@@ -201,7 +163,67 @@ export class NotionApiClient {
     await client.pages.update({ page_id: pageId, archived: true });
   }
 
-  private getClient(token: string): Client {
+  async queryWorklogPagesInRange(
+    token: string,
+    dataSourceId: string,
+    rangeStart: string,
+    rangeEnd: string,
+  ): Promise<readonly WorklogPageInRange[]> {
+    const client = this.getClient(token);
+    const out: WorklogPageInRange[] = [];
+    let cursor: string | undefined = undefined;
+
+    do {
+      const res = await client.dataSources.query({
+        data_source_id: dataSourceId,
+        filter: {
+          and: [
+            { property: 'Date', date: { on_or_after: rangeStart } },
+            { property: 'Date', date: { on_or_before: rangeEnd } },
+          ],
+        },
+        sorts: [{ property: 'Date', direction: 'ascending' }],
+        start_cursor: cursor,
+        page_size: 100,
+      });
+
+      for (const item of res.results) {
+        if (!('properties' in item)) continue;
+        const props = (item as { properties: Record<string, unknown> }).properties;
+        const dateProp = props.Date as { date?: { start?: string } | null } | undefined;
+        const date = dateProp?.date?.start ?? null;
+        if (!date) continue;
+        const url = 'url' in item && typeof item.url === 'string' ? item.url : null;
+        const sourceCounts = extractSourceCounts(props);
+        out.push({ pageId: item.id, url, date, sourceCounts });
+      }
+      cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
+    } while (cursor);
+
+    return out;
+  }
+
+  async getPageBlocks(token: string, pageId: string): Promise<readonly ExtractedBlock[]> {
+    const client = this.getClient(token);
+    const out: ExtractedBlock[] = [];
+    let cursor: string | undefined = undefined;
+
+    do {
+      const res = await client.blocks.children.list({
+        block_id: pageId,
+        start_cursor: cursor,
+        page_size: 100,
+      });
+      for (const block of res.results) {
+        out.push(toExtractedBlock(block));
+      }
+      cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
+    } while (cursor);
+
+    return out;
+  }
+
+  getClient(token: string): Client {
     let client = this.clients.get(token);
     if (!client) {
       client = new Client({ auth: token });
@@ -265,4 +287,48 @@ function extractTitle(page: SearchPageItem): string {
     }
   }
   return '(untitled)';
+}
+
+interface RichTextItem {
+  plain_text?: string;
+}
+
+function extractSourceCounts(props: Record<string, unknown>): string {
+  const sc = props['Source counts'] as { rich_text?: RichTextItem[] } | undefined;
+  if (!sc?.rich_text) return '';
+  return sc.rich_text
+    .map((rt) => rt.plain_text ?? '')
+    .join('')
+    .trim();
+}
+
+function plainTextFromRichText(rt: unknown): string {
+  if (!Array.isArray(rt)) return '';
+  return rt
+    .map((item) => {
+      if (!item || typeof item !== 'object') return '';
+      const obj = item as { plain_text?: unknown };
+      return typeof obj.plain_text === 'string' ? obj.plain_text : '';
+    })
+    .join('')
+    .trim();
+}
+
+function toExtractedBlock(block: unknown): ExtractedBlock {
+  if (!block || typeof block !== 'object') return { type: 'other' };
+  const obj = block as { type?: string } & Record<string, unknown>;
+
+  if (obj.type === 'heading_2') {
+    const inner = obj.heading_2 as { rich_text?: unknown } | undefined;
+    return { type: 'heading_2', text: plainTextFromRichText(inner?.rich_text) };
+  }
+  if (obj.type === 'paragraph') {
+    const inner = obj.paragraph as { rich_text?: unknown } | undefined;
+    return { type: 'paragraph', text: plainTextFromRichText(inner?.rich_text) };
+  }
+  if (obj.type === 'bulleted_list_item') {
+    const inner = obj.bulleted_list_item as { rich_text?: unknown } | undefined;
+    return { type: 'bulleted_list_item', text: plainTextFromRichText(inner?.rich_text) };
+  }
+  return { type: 'other' };
 }
