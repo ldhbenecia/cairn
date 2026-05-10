@@ -36,11 +36,13 @@ export class RollupPublisherService {
   ) {}
 
   async publish(input: PublishRollupInput): Promise<PublishRollupResult> {
-    const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.rollup?.pageId);
+    const target = this.worklogConfig
+      .getNotionWorkspaces()
+      .find((ws) => ws.rollup?.pageId ?? ws.worklog?.pageId);
 
     if (!target) {
       this.logger.warn(
-        'no notionWorkspace with rollup.pageId — rollup publisher skipped (set rollup.pageId in worklog.config.json)',
+        'no notionWorkspace with worklog.pageId — rollup publisher skipped (rollup DB defaults to the same parent page as worklog DB)',
       );
       return { kind: 'no-target' };
     }
@@ -117,20 +119,25 @@ export class RollupPublisherService {
       return { databaseId: cached.databaseId, dataSourceId };
     }
 
-    if (!cached?.pageId) {
+    const parentPageId = cached?.pageId ?? target.worklog?.pageId;
+    if (!parentPageId) {
       throw new Error(
-        `notionWorkspace ${target.label} has neither rollup.databaseId nor rollup.pageId`,
+        `notionWorkspace ${target.label} has neither rollup nor worklog parent pageId`,
       );
     }
 
     this.logger.info(
-      { workspace: target.label, parent: cached.pageId },
-      'no rollup.databaseId — auto-creating rollup DB',
+      {
+        workspace: target.label,
+        parent: parentPageId,
+        source: cached?.pageId ? 'rollup' : 'worklog',
+      },
+      'no rollup.databaseId — auto-creating rollup DB under parent page',
     );
 
     const created = await this.rollupApi.createRollupDatabase({
       token,
-      parentPageId: cached.pageId,
+      parentPageId,
       title: ROLLUP_DB_TITLE,
     });
 

@@ -247,7 +247,7 @@ export class OrchestratorService {
     } else if (result.kind === 'no-target') {
       await this.notification.notify(
         'cairn 설정 필요',
-        `${range} 롤업 대상 없음 — worklog.config.json 의 rollup.pageId 또는 token 확인`,
+        `${range} 롤업 대상 없음 — worklog.config.json 의 worklog.pageId 또는 token 확인`,
       );
     }
   }
