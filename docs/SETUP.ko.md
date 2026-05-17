@@ -23,7 +23,7 @@ pnpm install
 pnpm build
 ```
 
-`pnpm build` → `dist/main.js` 생성. CLI 와 launchd job 둘 다 이걸 진입점으로 씀.
+`pnpm build` → `@cairn/core` 가 `packages/core/dist/main.js` 로 빌드됨. CLI 와 launchd job 둘 다 이걸 진입점으로 씀.
 
 ## 3. Notion integration
 
@@ -146,7 +146,7 @@ cp worklog.config.example.json worklog.config.json
 ### 8.1 dry-run (노션에 안 씀)
 
 ```bash
-node dist/main.js --mode=daily --date=$(date +%F) --dry-run
+node packages/core/dist/main.js --mode=daily --date=$(date +%F) --dry-run
 ```
 
 GitHub / local-git / Notion 활동 데이터가 JSON 으로 stdout 에 떨어진다.
@@ -154,7 +154,7 @@ GitHub / local-git / Notion 활동 데이터가 JSON 으로 stdout 에 떨어진
 ### 8.2 실제 daily 발행
 
 ```bash
-node dist/main.js --mode=daily --date=$(date +%F)
+node packages/core/dist/main.js --mode=daily --date=$(date +%F)
 ```
 
 성공 시:
@@ -173,8 +173,8 @@ node dist/main.js --mode=daily --date=$(date +%F)
 해당 주/달에 daily 페이지가 1개 이상 있어야 롤업이 돈다:
 
 ```bash
-node dist/main.js --mode=weekly --date=$(date +%F)
-node dist/main.js --mode=monthly --date=$(date +%F)
+node packages/core/dist/main.js --mode=weekly --date=$(date +%F)
+node packages/core/dist/main.js --mode=monthly --date=$(date +%F)
 ```
 
 첫 실행 시 롤업 DB 자동 생성. weekly 제목: `2026-W19 주간 정리`. monthly: `2026-05 월간 정리`.

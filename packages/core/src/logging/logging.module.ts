@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { Global, Module } from '@nestjs/common';
@@ -6,6 +7,11 @@ import { AppConfigModule } from '../config/app-config.module.js';
 import { AppConfigService } from '../config/app-config.service.js';
 
 const LOG_FILE_BASE = resolve(homedir(), '.cairn', 'logs', 'cairn');
+
+// pnpm workspace 의 isolation 으로 pino worker thread 가 module name resolve 실패 → 절대 경로 명시
+const requireFromHere = createRequire(import.meta.url);
+const PINO_PRETTY_PATH = requireFromHere.resolve('pino-pretty');
+const PINO_ROLL_PATH = requireFromHere.resolve('pino-roll');
 
 const REDACT_PATHS = [
   '*.token',
@@ -39,7 +45,7 @@ const REDACT_PATHS = [
           timestamp: () => `,"time":"${new Date().toISOString()}"`,
           transport: config.isProduction
             ? {
-                target: 'pino-roll',
+                target: PINO_ROLL_PATH,
                 options: {
                   file: LOG_FILE_BASE,
                   frequency: 'daily',
@@ -49,7 +55,7 @@ const REDACT_PATHS = [
                 },
               }
             : {
-                target: 'pino-pretty',
+                target: PINO_PRETTY_PATH,
                 options: {
                   colorize: true,
                   singleLine: false,

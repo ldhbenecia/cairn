@@ -23,7 +23,7 @@ pnpm install
 pnpm build
 ```
 
-`pnpm build` produces `dist/main.js`, the entry point used by both the CLI and the launchd jobs.
+`pnpm build` compiles `@cairn/core` into `packages/core/dist/main.js`, the entry point used by both the CLI and the launchd jobs.
 
 ## 3. Notion integration
 
@@ -148,7 +148,7 @@ The discovered `databaseId` and `dataSourceId` for each are written back into `w
 ### 8.1 Dry-run (no Notion writes)
 
 ```bash
-node dist/main.js --mode=daily --date=$(date +%F) --dry-run
+node packages/core/dist/main.js --mode=daily --date=$(date +%F) --dry-run
 ```
 
 You should see GitHub / local-git / Notion activity dumped as JSON.
@@ -156,7 +156,7 @@ You should see GitHub / local-git / Notion activity dumped as JSON.
 ### 8.2 Real daily publish
 
 ```bash
-node dist/main.js --mode=daily --date=$(date +%F)
+node packages/core/dist/main.js --mode=daily --date=$(date +%F)
 ```
 
 Expected on a successful first run:
@@ -175,8 +175,8 @@ Re-running on the same date should print `worklog page already exists — skip (
 Once a daily page exists in a given week / month, you can produce the rollup:
 
 ```bash
-node dist/main.js --mode=weekly --date=$(date +%F)
-node dist/main.js --mode=monthly --date=$(date +%F)
+node packages/core/dist/main.js --mode=weekly --date=$(date +%F)
+node packages/core/dist/main.js --mode=monthly --date=$(date +%F)
 ```
 
 The rollup DB is auto-created on the first such run. Weekly title format: `2026-W19 주간 정리`. Monthly: `2026-05 월간 정리`.
