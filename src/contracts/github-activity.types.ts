@@ -3,6 +3,7 @@ export type GithubActivityCategory = 'authored' | 'authored_merged' | 'reviewed'
 export type GithubPrState = 'open' | 'closed' | 'merged';
 
 export interface GithubPrSummary {
+  account: string;
   repo: string;
   number: number;
   title: string;
@@ -20,10 +21,15 @@ export interface GithubPrSummary {
 
 import type { CairnError } from '../common/error.js';
 
+export interface GithubAccountActivityError {
+  account: string;
+  error: CairnError;
+}
+
 export interface GithubActivity {
   date: string;
   rangeStart: string;
   rangeEnd: string;
   prs: readonly GithubPrSummary[];
-  error?: CairnError;
+  accountErrors?: readonly GithubAccountActivityError[];
 }
