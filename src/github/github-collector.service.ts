@@ -98,11 +98,6 @@ export class GithubCollectorService {
       throw CairnError.githubTokenMissing(account.tokenEnv);
     }
 
-    // healthCheck (myLogin 확보) 와 3 search 쿼리를 모두 동시에 발사.
-    // search query 줄임: involves 가 author/assignee/mentions/commenter 의 union 이라
-    // 별도 `author:@me updated:` / `author:@me merged:` 쿼리는 제거하고 PR 필드에서 derive.
-    // commenter 는 commented 카테고리 보존 위해 따로 유지. reviewed-by 는 involves 가
-    // 포함 안 해서 별도 유지.
     const loginPromise = this.client.healthCheck(token).then((id) => id.login);
     const [involved, reviewed, commented] = await Promise.all([
       this.client.searchPrs(token, `involves:@me updated:${range}`),
@@ -112,7 +107,6 @@ export class GithubCollectorService {
     const myLogin = await loginPromise;
 
     const buckets = new Map<string, PrBucket>();
-    // involves: authored / authored_merged / involved 를 PR 필드에서 derive
     for (const item of involved) {
       const key = `${account.label}/${item.owner}/${item.repo}#${item.number}`;
       const bucket = buckets.get(key) ?? {
@@ -164,14 +158,7 @@ export class GithubCollectorService {
     myLogin: string,
   ): Promise<GithubPrSummary> {
     const { account, item, categories } = bucket;
-    // PR 이 이 일자 이전에 생성됐고 같은 날 merge 된 경우 — 본인 push 가 없었던
-    // 케이스가 대부분이고 listCommits 결과는 (merge commit 제외 후) 빈 경우가
-    // 일반. 1 API call 절약을 위해 휴리스틱 스킵. push-then-merge 같은 날 케이스는
-    // 누락될 수 있지만 드물어서 trade-off OK.
     const skipCommitsOnDate = categories.has('authored_merged') && item.createdAt < sinceIso;
-    // 본인이 author/reviewer/commenter 아닌 involved-only PR (assignee / mentions
-    // 만으로 엮인 경우) — body 가 다른 사람 작업 설명이라 회고 가치 낮음. body
-    // fetch 1 API call 절약.
     const skipBody = categories.size === 1 && categories.has('involved');
 
     const [changedFileNames, body, commitsOnDate] = await Promise.all([

@@ -60,13 +60,11 @@ export class OrchestratorService {
   }
 
   private async runDaily(options: RunOptions): Promise<void> {
-    // 명시적 --date 또는 backfill 끔 → 단일 날짜만
     if (options.dateExplicit || options.backfillDays === 0 || options.dryRun) {
       await this.runDailyForDate(options.date, options, { silent: false });
       return;
     }
 
-    // backfill: 오늘 포함 지난 N 일 중 미발행 날짜 자동 채움
     const targetDates = generatePastDates(options.date, options.backfillDays);
     const rangeStart = targetDates[0]!;
     const rangeEnd = targetDates[targetDates.length - 1]!;
@@ -82,12 +80,10 @@ export class OrchestratorService {
     }
 
     if (missingDates.length === 1) {
-      // 정상 케이스 — 빠진 날짜 1개 (대개 오늘)
       await this.runDailyForDate(missingDates[0]!, options, { silent: false });
       return;
     }
 
-    // 여러 날짜 backfill — 알림은 한 번만 묶어서
     this.logger.info(
       { missingDates, alreadyPublishedCount: targetDates.length - missingDates.length },
       'daily: backfill — multiple missing dates detected',
@@ -338,8 +334,6 @@ function rollupKor(period: 'weekly' | 'monthly'): string {
   return period === 'weekly' ? '주간 정리' : '월간 정리';
 }
 
-// today 포함 지난 (days - 1) 일 → 총 days 개의 YYYY-MM-DD 배열 (chronological).
-// 예: today='2026-05-17', days=7 → ['2026-05-11', ..., '2026-05-17']
 function generatePastDates(today: string, days: number): string[] {
   const parts = today.split('-').map(Number);
   const [y, m, d] = parts;
