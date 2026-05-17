@@ -5,7 +5,6 @@ export const envSchema = z.object({
   MACHINE_NAME: z.string().min(1).default('unknown'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
 
-  GITHUB_TOKEN: z.string().optional(),
   ANTHROPIC_OAUTH_TOKEN: z.string().optional(),
 
   CAIRN_CONFIG_PATH: z.string().optional(),
