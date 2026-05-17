@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util';
+import { todayKstIsoDate } from '../common/date-window.js';
 import type { RunMode, RunOptions, RunSource } from './run-options.js';
 
 const VALID_MODES: readonly RunMode[] = ['daily', 'weekly', 'monthly'];
@@ -92,10 +93,4 @@ function parseLookbackDays(raw: string | undefined): number {
     throw new Error(`--lookback-days must be an integer 0-60 (got: ${raw})`);
   }
   return n;
-}
-
-function todayKstIsoDate(): string {
-  const kstOffsetMs = 9 * 60 * 60 * 1000;
-  const kstNow = new Date(Date.now() + kstOffsetMs);
-  return kstNow.toISOString().slice(0, 10);
 }

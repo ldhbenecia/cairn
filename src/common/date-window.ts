@@ -26,3 +26,8 @@ export function searchRangeFragment(window: UtcWindow): string {
 function trimMillis(d: Date): string {
   return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
+
+export function todayKstIsoDate(): string {
+  const kstOffsetMs = 9 * 60 * 60 * 1000;
+  return new Date(Date.now() + kstOffsetMs).toISOString().slice(0, 10);
+}

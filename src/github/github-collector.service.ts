@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { kstDateToUtcWindow, searchRangeFragment, todayKstIsoDate } from '../common/date-window.js';
 import { CairnError } from '../common/error.js';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type {
@@ -13,7 +14,6 @@ import type {
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { GithubAccountConfig } from '../worklog-config/worklog-config.schema.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
-import { kstDateToUtcWindow, searchRangeFragment } from './date-window.js';
 import { GithubApiClient, type SearchPrItem } from './github-api.client.js';
 
 const PR_BODY_MAX_CHARS = 800;
@@ -38,9 +38,12 @@ export class GithubCollectorService {
   async collect(date: string, lookbackDays = 14): Promise<GithubActivity> {
     const window = kstDateToUtcWindow(date);
     const range = searchRangeFragment(window);
-    const lookbackStartIso = computeLookbackStartIso(date, lookbackDays, window.startIso);
-    // upper bound 없음 — PR.updated_at 이 target day 이후 (5/11 → 5/15) 로 밀린 케이스도 잡기 위함
-    const widenedRange = `>=${lookbackStartIso}`;
+    // 오늘 (live daily) 은 PR.updated_at 이 아직 밀리지 않은 시점 → narrow 로 충분.
+    // 과거 (backfill) 만 widening 적용해서 updated_at 이 밀린 케이스 cover.
+    const isBackfill = date < todayKstIsoDate();
+    const effectiveLookback = isBackfill ? lookbackDays : 0;
+    const lookbackStartIso = computeLookbackStartIso(date, effectiveLookback, window.startIso);
+    const widenedRange = effectiveLookback > 0 ? `>=${lookbackStartIso}` : range;
     const accounts = this.worklogConfig.getGithubAccounts();
 
     if (accounts.length === 0) {
@@ -133,12 +136,49 @@ export class GithubCollectorService {
     this.tag(buckets, account.label, reviewed, 'reviewed');
     this.tag(buckets, account.label, commented, 'commented');
 
-    const enriched = await Promise.all(
-      [...buckets.values()].map((bucket) =>
-        this.toPrSummary(token, bucket, sinceIso, untilIso, myLogin),
-      ),
-    );
-    return enriched.filter((pr) => belongsToDay(pr, sinceIso, untilIso));
+    // Phase 1: listCommits + day-relevance 판정 (PR 당 1 API call). secondary rate limit
+    // 회피를 위해 token 당 동시 호출 5 개로 제한.
+    const phase1 = await withConcurrency([...buckets.values()], 5, async (bucket) => {
+      const { item, categories } = bucket;
+      const skipCommitsOnDate = categories.has('authored_merged') && item.createdAt < sinceIso;
+      const commitsOnDate = skipCommitsOnDate
+        ? []
+        : await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin);
+      const createdInDay = item.createdAt >= sinceIso && item.createdAt <= untilIso;
+      const hasNarrow = categories.has('reviewed') || categories.has('commented');
+      const hasAuthoredMerged = categories.has('authored_merged');
+      const eligible = hasNarrow || hasAuthoredMerged || createdInDay || commitsOnDate.length > 0;
+      return { bucket, commitsOnDate, eligible };
+    });
+
+    const eligible = phase1.filter((p) => p.eligible);
+
+    // Phase 2: eligible PR 만 files + body fetch (2 calls/eligible). 동시성 5 제한 유지.
+    return withConcurrency(eligible, 5, async ({ bucket, commitsOnDate }) => {
+      const { account: acc, item, categories } = bucket;
+      const skipBody = categories.size === 1 && categories.has('involved');
+      const [changedFileNames, body] = await Promise.all([
+        this.client.listPrFileBasenames(token, item.owner, item.repo, item.number),
+        skipBody ? Promise.resolve(null) : this.fetchSafeBody(token, item),
+      ]);
+      return {
+        account: acc,
+        repo: item.repo,
+        number: item.number,
+        title: item.title,
+        state: deriveState(item),
+        author: item.author,
+        labels: item.labels,
+        htmlUrl: item.htmlUrl,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        mergedAt: item.mergedAt,
+        changedFileNames,
+        categories: [...categories],
+        body,
+        commitsOnDate,
+      };
+    });
   }
 
   private tag(
@@ -156,43 +196,6 @@ export class GithubCollectorService {
         buckets.set(key, { account, item, categories: new Set([category]) });
       }
     }
-  }
-
-  private async toPrSummary(
-    token: string,
-    bucket: PrBucket,
-    sinceIso: string,
-    untilIso: string,
-    myLogin: string,
-  ): Promise<GithubPrSummary> {
-    const { account, item, categories } = bucket;
-    const skipCommitsOnDate = categories.has('authored_merged') && item.createdAt < sinceIso;
-    const skipBody = categories.size === 1 && categories.has('involved');
-
-    const [changedFileNames, body, commitsOnDate] = await Promise.all([
-      this.client.listPrFileBasenames(token, item.owner, item.repo, item.number),
-      skipBody ? Promise.resolve(null) : this.fetchSafeBody(token, item),
-      skipCommitsOnDate
-        ? Promise.resolve([] as readonly PrCommitOnDate[])
-        : this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin),
-    ]);
-    return {
-      account,
-      repo: item.repo,
-      number: item.number,
-      title: item.title,
-      state: deriveState(item),
-      author: item.author,
-      labels: item.labels,
-      htmlUrl: item.htmlUrl,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-      mergedAt: item.mergedAt,
-      changedFileNames,
-      categories: [...categories],
-      body,
-      commitsOnDate,
-    };
   }
 
   private async fetchSafeCommitsOnDate(
@@ -275,14 +278,6 @@ function deriveState(item: SearchPrItem): GithubPrState {
   return item.state;
 }
 
-function belongsToDay(pr: GithubPrSummary, sinceIso: string, untilIso: string): boolean {
-  if (pr.categories.includes('reviewed') || pr.categories.includes('commented')) return true;
-  if (pr.categories.includes('authored_merged')) return true;
-  if (pr.commitsOnDate.length > 0) return true;
-  if (pr.createdAt >= sinceIso && pr.createdAt <= untilIso) return true;
-  return false;
-}
-
 function computeLookbackStartIso(date: string, lookbackDays: number, dayStartIso: string): string {
   if (lookbackDays <= 0) return dayStartIso;
   const parts = date.split('-').map(Number);
@@ -290,4 +285,23 @@ function computeLookbackStartIso(date: string, lookbackDays: number, dayStartIso
   if (y === undefined || m === undefined || d === undefined) return dayStartIso;
   const startKst = new Date(Date.UTC(y, m - 1, d - lookbackDays, -9, 0, 0));
   return startKst.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+// GitHub API 의 secondary rate limit 회피 — token 당 simultaneous 호출 cap
+async function withConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array<R>(items.length);
+  let cursor = 0;
+  const worker = async (): Promise<void> => {
+    while (cursor < items.length) {
+      const idx = cursor++;
+      results[idx] = await fn(items[idx]!);
+    }
+  };
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
 }
