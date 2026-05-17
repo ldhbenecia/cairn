@@ -92,11 +92,12 @@
 
 **Engine 트랙 schema 변경**: `githubAccounts[].tokenEnv` 가 단순 env 이름이 아닌 secret reference 로 진화할 수 있음. 시점은 v0.4 desktop 도입 시 engine 도 같이 minor bump.
 
-### v0.5+ — 시간대 UI / 알림 / 멀티 머신 sync
+### v0.5+ — 시간대 UI / 알림 / 사용자 정의 / 멀티 머신 sync
 
-- launchd plist 시간 GUI 로 변경 (`StartCalendarInterval` Hour 값 setter)
+- launchd plist 시각 GUI 변경 (`StartCalendarInterval` Hour 값 setter)
 - `pmset wake` opt-in 토글
 - 알림 권한 / 알림 빈도 / 토글
+- **사용자 정의 summarizer prompt** — engine 기본 prompt 를 그대로 두되, 데스크탑 앱에서 사용자가 자기 취향대로 (한국어/영어 톤, doneBullets 형식, 카테고리, 강조점, "이력서 용도" / "회고 용도" / "팀 데일리 용도" 같은 컨텍스트) 덮어쓸 수 있게. v2 앱에선 사용자 본인 OAuth/API 크레딧을 쓰니 prompt 자유도 ↑. 토큰 사용량 추정 미리보기도 같이
 - (장기) 머신 간 cairn 설정 sync — 클라우드 X 정책상 어렵지만 iCloud Drive 의 cairn 폴더 같은 사용자 자율 sync 가이드
 
 ### v1.0 — 일반 사용자 배포 가능 수준
