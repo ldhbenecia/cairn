@@ -28,6 +28,7 @@ export type SubmitSummaryInput = z.infer<typeof submitSummarySchema>;
 interface DonePrItem {
   source: 'github';
   kind: 'pr_merged';
+  account: string;
   repo: string;
   number: number;
   title: string;
@@ -51,6 +52,7 @@ interface DoneCommitItem {
 interface OpenPrItem {
   source: 'github';
   kind: 'pr_open';
+  account: string;
   repo: string;
   number: number;
   title: string;
@@ -79,7 +81,7 @@ interface NoteItem {
 }
 
 interface SourceErrorsView {
-  github?: ReturnType<typeof sanitizeCairnError>;
+  github?: { account: string; error: ReturnType<typeof sanitizeCairnError> }[];
   localGit?: { repo: string; error: ReturnType<typeof sanitizeCairnError> }[];
   notion?: { workspace: string; error: ReturnType<typeof sanitizeCairnError> }[];
 }
@@ -157,6 +159,7 @@ function computeDonePrs(input: SummarizerInput): DonePrItem[] {
       out.push({
         source: 'github',
         kind: 'pr_merged',
+        account: pr.account,
         repo: pr.repo,
         number: pr.number,
         title: pr.title,
@@ -198,6 +201,7 @@ function computeOpenPrs(input: SummarizerInput): OpenPrItem[] {
       out.push({
         source: 'github',
         kind: 'pr_open',
+        account: pr.account,
         repo: pr.repo,
         number: pr.number,
         title: pr.title,
@@ -250,9 +254,11 @@ function computeNotes(input: SummarizerInput): NoteItem[] {
 function computeSourceErrors(input: SummarizerInput): SourceErrorsView {
   const out: SourceErrorsView = {};
 
-  if (input.github?.error) {
-    out.github = sanitizeCairnError(input.github.error);
-  }
+  const githubErrors = (input.github?.accountErrors ?? []).map((e) => ({
+    account: e.account,
+    error: sanitizeCairnError(e.error),
+  }));
+  if (githubErrors.length > 0) out.github = githubErrors;
 
   const localGitErrors = (input.localGit?.repos ?? []).flatMap((r) =>
     r.error ? [{ repo: r.repo, error: sanitizeCairnError(r.error) }] : [],
