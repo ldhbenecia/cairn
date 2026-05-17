@@ -59,15 +59,19 @@ curl -sS https://api.notion.com/v1/users/me \
 
 Copy the UUID — that is your `myUserId`.
 
-## 4. GitHub fine-grained PAT
+## 4. GitHub fine-grained PAT (one per account)
 
-1. <https://github.com/settings/personal-access-tokens/new>
+cairn supports multiple GitHub accounts (e.g. personal + work). Create a fine-grained PAT for **each** account you want to track:
+
+1. <https://github.com/settings/personal-access-tokens/new> (while logged into that account)
 2. **Resource owner**: yourself (or the org if you want to track org PRs).
 3. **Repository access**: pick the specific repos you want to track.
 4. **Permissions** (Repository permissions): `Pull requests: Read-only`, `Contents: Read-only`, `Metadata: Read-only`.
 5. Generate and copy the token (starts with `github_pat_…`).
 
 cairn never writes to GitHub. Read-only access is sufficient.
+
+Each token goes into a separate `.env` variable (see §6) and is referenced by `githubAccounts[].tokenEnv` in `worklog.config.json` (see §7).
 
 ## 5. Local Git repositories
 
@@ -89,7 +93,13 @@ cp .env.example .env
 ```
 
 ```env
-GITHUB_TOKEN=github_pat_...
+ANTHROPIC_OAUTH_TOKEN=
+# Optional. Leave empty when running under Claude Code (inherits OAuth).
+
+GITHUB_TOKEN_PERSONAL=github_pat_...
+GITHUB_TOKEN_WORK=github_pat_...
+# Add GITHUB_TOKEN_<LABEL> for each githubAccounts[].tokenEnv you reference.
+
 NOTION_TOKEN_PERSONAL=ntn_...
 # Add NOTION_TOKEN_<LABEL> for each notionWorkspaces[].tokenEnv you reference.
 ```
@@ -107,6 +117,10 @@ Fill in:
 ```json
 {
   "localGitRepos": ["/Users/me/code/repo-1", "/Users/me/code/repo-2"],
+  "githubAccounts": [
+    { "label": "personal", "tokenEnv": "GITHUB_TOKEN_PERSONAL" },
+    { "label": "work", "tokenEnv": "GITHUB_TOKEN_WORK" }
+  ],
   "notionWorkspaces": [
     {
       "label": "personal",
@@ -117,6 +131,8 @@ Fill in:
   ]
 }
 ```
+
+`githubAccounts` is a free-form array — add as many entries as you have GitHub identities. The `label` is a human-readable name you choose (`personal`, `work`, `oss`, `side-project-a`, …); cairn echoes it back in every PR summary and surfaces it in the Korean digest, so pick something short and unambiguous. `tokenEnv` is the `.env` variable name that holds the PAT — convention is `GITHUB_TOKEN_<UPPER_LABEL>`, but any name works as long as `.env` and this file agree. Omit the array (or leave it empty) only if you want to track zero GitHub accounts.
 
 You only need `worklog.pageId` (the parent page from §3.2). cairn auto-creates two inline databases inside that page on first run:
 

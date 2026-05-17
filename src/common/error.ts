@@ -76,12 +76,8 @@ export class CairnError extends Error {
     return new CairnError(ErrorSource.Notion, ErrorCode.AuthFailed, `env var ${envVar} is empty`);
   }
 
-  static githubTokenMissing(): CairnError {
-    return new CairnError(
-      ErrorSource.Github,
-      ErrorCode.AuthFailed,
-      'env var GITHUB_TOKEN is empty',
-    );
+  static githubTokenMissing(envVar: string): CairnError {
+    return new CairnError(ErrorSource.Github, ErrorCode.AuthFailed, `env var ${envVar} is empty`);
   }
 }
 

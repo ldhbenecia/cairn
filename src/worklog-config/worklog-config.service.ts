@@ -5,12 +5,17 @@ import { resolve } from 'node:path';
 import { AppConfigService } from '../config/app-config.service.js';
 import {
   worklogConfigSchema,
+  type GithubAccountConfig,
   type NotionWorkspaceConfig,
   type WorklogConfig,
 } from './worklog-config.schema.js';
 
 const DEFAULT_FILENAME = 'worklog.config.json';
-const EMPTY_CONFIG: WorklogConfig = { localGitRepos: [], notionWorkspaces: [] };
+const EMPTY_CONFIG: WorklogConfig = {
+  localGitRepos: [],
+  notionWorkspaces: [],
+  githubAccounts: [],
+};
 
 @Injectable()
 export class WorklogConfigService {
@@ -52,6 +57,10 @@ export class WorklogConfigService {
 
   getNotionWorkspaces(): readonly NotionWorkspaceConfig[] {
     return this.load().notionWorkspaces;
+  }
+
+  getGithubAccounts(): readonly GithubAccountConfig[] {
+    return this.load().githubAccounts;
   }
 
   persistWorklogTarget(

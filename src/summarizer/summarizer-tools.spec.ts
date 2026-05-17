@@ -11,6 +11,7 @@ const githubActivity: GithubActivity = {
   rangeEnd: '2026-05-09T14:59:59Z',
   prs: [
     {
+      account: 'personal',
       repo: 'cairn',
       number: 13,
       title: 'refactor(common): CairnError 통합',
@@ -26,6 +27,7 @@ const githubActivity: GithubActivity = {
       body: 'CairnError class + ErrorSource/ErrorCode enum 통합',
     },
     {
+      account: 'personal',
       repo: 'cairn',
       number: 14,
       title: 'feat(notion): worklog DB schema',
