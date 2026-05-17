@@ -36,7 +36,7 @@ cp worklog.config.example.json worklog.config.json
 # fill in tokens in .env and absolute repo paths in worklog.config.json
 
 pnpm build
-node dist/main.js --mode=daily --date=$(date +%F) --dry-run
+node packages/core/dist/main.js --mode=daily --date=$(date +%F) --dry-run
 ops/install.sh   # register daily + weekly + monthly launchd jobs
 ```
 
@@ -49,13 +49,13 @@ ops/install.sh   # register daily + weekly + monthly launchd jobs
 | `pnpm lint:fix` | ESLint with autofix |
 | `pnpm format` | Prettier write |
 | `pnpm format:check` | Prettier check |
-| `pnpm build` | Compile to `dist/` |
-| `pnpm start` | Run `dist/main.js` |
+| `pnpm build` | Build all packages (`@cairn/core` → `packages/core/dist/`) |
+| `pnpm start` | Run `packages/core/dist/main.js` |
 
 ## Usage
 
 ```bash
-node dist/main.js --mode=daily --date=$(date +%F) --dry-run
+node packages/core/dist/main.js --mode=daily --date=$(date +%F) --dry-run
 ```
 
 Modes: `daily`, `weekly`, `monthly`. Sources can be limited with repeated `--source=` flags (`github`, `local-git`, `notion`).

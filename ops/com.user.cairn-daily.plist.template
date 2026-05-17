@@ -8,7 +8,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>__NODE_PATH__</string>
-    <string>__CAIRN_DIR__/dist/main.js</string>
+    <string>__CAIRN_DIR__/packages/core/dist/main.js</string>
     <string>--mode=daily</string>
   </array>
 
