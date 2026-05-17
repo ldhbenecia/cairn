@@ -4,7 +4,6 @@ import { restEndpointMethods } from '@octokit/plugin-rest-endpoint-methods';
 import { retry } from '@octokit/plugin-retry';
 import { throttling } from '@octokit/plugin-throttling';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { SecretsService } from '../secrets/secrets.service.js';
 
 const CairnOctokit = Octokit.plugin(throttling, retry, restEndpointMethods);
 type CairnOctokit = InstanceType<typeof CairnOctokit>;
@@ -29,21 +28,20 @@ export interface SearchPrItem {
 
 @Injectable()
 export class GithubApiClient {
-  private octokit: CairnOctokit | undefined;
+  private readonly octokits = new Map<string, CairnOctokit>();
 
   constructor(
-    private readonly secrets: SecretsService,
     @InjectPinoLogger(GithubApiClient.name)
     private readonly logger: PinoLogger,
   ) {}
 
-  async healthCheck(): Promise<GithubIdentity> {
-    const { data } = await this.getOctokit().rest.users.getAuthenticated();
+  async healthCheck(token: string): Promise<GithubIdentity> {
+    const { data } = await this.getOctokit(token).rest.users.getAuthenticated();
     return { login: data.login };
   }
 
-  async searchPrs(query: string): Promise<SearchPrItem[]> {
-    const { data } = await this.getOctokit().rest.search.issuesAndPullRequests({
+  async searchPrs(token: string, query: string): Promise<SearchPrItem[]> {
+    const { data } = await this.getOctokit(token).rest.search.issuesAndPullRequests({
       q: `is:pr ${query}`,
       per_page: 100,
     });
@@ -65,8 +63,13 @@ export class GithubApiClient {
     });
   }
 
-  async listPrFileBasenames(owner: string, repo: string, pullNumber: number): Promise<string[]> {
-    const { data } = await this.getOctokit().rest.pulls.listFiles({
+  async listPrFileBasenames(
+    token: string,
+    owner: string,
+    repo: string,
+    pullNumber: number,
+  ): Promise<string[]> {
+    const { data } = await this.getOctokit(token).rest.pulls.listFiles({
       owner,
       repo,
       pull_number: pullNumber,
@@ -75,8 +78,13 @@ export class GithubApiClient {
     return data.map((f) => basename(f.filename));
   }
 
-  async fetchPrBody(owner: string, repo: string, pullNumber: number): Promise<string | null> {
-    const { data } = await this.getOctokit().rest.pulls.get({
+  async fetchPrBody(
+    token: string,
+    owner: string,
+    repo: string,
+    pullNumber: number,
+  ): Promise<string | null> {
+    const { data } = await this.getOctokit(token).rest.pulls.get({
       owner,
       repo,
       pull_number: pullNumber,
@@ -84,11 +92,11 @@ export class GithubApiClient {
     return data.body ?? null;
   }
 
-  private getOctokit(): CairnOctokit {
-    if (this.octokit) return this.octokit;
+  private getOctokit(token: string): CairnOctokit {
+    const cached = this.octokits.get(token);
+    if (cached) return cached;
 
-    const token = this.secrets.requireGithubToken();
-    this.octokit = new CairnOctokit({
+    const octokit = new CairnOctokit({
       auth: token,
       userAgent: 'cairn',
       throttle: {
@@ -111,8 +119,9 @@ export class GithubApiClient {
         doNotRetry: [400, 401, 403, 404, 422],
       },
     });
-    this.logger.debug('octokit initialized');
-    return this.octokit;
+    this.octokits.set(token, octokit);
+    this.logger.debug('octokit initialized for token');
+    return octokit;
   }
 }
 
