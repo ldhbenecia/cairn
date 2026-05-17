@@ -50,7 +50,7 @@
   <string>__USER_HOME__/.cairn/logs/launchd-weekly.err.log</string>
 
   <key>RunAtLoad</key>
-  <false/>
+  <true/>
 
   <key>KeepAlive</key>
   <false/>

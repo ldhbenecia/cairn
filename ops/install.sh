@@ -9,22 +9,31 @@ set -euo pipefail
 # - launchctl bootstrap (또는 bootout 후 재등록)
 #
 # 사용:
-#   ops/install.sh             # 세 plist 모두 등록
-#   ops/install.sh --uninstall # 세 plist 모두 해제
+#   ops/install.sh                # launchd 3개 등록
+#   ops/install.sh --with-wake    # launchd 3개 + pmset wake (02:55) opt-in
+#   ops/install.sh --uninstall    # launchd 3개 해제 (+ cairn 이 박은 pmset 해제)
+#
+# RunAtLoad: true 라 등록 직후 / 사용자 로그인마다 1회 발화 →
+# cairn 의 backfill 이 빠진 날짜를 자동 채움. sleep 중 missed 슬롯도
+# 다음 로그인 / 깨움 시 catch up.
+#
+# --with-wake (opt-in):
+#   sudo pmset repeat wakeorpoweron MTWRFSU 02:55:00 등록 → Mac 이 매일
+#   02:55 sleep 에서 깸 → 03:00 의 launchd 슬롯 대신 daily 의 RunAtLoad
+#   기반 catch up. 안 박아도 RunAtLoad + backfill 로 일상 대부분 cover 됨.
 #
 # 검증:
 #   launchctl list | grep cairn
+#   pmset -g sched
 #   tail -f ~/.cairn/logs/launchd.out.log              # daily
 #   tail -f ~/.cairn/logs/launchd-weekly.out.log
 #   tail -f ~/.cairn/logs/launchd-monthly.out.log
 #   tail -f ~/.cairn/logs/cairn-$(date +%Y-%m-%d).log
-#
-# plist 의 시간 (StartCalendarInterval) 은 시스템 TZ 기준. macOS 가 KST 일 때:
-#   - daily   매일 19:00 + 23:00
-#   - weekly  매주 월요일 07:00 + 11:00
-#   - monthly 매월 2일 07:00 + 11:00
 
 KINDS=(daily weekly monthly)
+PMSET_SENTINEL="$HOME/.cairn/pmset-installed-by-cairn"
+PMSET_WAKE_TIME="02:55:00"
+PMSET_WAKE_DAYS="MTWRFSU"
 
 uninstall_one() {
   local label="$1"
@@ -36,6 +45,15 @@ uninstall_one() {
   fi
   rm -f "$plist_dest"
   echo "✓ $label uninstalled."
+}
+
+uninstall_pmset_if_ours() {
+  if [[ -f "$PMSET_SENTINEL" ]]; then
+    echo "→ cairn 이 박은 pmset wake 스케줄 해제 (sudo 필요)"
+    sudo pmset repeat cancel
+    rm -f "$PMSET_SENTINEL"
+    echo "✓ pmset repeat 해제."
+  fi
 }
 
 install_one() {
@@ -64,10 +82,38 @@ install_one() {
   echo "✓ $label installed: $plist_dest"
 }
 
-if [[ "${1:-}" == "--uninstall" ]]; then
+install_pmset_wake() {
+  echo ""
+  echo "→ pmset wake 스케줄 등록 (sudo 필요)"
+  echo "  매일 $PMSET_WAKE_TIME 에 Mac 을 sleep 에서 깨움 → launchd 03:00 슬롯 발화."
+  echo "  pmset repeat 는 시스템 전역 1 슬롯이라 다른 도구의 wake 스케줄을 덮어씁니다."
+  read -r -p "  계속? [y/N] " ans
+  if [[ "$ans" != "y" && "$ans" != "Y" ]]; then
+    echo "  → pmset 셋팅 skip."
+    return
+  fi
+  sudo pmset repeat wakeorpoweron "$PMSET_WAKE_DAYS" "$PMSET_WAKE_TIME"
+  mkdir -p "$(dirname "$PMSET_SENTINEL")"
+  date +'%Y-%m-%d %H:%M:%S' > "$PMSET_SENTINEL"
+  echo "✓ pmset repeat 등록 완료. sentinel: $PMSET_SENTINEL"
+}
+
+# 인자 파싱
+WITH_WAKE=0
+MODE=install
+for arg in "$@"; do
+  case "$arg" in
+    --uninstall) MODE=uninstall ;;
+    --with-wake) WITH_WAKE=1 ;;
+    *) echo "unknown arg: $arg" >&2; exit 1 ;;
+  esac
+done
+
+if [[ "$MODE" == "uninstall" ]]; then
   for kind in "${KINDS[@]}"; do
     uninstall_one "com.user.cairn-$kind"
   done
+  uninstall_pmset_if_ours
   exit 0
 fi
 
@@ -87,20 +133,28 @@ for kind in "${KINDS[@]}"; do
   install_one "$kind"
 done
 
+if [[ "$WITH_WAKE" -eq 1 ]]; then
+  install_pmset_wake
+fi
+
 echo ""
 echo "  scheduled:"
-echo "    daily   매일 19:00 + 23:00"
-echo "    weekly  매주 월요일 07:00 + 11:00"
-echo "    monthly 매월 2일 07:00 + 11:00"
+echo "    daily   매일 19:00 + 23:00 + RunAtLoad (로그인 / 깨움 시)"
+echo "    weekly  매주 월요일 07:00 + 11:00 + RunAtLoad"
+echo "    monthly 매월 2일 07:00 + 11:00 + RunAtLoad"
 echo "  (system TZ — macOS 가 KST 면 KST)"
 echo "  node: $NODE_PATH"
 echo "  cwd:  $CAIRN_DIR"
 echo "  logs: $USER_HOME/.cairn/logs/"
+if [[ "$WITH_WAKE" -eq 1 ]] && [[ -f "$PMSET_SENTINEL" ]]; then
+  echo "  pmset wake: $PMSET_WAKE_TIME (sentinel $PMSET_SENTINEL)"
+fi
 echo ""
 echo "verify:"
 echo "  launchctl print gui/\$UID/com.user.cairn-daily | head -20"
 echo "  launchctl print gui/\$UID/com.user.cairn-weekly | head -20"
 echo "  launchctl print gui/\$UID/com.user.cairn-monthly | head -20"
+echo "  pmset -g sched   # --with-wake 셋팅했으면 wakepoweron 보여야 함"
 echo ""
 echo "uninstall:"
-echo "  ops/install.sh --uninstall"
+echo "  ops/install.sh --uninstall   # cairn 이 박은 pmset 도 함께 해제"
