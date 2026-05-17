@@ -17,7 +17,9 @@
 | 5 | Summarizer agent harness (daily) | ✅ 2026-05-09 |
 | 6 | launchd daily | ✅ 2026-05-09 |
 | 7 | 롤업 (weekly + monthly) | ✅ 2026-05-10 |
-| 8 | 셋업 가이드 + v1.0.0 | ✅ 2026-05-10 |
+| 8 | 셋업 가이드 (v0.9.0 — 1.0.0 보류) | ✅ 2026-05-10 |
+| 9 | GitHub multi-account (v0.10.0) | ✅ 2026-05-17 |
+| 10 | sleep-aware backfill (v0.11.0) | — |
 
 > 일지 파일은 `docs/progress/` 디렉토리 자체가 인덱스 — 여기에 일일이 한 줄씩 모으지 않는다.
 
