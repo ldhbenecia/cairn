@@ -164,10 +164,22 @@ export class GithubCollectorService {
     myLogin: string,
   ): Promise<GithubPrSummary> {
     const { account, item, categories } = bucket;
+    // PR 이 이 일자 이전에 생성됐고 같은 날 merge 된 경우 — 본인 push 가 없었던
+    // 케이스가 대부분이고 listCommits 결과는 (merge commit 제외 후) 빈 경우가
+    // 일반. 1 API call 절약을 위해 휴리스틱 스킵. push-then-merge 같은 날 케이스는
+    // 누락될 수 있지만 드물어서 trade-off OK.
+    const skipCommitsOnDate = categories.has('authored_merged') && item.createdAt < sinceIso;
+    // 본인이 author/reviewer/commenter 아닌 involved-only PR (assignee / mentions
+    // 만으로 엮인 경우) — body 가 다른 사람 작업 설명이라 회고 가치 낮음. body
+    // fetch 1 API call 절약.
+    const skipBody = categories.size === 1 && categories.has('involved');
+
     const [changedFileNames, body, commitsOnDate] = await Promise.all([
       this.client.listPrFileBasenames(token, item.owner, item.repo, item.number),
-      this.fetchSafeBody(token, item),
-      this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin),
+      skipBody ? Promise.resolve(null) : this.fetchSafeBody(token, item),
+      skipCommitsOnDate
+        ? Promise.resolve([] as readonly PrCommitOnDate[])
+        : this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin),
     ]);
     return {
       account,
