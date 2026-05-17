@@ -204,17 +204,36 @@ launchctl list | grep cairn
 
 | Job | 스케줄 |
 |-----|--------|
-| daily | 매일 19:00 + 23:00 |
-| weekly | 매주 월요일 07:00 + 11:00 |
-| monthly | 매월 2일 07:00 + 11:00 |
+| daily | 매일 19:00 + 23:00, **+ RunAtLoad** |
+| weekly | 매주 월요일 07:00 + 11:00, **+ RunAtLoad** |
+| monthly | 매월 2일 07:00 + 11:00, **+ RunAtLoad** |
 
-각 job 은 두 슬롯이라 노트북이 sleep 중이어도 두 번째 wake-up 에서 catch up. 멱등성으로 중복 발행 방지.
+두 시각 슬롯 외에 `RunAtLoad: true` 로 사용자 로그인 / 세션 시작 시 1회 더 발화. daily 모드는 명시적 `--date` 가 없으면 지난 7 일 (default) 중 빠진 날짜를 자동 backfill — 노트북 닫고 자다가 다음 날 열면 누락분 일괄 발행.
+
+### 선택: 새벽 슬롯도 깨우려면 (`--with-wake`)
+
+lid 닫고 자도 03:00 슬롯이 발화하길 원하면:
+
+```bash
+ops/install.sh --with-wake
+```
+
+`sudo pmset repeat wakeorpoweron MTWRFSU 02:55:00` 등록 → Mac 이 매일 02:55 잠시 깸 → 03:00 launchd 슬롯 fire → 다시 sleep. sentinel 파일 `~/.cairn/pmset-installed-by-cairn` 으로 cairn 이 박은 것임을 표시, `--uninstall` 시 cleanup.
+
+주의:
+- `pmset repeat` 는 시스템 전역 **1개 슬롯만 지원** — 다른 도구의 wake 스케줄을 덮어씀
+- `sudo` 필요
+- lid 닫힘 + 배터리만 일 땐 macOS / Apple Silicon firmware 에 따라 wake 안 될 수 있음. 충전기 꽂아두는 편이 안전
+
+평소 노트북-only 운영이면 RunAtLoad + daily backfill 조합으로 충분. `--with-wake` 는 시각 정확도가 중요한 사용자용.
 
 ### 해제
 
 ```bash
 ops/install.sh --uninstall
 ```
+
+세 plist 해제 + `--with-wake` 로 박았던 pmset 도 sentinel 확인 후 자동 해제.
 
 ## 10. 로그 / 알림
 
@@ -252,15 +271,14 @@ DB 는 첫 publish 때 lazy 로 생성된다 (config 로드 시 X). `--mode=week
 - `NODE_ENV=production` 일 때만 알림. 터미널 수동 실행은 의도적으로 silent
 - launchd 발화 알림: 시스템 설정 → 알림 → Script Editor → 알림 허용 (osascript 알림은 Script Editor 권한 사용)
 
-### launchd 가 발화 안 함
+### launchd 가 발화 안 함 / 어느 날 빠짐
 
-- plist 의 `StartCalendarInterval` 은 absolute 시간. sleep 중이면 그 슬롯은 그냥 놓침 — daily / weekly / monthly 각각 두 슬롯을 둔 이유
+- `StartCalendarInterval` 은 absolute 시간이라 sleep 중인 슬롯은 그냥 놓침. 그래서 각 job 에 두 슬롯 + `RunAtLoad: true` (로그인 / 세션 시작 시) 셋팅
 - 강제 발화로 검증: `launchctl kickstart -k gui/$UID/com.user.cairn-daily`
 - 로그 확인: `tail -f ~/.cairn/logs/launchd.err.log`
-- 노트북 닫고 자면 그날 두 슬롯 다 놓치는 케이스 있음. 두 가지 보강이 후속 단계 (단계 10) 로 예정:
-  - **sleep-aware backfill** — plist 에 `RunAtLoad: true` + cairn 이 노트북 열 때 빠진 날짜 자동 backfill. `sudo` 불필요
-  - **`pmset` wake (opt-in)** — `ops/install.sh --with-wake` 로 `pmset repeat wakeorpoweron` 등록해서 Mac 이 스케줄 시각에 잠깐 깸 → 발화 → 다시 sleep. `sudo` 필요 + `--uninstall` 페어링
-- 그때까진 수동 보강: `node dist/main.js --mode=daily --date=<놓친-날짜>`
+- **빠진 날짜는 자동 backfill** — daily 모드가 명시적 `--date` 없이 돌면 worklog DB 를 query 해서 지난 `--backfill-days` (default 7) 중 발행 안 된 날짜를 chronological 순서로 일괄 발행. RunAtLoad 덕분에 다음 노트북 열면 자동으로 처리됨. 알림은 한 개로 묶임
+- 한 번에 backfill 끄려면: `--backfill-days=0`. 특정 날짜만 노리려면 `--date=YYYY-MM-DD` (이 경우 backfill 도 자동 끔)
+- lid 닫고 자도 시각 정확하게 발화하길 원하면 `ops/install.sh --with-wake` (위 §9 참조)
 
 ### cost 추적 callout 이 `$0.00` 이거나 안 보임
 
