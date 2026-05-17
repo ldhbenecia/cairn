@@ -59,15 +59,19 @@ curl -sS https://api.notion.com/v1/users/me \
 
 반환된 UUID 가 `myUserId`.
 
-## 4. GitHub fine-grained PAT
+## 4. GitHub fine-grained PAT (계정마다 한 개)
 
-1. <https://github.com/settings/personal-access-tokens/new>
+cairn 은 여러 GitHub 계정 (예: 개인 + 회사) 동시 추적 지원. 추적할 **각 계정마다** PAT 발급:
+
+1. <https://github.com/settings/personal-access-tokens/new> (해당 계정으로 로그인 상태에서)
 2. **Resource owner**: 본인 (또는 org PR 까지 추적하려면 org)
 3. **Repository access**: 추적할 repo 만 선택
 4. **Permissions** (Repository): `Pull requests: Read-only`, `Contents: Read-only`, `Metadata: Read-only`
 5. 생성 후 토큰 복사 (`github_pat_…`)
 
 cairn 은 GitHub 에 쓰지 않는다. 읽기 전용으로 충분.
+
+각 토큰은 `.env` 의 별도 env 변수에 저장 (§6) → `worklog.config.json` 의 `githubAccounts[].tokenEnv` 가 참조 (§7).
 
 ## 5. 로컬 Git repo
 
@@ -87,7 +91,13 @@ cp .env.example .env
 ```
 
 ```env
-GITHUB_TOKEN=github_pat_...
+ANTHROPIC_OAUTH_TOKEN=
+# 비워둬도 OK — Claude Code 로그인 상태면 OAuth 자동 상속
+
+GITHUB_TOKEN_PERSONAL=github_pat_...
+GITHUB_TOKEN_WORK=github_pat_...
+# githubAccounts[].tokenEnv 가 가리키는 env 이름마다 한 줄씩 (이름 자유)
+
 NOTION_TOKEN_PERSONAL=ntn_...
 # notionWorkspaces[].tokenEnv 가 가리키는 env 이름마다 한 줄씩
 ```
@@ -105,6 +115,10 @@ cp worklog.config.example.json worklog.config.json
 ```json
 {
   "localGitRepos": ["/Users/me/code/repo-1", "/Users/me/code/repo-2"],
+  "githubAccounts": [
+    { "label": "personal", "tokenEnv": "GITHUB_TOKEN_PERSONAL" },
+    { "label": "work", "tokenEnv": "GITHUB_TOKEN_WORK" }
+  ],
   "notionWorkspaces": [
     {
       "label": "personal",
@@ -115,6 +129,8 @@ cp worklog.config.example.json worklog.config.json
   ]
 }
 ```
+
+`githubAccounts` 는 자유 array — 본인이 추적할 GitHub 계정 수만큼 항목 추가. `label` 은 본인이 정하는 사람용 이름 (`personal` / `work` / `oss` / `회사명` 등 자유) — cairn 이 PR 요약에 그대로 노출함. `tokenEnv` 는 `.env` 에 박은 환경변수 이름 — 컨벤션은 `GITHUB_TOKEN_<UPPER_LABEL>` 이지만 `.env` 와 이 파일이 같은 이름을 가리키기만 하면 됨. array 를 비워두거나 생략하면 GitHub 추적 0개.
 
 `worklog.pageId` 만 박으면 됨. 첫 실행 때 cairn 이 그 페이지 안에 두 개의 인라인 DB 를 자동 생성:
 

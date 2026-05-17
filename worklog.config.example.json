@@ -1,5 +1,9 @@
 {
   "localGitRepos": ["/absolute/path/to/repo-1", "/absolute/path/to/repo-2"],
+  "githubAccounts": [
+    { "label": "personal", "tokenEnv": "GITHUB_TOKEN_PERSONAL" },
+    { "label": "work", "tokenEnv": "GITHUB_TOKEN_WORK" }
+  ],
   "notionWorkspaces": [
     {
       "label": "personal",
