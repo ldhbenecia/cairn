@@ -92,6 +92,53 @@ export class GithubApiClient {
     return data.body ?? null;
   }
 
+  async listPrCommitsInRange(
+    token: string,
+    owner: string,
+    repo: string,
+    pullNumber: number,
+    sinceIso: string,
+    untilIso: string,
+    authorLogin?: string,
+  ): Promise<Array<{ shortSha: string; subject: string; authoredAt: string }>> {
+    const octokit = this.getOctokit(token);
+    const out: Array<{ shortSha: string; subject: string; authoredAt: string }> = [];
+    let page = 1;
+    const perPage = 100;
+    // PR 의 commits 는 GitHub 가 author/committer date 순서 보장 X.
+    // 모두 가져온 뒤 클라이언트에서 range 필터링.
+    while (true) {
+      const { data } = await octokit.rest.pulls.listCommits({
+        owner,
+        repo,
+        pull_number: pullNumber,
+        per_page: perPage,
+        page,
+      });
+      for (const c of data) {
+        const author = c.commit.author;
+        const authorDate = author?.date;
+        if (!authorDate) continue;
+        if (authorDate < sinceIso || authorDate > untilIso) continue;
+        // merge commit 제외 — parents 가 2개 이상이면 merge
+        if (c.parents.length > 1) continue;
+        // authorLogin 필터: 본인 commit 만
+        if (authorLogin && c.author?.login && c.author.login !== authorLogin) continue;
+        const subjectFull = c.commit.message ?? '';
+        const subject = subjectFull.split('\n')[0]?.trim() ?? '';
+        out.push({
+          shortSha: c.sha.slice(0, 7),
+          subject,
+          authoredAt: authorDate,
+        });
+      }
+      if (data.length < perPage) break;
+      page += 1;
+      if (page > 10) break; // 안전 가드 (PR 에 1000+ commit 은 비정상)
+    }
+    return out;
+  }
+
   private getOctokit(token: string): CairnOctokit {
     const cached = this.octokits.get(token);
     if (cached) return cached;
