@@ -37,6 +37,33 @@ export class NotionPublisherService {
     private readonly logger: PinoLogger,
   ) {}
 
+  async findPublishedDates(rangeStart: string, rangeEnd: string): Promise<Set<string>> {
+    const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
+    if (!target) return new Set();
+
+    const token = this.secrets.getEnv(target.tokenEnv);
+    if (!token) return new Set();
+
+    const dataSourceId = target.worklog?.dataSourceId;
+    if (!dataSourceId) return new Set();
+
+    try {
+      const pages = await this.client.queryWorklogPagesInRange(
+        token,
+        dataSourceId,
+        rangeStart,
+        rangeEnd,
+      );
+      return new Set(pages.map((p) => p.date));
+    } catch (err) {
+      this.logger.warn(
+        { rangeStart, rangeEnd, err: String(err) },
+        'findPublishedDates failed — assuming none published',
+      );
+      return new Set();
+    }
+  }
+
   async publish(input: PublishWorklogInput): Promise<PublishWorklogResult> {
     const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
 
