@@ -8,6 +8,7 @@ import type {
   GithubActivityCategory,
   GithubPrState,
   GithubPrSummary,
+  PrCommitOnDate,
 } from '../contracts/github-activity.types.js';
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { GithubAccountConfig } from '../worklog-config/worklog-config.schema.js';
@@ -16,6 +17,7 @@ import { kstDateToUtcWindow, searchRangeFragment } from './date-window.js';
 import { GithubApiClient, type SearchPrItem } from './github-api.client.js';
 
 const PR_BODY_MAX_CHARS = 800;
+const PR_COMMIT_SUBJECT_MAX_CHARS = 200;
 
 interface PrBucket {
   account: string;
@@ -51,7 +53,9 @@ export class GithubCollectorService {
     this.logger.info({ date, range, accountCount: accounts.length }, 'github collect start');
 
     const settled = await Promise.allSettled(
-      accounts.map((account) => this.collectAccount(account, range)),
+      accounts.map((account) =>
+        this.collectAccount(account, range, window.startIso, window.endIso),
+      ),
     );
 
     const accountErrors: GithubAccountActivityError[] = [];
@@ -86,26 +90,47 @@ export class GithubCollectorService {
   private async collectAccount(
     account: GithubAccountConfig,
     range: string,
+    sinceIso: string,
+    untilIso: string,
   ): Promise<GithubPrSummary[]> {
     const token = this.secrets.getEnv(account.tokenEnv);
     if (!token) {
       throw CairnError.githubTokenMissing(account.tokenEnv);
     }
 
-    const [authored, authoredMerged, reviewed, commented] = await Promise.all([
-      this.client.searchPrs(token, `author:@me updated:${range}`),
-      this.client.searchPrs(token, `author:@me merged:${range}`),
+    const loginPromise = this.client.healthCheck(token).then((id) => id.login);
+    const [involved, reviewed, commented] = await Promise.all([
+      this.client.searchPrs(token, `involves:@me updated:${range}`),
       this.client.searchPrs(token, `reviewed-by:@me updated:${range}`),
       this.client.searchPrs(token, `commenter:@me updated:${range}`),
     ]);
+    const myLogin = await loginPromise;
 
     const buckets = new Map<string, PrBucket>();
-    this.tag(buckets, account.label, authored, 'authored');
-    this.tag(buckets, account.label, authoredMerged, 'authored_merged');
+    for (const item of involved) {
+      const key = `${account.label}/${item.owner}/${item.repo}#${item.number}`;
+      const bucket = buckets.get(key) ?? {
+        account: account.label,
+        item,
+        categories: new Set<GithubActivityCategory>(),
+      };
+      bucket.categories.add('involved');
+      if (item.author === myLogin) {
+        bucket.categories.add('authored');
+        if (item.mergedAt && item.mergedAt >= sinceIso && item.mergedAt <= untilIso) {
+          bucket.categories.add('authored_merged');
+        }
+      }
+      buckets.set(key, bucket);
+    }
     this.tag(buckets, account.label, reviewed, 'reviewed');
     this.tag(buckets, account.label, commented, 'commented');
 
-    return Promise.all([...buckets.values()].map((bucket) => this.toPrSummary(token, bucket)));
+    return Promise.all(
+      [...buckets.values()].map((bucket) =>
+        this.toPrSummary(token, bucket, sinceIso, untilIso, myLogin),
+      ),
+    );
   }
 
   private tag(
@@ -125,11 +150,23 @@ export class GithubCollectorService {
     }
   }
 
-  private async toPrSummary(token: string, bucket: PrBucket): Promise<GithubPrSummary> {
+  private async toPrSummary(
+    token: string,
+    bucket: PrBucket,
+    sinceIso: string,
+    untilIso: string,
+    myLogin: string,
+  ): Promise<GithubPrSummary> {
     const { account, item, categories } = bucket;
-    const [changedFileNames, body] = await Promise.all([
+    const skipCommitsOnDate = categories.has('authored_merged') && item.createdAt < sinceIso;
+    const skipBody = categories.size === 1 && categories.has('involved');
+
+    const [changedFileNames, body, commitsOnDate] = await Promise.all([
       this.client.listPrFileBasenames(token, item.owner, item.repo, item.number),
-      this.fetchSafeBody(token, item),
+      skipBody ? Promise.resolve(null) : this.fetchSafeBody(token, item),
+      skipCommitsOnDate
+        ? Promise.resolve([] as readonly PrCommitOnDate[])
+        : this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin),
     ]);
     return {
       account,
@@ -146,7 +183,57 @@ export class GithubCollectorService {
       changedFileNames,
       categories: [...categories],
       body,
+      commitsOnDate,
     };
+  }
+
+  private async fetchSafeCommitsOnDate(
+    token: string,
+    item: SearchPrItem,
+    sinceIso: string,
+    untilIso: string,
+    myLogin: string,
+  ): Promise<readonly PrCommitOnDate[]> {
+    let raw: Array<{ shortSha: string; subject: string; authoredAt: string }>;
+    try {
+      raw = await this.client.listPrCommitsInRange(
+        token,
+        item.owner,
+        item.repo,
+        item.number,
+        sinceIso,
+        untilIso,
+        myLogin,
+      );
+    } catch (err) {
+      this.logger.warn(
+        { repo: item.repo, number: item.number, err: CairnError.from(err, 'github').code },
+        'pr commits-on-date fetch failed — empty',
+      );
+      return [];
+    }
+    const out: PrCommitOnDate[] = [];
+    for (const c of raw) {
+      const subject =
+        c.subject.length > PR_COMMIT_SUBJECT_MAX_CHARS
+          ? c.subject.slice(0, PR_COMMIT_SUBJECT_MAX_CHARS)
+          : c.subject;
+      try {
+        assertNoForbiddenPayload(
+          subject,
+          `github.pr-commit.${item.repo}#${item.number}.${c.shortSha}`,
+        );
+      } catch {
+        // commit subject 에 금지 패턴이 있으면 그 commit 만 빼고 계속
+        this.logger.warn(
+          { repo: item.repo, number: item.number, sha: c.shortSha },
+          'pr commit subject contains forbidden pattern — commit dropped',
+        );
+        continue;
+      }
+      out.push({ shortSha: c.shortSha, subject, authoredAt: c.authoredAt });
+    }
+    return out;
   }
 
   private async fetchSafeBody(token: string, item: SearchPrItem): Promise<string | null> {

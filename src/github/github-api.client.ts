@@ -92,6 +92,50 @@ export class GithubApiClient {
     return data.body ?? null;
   }
 
+  async listPrCommitsInRange(
+    token: string,
+    owner: string,
+    repo: string,
+    pullNumber: number,
+    sinceIso: string,
+    untilIso: string,
+    authorLogin?: string,
+  ): Promise<Array<{ shortSha: string; subject: string; authoredAt: string }>> {
+    const octokit = this.getOctokit(token);
+    const out: Array<{ shortSha: string; subject: string; authoredAt: string }> = [];
+    let page = 1;
+    const perPage = 100;
+    // GitHub 가 commit 순서를 author date 로 보장 X — 모두 가져온 뒤 client-side 필터
+    while (true) {
+      const { data } = await octokit.rest.pulls.listCommits({
+        owner,
+        repo,
+        pull_number: pullNumber,
+        per_page: perPage,
+        page,
+      });
+      for (const c of data) {
+        const author = c.commit.author;
+        const authorDate = author?.date;
+        if (!authorDate) continue;
+        if (authorDate < sinceIso || authorDate > untilIso) continue;
+        if (c.parents.length > 1) continue;
+        if (authorLogin && c.author?.login && c.author.login !== authorLogin) continue;
+        const subjectFull = c.commit.message ?? '';
+        const subject = subjectFull.split('\n')[0]?.trim() ?? '';
+        out.push({
+          shortSha: c.sha.slice(0, 7),
+          subject,
+          authoredAt: authorDate,
+        });
+      }
+      if (data.length < perPage) break;
+      page += 1;
+      if (page > 10) break; // 안전 가드 (PR 에 1000+ commit 은 비정상)
+    }
+    return out;
+  }
+
   private getOctokit(token: string): CairnOctokit {
     const cached = this.octokits.get(token);
     if (cached) return cached;

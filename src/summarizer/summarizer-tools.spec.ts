@@ -25,6 +25,13 @@ const githubActivity: GithubActivity = {
       changedFileNames: ['error.ts'],
       categories: ['authored', 'authored_merged'],
       body: 'CairnError class + ErrorSource/ErrorCode enum 통합',
+      commitsOnDate: [
+        {
+          shortSha: 'aaa1234',
+          subject: 'refactor(common): CairnError 통합',
+          authoredAt: '2026-05-09T03:00:00Z',
+        },
+      ],
     },
     {
       account: 'personal',
@@ -41,6 +48,7 @@ const githubActivity: GithubActivity = {
       changedFileNames: ['schema.ts'],
       categories: ['authored'],
       body: null,
+      commitsOnDate: [],
     },
   ],
 };

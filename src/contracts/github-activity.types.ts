@@ -1,6 +1,17 @@
-export type GithubActivityCategory = 'authored' | 'authored_merged' | 'reviewed' | 'commented';
+export type GithubActivityCategory =
+  | 'authored'
+  | 'authored_merged'
+  | 'reviewed'
+  | 'commented'
+  | 'involved';
 
 export type GithubPrState = 'open' | 'closed' | 'merged';
+
+export interface PrCommitOnDate {
+  shortSha: string;
+  subject: string;
+  authoredAt: string;
+}
 
 export interface GithubPrSummary {
   account: string;
@@ -17,6 +28,7 @@ export interface GithubPrSummary {
   changedFileNames: readonly string[];
   categories: readonly GithubActivityCategory[];
   body: string | null;
+  commitsOnDate: readonly PrCommitOnDate[];
 }
 
 import type { CairnError } from '../common/error.js';
