@@ -39,7 +39,8 @@ export class GithubCollectorService {
     const window = kstDateToUtcWindow(date);
     const range = searchRangeFragment(window);
     const lookbackStartIso = computeLookbackStartIso(date, lookbackDays, window.startIso);
-    const widenedRange = `${lookbackStartIso}..${window.endIso}`;
+    // upper bound 없음 — PR.updated_at 이 target day 이후 (5/11 → 5/15) 로 밀린 케이스도 잡기 위함
+    const widenedRange = `>=${lookbackStartIso}`;
     const accounts = this.worklogConfig.getGithubAccounts();
 
     if (accounts.length === 0) {
