@@ -14,10 +14,17 @@ export const notionWorkspaceConfigSchema = z.object({
   rollup: worklogTargetSchema.optional(),
 });
 
+export const githubAccountConfigSchema = z.object({
+  label: z.string().min(1),
+  tokenEnv: z.string().min(1),
+});
+
 export const worklogConfigSchema = z.object({
   localGitRepos: z.array(z.string().min(1)).default([]),
   notionWorkspaces: z.array(notionWorkspaceConfigSchema).default([]),
+  githubAccounts: z.array(githubAccountConfigSchema).default([]),
 });
 
 export type NotionWorkspaceConfig = z.infer<typeof notionWorkspaceConfigSchema>;
+export type GithubAccountConfig = z.infer<typeof githubAccountConfigSchema>;
 export type WorklogConfig = z.infer<typeof worklogConfigSchema>;
