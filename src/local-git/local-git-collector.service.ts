@@ -1,13 +1,13 @@
-import { basename } from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { basename } from 'node:path';
+import { kstDateToUtcWindow } from '../common/date-window.js';
 import { CairnError } from '../common/error.js';
 import type {
   LocalGitActivity,
   LocalGitCommitSummary,
   LocalGitRepoActivity,
 } from '../contracts/local-git-activity.types.js';
-import { kstDateToUtcWindow } from '../github/date-window.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
 import { LocalGitClient, type RawLocalCommit } from './local-git.client.js';
 

@@ -113,7 +113,9 @@ export class OrchestratorService {
     }
 
     const [githubActivity, localGitActivity, notionActivity] = await Promise.all([
-      wantsGithub ? this.githubCollector.collect(date) : Promise.resolve(null),
+      wantsGithub
+        ? this.githubCollector.collect(date, options.lookbackDays)
+        : Promise.resolve(null),
       wantsLocalGit ? this.localGitCollector.collect(date) : Promise.resolve(null),
       wantsNotion ? this.notionCollector.collect(date) : Promise.resolve(null),
     ]);
