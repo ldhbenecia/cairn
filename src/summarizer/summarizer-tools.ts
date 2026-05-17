@@ -5,6 +5,7 @@ import type {
   GithubActivity,
   GithubActivityCategory,
   GithubPrState,
+  PrCommitOnDate,
 } from '../contracts/github-activity.types.js';
 import type { LocalGitActivity } from '../contracts/local-git-activity.types.js';
 import type { NotionActivity, NotionParentType } from '../contracts/notion-activity.types.js';
@@ -37,6 +38,7 @@ interface DonePrItem {
   categories: readonly GithubActivityCategory[];
   htmlUrl: string;
   body: string | null;
+  commitsOnDate: readonly PrCommitOnDate[];
 }
 
 interface DoneCommitItem {
@@ -60,6 +62,7 @@ interface OpenPrItem {
   htmlUrl: string;
   updatedAt: string;
   body: string | null;
+  commitsOnDate: readonly PrCommitOnDate[];
 }
 
 interface UnpushedCommitItem {
@@ -168,6 +171,7 @@ function computeDonePrs(input: SummarizerInput): DonePrItem[] {
         categories: pr.categories,
         htmlUrl: pr.htmlUrl,
         body: pr.body,
+        commitsOnDate: pr.commitsOnDate,
       });
     }
   }
@@ -209,6 +213,7 @@ function computeOpenPrs(input: SummarizerInput): OpenPrItem[] {
         htmlUrl: pr.htmlUrl,
         updatedAt: pr.updatedAt,
         body: pr.body,
+        commitsOnDate: pr.commitsOnDate,
       });
     }
   }
