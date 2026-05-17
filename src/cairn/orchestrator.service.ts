@@ -60,19 +60,66 @@ export class OrchestratorService {
   }
 
   private async runDaily(options: RunOptions): Promise<void> {
+    // 명시적 --date 또는 backfill 끔 → 단일 날짜만
+    if (options.dateExplicit || options.backfillDays === 0 || options.dryRun) {
+      await this.runDailyForDate(options.date, options, { silent: false });
+      return;
+    }
+
+    // backfill: 오늘 포함 지난 N 일 중 미발행 날짜 자동 채움
+    const targetDates = generatePastDates(options.date, options.backfillDays);
+    const rangeStart = targetDates[0]!;
+    const rangeEnd = targetDates[targetDates.length - 1]!;
+    const published = await this.notionPublisher.findPublishedDates(rangeStart, rangeEnd);
+    const missingDates = targetDates.filter((d) => !published.has(d));
+
+    if (missingDates.length === 0) {
+      this.logger.info(
+        { rangeStart, rangeEnd, checked: targetDates.length },
+        'daily: all dates in backfill window already published — nothing to do',
+      );
+      return;
+    }
+
+    if (missingDates.length === 1) {
+      // 정상 케이스 — 빠진 날짜 1개 (대개 오늘)
+      await this.runDailyForDate(missingDates[0]!, options, { silent: false });
+      return;
+    }
+
+    // 여러 날짜 backfill — 알림은 한 번만 묶어서
+    this.logger.info(
+      { missingDates, alreadyPublishedCount: targetDates.length - missingDates.length },
+      'daily: backfill — multiple missing dates detected',
+    );
+
+    const results: Array<{ date: string; kind: PublishWorklogResult['kind'] | 'no-activity' }> = [];
+    for (const date of missingDates) {
+      const outcome = await this.runDailyForDate(date, options, { silent: true });
+      results.push({ date, kind: outcome });
+    }
+
+    await this.notifyBackfillBatch(missingDates, results);
+  }
+
+  private async runDailyForDate(
+    date: string,
+    options: RunOptions,
+    opts: { silent: boolean },
+  ): Promise<PublishWorklogResult['kind'] | 'no-activity'> {
     const wantsGithub = wantsSource(options.sources, 'github');
     const wantsLocalGit = wantsSource(options.sources, 'local-git');
     const wantsNotion = wantsSource(options.sources, 'notion');
 
     if (!wantsGithub && !wantsLocalGit && !wantsNotion) {
       this.logger.warn({ sources: options.sources }, 'daily: no enabled source — skipping');
-      return;
+      return 'no-activity';
     }
 
     const [githubActivity, localGitActivity, notionActivity] = await Promise.all([
-      wantsGithub ? this.githubCollector.collect(options.date) : Promise.resolve(null),
-      wantsLocalGit ? this.localGitCollector.collect(options.date) : Promise.resolve(null),
-      wantsNotion ? this.notionCollector.collect(options.date) : Promise.resolve(null),
+      wantsGithub ? this.githubCollector.collect(date) : Promise.resolve(null),
+      wantsLocalGit ? this.localGitCollector.collect(date) : Promise.resolve(null),
+      wantsNotion ? this.notionCollector.collect(date) : Promise.resolve(null),
     ]);
 
     if (options.dryRun) {
@@ -91,7 +138,7 @@ export class OrchestratorService {
         process.stdout.write(JSON.stringify(notionActivity, null, 2));
         process.stdout.write('\n');
       }
-      return;
+      return 'no-activity';
     }
 
     const prCount = githubActivity?.prs.length ?? 0;
@@ -100,23 +147,22 @@ export class OrchestratorService {
       notionActivity?.workspaces.reduce((acc, w) => acc + w.pageCount, 0) ?? 0;
 
     if (prCount + commitCount + notionPageCount === 0) {
-      this.logger.info(
-        { date: options.date },
-        'daily: no activity collected — skipping summarizer + publisher',
-      );
-      await this.notification.notify('cairn 일지', `${options.date} 활동 없음 — 일지 생략`);
-      return;
+      this.logger.info({ date }, 'daily: no activity collected — skipping summarizer + publisher');
+      if (!opts.silent) {
+        await this.notification.notify('cairn 일지', `${date} 활동 없음 — 일지 생략`);
+      }
+      return 'no-activity';
     }
 
     const summary = await this.summarizer.summarize({
-      date: options.date,
+      date,
       github: githubActivity,
       localGit: localGitActivity,
       notion: notionActivity,
     });
 
     const result = await this.notionPublisher.publish({
-      date: options.date,
+      date,
       force: options.force,
       github: githubActivity,
       localGit: localGitActivity,
@@ -126,7 +172,7 @@ export class OrchestratorService {
 
     this.logger.info(
       {
-        date: options.date,
+        date,
         prCount,
         commitCountTotal: commitCount,
         notionPageCountTotal: notionPageCount,
@@ -136,12 +182,43 @@ export class OrchestratorService {
       'daily: publish done',
     );
 
-    await this.notify(options.date, result, {
-      prCount,
-      commitCount,
-      notionPageCount,
-      summarizerOk: !!summary,
-    });
+    if (!opts.silent) {
+      await this.notify(date, result, {
+        prCount,
+        commitCount,
+        notionPageCount,
+        summarizerOk: !!summary,
+      });
+    }
+    return result.kind;
+  }
+
+  private async notifyBackfillBatch(
+    missingDates: readonly string[],
+    results: ReadonlyArray<{
+      date: string;
+      kind: PublishWorklogResult['kind'] | 'no-activity';
+    }>,
+  ): Promise<void> {
+    const created = results.filter((r) => r.kind === 'created' || r.kind === 'recreated').length;
+    const skipped = results.filter((r) => r.kind === 'skipped').length;
+    const noActivity = results.filter((r) => r.kind === 'no-activity').length;
+    const noTarget = results.filter((r) => r.kind === 'no-target').length;
+
+    const first = missingDates[0]!;
+    const last = missingDates[missingDates.length - 1]!;
+    const range = first === last ? first : `${first} ~ ${last}`;
+
+    const parts: string[] = [];
+    if (created > 0) parts.push(`발행 ${created}`);
+    if (skipped > 0) parts.push(`skip ${skipped}`);
+    if (noActivity > 0) parts.push(`활동 없음 ${noActivity}`);
+    if (noTarget > 0) parts.push(`설정 누락 ${noTarget}`);
+
+    await this.notification.notify(
+      'cairn 일지',
+      `${missingDates.length} 일 backfill 완료 (${range}) — ${parts.join(' / ')}`,
+    );
   }
 
   private async notify(
@@ -259,4 +336,23 @@ function wantsSource(sources: RunOptions['sources'], source: RunSource): boolean
 
 function rollupKor(period: 'weekly' | 'monthly'): string {
   return period === 'weekly' ? '주간 정리' : '월간 정리';
+}
+
+// today 포함 지난 (days - 1) 일 → 총 days 개의 YYYY-MM-DD 배열 (chronological).
+// 예: today='2026-05-17', days=7 → ['2026-05-11', ..., '2026-05-17']
+function generatePastDates(today: string, days: number): string[] {
+  const parts = today.split('-').map(Number);
+  const [y, m, d] = parts;
+  if (y === undefined || m === undefined || d === undefined) {
+    throw new Error(`invalid today: ${today}`);
+  }
+  const out: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const dt = new Date(Date.UTC(y, m - 1, d - i));
+    const yy = dt.getUTCFullYear();
+    const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(dt.getUTCDate()).padStart(2, '0');
+    out.push(`${yy}-${mm}-${dd}`);
+  }
+  return out;
 }
