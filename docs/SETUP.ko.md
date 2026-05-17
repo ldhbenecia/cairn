@@ -241,6 +241,10 @@ DB 는 첫 publish 때 lazy 로 생성된다 (config 로드 시 X). `--mode=week
 - plist 의 `StartCalendarInterval` 은 absolute 시간. sleep 중이면 그 슬롯은 그냥 놓침 — daily / weekly / monthly 각각 두 슬롯을 둔 이유
 - 강제 발화로 검증: `launchctl kickstart -k gui/$UID/com.user.cairn-daily`
 - 로그 확인: `tail -f ~/.cairn/logs/launchd.err.log`
+- 노트북 닫고 자면 그날 두 슬롯 다 놓치는 케이스 있음. 두 가지 보강이 후속 단계 (단계 10) 로 예정:
+  - **sleep-aware backfill** — plist 에 `RunAtLoad: true` + cairn 이 노트북 열 때 빠진 날짜 자동 backfill. `sudo` 불필요
+  - **`pmset` wake (opt-in)** — `ops/install.sh --with-wake` 로 `pmset repeat wakeorpoweron` 등록해서 Mac 이 스케줄 시각에 잠깐 깸 → 발화 → 다시 sleep. `sudo` 필요 + `--uninstall` 페어링
+- 그때까진 수동 보강: `node dist/main.js --mode=daily --date=<놓친-날짜>`
 
 ### cost 추적 callout 이 `$0.00` 이거나 안 보임
 

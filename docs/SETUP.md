@@ -243,6 +243,10 @@ Check that the integration is shared with the parent page (§3.2 step 2). The in
 - Use absolute time in plists (already the default). Sleeping laptops do not "catch up" missed slots — that is why daily / weekly / monthly each have two time slots.
 - Force a manual fire to verify: `launchctl kickstart -k gui/$UID/com.user.cairn-daily`.
 - Check logs: `tail -f ~/.cairn/logs/launchd.err.log`.
+- If the laptop is closed for both slots in a day, that day's daily is missed entirely. Two paths to harden this are planned for upcoming releases:
+  - **Stage 10 — sleep-aware backfill** (planned): `RunAtLoad: true` on the plists plus a backfill pass that publishes any missed days the next time the laptop opens. No `sudo` needed.
+  - **Stage 10 — `pmset` wake (opt-in)** (planned): `ops/install.sh --with-wake` will register `pmset repeat wakeorpoweron` so the Mac wakes briefly at the scheduled time, fires cairn, and goes back to sleep. Requires `sudo` and pairs with `--uninstall` to clean up.
+- Until those land, the workaround is manual: `node dist/main.js --mode=daily --date=<missed-date>`.
 
 ### Cost tracking callout shows `$0.00` or is missing
 

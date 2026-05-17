@@ -8,7 +8,7 @@ The tool runs locally on macOS via `launchd` and uses the Claude Agent SDK (no d
 
 ## Status
 
-v1.0.0 — all 8 stages complete. Current state: [docs/progress/](docs/progress/).
+v0.9.0 — all 8 stages complete (CLI + launchd + daily / weekly / monthly + setup guide). 1.0.0 is deferred until robustness work (multi-account GitHub, sleep-aware backfill) lands. Current state: [docs/progress/](docs/progress/).
 
 ## Requirements
 
