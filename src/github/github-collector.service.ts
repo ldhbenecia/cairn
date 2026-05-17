@@ -35,9 +35,11 @@ export class GithubCollectorService {
     private readonly logger: PinoLogger,
   ) {}
 
-  async collect(date: string): Promise<GithubActivity> {
+  async collect(date: string, lookbackDays = 14): Promise<GithubActivity> {
     const window = kstDateToUtcWindow(date);
     const range = searchRangeFragment(window);
+    const lookbackStartIso = computeLookbackStartIso(date, lookbackDays, window.startIso);
+    const widenedRange = `${lookbackStartIso}..${window.endIso}`;
     const accounts = this.worklogConfig.getGithubAccounts();
 
     if (accounts.length === 0) {
@@ -50,11 +52,14 @@ export class GithubCollectorService {
       };
     }
 
-    this.logger.info({ date, range, accountCount: accounts.length }, 'github collect start');
+    this.logger.info(
+      { date, range, widenedRange, lookbackDays, accountCount: accounts.length },
+      'github collect start',
+    );
 
     const settled = await Promise.allSettled(
       accounts.map((account) =>
-        this.collectAccount(account, range, window.startIso, window.endIso),
+        this.collectAccount(account, range, widenedRange, window.startIso, window.endIso),
       ),
     );
 
@@ -90,6 +95,7 @@ export class GithubCollectorService {
   private async collectAccount(
     account: GithubAccountConfig,
     range: string,
+    widenedRange: string,
     sinceIso: string,
     untilIso: string,
   ): Promise<GithubPrSummary[]> {
@@ -100,7 +106,7 @@ export class GithubCollectorService {
 
     const loginPromise = this.client.healthCheck(token).then((id) => id.login);
     const [involved, reviewed, commented] = await Promise.all([
-      this.client.searchPrs(token, `involves:@me updated:${range}`),
+      this.client.searchPrs(token, `involves:@me updated:${widenedRange}`),
       this.client.searchPrs(token, `reviewed-by:@me updated:${range}`),
       this.client.searchPrs(token, `commenter:@me updated:${range}`),
     ]);
@@ -126,11 +132,12 @@ export class GithubCollectorService {
     this.tag(buckets, account.label, reviewed, 'reviewed');
     this.tag(buckets, account.label, commented, 'commented');
 
-    return Promise.all(
+    const enriched = await Promise.all(
       [...buckets.values()].map((bucket) =>
         this.toPrSummary(token, bucket, sinceIso, untilIso, myLogin),
       ),
     );
+    return enriched.filter((pr) => belongsToDay(pr, sinceIso, untilIso));
   }
 
   private tag(
@@ -265,4 +272,21 @@ export class GithubCollectorService {
 function deriveState(item: SearchPrItem): GithubPrState {
   if (item.mergedAt) return 'merged';
   return item.state;
+}
+
+function belongsToDay(pr: GithubPrSummary, sinceIso: string, untilIso: string): boolean {
+  if (pr.categories.includes('reviewed') || pr.categories.includes('commented')) return true;
+  if (pr.categories.includes('authored_merged')) return true;
+  if (pr.commitsOnDate.length > 0) return true;
+  if (pr.createdAt >= sinceIso && pr.createdAt <= untilIso) return true;
+  return false;
+}
+
+function computeLookbackStartIso(date: string, lookbackDays: number, dayStartIso: string): string {
+  if (lookbackDays <= 0) return dayStartIso;
+  const parts = date.split('-').map(Number);
+  const [y, m, d] = parts;
+  if (y === undefined || m === undefined || d === undefined) return dayStartIso;
+  const startKst = new Date(Date.UTC(y, m - 1, d - lookbackDays, -9, 0, 0));
+  return startKst.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
