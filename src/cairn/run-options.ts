@@ -9,5 +9,6 @@ export interface RunOptions {
   dryRun: boolean;
   force: boolean;
   backfillDays: number;
+  lookbackDays: number;
   sources: readonly RunSource[] | 'all';
 }

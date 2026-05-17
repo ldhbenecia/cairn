@@ -13,6 +13,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
       'dry-run': { type: 'boolean', default: false },
       force: { type: 'boolean', default: false },
       'backfill-days': { type: 'string', default: '7' },
+      'lookback-days': { type: 'string', default: '14' },
       source: { type: 'string', multiple: true, default: [] },
     },
     strict: true,
@@ -24,6 +25,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
   const date = dateExplicit ? values.date! : defaultDateForMode(mode);
   assertIsoDate(date);
   const backfillDays = parseBackfillDays(values['backfill-days']);
+  const lookbackDays = parseLookbackDays(values['lookback-days']);
   const sources = parseSources(values.source);
 
   return {
@@ -33,6 +35,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
     dryRun: values['dry-run'] ?? false,
     force: values.force ?? false,
     backfillDays,
+    lookbackDays,
     sources,
   };
 }
@@ -78,6 +81,15 @@ function parseBackfillDays(raw: string | undefined): number {
   const n = Number(raw);
   if (!Number.isInteger(n) || n < 0 || n > 60) {
     throw new Error(`--backfill-days must be an integer 0-60 (got: ${raw})`);
+  }
+  return n;
+}
+
+function parseLookbackDays(raw: string | undefined): number {
+  if (raw === undefined) return 14;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0 || n > 60) {
+    throw new Error(`--lookback-days must be an integer 0-60 (got: ${raw})`);
   }
   return n;
 }
