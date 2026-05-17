@@ -98,22 +98,39 @@ export class GithubCollectorService {
       throw CairnError.githubTokenMissing(account.tokenEnv);
     }
 
-    const myLogin = await this.client.healthCheck(token).then((id) => id.login);
-
-    const [authored, authoredMerged, reviewed, commented, involved] = await Promise.all([
-      this.client.searchPrs(token, `author:@me updated:${range}`),
-      this.client.searchPrs(token, `author:@me merged:${range}`),
+    // healthCheck (myLogin 확보) 와 3 search 쿼리를 모두 동시에 발사.
+    // search query 줄임: involves 가 author/assignee/mentions/commenter 의 union 이라
+    // 별도 `author:@me updated:` / `author:@me merged:` 쿼리는 제거하고 PR 필드에서 derive.
+    // commenter 는 commented 카테고리 보존 위해 따로 유지. reviewed-by 는 involves 가
+    // 포함 안 해서 별도 유지.
+    const loginPromise = this.client.healthCheck(token).then((id) => id.login);
+    const [involved, reviewed, commented] = await Promise.all([
+      this.client.searchPrs(token, `involves:@me updated:${range}`),
       this.client.searchPrs(token, `reviewed-by:@me updated:${range}`),
       this.client.searchPrs(token, `commenter:@me updated:${range}`),
-      this.client.searchPrs(token, `involves:@me updated:${range}`),
     ]);
+    const myLogin = await loginPromise;
 
     const buckets = new Map<string, PrBucket>();
-    this.tag(buckets, account.label, authored, 'authored');
-    this.tag(buckets, account.label, authoredMerged, 'authored_merged');
+    // involves: authored / authored_merged / involved 를 PR 필드에서 derive
+    for (const item of involved) {
+      const key = `${account.label}/${item.owner}/${item.repo}#${item.number}`;
+      const bucket = buckets.get(key) ?? {
+        account: account.label,
+        item,
+        categories: new Set<GithubActivityCategory>(),
+      };
+      bucket.categories.add('involved');
+      if (item.author === myLogin) {
+        bucket.categories.add('authored');
+        if (item.mergedAt && item.mergedAt >= sinceIso && item.mergedAt <= untilIso) {
+          bucket.categories.add('authored_merged');
+        }
+      }
+      buckets.set(key, bucket);
+    }
     this.tag(buckets, account.label, reviewed, 'reviewed');
     this.tag(buckets, account.label, commented, 'commented');
-    this.tag(buckets, account.label, involved, 'involved');
 
     return Promise.all(
       [...buckets.values()].map((bucket) =>

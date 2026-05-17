@@ -34,8 +34,19 @@
 - **카테고리 vs 정량 데이터** — `commitsOnDate` 가 정량 (commit 수 + subject) 이라 카테고리 (`authored` 등) 와 결합되면 의미 풍부. 단순 `authored` 만 있을 때보다 "오늘 N 개 commit 푸시함 + subjects" 정보가 일지 품질 ↑
 - **로컬 repo 등록과의 관계** — commits-on-date 가 PR 묶인 commit 만 잡음. main / develop 직 push (PR 없이) 는 여전히 `localGitRepos` 가 답. 본인 한 명 personal 도구라 main 직 push 는 거의 없을 거 (GitHub Flow 의 main 보호 + ADR 0006). 회사 repo 도 보통 PR 흐름이라 cover 됨
 
+## 단계 11 후속 보강 — search 쿼리 압축 + healthCheck 병렬
+
+운영 검증 중 속도 측정 19 초 (5/15 dry-run, 7 PR). 원인: GitHub search API rate limit 30/분 + 10 search 쿼리 (2 account × 5) 동시 발사 → secondary rate limit 백오프. 다음 최적화 적용:
+
+- **search 5 → 3 쿼리** — `involves:@me updated:` + `reviewed-by:@me updated:` + `commenter:@me updated:` 만 유지. `author:@me updated:` / `author:@me merged:` 제거 — involves 가 author 포함하고, `authored` / `authored_merged` 카테고리는 PR 필드 (PR.author === myLogin / PR.mergedAt range 안) 에서 derive
+- **`commented` 카테고리 보존** — `commenter:@me updated:` 쿼리는 그대로. 본인이 author / reviewer 가 아닌데 단순 댓글만 단 PR 을 회고 시 구분 가능하게. involves 와 별도 태그 공존 가능
+- **healthCheck 병렬화** — 기존 `await healthCheck → then search` 직렬을 `kick off both → await login lazily` 로. PR enrichment 시점엔 이미 resolve. search 쿼리 시작 직전 wait 제거
+- 5 카테고리 union: `authored` / `authored_merged` / `reviewed` / `commented` / `involved` 모두 유지
+- 예상: 19 초 → 5-8 초 (search rate limit 미만, healthCheck 숨김)
+
 ## 다음
 
-- **운영 검증** — `pnpm build` + `--force --date=2026-05-17` 로 어제자 일지 재발행 (work account PR 6 개 + 각 PR 의 그날 commit subject 들 포함되는지). 한국어 요약에서 `[CashwalkTeamwalkAdminServer] 캐시 관리 — 잔액·거래내역·매출전표 ...` 같이 commit subject 활용한 구체적 phrase 가 나오는지 확인
+- **운영 검증** — `pnpm build` + 5/15 재dry-run 으로 속도 측정 + PR 잡힘 양상 그대로인지 (7 PR + commits-on-date + 카테고리 union) 확인
+- **Notion collector 거취 — 미정 (later)** — 본인 개인 워크스페이스 일상 메모 안 함 → 매일 0 페이지. 코드 그대로 두고 나중에 기능 추가 시점에 재검토 (제거 / opt-in / 유지)
 - 단계 11 검증 + 단계 10 까지의 sleep-aware backfill 한 주 운영 → 일지 / 롤업 품질 / 알림 noise / 비용 / 안정성 검증 → **1.0.0 결정**
 - 그 후 v2 desktop 트랙 시작 (별도 plan `2026-05-17-cairn-v2-roadmap.md`)
