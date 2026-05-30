@@ -89,7 +89,7 @@ export function RunPanel({ mode, label, description, session, otherRunning, onTr
       </button>
 
       {(isRunning || isDone) && currentStep && (
-        <StepIndicator currentStep={currentStep} isDone={isDone} />
+        <StepIndicator currentStep={currentStep} allDone={isDone && session?.result?.ok === true} />
       )}
 
       {session?.state === 'done' && session.result && <Result result={session.result} />}
@@ -135,14 +135,14 @@ export function RunPanel({ mode, label, description, session, otherRunning, onTr
   );
 }
 
-function StepIndicator({ currentStep, isDone }: { currentStep: RunStep; isDone: boolean }) {
+function StepIndicator({ currentStep, allDone }: { currentStep: RunStep; allDone: boolean }) {
   const currentRank = STEP_RANK[currentStep];
   return (
     <div className="mt-6 flex items-center gap-2">
       {STEPS.map((s, i) => {
         const rank = STEP_RANK[s.key];
         const status: 'pending' | 'active' | 'done' =
-          isDone || rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
+          allDone || rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
         return (
           <div key={s.key} className="flex items-center gap-2">
             <div

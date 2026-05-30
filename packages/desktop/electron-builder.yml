@@ -6,6 +6,9 @@ directories:
 files:
   - out/**/*
   - package.json
+extraResources:
+  - from: ../core/dist
+    to: core/dist
 mac:
   category: public.app-category.productivity
   target:
