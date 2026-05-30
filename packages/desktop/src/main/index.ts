@@ -1,15 +1,21 @@
 import { app, BrowserWindow } from 'electron';
-import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { setupTray } from './tray';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function createWindow(): void {
+let isQuitting = false;
+
+function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
-    width: 380,
-    height: 540,
+    width: 920,
+    height: 680,
+    minWidth: 640,
+    minHeight: 480,
     show: false,
     titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 16, y: 16 },
     backgroundColor: '#0a0a0a',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -21,21 +27,34 @@ function createWindow(): void {
 
   win.on('ready-to-show', () => win.show());
 
+  win.on('close', (e) => {
+    if (isQuitting) return;
+    e.preventDefault();
+    win.hide();
+  });
+
   if (process.env.ELECTRON_RENDERER_URL) {
     void win.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
     void win.loadFile(join(__dirname, '../renderer/index.html'));
   }
+
+  return win;
 }
 
 void app.whenReady().then(() => {
-  createWindow();
+  const win = createWindow();
+  setupTray(win);
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
   });
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+app.on('before-quit', () => {
+  isQuitting = true;
 });
+
+app.on('window-all-closed', () => {});
