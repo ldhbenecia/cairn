@@ -10,9 +10,13 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "build:bundle": "ncc build src/main.ts -o dist/bundle -e pino-pretty -e pino-roll -e class-validator -e class-transformer -e @nestjs/microservices -e @nestjs/websockets -e @nestjs/platform-express -e @nestjs/platform-fastify -e @nestjs/platform-socket.io -e @nestjs/platform-ws -e cache-manager",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest watch"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.0"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.138",
