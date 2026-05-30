@@ -10,7 +10,13 @@
       "tokenEnv": "NOTION_TOKEN_PERSONAL",
       "myUserId": "00000000-0000-0000-0000-000000000000",
       "worklog": {
-        "pageId": "00000000-0000-0000-0000-000000000000"
+        "pageId": "00000000-0000-0000-0000-000000000001",
+        "databaseId": "00000000-0000-0000-0000-000000000002",
+        "dataSourceId": "00000000-0000-0000-0000-000000000003"
+      },
+      "rollup": {
+        "databaseId": "00000000-0000-0000-0000-000000000004",
+        "dataSourceId": "00000000-0000-0000-0000-000000000005"
       }
     },
     {
@@ -18,7 +24,9 @@
       "tokenEnv": "NOTION_TOKEN_WORK",
       "myUserId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
       "worklog": {
-        "pageId": "ffffffff-ffff-ffff-ffff-ffffffffffff"
+        "pageId": "ffffffff-ffff-ffff-ffff-ffffffff0001",
+        "databaseId": "ffffffff-ffff-ffff-ffff-ffffffff0002",
+        "dataSourceId": "ffffffff-ffff-ffff-ffff-ffffffff0003"
       }
     }
   ]

@@ -6,6 +6,11 @@ export type CoreRunOptions = { backfillDays?: number };
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
 
+export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
+
+export type ConfigResult = { raw: string; parsed: unknown; path: string } | null;
+export type LogTailResult = { lines: string[]; path: string | null };
+
 export type CoreResult = {
   ok: boolean;
   exitCode: number | null;
@@ -23,7 +28,7 @@ export type RunLine = {
 };
 
 contextBridge.exposeInMainWorld('cairn', {
-  version: '0.0.5',
+  version: '0.0.6',
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
   running: (): Promise<boolean> => ipcRenderer.invoke('cairn:running') as Promise<boolean>,
@@ -39,4 +44,16 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.on('cairn:focus-mode', listener);
     return () => ipcRenderer.off('cairn:focus-mode', listener);
   },
+  onRunStep: (cb: (payload: { mode: CoreMode; step: RunStep }) => void): (() => void) => {
+    const listener = (
+      _e: Electron.IpcRendererEvent,
+      payload: { mode: CoreMode; step: RunStep },
+    ): void => cb(payload);
+    ipcRenderer.on('cairn:run-step', listener);
+    return () => ipcRenderer.off('cairn:run-step', listener);
+  },
+  readConfig: (): Promise<ConfigResult> =>
+    ipcRenderer.invoke('cairn:config:read') as Promise<ConfigResult>,
+  tailLogs: (): Promise<LogTailResult> =>
+    ipcRenderer.invoke('cairn:logs:tail') as Promise<LogTailResult>,
 });
