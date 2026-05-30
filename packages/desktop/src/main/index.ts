@@ -1,6 +1,7 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { setupTray } from './tray';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -18,7 +19,7 @@ function createWindow(): BrowserWindow {
     trafficLightPosition: { x: 16, y: 20 },
     backgroundColor: '#0a0a0a',
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.cjs'),
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
@@ -43,6 +44,12 @@ function createWindow(): BrowserWindow {
 }
 
 void app.whenReady().then(() => {
+  ipcMain.handle('cairn:run', (e, mode: CoreMode, options?: CoreRunOptions) =>
+    runCore(mode, options ?? {}, e.sender),
+  );
+  ipcMain.handle('cairn:running', () => isRunning());
+  ipcMain.handle('cairn:open-external', (_e, url: string) => shell.openExternal(url));
+
   const win = createWindow();
   setupTray(win);
 

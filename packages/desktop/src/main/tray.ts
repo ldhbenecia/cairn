@@ -8,8 +8,19 @@ import {
 } from 'electron';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { runCore, type CoreMode } from './core-runner';
 
 const LOG_DIR = join(homedir(), '.cairn', 'logs');
+
+function triggerCore(window: BrowserWindow, mode: CoreMode): void {
+  void runCore(mode, {}, window.webContents).then((result) => {
+    if (result.ok && result.notionUrl) {
+      void shell.openExternal(result.notionUrl);
+    } else if (!result.ok) {
+      console.error(`[cairn] ${mode} failed:\n${result.stderrTail}`);
+    }
+  });
+}
 
 let tray: Tray | null = null;
 
@@ -28,17 +39,17 @@ function buildMenu(window: BrowserWindow): Menu {
     {
       label: '오늘 일지 발행',
       accelerator: 'CommandOrControl+1',
-      click: () => console.log('[tray] daily — TBD in 14.4'),
+      click: () => triggerCore(window, 'daily'),
     },
     {
       label: '이번 주 정리',
       accelerator: 'CommandOrControl+2',
-      click: () => console.log('[tray] weekly — TBD in 14.4'),
+      click: () => triggerCore(window, 'weekly'),
     },
     {
       label: '이번 달 정리',
       accelerator: 'CommandOrControl+3',
-      click: () => console.log('[tray] monthly — TBD in 14.4'),
+      click: () => triggerCore(window, 'monthly'),
     },
     { type: 'separator' },
     {
