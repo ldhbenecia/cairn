@@ -1,8 +1,14 @@
+import { useState } from 'react';
+import { Sidebar, type NavKey } from './components/sidebar';
+import { Content } from './components/content';
+
 export function App() {
+  const [active, setActive] = useState<NavKey>('today');
+
   return (
-    <main className="flex h-screen w-screen flex-col items-center justify-center bg-bg text-text [-webkit-app-region:drag]">
-      <h1 className="font-sans text-base font-medium tracking-tight">cairn</h1>
-      <p className="mt-1 font-mono text-xs text-text-muted">v0.0.2 — desktop shell scaffold</p>
-    </main>
+    <div className="flex h-screen w-screen bg-bg text-text">
+      <Sidebar active={active} onSelect={setActive} />
+      <Content active={active} />
+    </div>
   );
 }
