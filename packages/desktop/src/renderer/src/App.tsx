@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Sidebar, type NavKey } from './components/sidebar';
-import { Content } from './components/content';
 import type { CoreMode, CoreResult, CoreRunOptions, RunLine } from './cairn-api';
+import { Content } from './components/content';
+import { Sidebar, type NavKey } from './components/sidebar';
 
 export type RunSession = {
   state: 'running' | 'done';
@@ -15,6 +15,12 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
   daily: null,
   weekly: null,
   monthly: null,
+};
+
+const MODE_TO_NAV: Record<CoreMode, NavKey> = {
+  daily: 'today',
+  weekly: 'week',
+  monthly: 'month',
 };
 
 export function App() {
@@ -35,6 +41,13 @@ export function App() {
         };
         return { ...prev, [l.mode]: next };
       });
+    });
+    return off;
+  }, []);
+
+  useEffect(() => {
+    const off = window.cairn.onFocusMode((mode) => {
+      setActive(MODE_TO_NAV[mode]);
     });
     return off;
   }, []);

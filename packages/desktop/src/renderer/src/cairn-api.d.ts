@@ -28,6 +28,7 @@ declare global {
       running: () => Promise<boolean>;
       openExternal: (url: string) => Promise<void>;
       onRunLine: (cb: (l: RunLine) => void) => () => void;
+      onFocusMode: (cb: (mode: CoreMode) => void) => () => void;
     };
   }
 }
