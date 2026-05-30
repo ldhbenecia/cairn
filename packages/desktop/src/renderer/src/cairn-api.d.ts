@@ -1,6 +1,6 @@
 export type CoreMode = 'daily' | 'weekly' | 'monthly';
 
-export type CoreRunOptions = { backfillDays?: number };
+export type CoreRunOptions = { backfillDays?: number; force?: boolean };
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
 
@@ -8,6 +8,17 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 export type LogTailResult = { lines: string[]; path: string | null };
+
+export type RecentPage = {
+  pageId: string;
+  url: string;
+  title: string;
+  date: string | null;
+  status: string | null;
+  workspaceLabel: string;
+};
+
+export type RecentListResult = { pages: RecentPage[]; warnings: string[] };
 
 export type CoreResult = {
   ok: boolean;
@@ -38,6 +49,7 @@ declare global {
       onRunStep: (cb: (p: { mode: CoreMode; step: RunStep }) => void) => () => void;
       readConfig: () => Promise<ConfigResult>;
       tailLogs: () => Promise<LogTailResult>;
+      listRecent: () => Promise<RecentListResult>;
     };
   }
 }

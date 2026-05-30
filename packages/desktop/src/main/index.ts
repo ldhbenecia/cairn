@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { readConfig, tailLatestLog } from './files';
+import { listRecentPages } from './notion-client';
 import { setupTray } from './tray';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -11,10 +12,10 @@ let isQuitting = false;
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
-    width: 920,
-    height: 680,
-    minWidth: 640,
-    minHeight: 480,
+    width: 1080,
+    height: 720,
+    minWidth: 720,
+    minHeight: 520,
     show: false,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 20 },
@@ -53,6 +54,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:open-external', (_e, url: string) => shell.openExternal(url));
   ipcMain.handle('cairn:config:read', () => readConfig());
   ipcMain.handle('cairn:logs:tail', () => tailLatestLog());
+  ipcMain.handle('cairn:recent:list', () => listRecentPages());
 
   const win = createWindow();
   setupTray(win);
