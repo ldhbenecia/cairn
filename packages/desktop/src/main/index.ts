@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
+import { readConfig, tailLatestLog } from './files';
 import { setupTray } from './tray';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -49,6 +50,8 @@ void app.whenReady().then(() => {
   );
   ipcMain.handle('cairn:running', () => isRunning());
   ipcMain.handle('cairn:open-external', (_e, url: string) => shell.openExternal(url));
+  ipcMain.handle('cairn:config:read', () => readConfig());
+  ipcMain.handle('cairn:logs:tail', () => tailLatestLog());
 
   const win = createWindow();
   setupTray(win);

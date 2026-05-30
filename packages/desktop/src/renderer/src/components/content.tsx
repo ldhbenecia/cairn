@@ -1,7 +1,10 @@
-import type { NavKey } from './sidebar';
-import type { CoreMode, CoreRunOptions } from '../cairn-api';
 import type { RunSession } from '../App';
+import type { CoreMode, CoreRunOptions } from '../cairn-api';
+import { LogsPanel } from './logs-panel';
+import { RecentPanel } from './recent-panel';
 import { RunPanel } from './run-panel';
+import { SettingsPanel } from './settings-panel';
+import type { NavKey } from './sidebar';
 
 type RunNav = Extract<NavKey, 'today' | 'week' | 'month'>;
 
@@ -23,7 +26,7 @@ const RUN_CONFIG: Record<RunNav, { mode: CoreMode; label: string; description: s
   week: {
     mode: 'weekly',
     label: '이번 주 정리 발행',
-    description: '지난 7 일 활동을 모아 주간 롤업을 노션에 발행합니다.',
+    description: '지난 7일 활동을 모아 주간 롤업을 노션에 발행합니다.',
   },
   month: {
     mode: 'monthly',
@@ -51,7 +54,7 @@ export function Content({ active, sessions, runningMode, onTrigger }: Props) {
           {TITLE[active]}
         </h1>
       </header>
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      <div key={active} className="panel-enter flex flex-1 flex-col overflow-y-auto">
         {cfg ? (
           <RunPanel
             {...cfg}
@@ -59,10 +62,12 @@ export function Content({ active, sessions, runningMode, onTrigger }: Props) {
             otherRunning={runningMode !== null && runningMode !== cfg.mode}
             onTrigger={(options) => onTrigger(cfg.mode, options)}
           />
+        ) : active === 'recent' ? (
+          <RecentPanel />
+        ) : active === 'logs' ? (
+          <LogsPanel />
         ) : (
-          <div className="flex flex-1 items-center justify-center text-[12px] leading-[1.4] text-ink-tertiary">
-            14.6 부터 채워짐
-          </div>
+          <SettingsPanel />
         )}
       </div>
     </section>
