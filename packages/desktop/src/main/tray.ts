@@ -14,9 +14,7 @@ const LOG_DIR = join(homedir(), '.cairn', 'logs');
 
 function triggerCore(window: BrowserWindow, mode: CoreMode): void {
   void runCore(mode, {}, window.webContents).then((result) => {
-    if (result.ok && result.notionUrl) {
-      void shell.openExternal(result.notionUrl);
-    } else if (!result.ok) {
+    if (!result.ok) {
       console.error(`[cairn] ${mode} failed:\n${result.stderrTail}`);
     }
   });

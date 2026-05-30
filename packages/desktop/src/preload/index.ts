@@ -23,7 +23,7 @@ export type RunLine = {
 };
 
 contextBridge.exposeInMainWorld('cairn', {
-  version: '0.0.4',
+  version: '0.0.5',
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
   running: (): Promise<boolean> => ipcRenderer.invoke('cairn:running') as Promise<boolean>,
@@ -33,5 +33,10 @@ contextBridge.exposeInMainWorld('cairn', {
     const listener = (_e: Electron.IpcRendererEvent, payload: RunLine): void => cb(payload);
     ipcRenderer.on('cairn:run-line', listener);
     return () => ipcRenderer.off('cairn:run-line', listener);
+  },
+  onFocusMode: (cb: (mode: CoreMode) => void): (() => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, mode: CoreMode): void => cb(mode);
+    ipcRenderer.on('cairn:focus-mode', listener);
+    return () => ipcRenderer.off('cairn:focus-mode', listener);
   },
 });

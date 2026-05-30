@@ -2,6 +2,7 @@ import type { WebContents } from 'electron';
 import { fork, type ChildProcess } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sendResultNotification } from './notifier';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 
@@ -97,7 +98,7 @@ export async function runCore(
       const pageIdMatches = [...stdoutAll.matchAll(PAGE_ID_REGEX)];
       const lastPageId = pageIdMatches.at(-1)?.[1] ?? null;
       emit('meta', `[exit] code=${exitCode ?? 'null'}`);
-      resolvePromise({
+      const result: CoreResult = {
         ok: exitCode === 0,
         exitCode,
         notionUrl: lastUrl,
@@ -105,7 +106,9 @@ export async function runCore(
         publishPageId: lastPageId,
         noActivity,
         stderrTail: tail,
-      });
+      };
+      sendResultNotification(mode, result);
+      resolvePromise(result);
     });
     child.on('error', (err) => {
       running = null;
