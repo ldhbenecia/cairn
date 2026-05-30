@@ -1,0 +1,16 @@
+appId: io.cairn.desktop
+productName: cairn
+directories:
+  output: dist
+  buildResources: resources
+files:
+  - out/**/*
+  - package.json
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dir
+      arch:
+        - arm64
+        - x64
+asar: true
