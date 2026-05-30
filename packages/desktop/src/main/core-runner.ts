@@ -28,7 +28,7 @@ export type CoreResult = {
 };
 
 const CORE_ENTRY = app.isPackaged
-  ? resolve(process.resourcesPath, 'core/dist/main.js')
+  ? resolve(process.resourcesPath, 'core/bundle/index.js')
   : resolve(__dirname, '../../../core/dist/main.js');
 const CAIRN_ROOT = app.isPackaged
   ? (process.env.CAIRN_HOME ?? join(homedir(), '.cairn'))
@@ -103,6 +103,7 @@ export async function runCore(
   const child = fork(CORE_ENTRY, args, {
     cwd: CAIRN_ROOT,
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+    env: { ...process.env, CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false' },
   });
   running = child;
   emit('meta', `[fork] pid=${child.pid ?? '?'}`);

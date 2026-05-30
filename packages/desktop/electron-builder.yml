@@ -7,13 +7,12 @@ files:
   - out/**/*
   - package.json
 extraResources:
-  - from: ../core/dist
-    to: core/dist
+  - from: ../core/dist/bundle
+    to: core/bundle
 mac:
   category: public.app-category.productivity
   target:
     - target: dir
       arch:
         - arm64
-        - x64
 asar: true
