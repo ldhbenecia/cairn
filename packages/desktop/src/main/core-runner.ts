@@ -1,6 +1,7 @@
-import type { WebContents } from 'electron';
+import { app, type WebContents } from 'electron';
 import { fork, type ChildProcess } from 'node:child_process';
-import { resolve } from 'node:path';
+import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sendResultNotification } from './notifier';
 
@@ -26,8 +27,12 @@ export type CoreResult = {
   stderrTail: string;
 };
 
-const CORE_ENTRY = resolve(__dirname, '../../../core/dist/main.js');
-const CAIRN_ROOT = resolve(__dirname, '../../../..');
+const CORE_ENTRY = app.isPackaged
+  ? resolve(process.resourcesPath, 'core/dist/main.js')
+  : resolve(__dirname, '../../../core/dist/main.js');
+const CAIRN_ROOT = app.isPackaged
+  ? (process.env.CAIRN_HOME ?? join(homedir(), '.cairn'))
+  : resolve(__dirname, '../../../..');
 
 const STDERR_TAIL_LINES = 20;
 const NOTION_URL_REGEX = /https:\/\/www\.notion\.so\/\S+/g;
@@ -136,7 +141,7 @@ export async function runCore(
       const pageIdMatches = [...stdoutAll.matchAll(PAGE_ID_REGEX)];
       const lastPageId = pageIdMatches.at(-1)?.[1] ?? null;
       emit('meta', `[exit] code=${exitCode ?? 'null'}`);
-      emitStep('done');
+      if (exitCode === 0) emitStep('done');
       const result: CoreResult = {
         ok: exitCode === 0,
         exitCode,

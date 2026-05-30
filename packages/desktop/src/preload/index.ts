@@ -8,7 +8,7 @@ export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | nu
 
 export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
-export type ConfigResult = { raw: string; parsed: unknown; path: string } | null;
+export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 export type LogTailResult = { lines: string[]; path: string | null };
 
 export type CoreResult = {
@@ -28,7 +28,7 @@ export type RunLine = {
 };
 
 contextBridge.exposeInMainWorld('cairn', {
-  version: '0.0.6',
+  version: '0.1.0',
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
   running: (): Promise<boolean> => ipcRenderer.invoke('cairn:running') as Promise<boolean>,

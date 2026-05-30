@@ -6,7 +6,7 @@ export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | nu
 
 export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
-export type ConfigResult = { raw: string; parsed: unknown; path: string } | null;
+export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 export type LogTailResult = { lines: string[]; path: string | null };
 
 export type CoreResult = {
