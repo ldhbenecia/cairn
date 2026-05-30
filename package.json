@@ -1,6 +1,6 @@
 {
   "name": "cairn-workspace",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "private": true,
   "description": "Automatic worklog and rollup tool that aggregates GitHub, local Git, and Notion activity into Notion pages.",
   "engines": {
@@ -10,6 +10,9 @@
     "build": "pnpm --filter @cairn/core build",
     "start": "node packages/core/dist/main.js",
     "start:dev": "pnpm build && node packages/core/dist/main.js",
+    "desktop:dev": "pnpm --filter @cairn/desktop dev",
+    "desktop:build": "pnpm --filter @cairn/desktop build",
+    "desktop:dist": "pnpm --filter @cairn/desktop dist",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -29,6 +32,13 @@
     ]
   },
   "packageManager": "pnpm@10.33.2",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild",
+      "@tailwindcss/oxide"
+    ]
+  },
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "@commitlint/cli": "^20.5.2",
