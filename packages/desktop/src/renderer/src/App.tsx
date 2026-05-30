@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CoreMode, CoreResult, CoreRunOptions, RunLine } from './cairn-api';
+import type { CoreMode, CoreResult, CoreRunOptions, RunLine, RunStep } from './cairn-api';
 import { Content } from './components/content';
 import { Sidebar, type NavKey } from './components/sidebar';
 
 export type RunSession = {
   state: 'running' | 'done';
+  step: RunStep;
   lines: RunLine[];
   result?: CoreResult;
 };
@@ -31,7 +32,7 @@ export function App() {
   useEffect(() => {
     const off = window.cairn.onRunLine((l) => {
       setSessions((prev) => {
-        const current = prev[l.mode] ?? { state: 'running', lines: [] };
+        const current = prev[l.mode] ?? { state: 'running', step: 'boot', lines: [] };
         const next: RunSession = {
           ...current,
           lines:
@@ -40,6 +41,16 @@ export function App() {
               : [...current.lines, l],
         };
         return { ...prev, [l.mode]: next };
+      });
+    });
+    return off;
+  }, []);
+
+  useEffect(() => {
+    const off = window.cairn.onRunStep(({ mode, step }) => {
+      setSessions((prev) => {
+        const current = prev[mode] ?? { state: 'running', step: 'boot', lines: [] };
+        return { ...prev, [mode]: { ...current, step } };
       });
     });
     return off;
@@ -56,13 +67,13 @@ export function App() {
     setRunningMode(mode);
     setSessions((prev) => ({
       ...prev,
-      [mode]: { state: 'running', lines: [] },
+      [mode]: { state: 'running', step: 'boot', lines: [] },
     }));
     try {
       const result = await window.cairn.run(mode, options);
       setSessions((prev) => {
-        const current = prev[mode] ?? { state: 'running', lines: [] };
-        return { ...prev, [mode]: { ...current, state: 'done', result } };
+        const current = prev[mode] ?? { state: 'running', step: 'done', lines: [] };
+        return { ...prev, [mode]: { ...current, state: 'done', step: 'done', result } };
       });
     } finally {
       setRunningMode(null);

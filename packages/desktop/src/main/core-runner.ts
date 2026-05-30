@@ -14,6 +14,8 @@ export type CoreRunOptions = {
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
 
+export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
+
 export type CoreResult = {
   ok: boolean;
   exitCode: number | null;
@@ -35,8 +37,31 @@ const PAGE_ID_REGEX = /"pageId"\s*:\s*"([0-9a-f-]{32,36})"/g;
 // eslint-disable-next-line no-control-regex
 const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
 
+const STEP_ORDER: RunStep[] = ['boot', 'collect', 'summarize', 'publish', 'done'];
+const STEP_TRIGGERS: { regex: RegExp; step: RunStep }[] = [
+  { regex: /Starting Nest application/, step: 'boot' },
+  { regex: /(github|notion|local-git) collect/i, step: 'collect' },
+  { regex: /summarizer (start|finished)|DailySummarizerService/i, step: 'summarize' },
+  {
+    regex: /NotionPublisherService|worklog page (created|already exists)|publish done/i,
+    step: 'publish',
+  },
+  { regex: /orchestrator\.run done/, step: 'done' },
+];
+
 function stripAnsi(s: string): string {
   return s.replace(ANSI_REGEX, '');
+}
+
+function detectStep(line: string): RunStep | null {
+  for (const { regex, step } of STEP_TRIGGERS) {
+    if (regex.test(line)) return step;
+  }
+  return null;
+}
+
+function stepRank(step: RunStep): number {
+  return STEP_ORDER.indexOf(step);
 }
 
 let running: ChildProcess | null = null;
@@ -55,6 +80,14 @@ export async function runCore(
   const emit = (level: 'info' | 'err' | 'meta', line: string): void => {
     sender?.send('cairn:run-line', { mode, level, line: stripAnsi(line) });
   };
+
+  let currentStep: RunStep = 'boot';
+  const emitStep = (step: RunStep): void => {
+    if (stepRank(step) <= stepRank(currentStep)) return;
+    currentStep = step;
+    sender?.send('cairn:run-step', { mode, step });
+  };
+  sender?.send('cairn:run-step', { mode, step: currentStep });
 
   const args = [`--mode=${mode}`];
   if (options.backfillDays !== undefined) args.push(`--backfill-days=${options.backfillDays}`);
@@ -77,7 +110,12 @@ export async function runCore(
     const text = stripAnsi(buf.toString('utf8'));
     stdoutAll += text;
     if (NO_ACTIVITY_REGEX.test(text)) noActivity = true;
-    for (const line of text.split('\n')) if (line.length > 0) emit('info', line);
+    for (const line of text.split('\n')) {
+      if (line.length === 0) continue;
+      emit('info', line);
+      const step = detectStep(line);
+      if (step) emitStep(step);
+    }
   });
   child.stderr?.on('data', (buf: Buffer) => {
     for (const line of stripAnsi(buf.toString('utf8')).split('\n')) {
@@ -98,6 +136,7 @@ export async function runCore(
       const pageIdMatches = [...stdoutAll.matchAll(PAGE_ID_REGEX)];
       const lastPageId = pageIdMatches.at(-1)?.[1] ?? null;
       emit('meta', `[exit] code=${exitCode ?? 'null'}`);
+      emitStep('done');
       const result: CoreResult = {
         ok: exitCode === 0,
         exitCode,

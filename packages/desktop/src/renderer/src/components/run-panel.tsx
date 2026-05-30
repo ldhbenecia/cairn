@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ExternalLink, Loader2, Play } from 'lucide-react';
-import type { CoreMode, CoreResult, CoreRunOptions } from '../cairn-api';
+import { Check, ChevronDown, ChevronRight, ExternalLink, Loader2, Play } from 'lucide-react';
+import type { CoreMode, CoreResult, CoreRunOptions, RunStep } from '../cairn-api';
 import type { RunSession } from '../App';
 
 type Props = {
@@ -12,15 +12,33 @@ type Props = {
   onTrigger: (options?: CoreRunOptions) => Promise<void>;
 };
 
+const STEPS: { key: RunStep; label: string }[] = [
+  { key: 'boot', label: '부팅' },
+  { key: 'collect', label: '수집' },
+  { key: 'summarize', label: '요약' },
+  { key: 'publish', label: '발행' },
+];
+
+const STEP_RANK: Record<RunStep, number> = {
+  boot: 0,
+  collect: 1,
+  summarize: 2,
+  publish: 3,
+  done: 4,
+};
+
 export function RunPanel({ mode, label, description, session, otherRunning, onTrigger }: Props) {
   const tailRef = useRef<HTMLDivElement>(null);
   const [includeBackfill, setIncludeBackfill] = useState(false);
+  const [showRawLog, setShowRawLog] = useState(false);
   const isRunning = session?.state === 'running';
+  const isDone = session?.state === 'done';
   const lines = session?.lines ?? [];
+  const currentStep = session?.step ?? null;
 
   useEffect(() => {
-    tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
-  }, [lines.length]);
+    if (showRawLog) tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
+  }, [lines.length, showRawLog]);
 
   const disabled = isRunning || otherRunning;
 
@@ -70,29 +88,93 @@ export function RunPanel({ mode, label, description, session, otherRunning, onTr
         )}
       </button>
 
+      {(isRunning || isDone) && currentStep && (
+        <StepIndicator currentStep={currentStep} isDone={isDone} />
+      )}
+
       {session?.state === 'done' && session.result && <Result result={session.result} />}
 
       {lines.length > 0 && (
-        <div
-          ref={tailRef}
-          className="mt-6 flex-1 overflow-y-auto rounded-lg border border-hairline bg-surface-1 p-4 font-mono text-[12px] leading-relaxed"
-        >
-          {lines.map((l, i) => (
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => setShowRawLog((v) => !v)}
+            className="inline-flex items-center gap-1 text-[12px] text-ink-subtle hover:text-ink-muted"
+          >
+            {showRawLog ? (
+              <ChevronDown size={13} strokeWidth={2} />
+            ) : (
+              <ChevronRight size={13} strokeWidth={2} />
+            )}
+            자세히 보기 ({lines.length} 줄)
+          </button>
+          {showRawLog && (
             <div
-              key={i}
-              className={
-                l.level === 'err'
-                  ? 'text-[#f87171]'
-                  : l.level === 'meta'
-                    ? 'text-ink-tertiary'
-                    : 'text-ink-muted'
-              }
+              ref={tailRef}
+              className="mt-3 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-surface-1 p-4 font-mono text-[12px] leading-relaxed"
             >
-              {l.line}
+              {lines.map((l, i) => (
+                <div
+                  key={i}
+                  className={
+                    l.level === 'err'
+                      ? 'text-[#f87171]'
+                      : l.level === 'meta'
+                        ? 'text-ink-tertiary'
+                        : 'text-ink-muted'
+                  }
+                >
+                  {l.line}
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+function StepIndicator({ currentStep, isDone }: { currentStep: RunStep; isDone: boolean }) {
+  const currentRank = STEP_RANK[currentStep];
+  return (
+    <div className="mt-6 flex items-center gap-2">
+      {STEPS.map((s, i) => {
+        const rank = STEP_RANK[s.key];
+        const status: 'pending' | 'active' | 'done' =
+          isDone || rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
+        return (
+          <div key={s.key} className="flex items-center gap-2">
+            <div
+              className={[
+                'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] transition-colors',
+                status === 'done'
+                  ? 'border-hairline bg-surface-1 text-ink-muted'
+                  : status === 'active'
+                    ? 'border-accent/40 bg-accent/10 text-ink'
+                    : 'border-hairline bg-surface-1 text-ink-tertiary',
+              ].join(' ')}
+            >
+              {status === 'done' ? (
+                <Check size={12} strokeWidth={2.5} />
+              ) : status === 'active' ? (
+                <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+              ) : (
+                <span className="size-1.5 rounded-full bg-current opacity-40" />
+              )}
+              <span>{s.label}</span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <div
+                className={[
+                  'h-px w-3 transition-colors',
+                  status === 'done' ? 'bg-hairline-strong' : 'bg-hairline',
+                ].join(' ')}
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

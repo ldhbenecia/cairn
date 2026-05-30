@@ -4,6 +4,11 @@ export type CoreRunOptions = { backfillDays?: number };
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
 
+export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
+
+export type ConfigResult = { raw: string; parsed: unknown; path: string } | null;
+export type LogTailResult = { lines: string[]; path: string | null };
+
 export type CoreResult = {
   ok: boolean;
   exitCode: number | null;
@@ -29,6 +34,9 @@ declare global {
       openExternal: (url: string) => Promise<void>;
       onRunLine: (cb: (l: RunLine) => void) => () => void;
       onFocusMode: (cb: (mode: CoreMode) => void) => () => void;
+      onRunStep: (cb: (p: { mode: CoreMode; step: RunStep }) => void) => () => void;
+      readConfig: () => Promise<ConfigResult>;
+      tailLogs: () => Promise<LogTailResult>;
     };
   }
 }
