@@ -3,11 +3,13 @@ import {
   CalendarDays,
   CalendarRange,
   FileText,
+  Loader2,
   ScrollText,
   Settings,
   type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
+import type { CoreMode } from '../cairn-api';
 
 type NavKey = 'today' | 'week' | 'month' | 'recent' | 'logs' | 'settings';
 
@@ -15,12 +17,13 @@ type NavItem = {
   key: NavKey;
   label: string;
   icon: LucideIcon;
+  mode?: CoreMode;
 };
 
 const NAV: NavItem[] = [
-  { key: 'today', label: '오늘 일지', icon: CalendarDays },
-  { key: 'week', label: '이번 주 정리', icon: CalendarRange },
-  { key: 'month', label: '이번 달 정리', icon: CalendarClock },
+  { key: 'today', label: '오늘 일지', icon: CalendarDays, mode: 'daily' },
+  { key: 'week', label: '이번 주 정리', icon: CalendarRange, mode: 'weekly' },
+  { key: 'month', label: '이번 달 정리', icon: CalendarClock, mode: 'monthly' },
   { key: 'recent', label: '최근 노션 페이지', icon: FileText },
   { key: 'logs', label: '로그', icon: ScrollText },
   { key: 'settings', label: '설정', icon: Settings },
@@ -28,10 +31,11 @@ const NAV: NavItem[] = [
 
 type Props = {
   active: NavKey;
+  runningMode: CoreMode | null;
   onSelect: (key: NavKey) => void;
 };
 
-export function Sidebar({ active, onSelect }: Props) {
+export function Sidebar({ active, runningMode, onSelect }: Props) {
   return (
     <nav className="flex w-56 shrink-0 flex-col border-r border-hairline bg-surface-1">
       <div className="h-14 [-webkit-app-region:drag]" />
@@ -41,6 +45,7 @@ export function Sidebar({ active, onSelect }: Props) {
             key={item.key}
             item={item}
             active={item.key === active}
+            running={item.mode !== undefined && item.mode === runningMode}
             onClick={() => onSelect(item.key)}
           />
         ))}
@@ -52,10 +57,12 @@ export function Sidebar({ active, onSelect }: Props) {
 function SidebarItem({
   item,
   active,
+  running,
   onClick,
 }: {
   item: NavItem;
   active: boolean;
+  running: boolean;
   onClick: () => void;
 }) {
   const [hover, setHover] = useState(false);
@@ -73,7 +80,8 @@ function SidebarItem({
       ].join(' ')}
     >
       <Icon size={15} strokeWidth={1.75} />
-      <span>{item.label}</span>
+      <span className="flex-1">{item.label}</span>
+      {running && <Loader2 size={13} strokeWidth={2} className="animate-spin text-accent" />}
     </button>
   );
 }
