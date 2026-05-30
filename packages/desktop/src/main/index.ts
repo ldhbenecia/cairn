@@ -24,6 +24,7 @@ function createWindow(): BrowserWindow {
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
+      additionalArguments: app.isPackaged ? ['--cairn-packaged'] : [],
     },
   });
 

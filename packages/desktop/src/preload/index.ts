@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+const IS_PACKAGED = process.argv.includes('--cairn-packaged');
+
 export type CoreMode = 'daily' | 'weekly' | 'monthly';
 
 export type CoreRunOptions = { backfillDays?: number };
@@ -28,7 +30,8 @@ export type RunLine = {
 };
 
 contextBridge.exposeInMainWorld('cairn', {
-  version: '0.1.0',
+  version: '0.1.1',
+  isPackaged: IS_PACKAGED,
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
   running: (): Promise<boolean> => ipcRenderer.invoke('cairn:running') as Promise<boolean>,

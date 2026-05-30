@@ -29,6 +29,7 @@ declare global {
   interface Window {
     cairn: {
       version: string;
+      isPackaged: boolean;
       run: (mode: CoreMode, options?: CoreRunOptions) => Promise<CoreResult>;
       running: () => Promise<boolean>;
       openExternal: (url: string) => Promise<void>;

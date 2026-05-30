@@ -1,7 +1,7 @@
+import 'reflect-metadata';
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
-import 'reflect-metadata';
 import { AppModule } from './app.module.js';
 import { parseCliArgs } from './cairn/cli-args.js';
 import { OrchestratorService } from './cairn/orchestrator.service.js';
