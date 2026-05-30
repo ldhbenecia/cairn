@@ -15,7 +15,7 @@ function createWindow(): BrowserWindow {
     minHeight: 480,
     show: false,
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 16 },
+    trafficLightPosition: { x: 16, y: 20 },
     backgroundColor: '#0a0a0a',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
