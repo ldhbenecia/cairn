@@ -23,6 +23,7 @@
 | 11 | PR commits-on-date + involves (v0.12.0) | ✅ 2026-05-17 |
 | 12 | PR 검색 lookback widening (v0.13.0) | ✅ 2026-05-17 |
 | 13 | monorepo 전환 + Electron 채택 ADR (v0.14.0) | ✅ 2026-05-17 |
+| 14 | v0.1 desktop 셸 (Electron) — root v0.15.0 / desktop v0.1.0 | ✅ 2026-05-30 |
 
 > 일지 파일은 `docs/progress/` 디렉토리 자체가 인덱스 — 여기에 일일이 한 줄씩 모으지 않는다.
 
