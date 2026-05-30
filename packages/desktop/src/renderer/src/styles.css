@@ -58,6 +58,20 @@ button {
   cursor: default;
 }
 
+@keyframes panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.panel-enter {
+  animation: panel-enter 180ms ease-out;
+}
+
 ::-webkit-scrollbar {
   width: 0;
   height: 0;
