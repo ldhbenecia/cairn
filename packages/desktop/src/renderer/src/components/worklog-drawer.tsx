@@ -81,7 +81,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
           className="absolute top-0 left-0 z-10 h-full w-1 cursor-col-resize hover:bg-accent/40 [-webkit-app-region:no-drag]"
         />
         <div className="flex items-start gap-3 border-b border-hairline px-5 py-4 [-webkit-app-region:drag]">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 cursor-text select-text [-webkit-app-region:no-drag]">
             <p className="truncate text-[15px] font-semibold text-ink">{page.title}</p>
             <p className="mt-0.5 font-mono text-[12px] text-ink-tertiary">
               {page.date ?? '—'} · {page.workspaceLabel}
