@@ -15,9 +15,9 @@
   --color-ink-subtle: #8a8f98;
   --color-ink-tertiary: #62666d;
 
-  --color-accent: #455a72;
-  --color-accent-hover: #5d7390;
-  --color-accent-focus: #34495e;
+  --color-accent: #5b61e6;
+  --color-accent-hover: #757bf0;
+  --color-accent-focus: #474dcc;
 
   --color-success: #27a644;
 
@@ -57,6 +57,9 @@ button {
   font-family: inherit;
   cursor: default;
 }
+button:not(:disabled) {
+  cursor: pointer;
+}
 
 @keyframes panel-enter {
   from {
@@ -72,18 +75,79 @@ button {
   animation: panel-enter 180ms ease-out;
 }
 
-::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  background: transparent;
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
-*:hover::-webkit-scrollbar {
+@keyframes overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes dialog-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
+}
+.dialog-overlay[data-state='open'] {
+  animation: overlay-in 150ms ease-out;
+}
+.dialog-overlay[data-state='closed'] {
+  animation: overlay-out 120ms ease-in;
+}
+.dialog-content[data-state='open'] {
+  animation: dialog-in 170ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.dialog-content[data-state='closed'] {
+  animation: dialog-out 120ms ease-in both;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}
+.progress-indeterminate {
+  animation: progress-indeterminate 1.4s ease-in-out infinite;
+}
+
+/* 스크롤바 자리(6px)는 항상 차지 — thumb 색만 hover 때 표시해서 콘텐츠가 밀리지 않게 */
+::-webkit-scrollbar {
   width: 6px;
   height: 6px;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-hairline-strong);
+  background: transparent;
   border-radius: 3px;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: var(--color-hairline-strong);
 }
 ::-webkit-scrollbar-track {
   background: transparent;
