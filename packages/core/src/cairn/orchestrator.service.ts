@@ -15,6 +15,7 @@ import {
   type PublishRollupResult,
 } from '../rollup/rollup-publisher.service.js';
 import { RollupSummarizerService } from '../rollup/rollup-summarizer.service.js';
+import { periodRange } from '../rollup/period-range.js';
 import { DailySummarizerService } from '../summarizer/daily-summarizer.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
 
@@ -91,7 +92,7 @@ export class OrchestratorService {
 
     const results: Array<{ date: string; kind: PublishWorklogResult['kind'] | 'no-activity' }> = [];
     for (const date of missingDates) {
-      const outcome = await this.runDailyForDate(date, options, { silent: true });
+      const outcome = await this.runDailyForDate(date, options, { silent: true, precheck: false });
       results.push({ date, kind: outcome });
     }
 
@@ -101,7 +102,7 @@ export class OrchestratorService {
   private async runDailyForDate(
     date: string,
     options: RunOptions,
-    opts: { silent: boolean },
+    opts: { silent: boolean; precheck?: boolean },
   ): Promise<PublishWorklogResult['kind'] | 'no-activity'> {
     const wantsGithub = wantsSource(options.sources, 'github');
     const wantsLocalGit = wantsSource(options.sources, 'local-git');
@@ -110,6 +111,26 @@ export class OrchestratorService {
     if (!wantsGithub && !wantsLocalGit && !wantsNotion) {
       this.logger.warn({ sources: options.sources }, 'daily: no enabled source — skipping');
       return 'no-activity';
+    }
+
+    // 수집·요약 전에 미리 확인 — 이미 발행됨 / final 보호 / 발행 대상 없음이면 바로 단락
+    if (!options.dryRun && opts.precheck !== false) {
+      const pre = await this.notionPublisher.precheckDaily(date, options.force);
+      if (pre) {
+        this.logger.info(
+          { date, publishResult: pre },
+          'daily: precheck short-circuit — skip collect/summarize',
+        );
+        if (!opts.silent) {
+          await this.notify(date, pre, {
+            prCount: 0,
+            commitCount: 0,
+            notionPageCount: 0,
+            summarizerOk: false,
+          });
+        }
+        return pre.kind;
+      }
     }
 
     const [githubActivity, localGitActivity, notionActivity] = await Promise.all([
@@ -253,6 +274,20 @@ export class OrchestratorService {
   }
 
   private async runRollup(period: 'weekly' | 'monthly', options: RunOptions): Promise<void> {
+    // 수집·요약 전에 미리 확인 — 이미 발행됨 / final 보호 / 발행 대상 없음이면 바로 단락
+    if (!options.dryRun) {
+      const pre = await this.rollupPublisher.precheck(period, options.date, options.force);
+      if (pre) {
+        const { start, end } = periodRange(period, options.date);
+        this.logger.info(
+          { period, rangeStart: start, rangeEnd: end, publishResult: pre },
+          'rollup: precheck short-circuit — skip collect/summarize',
+        );
+        await this.notifyRollup(period, start, end, pre, false);
+        return;
+      }
+    }
+
     const activity = await this.rollupCollector.collect(period, options.date);
     const periodKor = rollupKor(period);
     const titleKor = `cairn ${periodKor}`;
