@@ -1,17 +1,6 @@
-import {
-  BrowserWindow,
-  Menu,
-  nativeImage,
-  shell,
-  Tray,
-  type MenuItemConstructorOptions,
-} from 'electron';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { BrowserWindow, Menu, nativeImage, Tray, type MenuItemConstructorOptions } from 'electron';
 import { runCore, type CoreMode } from './core-runner';
 import { TRAY_ICON_1X, TRAY_ICON_2X } from './tray-icon';
-
-const LOG_DIR = join(homedir(), '.cairn', 'logs');
 
 function buildTrayIcon(): Electron.NativeImage {
   const img = nativeImage.createFromDataURL(TRAY_ICON_1X);
@@ -61,17 +50,6 @@ function buildMenu(window: BrowserWindow, onQuit: () => void): Menu {
       label: '대시보드 열기',
       accelerator: 'CommandOrControl+D',
       click: () => showWindow(window),
-    },
-    {
-      label: '로그 폴더 열기',
-      click: () => {
-        void shell.openPath(LOG_DIR);
-      },
-    },
-    {
-      label: '최근 노션 페이지',
-      enabled: false,
-      sublabel: '14.6 에서 활성',
     },
     { type: 'separator' },
     {
