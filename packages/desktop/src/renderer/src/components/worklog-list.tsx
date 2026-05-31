@@ -157,7 +157,7 @@ export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, 
       </header>
 
       <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
-        <div className="mx-auto w-full max-w-5xl px-6 pb-6">
+        <div key={filter} className="panel-enter mx-auto w-full max-w-5xl px-6 pb-6">
           {!recent ? (
             <div className="flex items-center justify-center gap-2 py-16 text-[12px] text-ink-tertiary">
               <Loader2 size={14} strokeWidth={2} className="animate-spin" />

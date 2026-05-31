@@ -133,7 +133,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const canNext = step === 'notion' ? notionValid : true;
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-canvas text-ink">
+    <div className="panel-enter flex h-screen w-screen flex-col bg-canvas text-ink">
       <div className="h-11 shrink-0 [-webkit-app-region:drag]" />
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-hidden px-8">
         <div className="flex items-center gap-2.5 pb-5">
@@ -146,7 +146,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
           </span>
         </div>
 
-        <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+        <div key={step} className="panel-enter flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           {step === 'welcome' && <Welcome />}
           {step === 'notion' && (
             <Section
