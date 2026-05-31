@@ -8,9 +8,10 @@ import { Toggle } from './toggle';
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRerunSetup: () => void;
 };
 
-export function PreferencesDialog({ open, onOpenChange }: Props) {
+export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
   const { settings, update, t } = useSettings();
   const [result, setResult] = useState<ConfigResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -106,6 +107,19 @@ export function PreferencesDialog({ open, onOpenChange }: Props) {
                 )
               )}
               <p className="mt-3 text-[12px] text-ink-tertiary">{t('prefs.config.note')}</p>
+            </Section>
+
+            <Section title={t('prefs.setup')}>
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenChange(false);
+                  onRerunSetup();
+                }}
+                className="inline-flex w-fit items-center rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink"
+              >
+                {t('prefs.rerunSetup')}
+              </button>
             </Section>
 
             <Section title={t('prefs.about')}>
