@@ -40,11 +40,22 @@ export type RunLine = {
   line: string;
 };
 
+export type Theme = 'dark' | 'light' | 'system';
+export type Language = 'ko' | 'en';
+export type Settings = {
+  theme: Theme;
+  language: Language;
+  notifications: boolean;
+  prompts: { daily: string | null; weekly: string | null; monthly: string | null };
+};
+
 declare global {
   interface Window {
     cairn: {
       version: string;
       isPackaged: boolean;
+      initialSettings: Settings;
+      setSettings: (patch: Partial<Settings>) => Promise<Settings>;
       run: (mode: CoreMode, options?: CoreRunOptions) => Promise<CoreResult>;
       running: () => Promise<boolean>;
       openExternal: (url: string) => Promise<void>;

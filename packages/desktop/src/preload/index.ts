@@ -2,6 +2,21 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 const IS_PACKAGED = process.argv.includes('--cairn-packaged');
 
+export type Theme = 'dark' | 'light' | 'system';
+export type Language = 'ko' | 'en';
+export type Settings = {
+  theme: Theme;
+  language: Language;
+  notifications: boolean;
+  prompts: { daily: string | null; weekly: string | null; monthly: string | null };
+};
+
+// 무플래시: 첫 페인트 전에 main 에서 동기로 설정·버전을 받아온다 (sandbox preload 라 fs 불가 → sendSync)
+const boot = ipcRenderer.sendSync('cairn:bootstrap-sync') as {
+  settings: Settings;
+  version: string;
+};
+
 export type CoreMode = 'daily' | 'weekly' | 'monthly';
 
 export type CoreRunOptions = { backfillDays?: number; force?: boolean };
@@ -41,8 +56,11 @@ export type RunLine = {
 };
 
 contextBridge.exposeInMainWorld('cairn', {
-  version: '0.1.2',
+  version: boot.version,
   isPackaged: IS_PACKAGED,
+  initialSettings: boot.settings,
+  setSettings: (patch: Partial<Settings>): Promise<Settings> =>
+    ipcRenderer.invoke('cairn:settings:set', patch) as Promise<Settings>,
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
   running: (): Promise<boolean> => ipcRenderer.invoke('cairn:running') as Promise<boolean>,

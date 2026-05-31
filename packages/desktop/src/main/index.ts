@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { readConfig, tailLatestLog } from './files';
 import { listRecentPages } from './notion-client';
+import { readSettings, writeSettings, type Settings } from './settings';
 import { setupTray } from './tray';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -64,6 +65,12 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:config:read', () => readConfig());
   ipcMain.handle('cairn:logs:tail', () => tailLatestLog());
   ipcMain.handle('cairn:recent:list', () => listRecentPages());
+
+  // 무플래시 초기 로드용 동기 부트스트랩 (preload sandbox 에서 sendSync)
+  ipcMain.on('cairn:bootstrap-sync', (e) => {
+    e.returnValue = { settings: readSettings(), version: app.getVersion() };
+  });
+  ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => writeSettings(patch));
 
   const win = createWindow();
   setupTray(win);
