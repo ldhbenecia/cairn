@@ -11,6 +11,7 @@ export type CoreMode = 'daily' | 'weekly' | 'monthly';
 
 export type CoreRunOptions = {
   backfillDays?: number;
+  force?: boolean;
 };
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
@@ -96,6 +97,7 @@ export async function runCore(
 
   const args = [`--mode=${mode}`];
   if (options.backfillDays !== undefined) args.push(`--backfill-days=${options.backfillDays}`);
+  if (options.force) args.push('--force');
 
   emit('meta', `[fork] ${CORE_ENTRY} ${args.join(' ')}`);
   emit('meta', `[cwd] ${CAIRN_ROOT}`);
