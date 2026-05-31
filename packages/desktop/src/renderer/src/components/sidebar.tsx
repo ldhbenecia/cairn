@@ -1,55 +1,42 @@
-import {
-  CalendarClock,
-  CalendarDays,
-  CalendarRange,
-  FileText,
-  Loader2,
-  ScrollText,
-  Settings,
-  type LucideIcon,
-} from 'lucide-react';
+import { LayoutList, Loader2, Settings2, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
-import type { CoreMode } from '../cairn-api';
 
-type NavKey = 'today' | 'week' | 'month' | 'recent' | 'logs' | 'settings';
+type NavKey = 'worklog' | 'preferences';
 
 type NavItem = {
   key: NavKey;
   label: string;
   icon: LucideIcon;
-  mode?: CoreMode;
 };
 
 const NAV: NavItem[] = [
-  { key: 'today', label: '오늘 일지', icon: CalendarDays, mode: 'daily' },
-  { key: 'week', label: '이번 주 정리', icon: CalendarRange, mode: 'weekly' },
-  { key: 'month', label: '이번 달 정리', icon: CalendarClock, mode: 'monthly' },
-  { key: 'recent', label: '최근 노션 페이지', icon: FileText },
-  { key: 'logs', label: '로그', icon: ScrollText },
-  { key: 'settings', label: '설정', icon: Settings },
+  { key: 'worklog', label: 'Worklog', icon: LayoutList },
+  { key: 'preferences', label: 'Preferences', icon: Settings2 },
 ];
 
 type Props = {
   active: NavKey;
-  runningMode: CoreMode | null;
+  running: boolean;
+  lastPublished: string | null;
   onSelect: (key: NavKey) => void;
 };
 
-export function Sidebar({ active, runningMode, onSelect }: Props) {
+export function Sidebar({ active, running, lastPublished, onSelect }: Props) {
   return (
     <nav className="flex w-56 shrink-0 flex-col border-r border-hairline bg-surface-1">
       <div className="h-14 [-webkit-app-region:drag]" />
-      <div className="flex flex-col gap-0.5 px-3 pb-3">
+      <div className="flex flex-1 flex-col gap-0.5 px-3 pb-3">
         {NAV.map((item) => (
           <SidebarItem
             key={item.key}
             item={item}
             active={item.key === active}
-            running={item.mode !== undefined && item.mode === runningMode}
+            running={item.key === 'worklog' && running}
             onClick={() => onSelect(item.key)}
           />
         ))}
       </div>
+      <Footer lastPublished={lastPublished} />
     </nav>
   );
 }
@@ -74,15 +61,30 @@ function SidebarItem({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className={[
-        'flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-[14px] font-medium leading-[1.2] tracking-normal transition-colors',
+        'relative flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-[14px] font-medium leading-[1.2] tracking-normal transition-colors',
         '[-webkit-app-region:no-drag]',
         active ? 'bg-surface-2 text-ink' : hover ? 'bg-surface-3 text-ink' : 'text-ink-subtle',
       ].join(' ')}
     >
+      {active && (
+        <span className="absolute left-0 top-1/2 h-4 w-1 -translate-y-1/2 rounded-full bg-accent" />
+      )}
       <Icon size={15} strokeWidth={1.75} />
       <span className="flex-1">{item.label}</span>
       {running && <Loader2 size={13} strokeWidth={2} className="animate-spin text-accent" />}
     </button>
+  );
+}
+
+function Footer({ lastPublished }: { lastPublished: string | null }) {
+  return (
+    <div className="border-t border-hairline px-4 py-3 text-[11px] text-ink-tertiary [-webkit-app-region:no-drag]">
+      <div className="flex items-center justify-between">
+        <span>cairn</span>
+        <span className="font-mono">v{window.cairn.version}</span>
+      </div>
+      {lastPublished && <div className="mt-1">마지막 발행 {lastPublished}</div>}
+    </div>
   );
 }
 

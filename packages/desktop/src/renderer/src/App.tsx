@@ -25,14 +25,9 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
   monthly: null,
 };
 
-const MODE_TO_NAV: Record<CoreMode, NavKey> = {
-  daily: 'today',
-  weekly: 'week',
-  monthly: 'month',
-};
-
 export function App() {
-  const [active, setActive] = useState<NavKey>('today');
+  const [active, setActive] = useState<NavKey>('worklog');
+  const [mode, setMode] = useState<CoreMode>('daily');
   const [sessions, setSessions] = useState<Record<CoreMode, RunSession | null>>(EMPTY_SESSIONS);
   const [runningMode, setRunningMode] = useState<CoreMode | null>(null);
   const [recent, setRecent] = useState<RecentListResult | null>(null);
@@ -74,8 +69,9 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const off = window.cairn.onFocusMode((mode) => {
-      setActive(MODE_TO_NAV[mode]);
+    const off = window.cairn.onFocusMode((focused) => {
+      setActive('worklog');
+      setMode(focused);
     });
     return off;
   }, []);
@@ -103,9 +99,16 @@ export function App() {
 
   return (
     <div className="flex h-screen w-screen bg-canvas text-ink">
-      <Sidebar active={active} runningMode={runningMode} onSelect={setActive} />
+      <Sidebar
+        active={active}
+        running={runningMode !== null}
+        lastPublished={recent?.pages[0]?.date ?? null}
+        onSelect={setActive}
+      />
       <Content
         active={active}
+        mode={mode}
+        onModeChange={setMode}
         sessions={sessions}
         runningMode={runningMode}
         onTrigger={trigger}
