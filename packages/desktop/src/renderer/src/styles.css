@@ -37,6 +37,27 @@
     'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace;
 }
 
+/* 라이트 모드 — 같은 토큰 override (다크는 @theme 기본값 사용) */
+[data-theme='light'] {
+  --color-canvas: #ffffff;
+  --color-surface-1: #f6f7f9;
+  --color-surface-2: #eef0f3;
+  --color-surface-3: #e6e9ed;
+  --color-surface-4: #e1e4e9;
+  --color-hairline: #e3e6eb;
+  --color-hairline-strong: #cdd2da;
+  --color-hairline-tertiary: #b8bec8;
+
+  --color-ink: #1a1c20;
+  --color-ink-muted: #3a3f47;
+  --color-ink-subtle: #5c626c;
+  --color-ink-tertiary: #8a909a;
+
+  --color-accent: #4f55d6;
+  --color-accent-hover: #4348c4;
+  --color-accent-focus: #3a3fb0;
+}
+
 html,
 body,
 #root {

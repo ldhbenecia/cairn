@@ -7,17 +7,19 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
+import type { I18nKey } from '../i18n';
+import { useSettings } from '../settings-context';
 import { BrandMark } from './brand-mark';
 
 export type WorklogFilter = 'all' | 'daily' | 'weekly' | 'monthly';
 
 export type FilterCounts = Record<WorklogFilter, number>;
 
-const FILTERS: { key: WorklogFilter; label: string; icon: LucideIcon }[] = [
-  { key: 'all', label: '전체', icon: LayoutList },
-  { key: 'daily', label: '일간', icon: CalendarDays },
-  { key: 'weekly', label: '주간', icon: CalendarRange },
-  { key: 'monthly', label: '월간', icon: CalendarClock },
+const FILTERS: { key: WorklogFilter; labelKey: I18nKey; icon: LucideIcon }[] = [
+  { key: 'all', labelKey: 'nav.all', icon: LayoutList },
+  { key: 'daily', labelKey: 'nav.daily', icon: CalendarDays },
+  { key: 'weekly', labelKey: 'nav.weekly', icon: CalendarRange },
+  { key: 'monthly', labelKey: 'nav.monthly', icon: CalendarClock },
 ];
 
 type Props = {
@@ -37,6 +39,7 @@ export function Sidebar({
   onFilterChange,
   onOpenPreferences,
 }: Props) {
+  const { t } = useSettings();
   return (
     <nav style={{ width }} className="flex shrink-0 flex-col border-r border-hairline bg-surface-1">
       <div className="h-20 [-webkit-app-region:drag]" />
@@ -49,13 +52,13 @@ export function Sidebar({
 
       <div className="flex flex-1 flex-col gap-0.5 px-4">
         <div className="px-2 pb-1.5 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
-          Worklog
+          {t('brand.worklog')}
         </div>
         {FILTERS.map((f) => (
           <FilterItem
             key={f.key}
             icon={f.icon}
-            label={f.label}
+            label={t(f.labelKey)}
             count={counts[f.key]}
             active={!preferencesActive && filter === f.key}
             onClick={() => onFilterChange(f.key)}
@@ -66,7 +69,7 @@ export function Sidebar({
       <div className="px-4 pb-4">
         <FilterItem
           icon={Settings2}
-          label="Preferences"
+          label={t('nav.preferences')}
           active={preferencesActive}
           onClick={onOpenPreferences}
         />
