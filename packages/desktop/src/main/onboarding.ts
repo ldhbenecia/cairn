@@ -101,13 +101,40 @@ function writeEnvMerged(patch: Record<string, string>): void {
   writeFileSync(ENV_PATH, out.join('\n').replace(/\n+$/, '') + '\n');
 }
 
+type ExistingWs = {
+  worklog?: { pageId?: string; databaseId?: string; dataSourceId?: string };
+  rollup?: unknown;
+};
+
 export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; error?: string } {
   try {
+    // 기존 config 먼저 읽기 — 같은 부모 페이지면 자동 생성된 DB id 보존(재실행 시 DB 연결 유지)
+    let existing: Record<string, unknown> = {};
+    try {
+      existing = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as Record<string, unknown>;
+    } catch {
+      existing = {};
+    }
+    const prevWorkspaces = (existing.notionWorkspaces as ExistingWs[] | undefined) ?? [];
+
     const env: Record<string, string> = {};
     const notionWorkspaces = payload.notion.map((w) => {
       const tokenEnv = envKey('NOTION_TOKEN', w.label);
       env[tokenEnv] = w.token;
-      return { label: w.label, tokenEnv, myUserId: w.myUserId, worklog: { pageId: w.pageId } };
+      const prev = prevWorkspaces.find((p) => p.worklog?.pageId === w.pageId);
+      const worklog: { pageId: string; databaseId?: string; dataSourceId?: string } = {
+        pageId: w.pageId,
+      };
+      if (prev?.worklog?.databaseId) worklog.databaseId = prev.worklog.databaseId;
+      if (prev?.worklog?.dataSourceId) worklog.dataSourceId = prev.worklog.dataSourceId;
+      const ws: Record<string, unknown> = {
+        label: w.label,
+        tokenEnv,
+        myUserId: w.myUserId,
+        worklog,
+      };
+      if (prev?.rollup) ws.rollup = prev.rollup;
+      return ws;
     });
     const githubAccounts = payload.github.map((g) => {
       const tokenEnv = envKey('GITHUB_TOKEN', g.label);
@@ -118,13 +145,6 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
 
     writeEnvMerged(env);
 
-    // 기존 config 보존 후 덮어쓰기 대상만 교체
-    let existing: Record<string, unknown> = {};
-    try {
-      existing = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as Record<string, unknown>;
-    } catch {
-      existing = {};
-    }
     const config = {
       ...existing,
       localGitRepos: payload.localGitRepos,
