@@ -6,6 +6,7 @@ import { readConfig, tailLatestLog } from './files';
 import { listRecentPages } from './notion-client';
 import {
   finishOnboarding,
+  listNotionDatabases,
   probeGithub,
   probeNotion,
   searchNotionPages,
@@ -87,6 +88,9 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:onboarding:probe-notion', (_e, token: string) => probeNotion(token));
   ipcMain.handle('cairn:onboarding:search-notion', (_e, token: string, query?: string) =>
     searchNotionPages(token, query),
+  );
+  ipcMain.handle('cairn:onboarding:list-databases', (_e, token: string, pageId: string) =>
+    listNotionDatabases(token, pageId),
   );
   ipcMain.handle('cairn:onboarding:probe-github', (_e, token: string) => probeGithub(token));
   ipcMain.handle('cairn:onboarding:probe-claude', () => probeClaude());

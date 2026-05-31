@@ -45,9 +45,18 @@ export type Language = 'ko' | 'en';
 
 export type NotionProbe = { ok: boolean; persons: { id: string; name: string }[]; error?: string };
 export type NotionPage = { id: string; title: string };
+export type NotionDb = { databaseId: string; dataSourceId: string; title: string };
 export type GithubProbe = { ok: boolean; login?: string; error?: string };
+export type DbRef = { databaseId: string; dataSourceId: string };
 export type OnboardingPayload = {
-  notion: { label: string; token: string; pageId: string; myUserId: string }[];
+  notion: {
+    label: string;
+    token: string;
+    pageId: string;
+    myUserId: string;
+    worklogDb?: DbRef;
+    rollupDb?: DbRef;
+  }[];
   github: { label: string; token: string }[];
   anthropicApiKey?: string;
   localGitRepos: string[];
@@ -70,6 +79,7 @@ declare global {
       onboarding: {
         probeNotion: (token: string) => Promise<NotionProbe>;
         searchNotion: (token: string, query?: string) => Promise<NotionPage[]>;
+        listDatabases: (token: string, pageId: string) => Promise<NotionDb[]>;
         probeGithub: (token: string) => Promise<GithubProbe>;
         probeClaude: () => Promise<{ ok: boolean }>;
         finish: (payload: OnboardingPayload) => Promise<{ ok: boolean; error?: string }>;

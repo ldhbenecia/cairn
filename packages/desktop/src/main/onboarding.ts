@@ -9,10 +9,19 @@ export type NotionProbe = {
   error?: string;
 };
 export type NotionPage = { id: string; title: string };
+export type NotionDb = { databaseId: string; dataSourceId: string; title: string };
 export type GithubProbe = { ok: boolean; login?: string; error?: string };
 
+export type DbRef = { databaseId: string; dataSourceId: string };
 export type OnboardingPayload = {
-  notion: { label: string; token: string; pageId: string; myUserId: string }[];
+  notion: {
+    label: string;
+    token: string;
+    pageId: string;
+    myUserId: string;
+    worklogDb?: DbRef;
+    rollupDb?: DbRef;
+  }[];
   github: { label: string; token: string }[];
   anthropicApiKey?: string;
   localGitRepos: string[];
@@ -62,6 +71,33 @@ export async function searchNotionPages(token: string, query?: string): Promise<
     pages.push({ id: (item as { id: string }).id, title });
   }
   return pages;
+}
+
+// 페이지 하위의 child database 목록 (기존 cairn DB 를 골라 연결 — 이름 아닌 id 로 추적)
+export async function listNotionDatabases(token: string, pageId: string): Promise<NotionDb[]> {
+  const notion = new Client({ auth: token });
+  const children = await notion.blocks.children.list({ block_id: pageId, page_size: 100 });
+  const out: NotionDb[] = [];
+  for (const b of children.results) {
+    const block = b as { id?: string; type?: string; child_database?: { title?: string } };
+    if (block.type !== 'child_database' || !block.id) continue;
+    try {
+      const db = (await notion.databases.retrieve({ database_id: block.id })) as {
+        data_sources?: { id?: string }[];
+      };
+      const dataSourceId = db.data_sources?.[0]?.id;
+      if (dataSourceId) {
+        out.push({
+          databaseId: block.id,
+          dataSourceId,
+          title: block.child_database?.title || '(제목 없음)',
+        });
+      }
+    } catch {
+      // 접근 불가 DB skip
+    }
+  }
+  return out;
 }
 
 export async function probeGithub(token: string): Promise<GithubProbe> {
@@ -123,18 +159,26 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
       const tokenEnv = envKey('NOTION_TOKEN', w.label);
       env[tokenEnv] = w.token;
       const prev = prevWorkspaces.find((p) => p.worklog?.pageId === w.pageId);
+      // 우선순위: 사용자가 고른 기존 DB > 기존 config 보존 > (없으면 pageId 만 → 첫 발행 시 자동 생성)
       const worklog: { pageId: string; databaseId?: string; dataSourceId?: string } = {
         pageId: w.pageId,
       };
-      if (prev?.worklog?.databaseId) worklog.databaseId = prev.worklog.databaseId;
-      if (prev?.worklog?.dataSourceId) worklog.dataSourceId = prev.worklog.dataSourceId;
+      if (w.worklogDb) {
+        worklog.databaseId = w.worklogDb.databaseId;
+        worklog.dataSourceId = w.worklogDb.dataSourceId;
+      } else if (prev?.worklog) {
+        if (prev.worklog.databaseId) worklog.databaseId = prev.worklog.databaseId;
+        if (prev.worklog.dataSourceId) worklog.dataSourceId = prev.worklog.dataSourceId;
+      }
       const ws: Record<string, unknown> = {
         label: w.label,
         tokenEnv,
         myUserId: w.myUserId,
         worklog,
       };
-      if (prev?.rollup) ws.rollup = prev.rollup;
+      if (w.rollupDb)
+        ws.rollup = { databaseId: w.rollupDb.databaseId, dataSourceId: w.rollupDb.dataSourceId };
+      else if (prev?.rollup) ws.rollup = prev.rollup;
       return ws;
     });
     const githubAccounts = payload.github.map((g) => {

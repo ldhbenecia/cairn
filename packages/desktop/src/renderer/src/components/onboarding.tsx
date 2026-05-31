@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Check, ExternalLink, FolderPlus, Loader2, Plus, Search, Trash2 } from 'lucide-react';
-import type { NotionPage } from '../cairn-api';
+import type { NotionDb, NotionPage } from '../cairn-api';
 import { BrandMark } from './brand-mark';
 
 type Status = 'idle' | 'testing' | 'ok' | 'err';
@@ -16,6 +16,9 @@ type NotionEntry = {
   pages: NotionPage[];
   pageId: string;
   searching: boolean;
+  databases: NotionDb[];
+  worklogDbId: string;
+  rollupDbId: string;
 };
 
 type GithubEntry = { label: string; token: string; status: Status; error?: string; login?: string };
@@ -41,6 +44,9 @@ const newNotion = (label: string): NotionEntry => ({
   pages: [],
   pageId: '',
   searching: false,
+  databases: [],
+  worklogDbId: '',
+  rollupDbId: '',
 });
 
 export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
@@ -88,6 +94,12 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     }
   }
 
+  async function loadDatabases(i: number, pageId: string) {
+    const e = notion[i]!;
+    const dbs = await window.cairn.onboarding.listDatabases(e.token.trim(), pageId);
+    patchNotion(i, { databases: dbs });
+  }
+
   async function testGithub(i: number) {
     const e = github[i]!;
     if (!e.token.trim()) return;
@@ -104,12 +116,22 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     const r = await window.cairn.onboarding.finish({
       notion: notion
         .filter((e) => e.status === 'ok' && e.pageId && e.personId)
-        .map((e) => ({
-          label: e.label,
-          token: e.token.trim(),
-          pageId: e.pageId,
-          myUserId: e.personId,
-        })),
+        .map((e) => {
+          const worklogDb = e.databases.find((d) => d.databaseId === e.worklogDbId);
+          const rollupDb = e.databases.find((d) => d.databaseId === e.rollupDbId);
+          return {
+            label: e.label,
+            token: e.token.trim(),
+            pageId: e.pageId,
+            myUserId: e.personId,
+            worklogDb: worklogDb
+              ? { databaseId: worklogDb.databaseId, dataSourceId: worklogDb.dataSourceId }
+              : undefined,
+            rollupDb: rollupDb
+              ? { databaseId: rollupDb.databaseId, dataSourceId: rollupDb.dataSourceId }
+              : undefined,
+          };
+        }),
       github: github
         .filter((e) => e.status === 'ok' && e.token.trim())
         .map((e) => ({ label: e.label, token: e.token.trim() })),
@@ -165,6 +187,10 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   onChange={(p) => patchNotion(i, p)}
                   onTest={() => void testNotion(i)}
                   onSearch={() => void searchPages(i)}
+                  onSelectPage={(pageId) => {
+                    patchNotion(i, { pageId, worklogDbId: '', rollupDbId: '' });
+                    void loadDatabases(i, pageId);
+                  }}
                   onRemove={
                     notion.length > 1
                       ? () => setNotion((p) => p.filter((_, x) => x !== i))
@@ -500,12 +526,14 @@ function NotionCard({
   onChange,
   onTest,
   onSearch,
+  onSelectPage,
   onRemove,
 }: {
   e: NotionEntry;
   onChange: (p: Partial<NotionEntry>) => void;
   onTest: () => void;
   onSearch: () => void;
+  onSelectPage: (pageId: string) => void;
   onRemove?: () => void;
 }) {
   return (
@@ -565,7 +593,7 @@ function NotionCard({
                 <button
                   key={pg.id}
                   type="button"
-                  onClick={() => onChange({ pageId: pg.id })}
+                  onClick={() => onSelectPage(pg.id)}
                   className={[
                     'flex w-full items-center gap-2 border-b border-hairline px-3 py-2 text-left text-[13px] last:border-b-0 hover:bg-surface-2',
                     e.pageId === pg.id ? 'text-ink' : 'text-ink-muted',
@@ -579,6 +607,39 @@ function NotionCard({
                   <span className="truncate">{pg.title}</span>
                 </button>
               ))}
+            </div>
+          )}
+          {e.pageId && e.databases.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[12px] text-ink-tertiary">
+                이 페이지의 기존 DB 연결 (선택 — 비우면 자동 생성)
+              </p>
+              <div className="flex gap-2">
+                <select
+                  value={e.worklogDbId}
+                  onChange={(ev) => onChange({ worklogDbId: ev.target.value })}
+                  className="flex-1 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink"
+                >
+                  <option value="">일지 DB: 자동 생성</option>
+                  {e.databases.map((d) => (
+                    <option key={d.databaseId} value={d.databaseId}>
+                      일지: {d.title}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={e.rollupDbId}
+                  onChange={(ev) => onChange({ rollupDbId: ev.target.value })}
+                  className="flex-1 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink"
+                >
+                  <option value="">롤업 DB: 자동 생성</option>
+                  {e.databases.map((d) => (
+                    <option key={d.databaseId} value={d.databaseId}>
+                      롤업: {d.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
         </>
