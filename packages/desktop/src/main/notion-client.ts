@@ -62,7 +62,7 @@ type ParsedConfig = {
   notionWorkspaces: NotionWorkspaceConfig[];
 };
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 100;
 
 type NotionPageItem = { id: string; url?: string; properties: Record<string, unknown> };
 
