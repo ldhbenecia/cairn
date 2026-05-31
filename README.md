@@ -32,8 +32,8 @@ nvm use
 pnpm install
 
 cp .env.example .env
-cp worklog.config.example.json worklog.config.json
-# fill in tokens in .env and absolute repo paths in worklog.config.json
+# fill in tokens in .env, then create worklog.config.json (see docs/SETUP.md)
+# — or just run the desktop app: the first-run setup writes both for you
 
 pnpm build
 node packages/core/dist/main.js --mode=daily --date=$(date +%F) --dry-run

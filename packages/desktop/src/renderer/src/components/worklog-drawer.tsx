@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import hljs from 'highlight.js/lib/common';
 import { ExternalLink, Loader2, X } from 'lucide-react';
 import type { PageContent, RecentPage, RichSpan, SimpleBlock } from '../cairn-api';
 import { useSettings } from '../settings-context';
+import 'highlight.js/styles/github-dark.css';
 
 type Props = { page: RecentPage; onClose: () => void };
 
@@ -161,6 +163,18 @@ function Rich({ spans }: { spans: RichSpan[] }) {
   );
 }
 
+function CodeBlock({ code, language }: { code: string; language?: string }) {
+  const lang = language && hljs.getLanguage(language) ? language : undefined;
+  const html = lang
+    ? hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
+    : hljs.highlightAuto(code).value;
+  return (
+    <pre className="overflow-x-auto rounded-md border border-hairline text-[12px] leading-relaxed">
+      <code className="hljs font-mono" dangerouslySetInnerHTML={{ __html: html }} />
+    </pre>
+  );
+}
+
 function Children({ blocks }: { blocks: SimpleBlock[] }) {
   return (
     <div className="ml-4 flex flex-col gap-1.5 border-l border-hairline pl-3">
@@ -257,11 +271,7 @@ function Block({ b }: { b: SimpleBlock }) {
       );
       break;
     case 'code':
-      body = (
-        <pre className="overflow-x-auto rounded-md border border-hairline bg-surface-2 p-3 font-mono text-[12px] text-ink-muted">
-          {b.rich.map((s) => s.text).join('')}
-        </pre>
-      );
+      body = <CodeBlock code={b.rich.map((s) => s.text).join('')} language={b.language} />;
       break;
     case 'divider':
       body = <hr className="my-2 border-hairline" />;
