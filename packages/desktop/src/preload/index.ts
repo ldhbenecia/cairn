@@ -15,6 +15,7 @@ export type Settings = {
 const boot = ipcRenderer.sendSync('cairn:bootstrap-sync') as {
   settings: Settings;
   version: string;
+  setupComplete: boolean;
 };
 
 export type CoreMode = 'daily' | 'weekly' | 'monthly';
@@ -59,8 +60,20 @@ contextBridge.exposeInMainWorld('cairn', {
   version: boot.version,
   isPackaged: IS_PACKAGED,
   initialSettings: boot.settings,
+  initialSetupComplete: boot.setupComplete,
   setSettings: (patch: Partial<Settings>): Promise<Settings> =>
     ipcRenderer.invoke('cairn:settings:set', patch) as Promise<Settings>,
+  onboarding: {
+    probeNotion: (token: string) =>
+      ipcRenderer.invoke('cairn:onboarding:probe-notion', token) as Promise<unknown>,
+    searchNotion: (token: string) =>
+      ipcRenderer.invoke('cairn:onboarding:search-notion', token) as Promise<unknown>,
+    probeGithub: (token: string) =>
+      ipcRenderer.invoke('cairn:onboarding:probe-github', token) as Promise<unknown>,
+    finish: (payload: unknown) =>
+      ipcRenderer.invoke('cairn:onboarding:finish', payload) as Promise<unknown>,
+    pickFolder: () => ipcRenderer.invoke('cairn:onboarding:pick-folder') as Promise<string | null>,
+  },
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
   running: (): Promise<boolean> => ipcRenderer.invoke('cairn:running') as Promise<boolean>,

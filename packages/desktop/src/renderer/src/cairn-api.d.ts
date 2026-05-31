@@ -42,6 +42,16 @@ export type RunLine = {
 
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
+
+export type NotionProbe = { ok: boolean; persons: { id: string; name: string }[]; error?: string };
+export type NotionPage = { id: string; title: string };
+export type GithubProbe = { ok: boolean; login?: string; error?: string };
+export type OnboardingPayload = {
+  notion: { label: string; token: string; pageId: string; myUserId: string }[];
+  github: { label: string; token: string }[];
+  anthropicApiKey?: string;
+  localGitRepos: string[];
+};
 export type Settings = {
   theme: Theme;
   language: Language;
@@ -55,7 +65,15 @@ declare global {
       version: string;
       isPackaged: boolean;
       initialSettings: Settings;
+      initialSetupComplete: boolean;
       setSettings: (patch: Partial<Settings>) => Promise<Settings>;
+      onboarding: {
+        probeNotion: (token: string) => Promise<NotionProbe>;
+        searchNotion: (token: string) => Promise<NotionPage[]>;
+        probeGithub: (token: string) => Promise<GithubProbe>;
+        finish: (payload: OnboardingPayload) => Promise<{ ok: boolean; error?: string }>;
+        pickFolder: () => Promise<string | null>;
+      };
       run: (mode: CoreMode, options?: CoreRunOptions) => Promise<CoreResult>;
       running: () => Promise<boolean>;
       openExternal: (url: string) => Promise<void>;

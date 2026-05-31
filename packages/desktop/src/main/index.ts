@@ -1,10 +1,18 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { readConfig, tailLatestLog } from './files';
 import { listRecentPages } from './notion-client';
+import {
+  finishOnboarding,
+  probeGithub,
+  probeNotion,
+  searchNotionPages,
+  type OnboardingPayload,
+} from './onboarding';
 import { readSettings, writeSettings, type Settings } from './settings';
+import { isSetupComplete } from './setup';
 import { setupTray } from './tray';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -68,9 +76,24 @@ void app.whenReady().then(() => {
 
   // 무플래시 초기 로드용 동기 부트스트랩 (preload sandbox 에서 sendSync)
   ipcMain.on('cairn:bootstrap-sync', (e) => {
-    e.returnValue = { settings: readSettings(), version: app.getVersion() };
+    e.returnValue = {
+      settings: readSettings(),
+      version: app.getVersion(),
+      setupComplete: isSetupComplete(),
+    };
   });
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => writeSettings(patch));
+
+  ipcMain.handle('cairn:onboarding:probe-notion', (_e, token: string) => probeNotion(token));
+  ipcMain.handle('cairn:onboarding:search-notion', (_e, token: string) => searchNotionPages(token));
+  ipcMain.handle('cairn:onboarding:probe-github', (_e, token: string) => probeGithub(token));
+  ipcMain.handle('cairn:onboarding:finish', (_e, payload: OnboardingPayload) =>
+    finishOnboarding(payload),
+  );
+  ipcMain.handle('cairn:onboarding:pick-folder', async () => {
+    const r = await dialog.showOpenDialog({ properties: ['openDirectory'] });
+    return r.canceled ? null : (r.filePaths[0] ?? null);
+  });
 
   const win = createWindow();
   setupTray(win);
