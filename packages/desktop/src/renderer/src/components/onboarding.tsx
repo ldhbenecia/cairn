@@ -180,7 +180,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
           )}
           {step === 'github' && (
             <Section
-              desc="PR · 리뷰 · 커밋을 수집할 GitHub 계정 (선택). Fine-grained PAT 권장 — Repository access 에 대상 repo 포함 + 권한 Pull requests · Contents · Metadata = Read"
+              desc="PR · 리뷰 · 커밋을 수집할 GitHub 계정 (선택). Fine-grained PAT — Repository access: All repositories 권장 · Permissions: Pull requests · Contents · Metadata = Read. (org/회사 repo 가 안 잡히면 그 org 가 fine-grained 미허용 → classic token scope:repo 사용)"
               link={{
                 label: 'GitHub Fine-grained PAT 만들기',
                 url: 'https://github.com/settings/personal-access-tokens/new',
