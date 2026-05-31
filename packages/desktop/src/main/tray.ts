@@ -1,17 +1,6 @@
-import {
-  BrowserWindow,
-  Menu,
-  nativeImage,
-  shell,
-  Tray,
-  type MenuItemConstructorOptions,
-} from 'electron';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { BrowserWindow, Menu, nativeImage, Tray, type MenuItemConstructorOptions } from 'electron';
 import { runCore, type CoreMode } from './core-runner';
 import { TRAY_ICON_1X, TRAY_ICON_2X } from './tray-icon';
-
-const LOG_DIR = join(homedir(), '.cairn', 'logs');
 
 function buildTrayIcon(): Electron.NativeImage {
   const img = nativeImage.createFromDataURL(TRAY_ICON_1X);
@@ -30,16 +19,16 @@ function triggerCore(window: BrowserWindow, mode: CoreMode): void {
 
 let tray: Tray | null = null;
 
-export function setupTray(window: BrowserWindow): void {
+export function setupTray(window: BrowserWindow, onQuit: () => void): void {
   tray = new Tray(buildTrayIcon());
   tray.setToolTip('cairn — 자동 작업 일지');
 
-  const menu = buildMenu(window);
+  const menu = buildMenu(window, onQuit);
   tray.on('right-click', () => tray?.popUpContextMenu(menu));
   tray.on('click', () => showWindow(window));
 }
 
-function buildMenu(window: BrowserWindow): Menu {
+function buildMenu(window: BrowserWindow, onQuit: () => void): Menu {
   const items: MenuItemConstructorOptions[] = [
     {
       label: '오늘 일지 발행',
@@ -62,22 +51,10 @@ function buildMenu(window: BrowserWindow): Menu {
       accelerator: 'CommandOrControl+D',
       click: () => showWindow(window),
     },
-    {
-      label: '로그 폴더 열기',
-      click: () => {
-        void shell.openPath(LOG_DIR);
-      },
-    },
-    {
-      label: '최근 노션 페이지',
-      enabled: false,
-      sublabel: '14.6 에서 활성',
-    },
     { type: 'separator' },
     {
-      label: 'Quit',
-      accelerator: 'CommandOrControl+Q',
-      role: 'quit',
+      label: 'cairn 완전 종료',
+      click: () => onQuit(),
     },
   ];
 

@@ -13,6 +13,7 @@ import type {
   RunLine,
   RunStep,
 } from './cairn-api';
+import { Onboarding } from './components/onboarding';
 import { PreferencesDialog } from './components/preferences-dialog';
 import { Sidebar, type FilterCounts, type WorklogFilter } from './components/sidebar';
 import { WorklogList } from './components/worklog-list';
@@ -35,6 +36,7 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
 export function App() {
   const [filter, setFilter] = useState<WorklogFilter>('all');
   const [prefsOpen, setPrefsOpen] = useState(false);
+  const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = Number(localStorage.getItem('cairn:sidebarWidth'));
     return saved >= 200 && saved <= 420 ? saved : 248;
@@ -136,6 +138,18 @@ export function App() {
     };
   }, [recent]);
 
+  if (!setupComplete) {
+    return (
+      <Onboarding
+        onDone={() => {
+          setSetupComplete(true);
+          void loadRecent();
+        }}
+        onCancel={window.cairn.initialSetupComplete ? () => setSetupComplete(true) : undefined}
+      />
+    );
+  }
+
   return (
     <div className="flex h-screen w-screen bg-canvas text-ink">
       <Sidebar
@@ -161,7 +175,11 @@ export function App() {
         onTrigger={trigger}
         onReload={loadRecent}
       />
-      <PreferencesDialog open={prefsOpen} onOpenChange={setPrefsOpen} />
+      <PreferencesDialog
+        open={prefsOpen}
+        onOpenChange={setPrefsOpen}
+        onRerunSetup={() => setSetupComplete(false)}
+      />
     </div>
   );
 }

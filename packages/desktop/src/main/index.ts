@@ -1,15 +1,25 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
+import { isRunning, probeClaude, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { readConfig, tailLatestLog } from './files';
 import { listRecentPages } from './notion-client';
+import {
+  finishOnboarding,
+  listNotionDatabases,
+  probeGithub,
+  probeNotion,
+  searchNotionPages,
+  type OnboardingPayload,
+} from './onboarding';
 import { readSettings, writeSettings, type Settings } from './settings';
+import { isSetupComplete } from './setup';
 import { setupTray } from './tray';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-let isQuitting = false;
+// 트레이의 "완전 종료" 로만 진짜 종료. dock Quit / Cmd+Q / 창 닫기는 백그라운드(트레이 유지)
+let allowQuit = false;
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -33,7 +43,7 @@ function createWindow(): BrowserWindow {
   win.on('ready-to-show', () => win.show());
 
   win.on('close', (e) => {
-    if (isQuitting) return;
+    if (allowQuit) return;
     e.preventDefault();
     win.hide();
   });
@@ -68,12 +78,36 @@ void app.whenReady().then(() => {
 
   // 무플래시 초기 로드용 동기 부트스트랩 (preload sandbox 에서 sendSync)
   ipcMain.on('cairn:bootstrap-sync', (e) => {
-    e.returnValue = { settings: readSettings(), version: app.getVersion() };
+    e.returnValue = {
+      settings: readSettings(),
+      version: app.getVersion(),
+      setupComplete: isSetupComplete(),
+    };
   });
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => writeSettings(patch));
 
+  ipcMain.handle('cairn:onboarding:probe-notion', (_e, token: string) => probeNotion(token));
+  ipcMain.handle('cairn:onboarding:search-notion', (_e, token: string, query?: string) =>
+    searchNotionPages(token, query),
+  );
+  ipcMain.handle('cairn:onboarding:list-databases', (_e, token: string, pageId: string) =>
+    listNotionDatabases(token, pageId),
+  );
+  ipcMain.handle('cairn:onboarding:probe-github', (_e, token: string) => probeGithub(token));
+  ipcMain.handle('cairn:onboarding:probe-claude', () => probeClaude());
+  ipcMain.handle('cairn:onboarding:finish', (_e, payload: OnboardingPayload) =>
+    finishOnboarding(payload),
+  );
+  ipcMain.handle('cairn:onboarding:pick-folder', async () => {
+    const r = await dialog.showOpenDialog({ properties: ['openDirectory'] });
+    return r.canceled ? null : (r.filePaths[0] ?? null);
+  });
+
   const win = createWindow();
-  setupTray(win);
+  setupTray(win, () => {
+    allowQuit = true;
+    app.quit();
+  });
 
   app.on('activate', () => {
     if (win.isMinimized()) win.restore();
@@ -82,8 +116,12 @@ void app.whenReady().then(() => {
   });
 });
 
-app.on('before-quit', () => {
-  isQuitting = true;
+app.on('before-quit', (e) => {
+  // 트레이 "완전 종료" 가 아니면 종료를 막고 백그라운드로 (창 숨김)
+  if (!allowQuit) {
+    e.preventDefault();
+    BrowserWindow.getAllWindows().forEach((w) => w.hide());
+  }
 });
 
 app.on('window-all-closed', () => {});

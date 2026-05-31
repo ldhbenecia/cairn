@@ -65,6 +65,8 @@ const STRINGS = {
     'prefs.config.missing': '파일이 위 경로에 없습니다. 한 번 셋업이 필요해요:',
     'prefs.config.note': 'GUI 편집은 v0.2 셋업 마법사부터.',
     'prefs.about': 'About',
+    'prefs.setup': '셋업',
+    'prefs.rerunSetup': '셋업 다시 실행',
   },
   en: {
     'brand.worklog': 'Worklog',
@@ -129,6 +131,8 @@ const STRINGS = {
     'prefs.config.missing': 'File not found at the path above. One-time setup needed:',
     'prefs.config.note': 'GUI editing comes with the v0.2 setup wizard.',
     'prefs.about': 'About',
+    'prefs.setup': 'Setup',
+    'prefs.rerunSetup': 'Re-run setup',
   },
 } as const;
 
