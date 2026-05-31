@@ -1,5 +1,6 @@
 import { BrowserWindow, Notification } from 'electron';
 import type { CoreMode, CoreResult } from './core-runner';
+import { readSettings } from './settings';
 
 const MODE_LABEL: Record<CoreMode, string> = {
   daily: '오늘 일지',
@@ -24,6 +25,7 @@ function notify(title: string, body: string, mode: CoreMode): void {
 }
 
 export function sendResultNotification(mode: CoreMode, result: CoreResult): void {
+  if (!readSettings().notifications) return;
   const label = MODE_LABEL[mode];
 
   if (!result.ok) {

@@ -3,7 +3,11 @@ import { useEffect, useState } from 'react';
 import { Check, ExternalLink, Loader2, Plus, X } from 'lucide-react';
 import type { CoreMode, CoreResult, CoreRunOptions, RunStep } from '../cairn-api';
 import type { RunSession } from '../App';
+import type { I18nKey } from '../i18n';
+import { useSettings } from '../settings-context';
 import { Toggle } from './toggle';
+
+type T = (key: I18nKey) => string;
 
 type Props = {
   sessions: Record<CoreMode, RunSession | null>;
@@ -11,16 +15,16 @@ type Props = {
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
 };
 
-const MODE_OPTIONS: { mode: CoreMode; label: string }[] = [
-  { mode: 'daily', label: '오늘' },
-  { mode: 'weekly', label: '이번 주' },
-  { mode: 'monthly', label: '이번 달' },
+const MODE_OPTIONS: { mode: CoreMode; key: I18nKey }[] = [
+  { mode: 'daily', key: 'publish.today' },
+  { mode: 'weekly', key: 'publish.week' },
+  { mode: 'monthly', key: 'publish.month' },
 ];
 
-const STEPS: { key: RunStep; label: string }[] = [
-  { key: 'collect', label: '활동 수집' },
-  { key: 'summarize', label: 'AI 요약' },
-  { key: 'publish', label: '노션 발행' },
+const STEPS: { key: RunStep; labelKey: I18nKey }[] = [
+  { key: 'collect', labelKey: 'publish.step.collect' },
+  { key: 'summarize', labelKey: 'publish.step.summarize' },
+  { key: 'publish', labelKey: 'publish.step.publish' },
 ];
 
 const STEP_RANK: Record<RunStep, number> = {
@@ -31,15 +35,16 @@ const STEP_RANK: Record<RunStep, number> = {
   done: 4,
 };
 
-const STEP_HINT: Record<RunStep, string> = {
-  boot: '준비하는 중…',
-  collect: 'GitHub · 로컬 Git · Notion 활동을 모으는 중',
-  summarize: 'Claude 가 한국어로 요약하는 중 — 보통 1~2분 걸려요',
-  publish: '노션에 발행하는 중',
-  done: '완료',
+const STEP_HINT_KEY: Record<RunStep, I18nKey> = {
+  boot: 'publish.hint.boot',
+  collect: 'publish.hint.collect',
+  summarize: 'publish.hint.summarize',
+  publish: 'publish.hint.publish',
+  done: 'publish.hint.publish',
 };
 
 export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
+  const { t } = useSettings();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<CoreMode>('daily');
   const [includeBackfill, setIncludeBackfill] = useState(false);
@@ -69,7 +74,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
           ) : (
             <Plus size={14} strokeWidth={2.25} />
           )}
-          발행
+          {t('publish.button')}
         </button>
       </Dialog.Trigger>
 
@@ -78,7 +83,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
         <Dialog.Content className="dialog-content fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-115 max-w-[90vw] flex-col rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]">
           <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
             <Dialog.Title className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
-              일지 발행
+              {t('publish.title')}
             </Dialog.Title>
             <Dialog.Close className="flex size-7 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink">
               <X size={15} strokeWidth={2} />
@@ -87,13 +92,13 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
 
           <div className="overflow-y-auto px-5 py-5">
             {showProgress && isDone && session?.result ? (
-              <Result result={session.result} onClose={() => setOpen(false)} />
+              <Result result={session.result} t={t} onClose={() => setOpen(false)} />
             ) : showProgress && (isRunning || busy) ? (
-              <Progress session={session} />
+              <Progress session={session} t={t} />
             ) : (
               <>
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
-                  발행 범위
+                  {t('publish.scope')}
                 </p>
                 <div className="mb-4 flex gap-1 rounded-lg bg-surface-2 p-1">
                   {MODE_OPTIONS.map((o) => (
@@ -108,24 +113,23 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                           : 'text-ink-subtle hover:text-ink-muted',
                       ].join(' ')}
                     >
-                      {o.label}
+                      {t(o.key)}
                     </button>
                   ))}
                 </div>
 
                 <div className="mb-5 flex flex-col gap-3">
-                  {/* backfill 은 일간 전용 — 주간/월간엔 비활성으로 표시(모달 높이 고정) */}
                   <Toggle
                     checked={mode === 'daily' && includeBackfill}
                     onChange={setIncludeBackfill}
                     disabled={busy || mode !== 'daily'}
-                    label="이전 며칠 놓친 일지도 같이 채우기"
+                    label={t('publish.backfill')}
                   />
                   <Toggle
                     checked={force}
                     onChange={setForce}
                     disabled={busy}
-                    label="이미 발행됐어도 덮어쓰기"
+                    label={t('publish.force')}
                   />
                 </div>
 
@@ -146,7 +150,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                       : 'bg-accent text-white hover:bg-accent-hover',
                   ].join(' ')}
                 >
-                  {busy ? '다른 작업 실행 중' : '발행 시작'}
+                  {busy ? t('publish.busy') : t('publish.start')}
                 </button>
               </>
             )}
@@ -158,18 +162,18 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
 }
 
 // raw 로그는 노출하지 않고, 어떤 소스를 수집 중인지 판단하는 용도로만 내부 사용
-function collectHint(lines: RunSession['lines']): string {
+function collectHintKey(lines: RunSession['lines']): I18nKey {
   for (let i = lines.length - 1; i >= 0; i--) {
     const t = lines[i]?.line.toLowerCase();
     if (!t) continue;
-    if (t.includes('notion')) return 'Notion 편집 내역 가져오는 중';
-    if (t.includes('github')) return 'GitHub PR · 리뷰 · 커밋 불러오는 중';
-    if (t.includes('local-git')) return '로컬 Git 커밋 읽는 중';
+    if (t.includes('notion')) return 'publish.hint.collectNotion';
+    if (t.includes('github')) return 'publish.hint.collectGithub';
+    if (t.includes('local-git')) return 'publish.hint.collectGit';
   }
-  return STEP_HINT.collect;
+  return 'publish.hint.collect';
 }
 
-function Progress({ session }: { session: RunSession | null }) {
+function Progress({ session, t }: { session: RunSession | null; t: T }) {
   const step = session?.step ?? 'boot';
   const currentRank = STEP_RANK[step];
   const [elapsed, setElapsed] = useState(0);
@@ -181,7 +185,8 @@ function Progress({ session }: { session: RunSession | null }) {
 
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
   const ss = String(elapsed % 60).padStart(2, '0');
-  const hint = step === 'collect' ? collectHint(session?.lines ?? []) : STEP_HINT[step];
+  const hint =
+    step === 'collect' ? t(collectHintKey(session?.lines ?? [])) : t(STEP_HINT_KEY[step]);
 
   return (
     <div className="flex flex-col gap-5 py-1">
@@ -208,7 +213,7 @@ function Progress({ session }: { session: RunSession | null }) {
                 ) : (
                   <span className="size-1.5 rounded-full bg-current opacity-40" />
                 )}
-                {s.label}
+                {t(s.labelKey)}
               </div>
               {i < STEPS.length - 1 && <div className="h-px w-2 bg-hairline" />}
             </div>
@@ -235,22 +240,26 @@ function pageIdToUrl(pageId: string | null): string | null {
   return `https://www.notion.so/${pageId.replace(/-/g, '')}`;
 }
 
-function Result({ result, onClose }: { result: CoreResult; onClose: () => void }) {
+function Result({ result, t, onClose }: { result: CoreResult; t: T; onClose: () => void }) {
   const url = result.notionUrl ?? pageIdToUrl(result.publishPageId);
   let body: React.ReactNode;
   if (!result.ok) {
-    body = <p className="text-[#f87171]">실패 (exit {result.exitCode ?? 'unknown'})</p>;
+    body = (
+      <p className="text-[#f87171]">
+        {t('publish.result.fail')} (exit {result.exitCode ?? 'unknown'})
+      </p>
+    );
   } else if (result.publishKind === 'no-target') {
-    body = <p className="text-[#d4a574]">발행 대상 없음 — Preferences 에서 설정 확인</p>;
+    body = <p className="text-[#d4a574]">{t('publish.result.noTarget')}</p>;
   } else if (result.noActivity) {
-    body = <p className="text-ink-muted">활동 없음 — 발행 안 함</p>;
+    body = <p className="text-ink-muted">{t('publish.result.noActivity')}</p>;
   } else if (result.publishKind === 'skipped') {
-    body = <p className="text-ink-muted">이미 발행됨 — skip</p>;
+    body = <p className="text-ink-muted">{t('publish.result.skipped')}</p>;
   } else {
     body = (
       <p className="flex items-center gap-2 text-[15px] text-success">
         <Check size={18} strokeWidth={2.5} />
-        발행 완료
+        {t('publish.result.done')}
       </p>
     );
   }
@@ -265,7 +274,7 @@ function Result({ result, onClose }: { result: CoreResult; onClose: () => void }
             className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-2 text-[13px] font-medium text-white hover:bg-accent-hover"
           >
             <ExternalLink size={14} strokeWidth={2} />
-            노션에서 열기
+            {t('publish.openNotion')}
           </button>
         )}
         <button
@@ -273,7 +282,7 @@ function Result({ result, onClose }: { result: CoreResult; onClose: () => void }
           onClick={onClose}
           className="ml-auto rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink"
         >
-          닫기
+          {t('publish.close')}
         </button>
       </div>
     </div>

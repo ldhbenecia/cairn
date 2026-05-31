@@ -17,10 +17,13 @@ import type {
   RecentPage,
 } from '../cairn-api';
 import type { RunSession } from '../App';
+import type { I18nKey } from '../i18n';
+import { useSettings } from '../settings-context';
 import { PublishDialog } from './publish-dialog';
 import type { WorklogFilter } from './sidebar';
 
 type GroupBy = 'none' | 'category' | 'status';
+type T = (key: I18nKey) => string;
 
 type Props = {
   recent: RecentListResult | null;
@@ -38,13 +41,16 @@ const GROUP_NEXT: Record<GroupBy, GroupBy> = {
   category: 'status',
   status: 'none',
 };
-const GROUP_LABEL: Record<GroupBy, string> = {
-  none: '그룹 없음',
-  category: '카테고리별',
-  status: '상태별',
+const GROUP_LABEL_KEY: Record<GroupBy, I18nKey> = {
+  none: 'list.group.none',
+  category: 'list.group.category',
+  status: 'list.group.status',
 };
 
+const catKey = (c: RecentCategory): I18nKey => `nav.${c}`;
+
 export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, onReload }: Props) {
+  const { t } = useSettings();
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [desc, setDesc] = useState(true);
@@ -68,7 +74,7 @@ export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, 
     return rows;
   }, [pages, filter, query, desc]);
 
-  const groups = useMemo(() => groupRows(filtered, groupBy), [filtered, groupBy]);
+  const groups = useMemo(() => groupRows(filtered, groupBy, t), [filtered, groupBy, t]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   useEffect(() => {
@@ -105,11 +111,14 @@ export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, 
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="제목 검색"
+              placeholder={t('list.search')}
               className="w-full min-w-0 bg-transparent text-[13px] text-ink placeholder:text-ink-tertiary focus:outline-none"
             />
           </div>
-          <span className="shrink-0 text-[12px] text-ink-tertiary">{filtered.length}개</span>
+          <span className="shrink-0 text-[12px] text-ink-tertiary">
+            {filtered.length}
+            {t('list.count')}
+          </span>
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <button
@@ -123,7 +132,7 @@ export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, 
               ].join(' ')}
             >
               <ListTree size={12} strokeWidth={2} />
-              {GROUP_LABEL[groupBy]}
+              {t(GROUP_LABEL_KEY[groupBy])}
             </button>
             <button
               type="button"
@@ -131,7 +140,7 @@ export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, 
               className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-muted hover:bg-surface-2 hover:text-ink"
             >
               <ArrowDownUp size={12} strokeWidth={2} />
-              {desc ? '최신순' : '오래된순'}
+              {desc ? t('list.sort.desc') : t('list.sort.asc')}
             </button>
             <button
               type="button"
@@ -140,7 +149,7 @@ export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, 
               className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
             >
               <RefreshCw size={12} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
-              새로고침
+              {t('list.reload')}
             </button>
             <PublishDialog sessions={sessions} runningMode={runningMode} onTrigger={onTrigger} />
           </div>
@@ -152,11 +161,11 @@ export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, 
           {!recent ? (
             <div className="flex items-center justify-center gap-2 py-16 text-[12px] text-ink-tertiary">
               <Loader2 size={14} strokeWidth={2} className="animate-spin" />
-              노션 DB 조회 중...
+              {t('list.loading')}
             </div>
           ) : filtered.length === 0 ? (
             <div className="rounded-lg border border-hairline bg-surface-1 py-16 text-center text-[12px] text-ink-tertiary">
-              {pages.length === 0 ? '발행된 일지 없음' : '조건에 맞는 일지 없음'}
+              {pages.length === 0 ? t('list.empty') : t('list.emptyFiltered')}
             </div>
           ) : groups ? (
             <div className="flex flex-col gap-5">
@@ -181,7 +190,7 @@ export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, 
                   {!collapsed.has(g.key) && (
                     <div className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
                       {g.rows.map((p) => (
-                        <PageRow key={p.pageId} page={p} />
+                        <PageRow key={p.pageId} page={p} t={t} />
                       ))}
                     </div>
                   )}
@@ -191,14 +200,14 @@ export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, 
           ) : (
             <div className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
               {visible.map((p) => (
-                <PageRow key={p.pageId} page={p} />
+                <PageRow key={p.pageId} page={p} t={t} />
               ))}
             </div>
           )}
 
           {recent && recent.warnings.length > 0 && (
             <div className="mt-3 rounded-md border border-hairline bg-surface-1 p-3 text-[12px] text-ink-tertiary">
-              <p className="mb-1 font-medium text-ink-subtle">경고</p>
+              <p className="mb-1 font-medium text-ink-subtle">{t('list.warnings')}</p>
               {recent.warnings.map((w, i) => (
                 <p key={i} className="font-mono">
                   {w}
@@ -242,12 +251,6 @@ const CATEGORY_STYLE: Record<RecentCategory, string> = {
   monthly: 'border-[#7c4aa8]/45 bg-[#7c4aa8]/15 text-[#c79af0]',
 };
 
-const CATEGORY_LABEL: Record<RecentCategory, string> = {
-  daily: '일간',
-  weekly: '주간',
-  monthly: '월간',
-};
-
 const STATUS_STYLE: Record<string, string> = {
   draft: 'border-[#7a5c3a]/40 bg-[#7a5c3a]/15 text-[#d4a574]',
   final: 'border-success/40 bg-success/15 text-success',
@@ -255,12 +258,16 @@ const STATUS_STYLE: Record<string, string> = {
 
 type Group = { key: string; label: string; rows: RecentPage[] };
 
-function groupRows(rows: RecentPage[], groupBy: GroupBy): Group[] | null {
+function groupRows(rows: RecentPage[], groupBy: GroupBy, t: T): Group[] | null {
   if (groupBy === 'none') return null;
   const order =
     groupBy === 'category' ? ['daily', 'weekly', 'monthly'] : ['draft', 'final', '__none'];
-  const labelOf = (k: string) =>
-    groupBy === 'category' ? CATEGORY_LABEL[k as RecentCategory] : k === '__none' ? '상태 없음' : k;
+  const labelOf = (k: string): string =>
+    groupBy === 'category'
+      ? t(catKey(k as RecentCategory))
+      : k === '__none'
+        ? t('list.statusNone')
+        : k;
   const map = new Map<string, RecentPage[]>();
   for (const p of rows) {
     const k = groupBy === 'category' ? p.category : (p.status ?? '__none');
@@ -275,7 +282,7 @@ function groupRows(rows: RecentPage[], groupBy: GroupBy): Group[] | null {
   return keys.map((k) => ({ key: k, label: labelOf(k), rows: map.get(k) as RecentPage[] }));
 }
 
-function PageRow({ page }: { page: RecentPage }) {
+function PageRow({ page, t }: { page: RecentPage; t: T }) {
   return (
     <button
       type="button"
@@ -294,7 +301,7 @@ function PageRow({ page }: { page: RecentPage }) {
           CATEGORY_STYLE[page.category],
         ].join(' ')}
       >
-        {CATEGORY_LABEL[page.category]}
+        {t(catKey(page.category))}
       </span>
       <span className="w-22 shrink-0 text-right font-mono text-[12px] text-ink-muted">
         {page.date ?? '—'}
