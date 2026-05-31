@@ -9,12 +9,16 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 export type LogTailResult = { lines: string[]; path: string | null };
 
+export type RecentCategory = 'daily' | 'weekly' | 'monthly';
+
 export type RecentPage = {
   pageId: string;
   url: string;
   title: string;
   date: string | null;
   status: string | null;
+  category: RecentCategory;
+  sourceCounts: string | null;
   workspaceLabel: string;
 };
 
