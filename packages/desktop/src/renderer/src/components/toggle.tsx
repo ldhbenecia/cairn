@@ -21,12 +21,12 @@ export function Toggle({ checked, onChange, disabled, label }: Props) {
         onClick={() => onChange(!checked)}
         className={[
           'relative inline-flex h-[18px] w-[30px] shrink-0 items-center rounded-full transition-colors',
-          checked ? 'bg-accent' : 'bg-surface-3',
+          checked ? 'bg-accent' : 'bg-hairline-strong',
         ].join(' ')}
       >
         <span
           className={[
-            'inline-block size-[14px] rounded-full bg-ink transition-transform',
+            'inline-block size-[14px] rounded-full bg-white shadow-sm transition-transform',
             checked ? 'translate-x-[14px]' : 'translate-x-[2px]',
           ].join(' ')}
         />
