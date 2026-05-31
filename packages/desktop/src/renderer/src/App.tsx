@@ -110,6 +110,18 @@ export function App() {
     return off;
   }, []);
 
+  // Cmd+, — macOS 표준 Preferences 단축키
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key === ',') {
+        e.preventDefault();
+        setPrefsOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const trigger = useCallback(
     async (mode: CoreMode, options?: CoreRunOptions) => {
       setRunningMode(mode);
