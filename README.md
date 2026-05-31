@@ -69,6 +69,9 @@ Modes: `daily`, `weekly`, `monthly`. Sources can be limited with repeated `--sou
 | [docs/progress/](docs/progress/) | Work log entries and stage progress |
 | [docs/decisions/](docs/decisions/) | Architecture Decision Records |
 | [CLAUDE.md](CLAUDE.md) | Working context for Claude Code |
+| [AGENTS.md](AGENTS.md) | Working context for Codex |
+| [packages/core/AGENTS.md](packages/core/AGENTS.md) | Codex context for core CLI |
+| [packages/desktop/AGENTS.md](packages/desktop/AGENTS.md) | Codex context for desktop app |
 | [.claude/rules/](.claude/rules/) | Project rules |
 
 ## License
