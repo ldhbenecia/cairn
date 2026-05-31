@@ -40,11 +40,12 @@ export async function probeNotion(token: string): Promise<NotionProbe> {
   }
 }
 
-export async function searchNotionPages(token: string): Promise<NotionPage[]> {
+export async function searchNotionPages(token: string, query?: string): Promise<NotionPage[]> {
   const notion = new Client({ auth: token });
   const res = await notion.search({
+    query: query?.trim() || undefined,
     filter: { property: 'object', value: 'page' },
-    page_size: 50,
+    page_size: 25,
   });
   const pages: NotionPage[] = [];
   for (const item of res.results) {

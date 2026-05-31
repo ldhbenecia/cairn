@@ -69,7 +69,7 @@ declare global {
       setSettings: (patch: Partial<Settings>) => Promise<Settings>;
       onboarding: {
         probeNotion: (token: string) => Promise<NotionProbe>;
-        searchNotion: (token: string) => Promise<NotionPage[]>;
+        searchNotion: (token: string, query?: string) => Promise<NotionPage[]>;
         probeGithub: (token: string) => Promise<GithubProbe>;
         probeClaude: () => Promise<{ ok: boolean }>;
         finish: (payload: OnboardingPayload) => Promise<{ ok: boolean; error?: string }>;

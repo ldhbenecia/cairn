@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, ExternalLink, FolderPlus, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, FolderPlus, Loader2, Plus, Search, Trash2 } from 'lucide-react';
 import type { NotionPage } from '../cairn-api';
 import { BrandMark } from './brand-mark';
 
@@ -12,6 +12,7 @@ type NotionEntry = {
   error?: string;
   persons: { id: string; name: string }[];
   personId: string;
+  query: string;
   pages: NotionPage[];
   pageId: string;
   searching: boolean;
@@ -36,6 +37,7 @@ const newNotion = (label: string): NotionEntry => ({
   status: 'idle',
   persons: [],
   personId: '',
+  query: '',
   pages: [],
   pageId: '',
   searching: false,
@@ -79,7 +81,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     const e = notion[i]!;
     patchNotion(i, { searching: true });
     try {
-      const pages = await window.cairn.onboarding.searchNotion(e.token.trim());
+      const pages = await window.cairn.onboarding.searchNotion(e.token.trim(), e.query);
       patchNotion(i, { pages });
     } finally {
       patchNotion(i, { searching: false });
@@ -517,15 +519,30 @@ function NotionCard({
               ))}
             </select>
           )}
-          <button
-            type="button"
-            onClick={onSearch}
-            disabled={e.searching}
-            className="inline-flex w-fit items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1.5 text-[12px] text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
-          >
-            {e.searching && <Loader2 size={12} strokeWidth={2} className="animate-spin" />}
-            발행할 페이지 검색
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              value={e.query}
+              onChange={(ev) => onChange({ query: ev.target.value })}
+              onKeyDown={(ev) => {
+                if (ev.key === 'Enter') onSearch();
+              }}
+              placeholder="발행할 페이지 이름 검색"
+              className="flex-1 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/60 focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={onSearch}
+              disabled={e.searching}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1.5 text-[12px] text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+            >
+              {e.searching ? (
+                <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+              ) : (
+                <Search size={12} strokeWidth={2} />
+              )}
+              검색
+            </button>
+          </div>
           {e.pages.length > 0 && (
             <div className="max-h-44 overflow-y-auto rounded-md border border-hairline [scrollbar-gutter:stable]">
               {e.pages.map((pg) => (

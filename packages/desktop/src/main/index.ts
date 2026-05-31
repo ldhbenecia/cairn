@@ -85,7 +85,9 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => writeSettings(patch));
 
   ipcMain.handle('cairn:onboarding:probe-notion', (_e, token: string) => probeNotion(token));
-  ipcMain.handle('cairn:onboarding:search-notion', (_e, token: string) => searchNotionPages(token));
+  ipcMain.handle('cairn:onboarding:search-notion', (_e, token: string, query?: string) =>
+    searchNotionPages(token, query),
+  );
   ipcMain.handle('cairn:onboarding:probe-github', (_e, token: string) => probeGithub(token));
   ipcMain.handle('cairn:onboarding:probe-claude', () => probeClaude());
   ipcMain.handle('cairn:onboarding:finish', (_e, payload: OnboardingPayload) =>

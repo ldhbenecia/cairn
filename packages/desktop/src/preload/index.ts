@@ -66,8 +66,8 @@ contextBridge.exposeInMainWorld('cairn', {
   onboarding: {
     probeNotion: (token: string) =>
       ipcRenderer.invoke('cairn:onboarding:probe-notion', token) as Promise<unknown>,
-    searchNotion: (token: string) =>
-      ipcRenderer.invoke('cairn:onboarding:search-notion', token) as Promise<unknown>,
+    searchNotion: (token: string, query?: string) =>
+      ipcRenderer.invoke('cairn:onboarding:search-notion', token, query) as Promise<unknown>,
     probeGithub: (token: string) =>
       ipcRenderer.invoke('cairn:onboarding:probe-github', token) as Promise<unknown>,
     probeClaude: () => ipcRenderer.invoke('cairn:onboarding:probe-claude') as Promise<unknown>,
