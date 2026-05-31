@@ -171,10 +171,10 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
           )}
           {step === 'github' && (
             <Section
-              desc="PR · 리뷰 · 커밋을 수집할 GitHub 계정. (선택 — 로컬 Git 만 쓸 수도 있음)"
+              desc="PR · 리뷰 · 커밋을 수집할 GitHub 계정 (선택). Fine-grained PAT 권장 — Repository access 에 대상 repo 포함 + 권한 Pull requests · Contents · Metadata = Read"
               link={{
-                label: 'GitHub PAT 만들기 (scope: repo, read:user)',
-                url: 'https://github.com/settings/tokens',
+                label: 'GitHub Fine-grained PAT 만들기',
+                url: 'https://github.com/settings/personal-access-tokens/new',
               }}
             >
               {github.map((e, i) => (
