@@ -7,12 +7,21 @@ type Props = { page: RecentPage; onClose: () => void };
 
 export function WorklogDrawer({ page, onClose }: Props) {
   const { t } = useSettings();
-  const [show, setShow] = useState(false);
+  const [shown, setShown] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [content, setContent] = useState<PageContent | null>(null);
+  const [width, setWidth] = useState<number>(() => {
+    const s = Number(localStorage.getItem('cairn:drawerWidth'));
+    return s >= 360 && s <= 900 ? s : 460;
+  });
 
   useEffect(() => {
-    setShow(true);
+    setShown(true);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('cairn:drawerWidth', String(width));
+  }, [width]);
 
   useEffect(() => {
     let alive = true;
@@ -26,8 +35,25 @@ export function WorklogDrawer({ page, onClose }: Props) {
   }, [page.pageId, page.workspaceLabel]);
 
   function requestClose() {
-    setShow(false);
+    setClosing(true);
     setTimeout(onClose, 200);
+  }
+
+  function startResize(e: React.MouseEvent) {
+    e.preventDefault();
+    const max = Math.min(900, Math.round(window.innerWidth * 0.92));
+    const onMove = (ev: MouseEvent) =>
+      setWidth(Math.min(max, Math.max(360, window.innerWidth - ev.clientX)));
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   }
 
   return (
@@ -36,18 +62,24 @@ export function WorklogDrawer({ page, onClose }: Props) {
         onMouseDown={requestClose}
         className={[
           'absolute inset-0 bg-black/40 transition-opacity duration-200',
-          show ? 'opacity-100' : 'opacity-0',
+          shown && !closing ? 'opacity-100' : 'opacity-0',
         ].join(' ')}
       />
       {/* 상단 strip — traffic light 높이만큼 창 드래그 가능 (백드롭보다 위, 패널보다 아래) */}
       <div className="absolute inset-x-0 top-0 h-10 [-webkit-app-region:drag]" />
 
       <div
+        style={{ width: `${width}px` }}
         className={[
-          'absolute top-0 right-0 flex h-full w-[460px] max-w-[88vw] flex-col border-l border-hairline bg-surface-1 shadow-2xl shadow-black/40 transition-transform duration-200 ease-out',
-          show ? 'translate-x-0' : 'translate-x-full',
+          'absolute top-0 right-0 flex h-full max-w-[92vw] flex-col border-l border-hairline bg-surface-1 shadow-2xl shadow-black/40',
+          closing ? 'drawer-out' : 'drawer-in',
         ].join(' ')}
       >
+        {/* 좌측 엣지 리사이즈 핸들 */}
+        <div
+          onMouseDown={startResize}
+          className="absolute top-0 left-0 z-10 h-full w-1 cursor-col-resize hover:bg-accent/40 [-webkit-app-region:no-drag]"
+        />
         <div className="flex items-start gap-3 border-b border-hairline px-5 py-4 [-webkit-app-region:drag]">
           <div className="min-w-0 flex-1">
             <p className="truncate text-[15px] font-semibold text-ink">{page.title}</p>
