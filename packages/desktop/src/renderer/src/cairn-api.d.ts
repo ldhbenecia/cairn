@@ -24,12 +24,22 @@ export type RecentPage = {
 
 export type RecentListResult = { pages: RecentPage[]; warnings: string[] };
 
+export type RichSpan = {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  code?: boolean;
+  strike?: boolean;
+  href?: string;
+};
 export type SimpleBlock = {
   id: string;
   type: string;
-  text: string;
+  rich: RichSpan[];
   checked?: boolean;
   language?: string;
+  icon?: string;
+  children?: SimpleBlock[];
 };
 export type PageContent = { blocks: SimpleBlock[]; warning?: string };
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ExternalLink, Loader2, X } from 'lucide-react';
-import type { PageContent, RecentPage, SimpleBlock } from '../cairn-api';
+import type { PageContent, RecentPage, RichSpan, SimpleBlock } from '../cairn-api';
 import { useSettings } from '../settings-context';
 
 type Props = { page: RecentPage; onClose: () => void };
@@ -39,13 +39,16 @@ export function WorklogDrawer({ page, onClose }: Props) {
           show ? 'opacity-100' : 'opacity-0',
         ].join(' ')}
       />
+      {/* 상단 strip — traffic light 높이만큼 창 드래그 가능 (백드롭보다 위, 패널보다 아래) */}
+      <div className="absolute inset-x-0 top-0 h-10 [-webkit-app-region:drag]" />
+
       <div
         className={[
           'absolute top-0 right-0 flex h-full w-[460px] max-w-[88vw] flex-col border-l border-hairline bg-surface-1 shadow-2xl shadow-black/40 transition-transform duration-200 ease-out',
           show ? 'translate-x-0' : 'translate-x-full',
         ].join(' ')}
       >
-        <div className="flex items-start gap-3 border-b border-hairline px-5 py-4">
+        <div className="flex items-start gap-3 border-b border-hairline px-5 py-4 [-webkit-app-region:drag]">
           <div className="min-w-0 flex-1">
             <p className="truncate text-[15px] font-semibold text-ink">{page.title}</p>
             <p className="mt-0.5 font-mono text-[12px] text-ink-tertiary">
@@ -57,7 +60,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
               type="button"
               onClick={() => void window.cairn.openExternal(page.url)}
               title={t('publish.openNotion')}
-              className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink"
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink [-webkit-app-region:no-drag]"
             >
               <ExternalLink size={15} strokeWidth={2} />
             </button>
@@ -65,7 +68,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
           <button
             type="button"
             onClick={requestClose}
-            className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink"
+            className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink [-webkit-app-region:no-drag]"
           >
             <X size={15} strokeWidth={2} />
           </button>
@@ -94,48 +97,158 @@ export function WorklogDrawer({ page, onClose }: Props) {
   );
 }
 
+function Rich({ spans }: { spans: RichSpan[] }) {
+  return (
+    <>
+      {spans.map((s, i) => {
+        const cls = [
+          s.bold ? 'font-semibold text-ink' : '',
+          s.italic ? 'italic' : '',
+          s.strike ? 'line-through opacity-70' : '',
+          s.code ? 'rounded bg-surface-3 px-1 py-0.5 font-mono text-[12px]' : '',
+        ].join(' ');
+        if (s.href) {
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => s.href && void window.cairn.openExternal(s.href)}
+              className={`${cls} text-accent hover:underline`}
+            >
+              {s.text}
+            </button>
+          );
+        }
+        return (
+          <span key={i} className={cls || undefined}>
+            {s.text}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
+function Children({ blocks }: { blocks: SimpleBlock[] }) {
+  return (
+    <div className="ml-4 flex flex-col gap-1.5 border-l border-hairline pl-3">
+      {blocks.map((c) => (
+        <Block key={c.id} b={c} />
+      ))}
+    </div>
+  );
+}
+
 function Block({ b }: { b: SimpleBlock }) {
+  const kids = b.children && b.children.length > 0 ? <Children blocks={b.children} /> : null;
+
+  if (b.type === 'toggle') {
+    return (
+      <details className="group">
+        <summary className="cursor-pointer list-none marker:content-none">
+          <span className="text-ink-tertiary">▸ </span>
+          <Rich spans={b.rich} />
+        </summary>
+        {kids && <div className="mt-1.5">{kids}</div>}
+      </details>
+    );
+  }
+
+  let body: React.ReactNode;
   switch (b.type) {
     case 'heading_1':
-      return <h2 className="mt-3 text-[17px] font-semibold text-ink">{b.text}</h2>;
+      body = (
+        <h2 className="mt-3 text-[17px] font-semibold text-ink">
+          <Rich spans={b.rich} />
+        </h2>
+      );
+      break;
     case 'heading_2':
-      return <h3 className="mt-2.5 text-[15px] font-semibold text-ink">{b.text}</h3>;
+      body = (
+        <h3 className="mt-2.5 text-[15px] font-semibold text-ink">
+          <Rich spans={b.rich} />
+        </h3>
+      );
+      break;
     case 'heading_3':
-      return <h4 className="mt-2 text-[14px] font-semibold text-ink">{b.text}</h4>;
+      body = (
+        <h4 className="mt-2 text-[14px] font-semibold text-ink">
+          <Rich spans={b.rich} />
+        </h4>
+      );
+      break;
     case 'bulleted_list_item':
-      return (
+      body = (
         <p className="flex gap-2">
           <span className="text-ink-tertiary">•</span>
-          <span>{b.text}</span>
+          <span>
+            <Rich spans={b.rich} />
+          </span>
         </p>
       );
+      break;
     case 'numbered_list_item':
-      return (
+      body = (
         <p className="flex gap-2">
           <span className="text-ink-tertiary">–</span>
-          <span>{b.text}</span>
+          <span>
+            <Rich spans={b.rich} />
+          </span>
         </p>
       );
+      break;
     case 'to_do':
-      return (
+      body = (
         <p className="flex gap-2">
           <span className="text-ink-tertiary">{b.checked ? '☑' : '☐'}</span>
-          <span className={b.checked ? 'line-through opacity-60' : ''}>{b.text}</span>
+          <span className={b.checked ? 'line-through opacity-60' : ''}>
+            <Rich spans={b.rich} />
+          </span>
         </p>
       );
+      break;
     case 'quote':
-      return <p className="border-l-2 border-hairline-strong pl-3 text-ink-subtle">{b.text}</p>;
+      body = (
+        <p className="border-l-2 border-hairline-strong pl-3 text-ink-subtle">
+          <Rich spans={b.rich} />
+        </p>
+      );
+      break;
     case 'callout':
-      return <p className="rounded-md border border-hairline bg-surface-2 px-3 py-2">{b.text}</p>;
+      body = (
+        <p className="flex gap-2 rounded-md border border-hairline bg-surface-2 px-3 py-2">
+          {b.icon && <span className="shrink-0">{b.icon}</span>}
+          <span>
+            <Rich spans={b.rich} />
+          </span>
+        </p>
+      );
+      break;
     case 'code':
-      return (
+      body = (
         <pre className="overflow-x-auto rounded-md border border-hairline bg-surface-2 p-3 font-mono text-[12px] text-ink-muted">
-          {b.text}
+          {b.rich.map((s) => s.text).join('')}
         </pre>
       );
+      break;
     case 'divider':
-      return <hr className="my-2 border-hairline" />;
+      body = <hr className="my-2 border-hairline" />;
+      break;
     default:
-      return b.text ? <p>{b.text}</p> : <div className="h-1.5" />;
+      body =
+        b.rich.length > 0 ? (
+          <p>
+            <Rich spans={b.rich} />
+          </p>
+        ) : (
+          <div className="h-1.5" />
+        );
   }
+
+  return (
+    <>
+      {body}
+      {kids}
+    </>
+  );
 }
