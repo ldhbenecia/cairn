@@ -18,7 +18,8 @@ import { setupTray } from './tray';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-let isQuitting = false;
+// 트레이의 "완전 종료" 로만 진짜 종료. dock Quit / Cmd+Q / 창 닫기는 백그라운드(트레이 유지)
+let allowQuit = false;
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -42,7 +43,7 @@ function createWindow(): BrowserWindow {
   win.on('ready-to-show', () => win.show());
 
   win.on('close', (e) => {
-    if (isQuitting) return;
+    if (allowQuit) return;
     e.preventDefault();
     win.hide();
   });
@@ -103,7 +104,10 @@ void app.whenReady().then(() => {
   });
 
   const win = createWindow();
-  setupTray(win);
+  setupTray(win, () => {
+    allowQuit = true;
+    app.quit();
+  });
 
   app.on('activate', () => {
     if (win.isMinimized()) win.restore();
@@ -112,8 +116,12 @@ void app.whenReady().then(() => {
   });
 });
 
-app.on('before-quit', () => {
-  isQuitting = true;
+app.on('before-quit', (e) => {
+  // 트레이 "완전 종료" 가 아니면 종료를 막고 백그라운드로 (창 숨김)
+  if (!allowQuit) {
+    e.preventDefault();
+    BrowserWindow.getAllWindows().forEach((w) => w.hide());
+  }
 });
 
 app.on('window-all-closed', () => {});

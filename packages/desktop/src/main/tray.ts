@@ -30,16 +30,16 @@ function triggerCore(window: BrowserWindow, mode: CoreMode): void {
 
 let tray: Tray | null = null;
 
-export function setupTray(window: BrowserWindow): void {
+export function setupTray(window: BrowserWindow, onQuit: () => void): void {
   tray = new Tray(buildTrayIcon());
   tray.setToolTip('cairn — 자동 작업 일지');
 
-  const menu = buildMenu(window);
+  const menu = buildMenu(window, onQuit);
   tray.on('right-click', () => tray?.popUpContextMenu(menu));
   tray.on('click', () => showWindow(window));
 }
 
-function buildMenu(window: BrowserWindow): Menu {
+function buildMenu(window: BrowserWindow, onQuit: () => void): Menu {
   const items: MenuItemConstructorOptions[] = [
     {
       label: '오늘 일지 발행',
@@ -75,9 +75,8 @@ function buildMenu(window: BrowserWindow): Menu {
     },
     { type: 'separator' },
     {
-      label: 'Quit',
-      accelerator: 'CommandOrControl+Q',
-      role: 'quit',
+      label: 'cairn 완전 종료',
+      click: () => onQuit(),
     },
   ];
 
