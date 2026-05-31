@@ -197,9 +197,9 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   · Permissions:{' '}
                   <span className="text-ink-muted">Pull requests · Contents · Metadata = Read</span>
                 </p>
-                <p className="mt-1.5 text-ink-tertiary">
-                  org/회사 repo 가 안 잡히면 그 org 가 fine-grained 미허용 — classic token (scope:
-                  repo) 사용
+                <p className="mt-1.5 text-ink-tertiary">계정마다 종류 섞어도 됩니다.</p>
+                <p className="text-ink-tertiary">
+                  예) 개인 계정 = Fine-grained PAT · 조직 private repo = classic token (scope: repo)
                 </p>
               </div>
               {github.map((e, i) => (
