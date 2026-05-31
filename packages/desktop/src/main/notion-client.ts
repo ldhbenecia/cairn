@@ -38,12 +38,16 @@ function ensureEnvLoaded(): void {
   }
 }
 
+export type RecentCategory = 'daily' | 'weekly' | 'monthly';
+
 export type RecentPage = {
   pageId: string;
   url: string;
   title: string;
   date: string | null;
   status: string | null;
+  category: RecentCategory;
+  sourceCounts: string | null;
   workspaceLabel: string;
 };
 
@@ -51,13 +55,36 @@ type NotionWorkspaceConfig = {
   label: string;
   tokenEnv: string;
   worklog?: { dataSourceId?: string };
+  rollup?: { dataSourceId?: string };
 };
 
 type ParsedConfig = {
   notionWorkspaces: NotionWorkspaceConfig[];
 };
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 100;
+
+type NotionPageItem = { id: string; url?: string; properties: Record<string, unknown> };
+
+function readTitle(props: Record<string, unknown>): string {
+  const p = props.Title as { title?: Array<{ plain_text?: string }> } | undefined;
+  return p?.title?.map((t) => t.plain_text ?? '').join('') || '(no title)';
+}
+
+function readSelect(props: Record<string, unknown>, key: string): string | null {
+  const p = props[key] as { select?: { name?: string } | null } | undefined;
+  return p?.select?.name ?? null;
+}
+
+function readDate(props: Record<string, unknown>, key: string): string | null {
+  const p = props[key] as { date?: { start?: string } | null } | undefined;
+  return p?.date?.start ?? null;
+}
+
+function readRichText(props: Record<string, unknown>, key: string): string | null {
+  const p = props[key] as { rich_text?: Array<{ plain_text?: string }> } | undefined;
+  return p?.rich_text?.map((t) => t.plain_text ?? '').join('') || null;
+}
 
 export async function listRecentPages(): Promise<{
   pages: RecentPage[];
@@ -79,37 +106,62 @@ export async function listRecentPages(): Promise<{
       warnings.push(`${ws.label}: token env "${ws.tokenEnv}" 없음`);
       continue;
     }
-    const dataSourceId = ws.worklog?.dataSourceId;
-    if (!dataSourceId) {
+    const notion = new Client({ auth: token });
+
+    const worklogDs = ws.worklog?.dataSourceId;
+    if (!worklogDs) {
       warnings.push(`${ws.label}: worklog.dataSourceId 없음`);
-      continue;
+    } else {
+      try {
+        const res = await notion.dataSources.query({
+          data_source_id: worklogDs,
+          page_size: PAGE_SIZE,
+          sorts: [{ property: 'Date', direction: 'descending' }],
+        });
+        for (const item of res.results) {
+          if (!('properties' in item)) continue;
+          const { properties: props, url } = item as NotionPageItem;
+          allPages.push({
+            pageId: item.id,
+            url: url ?? '',
+            title: readTitle(props),
+            date: readDate(props, 'Date'),
+            status: readSelect(props, 'Status'),
+            category: 'daily',
+            sourceCounts: readRichText(props, 'Source counts'),
+            workspaceLabel: ws.label,
+          });
+        }
+      } catch (err) {
+        warnings.push(`${ws.label} (worklog): ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
 
-    try {
-      const notion = new Client({ auth: token });
-      const res = await notion.dataSources.query({
-        data_source_id: dataSourceId,
-        page_size: PAGE_SIZE,
-        sorts: [{ property: 'Date', direction: 'descending' }],
-      });
-      for (const item of res.results) {
-        if (!('properties' in item)) continue;
-        const props = (item as { properties: Record<string, unknown> }).properties;
-        const titleProp = props.Title as { title?: Array<{ plain_text?: string }> } | undefined;
-        const dateProp = props.Date as { date?: { start?: string } | null } | undefined;
-        const statusProp = props.Status as { select?: { name?: string } | null } | undefined;
-        const url = (item as { url?: string }).url ?? '';
-        allPages.push({
-          pageId: item.id,
-          url,
-          title: titleProp?.title?.map((t) => t.plain_text ?? '').join('') ?? '(no title)',
-          date: dateProp?.date?.start ?? null,
-          status: statusProp?.select?.name ?? null,
-          workspaceLabel: ws.label,
+    const rollupDs = ws.rollup?.dataSourceId;
+    if (rollupDs) {
+      try {
+        const res = await notion.dataSources.query({
+          data_source_id: rollupDs,
+          page_size: PAGE_SIZE,
+          sorts: [{ property: 'Range end', direction: 'descending' }],
         });
+        for (const item of res.results) {
+          if (!('properties' in item)) continue;
+          const { properties: props, url } = item as NotionPageItem;
+          allPages.push({
+            pageId: item.id,
+            url: url ?? '',
+            title: readTitle(props),
+            date: readDate(props, 'Range end') ?? readDate(props, 'Range start'),
+            status: readSelect(props, 'Status'),
+            category: readSelect(props, 'Period') === 'monthly' ? 'monthly' : 'weekly',
+            sourceCounts: readRichText(props, 'Source counts'),
+            workspaceLabel: ws.label,
+          });
+        }
+      } catch (err) {
+        warnings.push(`${ws.label} (rollup): ${err instanceof Error ? err.message : String(err)}`);
       }
-    } catch (err) {
-      warnings.push(`${ws.label}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 

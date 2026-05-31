@@ -9,8 +9,16 @@ import {
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { runCore, type CoreMode } from './core-runner';
+import { TRAY_ICON_1X, TRAY_ICON_2X } from './tray-icon';
 
 const LOG_DIR = join(homedir(), '.cairn', 'logs');
+
+function buildTrayIcon(): Electron.NativeImage {
+  const img = nativeImage.createFromDataURL(TRAY_ICON_1X);
+  img.addRepresentation({ scaleFactor: 2, dataURL: TRAY_ICON_2X });
+  img.setTemplateImage(true);
+  return img;
+}
 
 function triggerCore(window: BrowserWindow, mode: CoreMode): void {
   void runCore(mode, {}, window.webContents).then((result) => {
@@ -23,8 +31,7 @@ function triggerCore(window: BrowserWindow, mode: CoreMode): void {
 let tray: Tray | null = null;
 
 export function setupTray(window: BrowserWindow): void {
-  tray = new Tray(nativeImage.createEmpty());
-  tray.setTitle('cairn');
+  tray = new Tray(buildTrayIcon());
   tray.setToolTip('cairn — 자동 작업 일지');
 
   const menu = buildMenu(window);

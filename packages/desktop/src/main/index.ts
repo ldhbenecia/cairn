@@ -14,11 +14,11 @@ function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1080,
     height: 720,
-    minWidth: 720,
-    minHeight: 520,
+    minWidth: 820,
+    minHeight: 560,
     show: false,
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 20 },
+    trafficLightPosition: { x: 18, y: 24 },
     backgroundColor: '#0a0a0a',
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
@@ -47,6 +47,15 @@ function createWindow(): BrowserWindow {
 }
 
 void app.whenReady().then(() => {
+  // dev 에선 dock 아이콘이 Electron 기본이라, 우리 아이콘으로 교체 (패키징은 electron-builder 가 처리)
+  if (!app.isPackaged && process.platform === 'darwin') {
+    try {
+      app.dock?.setIcon(join(__dirname, '../../resources/icon.png'));
+    } catch {
+      // 무시 — dev 편의 기능
+    }
+  }
+
   ipcMain.handle('cairn:run', (e, mode: CoreMode, options?: CoreRunOptions) =>
     runCore(mode, options ?? {}, e.sender),
   );

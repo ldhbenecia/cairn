@@ -8,7 +8,7 @@ import { NotionRollupApiClient } from '../notion/notion-rollup-api.client.js';
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
-import { isoWeekLabel, monthLabel } from './period-range.js';
+import { isoWeekLabel, monthLabel, periodRange } from './period-range.js';
 
 const ROLLUP_DB_TITLE = 'Rollup (cairn)';
 
@@ -34,6 +34,52 @@ export class RollupPublisherService {
     @InjectPinoLogger(RollupPublisherService.name)
     private readonly logger: PinoLogger,
   ) {}
+
+  /**
+   * 수집·요약 전에 미리 확인해서 어차피 skip 될 경우 빠르게 단락한다.
+   * range 는 periodRange 로 계산하므로 collect 없이 존재 확인 가능.
+   */
+  async precheck(
+    period: 'weekly' | 'monthly',
+    kstDate: string,
+    force: boolean,
+  ): Promise<PublishRollupResult | null> {
+    const target = this.worklogConfig
+      .getNotionWorkspaces()
+      .find((ws) => ws.rollup?.pageId ?? ws.worklog?.pageId);
+    if (!target) return { kind: 'no-target' };
+
+    const token = this.secrets.getEnv(target.tokenEnv);
+    if (!token) return { kind: 'no-target' };
+
+    const dataSourceId = target.rollup?.dataSourceId;
+    if (!dataSourceId) return null;
+
+    const { start, end } = periodRange(period, kstDate);
+    try {
+      const existing = await this.rollupApi.findRollupPageByRange(
+        token,
+        dataSourceId,
+        period,
+        start,
+        end,
+      );
+      if (!existing) return null;
+      if (existing.status === 'final') {
+        return { kind: 'skipped', reason: 'final-protected', pageId: existing.pageId };
+      }
+      if (!force) {
+        return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
+      }
+      return null;
+    } catch (err) {
+      this.logger.warn(
+        { period, err: String(err) },
+        'rollup precheck failed — proceeding normally',
+      );
+      return null;
+    }
+  }
 
   async publish(input: PublishRollupInput): Promise<PublishRollupResult> {
     const target = this.worklogConfig

@@ -64,6 +64,38 @@ export class NotionPublisherService {
     }
   }
 
+  /**
+   * 수집·요약 전에 미리 확인해서 어차피 skip 될 경우 빠르게 단락(short-circuit)한다.
+   * - 발행 대상(worklog.pageId / token) 없음 → no-target
+   * - 이미 발행됨(force X) / final 보호 → skipped
+   * - 그 외(신규 발행해야 함 / dataSourceId 미생성 / 확인 실패) → null (정상 진행)
+   */
+  async precheckDaily(date: string, force: boolean): Promise<PublishWorklogResult | null> {
+    const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
+    if (!target) return { kind: 'no-target' };
+
+    const token = this.secrets.getEnv(target.tokenEnv);
+    if (!token) return { kind: 'no-target' };
+
+    const dataSourceId = target.worklog?.dataSourceId;
+    if (!dataSourceId) return null;
+
+    try {
+      const existing = await this.client.findWorklogPageByDate(token, dataSourceId, date);
+      if (!existing) return null;
+      if (existing.status === 'final') {
+        return { kind: 'skipped', reason: 'final-protected', pageId: existing.pageId };
+      }
+      if (!force) {
+        return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
+      }
+      return null;
+    } catch (err) {
+      this.logger.warn({ date, err: String(err) }, 'precheckDaily failed — proceeding normally');
+      return null;
+    }
+  }
+
   async publish(input: PublishWorklogInput): Promise<PublishWorklogResult> {
     const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
 

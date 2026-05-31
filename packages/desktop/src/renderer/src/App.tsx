@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
 import type {
   CoreMode,
   CoreResult,
@@ -7,8 +13,9 @@ import type {
   RunLine,
   RunStep,
 } from './cairn-api';
-import { Content } from './components/content';
-import { Sidebar, type NavKey } from './components/sidebar';
+import { PreferencesDialog } from './components/preferences-dialog';
+import { Sidebar, type FilterCounts, type WorklogFilter } from './components/sidebar';
+import { WorklogList } from './components/worklog-list';
 
 export type RunSession = {
   state: 'running' | 'done';
@@ -25,14 +32,13 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
   monthly: null,
 };
 
-const MODE_TO_NAV: Record<CoreMode, NavKey> = {
-  daily: 'today',
-  weekly: 'week',
-  monthly: 'month',
-};
-
 export function App() {
-  const [active, setActive] = useState<NavKey>('today');
+  const [filter, setFilter] = useState<WorklogFilter>('all');
+  const [prefsOpen, setPrefsOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    const saved = Number(localStorage.getItem('cairn:sidebarWidth'));
+    return saved >= 200 && saved <= 420 ? saved : 248;
+  });
   const [sessions, setSessions] = useState<Record<CoreMode, RunSession | null>>(EMPTY_SESSIONS);
   const [runningMode, setRunningMode] = useState<CoreMode | null>(null);
   const [recent, setRecent] = useState<RecentListResult | null>(null);
@@ -40,6 +46,25 @@ export function App() {
   const loadRecent = useCallback(async () => {
     const r = await window.cairn.listRecent();
     setRecent(r);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('cairn:sidebarWidth', String(sidebarWidth));
+  }, [sidebarWidth]);
+
+  const startResize = useCallback((e: ReactMouseEvent) => {
+    e.preventDefault();
+    const onMove = (ev: MouseEvent) => setSidebarWidth(Math.min(420, Math.max(200, ev.clientX)));
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   }, []);
 
   useEffect(() => {
@@ -74,8 +99,8 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const off = window.cairn.onFocusMode((mode) => {
-      setActive(MODE_TO_NAV[mode]);
+    const off = window.cairn.onFocusMode((focused) => {
+      setFilter(focused);
     });
     return off;
   }, []);
@@ -101,17 +126,42 @@ export function App() {
     [loadRecent],
   );
 
+  const counts = useMemo<FilterCounts>(() => {
+    const pages = recent?.pages ?? [];
+    return {
+      all: pages.length,
+      daily: pages.filter((p) => p.category === 'daily').length,
+      weekly: pages.filter((p) => p.category === 'weekly').length,
+      monthly: pages.filter((p) => p.category === 'monthly').length,
+    };
+  }, [recent]);
+
   return (
     <div className="flex h-screen w-screen bg-canvas text-ink">
-      <Sidebar active={active} runningMode={runningMode} onSelect={setActive} />
-      <Content
-        active={active}
+      <Sidebar
+        width={sidebarWidth}
+        filter={filter}
+        counts={counts}
+        preferencesActive={prefsOpen}
+        onFilterChange={(f) => {
+          setPrefsOpen(false);
+          setFilter(f);
+        }}
+        onOpenPreferences={() => setPrefsOpen(true)}
+      />
+      <div
+        onMouseDown={startResize}
+        className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/40 [-webkit-app-region:no-drag]"
+      />
+      <WorklogList
+        recent={recent}
+        filter={filter}
         sessions={sessions}
         runningMode={runningMode}
         onTrigger={trigger}
-        recent={recent}
-        onReloadRecent={loadRecent}
+        onReload={loadRecent}
       />
+      <PreferencesDialog open={prefsOpen} onOpenChange={setPrefsOpen} />
     </div>
   );
 }

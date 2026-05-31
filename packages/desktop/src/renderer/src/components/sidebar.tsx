@@ -2,71 +2,93 @@ import {
   CalendarClock,
   CalendarDays,
   CalendarRange,
-  FileText,
-  Loader2,
-  ScrollText,
-  Settings,
+  LayoutList,
+  Settings2,
   type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
-import type { CoreMode } from '../cairn-api';
+import { BrandMark } from './brand-mark';
 
-type NavKey = 'today' | 'week' | 'month' | 'recent' | 'logs' | 'settings';
+export type WorklogFilter = 'all' | 'daily' | 'weekly' | 'monthly';
 
-type NavItem = {
-  key: NavKey;
-  label: string;
-  icon: LucideIcon;
-  mode?: CoreMode;
-};
+export type FilterCounts = Record<WorklogFilter, number>;
 
-const NAV: NavItem[] = [
-  { key: 'today', label: '오늘 일지', icon: CalendarDays, mode: 'daily' },
-  { key: 'week', label: '이번 주 정리', icon: CalendarRange, mode: 'weekly' },
-  { key: 'month', label: '이번 달 정리', icon: CalendarClock, mode: 'monthly' },
-  { key: 'recent', label: '최근 노션 페이지', icon: FileText },
-  { key: 'logs', label: '로그', icon: ScrollText },
-  { key: 'settings', label: '설정', icon: Settings },
+const FILTERS: { key: WorklogFilter; label: string; icon: LucideIcon }[] = [
+  { key: 'all', label: '전체', icon: LayoutList },
+  { key: 'daily', label: '일간', icon: CalendarDays },
+  { key: 'weekly', label: '주간', icon: CalendarRange },
+  { key: 'monthly', label: '월간', icon: CalendarClock },
 ];
 
 type Props = {
-  active: NavKey;
-  runningMode: CoreMode | null;
-  onSelect: (key: NavKey) => void;
+  width: number;
+  filter: WorklogFilter;
+  counts: FilterCounts;
+  preferencesActive: boolean;
+  onFilterChange: (f: WorklogFilter) => void;
+  onOpenPreferences: () => void;
 };
 
-export function Sidebar({ active, runningMode, onSelect }: Props) {
+export function Sidebar({
+  width,
+  filter,
+  counts,
+  preferencesActive,
+  onFilterChange,
+  onOpenPreferences,
+}: Props) {
   return (
-    <nav className="flex w-56 shrink-0 flex-col border-r border-hairline bg-surface-1">
-      <div className="h-14 [-webkit-app-region:drag]" />
-      <div className="flex flex-col gap-0.5 px-3 pb-3">
-        {NAV.map((item) => (
-          <SidebarItem
-            key={item.key}
-            item={item}
-            active={item.key === active}
-            running={item.mode !== undefined && item.mode === runningMode}
-            onClick={() => onSelect(item.key)}
+    <nav style={{ width }} className="flex shrink-0 flex-col border-r border-hairline bg-surface-1">
+      <div className="h-20 [-webkit-app-region:drag]" />
+      <div className="flex items-center gap-2.5 px-5 pb-6 [-webkit-app-region:drag]">
+        <span className="flex size-6 items-center justify-center rounded-md bg-accent text-white">
+          <BrandMark size={15} />
+        </span>
+        <span className="text-[15px] font-semibold tracking-[-0.2px] text-ink">cairn</span>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-0.5 px-4">
+        <div className="px-2 pb-1.5 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
+          Worklog
+        </div>
+        {FILTERS.map((f) => (
+          <FilterItem
+            key={f.key}
+            icon={f.icon}
+            label={f.label}
+            count={counts[f.key]}
+            active={!preferencesActive && filter === f.key}
+            onClick={() => onFilterChange(f.key)}
           />
         ))}
+      </div>
+
+      <div className="px-4 pb-4">
+        <FilterItem
+          icon={Settings2}
+          label="Preferences"
+          active={preferencesActive}
+          onClick={onOpenPreferences}
+        />
       </div>
     </nav>
   );
 }
 
-function SidebarItem({
-  item,
+function FilterItem({
+  icon: Icon,
+  label,
+  count,
   active,
-  running,
   onClick,
 }: {
-  item: NavItem;
+  icon: LucideIcon;
+  label: string;
+  count?: number;
   active: boolean;
-  running: boolean;
   onClick: () => void;
 }) {
   const [hover, setHover] = useState(false);
-  const Icon = item.icon;
   return (
     <button
       type="button"
@@ -74,16 +96,22 @@ function SidebarItem({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className={[
-        'flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-[14px] font-medium leading-[1.2] tracking-normal transition-colors',
-        '[-webkit-app-region:no-drag]',
-        active ? 'bg-surface-2 text-ink' : hover ? 'bg-surface-3 text-ink' : 'text-ink-subtle',
+        'relative flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-[13px] font-medium leading-[1.3] transition-colors [-webkit-app-region:no-drag]',
+        active
+          ? 'bg-surface-2 text-ink'
+          : hover
+            ? 'bg-surface-2/60 text-ink-muted'
+            : 'text-ink-subtle',
       ].join(' ')}
     >
-      <Icon size={15} strokeWidth={1.75} />
-      <span className="flex-1">{item.label}</span>
-      {running && <Loader2 size={13} strokeWidth={2} className="animate-spin text-accent" />}
+      {active && (
+        <span className="absolute -left-3 top-1/2 h-3.5 w-0.75 -translate-y-1/2 rounded-r-full bg-accent" />
+      )}
+      <Icon size={15} strokeWidth={1.75} className={active ? 'text-ink-muted' : ''} />
+      <span className="flex-1">{label}</span>
+      {count !== undefined && count > 0 && (
+        <span className="font-mono text-[11px] text-ink-tertiary">{count}</span>
+      )}
     </button>
   );
 }
-
-export type { NavKey };
