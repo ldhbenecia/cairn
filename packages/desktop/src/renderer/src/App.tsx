@@ -10,11 +10,13 @@ import type {
   CoreResult,
   CoreRunOptions,
   RecentListResult,
+  RecentPage,
   RunLine,
   RunStep,
 } from './cairn-api';
 import { Onboarding } from './components/onboarding';
 import { PreferencesDialog } from './components/preferences-dialog';
+import { WorklogDrawer } from './components/worklog-drawer';
 import { Sidebar, type FilterCounts, type WorklogFilter } from './components/sidebar';
 import { WorklogList } from './components/worklog-list';
 
@@ -37,6 +39,7 @@ export function App() {
   const [filter, setFilter] = useState<WorklogFilter>('all');
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
+  const [selectedPage, setSelectedPage] = useState<RecentPage | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = Number(localStorage.getItem('cairn:sidebarWidth'));
     return saved >= 200 && saved <= 420 ? saved : 248;
@@ -174,7 +177,9 @@ export function App() {
         runningMode={runningMode}
         onTrigger={trigger}
         onReload={loadRecent}
+        onOpen={setSelectedPage}
       />
+      {selectedPage && <WorklogDrawer page={selectedPage} onClose={() => setSelectedPage(null)} />}
       <PreferencesDialog
         open={prefsOpen}
         onOpenChange={setPrefsOpen}

@@ -24,6 +24,15 @@ export type RecentPage = {
 
 export type RecentListResult = { pages: RecentPage[]; warnings: string[] };
 
+export type SimpleBlock = {
+  id: string;
+  type: string;
+  text: string;
+  checked?: boolean;
+  language?: string;
+};
+export type PageContent = { blocks: SimpleBlock[]; warning?: string };
+
 export type CoreResult = {
   ok: boolean;
   exitCode: number | null;
@@ -94,6 +103,7 @@ declare global {
       readConfig: () => Promise<ConfigResult>;
       tailLogs: () => Promise<LogTailResult>;
       listRecent: () => Promise<RecentListResult>;
+      pageContent: (pageId: string, workspaceLabel: string) => Promise<PageContent>;
     };
   }
 }

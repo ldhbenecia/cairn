@@ -168,3 +168,56 @@ export async function listRecentPages(): Promise<{
   allPages.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
   return { pages: allPages.slice(0, PAGE_SIZE), warnings };
 }
+
+export type SimpleBlock = {
+  id: string;
+  type: string;
+  text: string;
+  checked?: boolean;
+  language?: string;
+};
+
+export type PageContent = { blocks: SimpleBlock[]; warning?: string };
+
+function blockText(block: Record<string, unknown>, type: string): string {
+  const body = block[type] as { rich_text?: Array<{ plain_text?: string }> } | undefined;
+  return body?.rich_text?.map((t) => t.plain_text ?? '').join('') ?? '';
+}
+
+// 인앱 뷰어용 — 페이지 자식 블록을 단순화해서 반환 (워크스페이스 라벨로 토큰 선택)
+export async function fetchPageContent(
+  pageId: string,
+  workspaceLabel: string,
+): Promise<PageContent> {
+  ensureEnvLoaded();
+  const cfg = await readConfig();
+  const parsed = cfg.parsed as ParsedConfig | null;
+  const ws =
+    parsed?.notionWorkspaces?.find((w) => w.label === workspaceLabel) ??
+    parsed?.notionWorkspaces?.[0];
+  const token = ws ? process.env[ws.tokenEnv] : undefined;
+  if (!token) return { blocks: [], warning: 'token 없음' };
+
+  try {
+    const notion = new Client({ auth: token });
+    const res = await notion.blocks.children.list({ block_id: pageId, page_size: 100 });
+    const blocks: SimpleBlock[] = [];
+    for (const item of res.results) {
+      if (!('type' in item)) continue;
+      const block = item as unknown as Record<string, unknown>;
+      const type = block.type as string;
+      const todo = block.to_do as { checked?: boolean } | undefined;
+      const code = block.code as { language?: string } | undefined;
+      blocks.push({
+        id: (block.id as string) ?? '',
+        type,
+        text: blockText(block, type),
+        ...(type === 'to_do' ? { checked: todo?.checked ?? false } : {}),
+        ...(type === 'code' ? { language: code?.language } : {}),
+      });
+    }
+    return { blocks };
+  } catch (err) {
+    return { blocks: [], warning: err instanceof Error ? err.message : String(err) };
+  }
+}

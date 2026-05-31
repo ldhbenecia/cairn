@@ -106,4 +106,6 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:logs:tail') as Promise<LogTailResult>,
   listRecent: (): Promise<RecentListResult> =>
     ipcRenderer.invoke('cairn:recent:list') as Promise<RecentListResult>,
+  pageContent: (pageId: string, workspaceLabel: string): Promise<unknown> =>
+    ipcRenderer.invoke('cairn:notion:page-content', pageId, workspaceLabel) as Promise<unknown>,
 });

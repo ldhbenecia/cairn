@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isRunning, probeClaude, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { readConfig, tailLatestLog } from './files';
-import { listRecentPages } from './notion-client';
+import { fetchPageContent, listRecentPages } from './notion-client';
 import {
   finishOnboarding,
   listNotionDatabases,
@@ -75,6 +75,9 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:config:read', () => readConfig());
   ipcMain.handle('cairn:logs:tail', () => tailLatestLog());
   ipcMain.handle('cairn:recent:list', () => listRecentPages());
+  ipcMain.handle('cairn:notion:page-content', (_e, pageId: string, workspaceLabel: string) =>
+    fetchPageContent(pageId, workspaceLabel),
+  );
 
   // 무플래시 초기 로드용 동기 부트스트랩 (preload sandbox 에서 sendSync)
   ipcMain.on('cairn:bootstrap-sync', (e) => {
