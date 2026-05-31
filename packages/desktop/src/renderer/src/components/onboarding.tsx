@@ -44,9 +44,9 @@ const newNotion = (label: string): NotionEntry => ({
 export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
   const [stepIdx, setStepIdx] = useState(0);
   const step = STEPS[stepIdx]!;
-  const [notion, setNotion] = useState<NotionEntry[]>([newNotion('personal')]);
+  const [notion, setNotion] = useState<NotionEntry[]>([newNotion('Personal')]);
   const [github, setGithub] = useState<GithubEntry[]>([
-    { label: 'personal', token: '', status: 'idle' },
+    { label: 'Personal', token: '', status: 'idle' },
   ]);
   const [anthropicKey, setAnthropicKey] = useState('');
   const [repos, setRepos] = useState<string[]>([]);
@@ -172,7 +172,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
               ))}
               <AddButton
                 label="워크스페이스 추가"
-                onClick={() => setNotion((p) => [...p, newNotion(`ws${p.length + 1}`)])}
+                onClick={() => setNotion((p) => [...p, newNotion(`Workspace ${p.length + 1}`)])}
               />
             </Section>
           )}
@@ -202,7 +202,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 onClick={() =>
                   setGithub((p) => [
                     ...p,
-                    { label: `acc${p.length + 1}`, token: '', status: 'idle' },
+                    { label: `Account ${p.length + 1}`, token: '', status: 'idle' },
                   ])
                 }
               />
