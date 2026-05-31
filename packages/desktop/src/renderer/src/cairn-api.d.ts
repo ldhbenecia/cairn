@@ -71,6 +71,7 @@ declare global {
         probeNotion: (token: string) => Promise<NotionProbe>;
         searchNotion: (token: string) => Promise<NotionPage[]>;
         probeGithub: (token: string) => Promise<GithubProbe>;
+        probeClaude: () => Promise<{ ok: boolean }>;
         finish: (payload: OnboardingPayload) => Promise<{ ok: boolean; error?: string }>;
         pickFolder: () => Promise<string | null>;
       };

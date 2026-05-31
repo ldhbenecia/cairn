@@ -70,6 +70,7 @@ contextBridge.exposeInMainWorld('cairn', {
       ipcRenderer.invoke('cairn:onboarding:search-notion', token) as Promise<unknown>,
     probeGithub: (token: string) =>
       ipcRenderer.invoke('cairn:onboarding:probe-github', token) as Promise<unknown>,
+    probeClaude: () => ipcRenderer.invoke('cairn:onboarding:probe-claude') as Promise<unknown>,
     finish: (payload: unknown) =>
       ipcRenderer.invoke('cairn:onboarding:finish', payload) as Promise<unknown>,
     pickFolder: () => ipcRenderer.invoke('cairn:onboarding:pick-folder') as Promise<string | null>,

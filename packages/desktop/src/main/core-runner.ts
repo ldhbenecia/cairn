@@ -76,6 +76,28 @@ export function isRunning(): boolean {
   return running !== null;
 }
 
+// Claude 연결 확인 — core 를 --probe-claude 로 fork, stdout 의 CLAUDE_OK 확인 (가벼운 query 1회)
+export async function probeClaude(): Promise<{ ok: boolean }> {
+  return new Promise((resolvePromise) => {
+    const child = fork(CORE_ENTRY, ['--probe-claude'], {
+      cwd: CAIRN_ROOT,
+      stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+      env: { ...process.env, CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false' },
+    });
+    let out = '';
+    child.stdout?.on('data', (b: Buffer) => (out += b.toString('utf8')));
+    const timer = setTimeout(() => child.kill(), 60_000);
+    child.on('close', () => {
+      clearTimeout(timer);
+      resolvePromise({ ok: out.includes('CLAUDE_OK') });
+    });
+    child.on('error', () => {
+      clearTimeout(timer);
+      resolvePromise({ ok: false });
+    });
+  });
+}
+
 export async function runCore(
   mode: CoreMode,
   options: CoreRunOptions = {},

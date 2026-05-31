@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
+import { isRunning, probeClaude, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { readConfig, tailLatestLog } from './files';
 import { listRecentPages } from './notion-client';
 import {
@@ -87,6 +87,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:onboarding:probe-notion', (_e, token: string) => probeNotion(token));
   ipcMain.handle('cairn:onboarding:search-notion', (_e, token: string) => searchNotionPages(token));
   ipcMain.handle('cairn:onboarding:probe-github', (_e, token: string) => probeGithub(token));
+  ipcMain.handle('cairn:onboarding:probe-claude', () => probeClaude());
   ipcMain.handle('cairn:onboarding:finish', (_e, payload: OnboardingPayload) =>
     finishOnboarding(payload),
   );

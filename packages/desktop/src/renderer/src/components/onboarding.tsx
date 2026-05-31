@@ -52,6 +52,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const [repos, setRepos] = useState<string[]>([]);
   const [finishing, setFinishing] = useState(false);
   const [finishErr, setFinishErr] = useState<string | null>(null);
+  const [claudeStatus, setClaudeStatus] = useState<Status>('idle');
 
   const patchNotion = (i: number, p: Partial<NotionEntry>) =>
     setNotion((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
@@ -116,6 +117,12 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     setFinishing(false);
     if (r.ok) onDone();
     else setFinishErr(r.error ?? 'failed');
+  }
+
+  async function testClaude() {
+    setClaudeStatus('testing');
+    const r = await window.cairn.onboarding.probeClaude();
+    setClaudeStatus(r.ok ? 'ok' : 'err');
   }
 
   async function addRepo() {
@@ -229,6 +236,32 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 >
                   <ExternalLink size={11} strokeWidth={2} /> API key 발급
                 </button>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => void testClaude()}
+                  disabled={claudeStatus === 'testing'}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+                >
+                  {claudeStatus === 'testing' && (
+                    <Loader2 size={13} strokeWidth={2} className="animate-spin" />
+                  )}
+                  연결 확인
+                </button>
+                {claudeStatus === 'ok' && (
+                  <span className="inline-flex items-center gap-1 text-[13px] text-success">
+                    <Check size={14} strokeWidth={2.5} /> Claude 연결됨
+                  </span>
+                )}
+                {claudeStatus === 'err' && (
+                  <span className="text-[13px] text-[#f87171]">
+                    연결 안 됨 — claude 로그인 또는 API key 필요
+                  </span>
+                )}
+                {claudeStatus === 'testing' && (
+                  <span className="text-[12px] text-ink-tertiary">확인 중... (최대 1분)</span>
+                )}
               </div>
             </Section>
           )}
