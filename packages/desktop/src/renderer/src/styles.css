@@ -145,6 +145,30 @@ button:not(:disabled) {
   animation: dialog-out 120ms ease-in both;
 }
 
+@keyframes drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes drawer-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+/* in 은 fill 없음 → 끝나면 transform 제거(= 정지). 그래야 헤더의 app-region drag 동작 */
+.drawer-in {
+  animation: drawer-in 200ms ease-out;
+}
+.drawer-out {
+  animation: drawer-out 200ms ease-in forwards;
+}
+
 @keyframes progress-indeterminate {
   0% {
     transform: translateX(-120%);

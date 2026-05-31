@@ -108,11 +108,7 @@ NOTION_TOKEN_PERSONAL=ntn_...
 
 ## 7. `worklog.config.json`
 
-```bash
-cp worklog.config.example.json worklog.config.json
-```
-
-Fill in:
+Create `worklog.config.json` in the repo root with:
 
 ```json
 {

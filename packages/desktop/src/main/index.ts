@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isRunning, probeClaude, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { readConfig, tailLatestLog } from './files';
-import { listRecentPages } from './notion-client';
+import { fetchPageContent, listRecentPages } from './notion-client';
 import {
   finishOnboarding,
   listNotionDatabases,
@@ -20,6 +20,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // 트레이의 "완전 종료" 로만 진짜 종료. dock Quit / Cmd+Q / 창 닫기는 백그라운드(트레이 유지)
 let allowQuit = false;
+
+// 단일 인스턴스 — 백그라운드 상주 중 재실행하면 기존 창 포커스 + 새 프로세스 종료 (트레이 중복 방지)
+if (!app.requestSingleInstanceLock()) {
+  app.exit(0);
+}
+app.on('second-instance', () => {
+  const win = BrowserWindow.getAllWindows()[0];
+  if (!win) return;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+});
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -75,6 +87,9 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:config:read', () => readConfig());
   ipcMain.handle('cairn:logs:tail', () => tailLatestLog());
   ipcMain.handle('cairn:recent:list', () => listRecentPages());
+  ipcMain.handle('cairn:notion:page-content', (_e, pageId: string, workspaceLabel: string) =>
+    fetchPageContent(pageId, workspaceLabel),
+  );
 
   // 무플래시 초기 로드용 동기 부트스트랩 (preload sandbox 에서 sendSync)
   ipcMain.on('cairn:bootstrap-sync', (e) => {

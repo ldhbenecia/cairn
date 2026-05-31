@@ -32,6 +32,7 @@ type Props = {
   runningMode: CoreMode | null;
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
   onReload: () => Promise<void>;
+  onOpen: (page: RecentPage) => void;
 };
 
 const PER_PAGE = 20;
@@ -49,7 +50,15 @@ const GROUP_LABEL_KEY: Record<GroupBy, I18nKey> = {
 
 const catKey = (c: RecentCategory): I18nKey => `nav.${c}`;
 
-export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, onReload }: Props) {
+export function WorklogList({
+  recent,
+  filter,
+  sessions,
+  runningMode,
+  onTrigger,
+  onReload,
+  onOpen,
+}: Props) {
   const { t } = useSettings();
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
@@ -190,7 +199,7 @@ export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, 
                   {!collapsed.has(g.key) && (
                     <div className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
                       {g.rows.map((p) => (
-                        <PageRow key={p.pageId} page={p} t={t} />
+                        <PageRow key={p.pageId} page={p} t={t} onOpen={onOpen} />
                       ))}
                     </div>
                   )}
@@ -200,7 +209,7 @@ export function WorklogList({ recent, filter, sessions, runningMode, onTrigger, 
           ) : (
             <div className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
               {visible.map((p) => (
-                <PageRow key={p.pageId} page={p} t={t} />
+                <PageRow key={p.pageId} page={p} t={t} onOpen={onOpen} />
               ))}
             </div>
           )}
@@ -282,11 +291,11 @@ function groupRows(rows: RecentPage[], groupBy: GroupBy, t: T): Group[] | null {
   return keys.map((k) => ({ key: k, label: labelOf(k), rows: map.get(k) as RecentPage[] }));
 }
 
-function PageRow({ page, t }: { page: RecentPage; t: T }) {
+function PageRow({ page, t, onOpen }: { page: RecentPage; t: T; onOpen: (p: RecentPage) => void }) {
   return (
     <button
       type="button"
-      onClick={() => page.url && void window.cairn.openExternal(page.url)}
+      onClick={() => onOpen(page)}
       className="flex w-full cursor-pointer items-center gap-4 border-b border-hairline px-4 py-3.5 text-left text-[13px] transition-[background-color] last:border-b-0 hover:bg-surface-2"
     >
       <span className="min-w-0 flex-1 truncate text-ink">{page.title}</span>

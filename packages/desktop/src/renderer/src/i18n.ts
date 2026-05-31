@@ -61,12 +61,12 @@ const STRINGS = {
     'prefs.language': '언어',
     'prefs.notifications': '알림',
     'prefs.notifications.desc': '발행 결과 시스템 알림',
-    'prefs.config': '설정 파일',
-    'prefs.config.missing': '파일이 위 경로에 없습니다. 한 번 셋업이 필요해요:',
-    'prefs.config.note': 'GUI 편집은 v0.2 셋업 마법사부터.',
+    'prefs.connections': '연결',
+    'prefs.connections.desc': 'Notion · GitHub · Claude 연결',
+    'prefs.rerunSetup': '연결 다시 설정',
     'prefs.about': 'About',
-    'prefs.setup': '셋업',
-    'prefs.rerunSetup': '셋업 다시 실행',
+    'prefs.privacy':
+      '모든 데이터는 이 기기에만 저장돼요. Notion · GitHub · Claude 외 어디에도 전송하지 않습니다.',
   },
   en: {
     'brand.worklog': 'Worklog',
@@ -127,12 +127,12 @@ const STRINGS = {
     'prefs.language': 'Language',
     'prefs.notifications': 'Notifications',
     'prefs.notifications.desc': 'System notification on publish result',
-    'prefs.config': 'Config file',
-    'prefs.config.missing': 'File not found at the path above. One-time setup needed:',
-    'prefs.config.note': 'GUI editing comes with the v0.2 setup wizard.',
+    'prefs.connections': 'Connections',
+    'prefs.connections.desc': 'Notion · GitHub · Claude',
+    'prefs.rerunSetup': 'Reconfigure connections',
     'prefs.about': 'About',
-    'prefs.setup': 'Setup',
-    'prefs.rerunSetup': 'Re-run setup',
+    'prefs.privacy':
+      'Everything stays on this device — nothing is sent anywhere except Notion · GitHub · Claude.',
   },
 } as const;
 

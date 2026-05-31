@@ -1,7 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { useCallback, useEffect, useState } from 'react';
-import { RefreshCw, X } from 'lucide-react';
-import type { ConfigResult, Language, Theme } from '../cairn-api';
+import { X } from 'lucide-react';
+import type { Language, Theme } from '../cairn-api';
 import { useSettings } from '../settings-context';
 import { Toggle } from './toggle';
 
@@ -13,19 +12,6 @@ type Props = {
 
 export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
   const { settings, update, t } = useSettings();
-  const [result, setResult] = useState<ConfigResult | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const r = await window.cairn.readConfig();
-    setResult(r);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (open) void load();
-  }, [open, load]);
 
   const themeOptions: { value: Theme; label: string }[] = [
     { value: 'dark', label: t('prefs.theme.dark') },
@@ -41,7 +27,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50" />
-        <Dialog.Content className="dialog-content fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-160 max-w-[90vw] flex-col rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50">
+        <Dialog.Content className="dialog-content fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-128 max-w-[90vw] flex-col rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50">
           <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
             <Dialog.Title className="text-[16px] font-semibold tracking-[-0.2px] text-ink">
               {t('prefs.title')}
@@ -51,7 +37,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
             </Dialog.Close>
           </div>
 
-          <div className="flex flex-col gap-6 overflow-y-auto px-6 py-5 [scrollbar-gutter:stable]">
+          <div className="flex flex-col gap-7 overflow-y-auto px-6 py-6 [scrollbar-gutter:stable]">
             <Section title={t('prefs.appearance')}>
               <Row label={t('prefs.theme')}>
                 <Segmented
@@ -77,49 +63,19 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
               />
             </Section>
 
-            <Section title={t('prefs.config')}>
-              <div className="mb-2 flex items-center gap-3">
-                {result && (
-                  <span className="truncate font-mono text-[11px] text-ink-tertiary">
-                    {result.path}
-                  </span>
-                )}
+            <Section title={t('prefs.connections')}>
+              <Row label={t('prefs.connections.desc')}>
                 <button
                   type="button"
-                  onClick={() => void load()}
-                  disabled={loading}
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-hairline px-2 py-1 text-[12px] text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+                  onClick={() => {
+                    onOpenChange(false);
+                    onRerunSetup();
+                  }}
+                  className="rounded-md border border-hairline px-3 py-1.5 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink"
                 >
-                  <RefreshCw size={12} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
-                  {t('list.reload')}
+                  {t('prefs.rerunSetup')}
                 </button>
-              </div>
-              {result?.raw ? (
-                <pre className="max-h-60 overflow-auto rounded-lg border border-hairline bg-surface-2 p-4 font-mono text-[12px] leading-relaxed text-ink-muted">
-                  {result.raw}
-                </pre>
-              ) : (
-                result && (
-                  <div className="rounded-lg border border-hairline bg-surface-2 p-5 text-[13px] text-ink-muted">
-                    {t('prefs.config.missing')}
-                    <pre className="mt-3 overflow-auto rounded-md bg-canvas p-3 font-mono text-[12px] text-ink-subtle">{`mkdir -p ~/.cairn\ncp worklog.config.json .env ~/.cairn/`}</pre>
-                  </div>
-                )
-              )}
-              <p className="mt-3 text-[12px] text-ink-tertiary">{t('prefs.config.note')}</p>
-            </Section>
-
-            <Section title={t('prefs.setup')}>
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenChange(false);
-                  onRerunSetup();
-                }}
-                className="inline-flex w-fit items-center rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink"
-              >
-                {t('prefs.rerunSetup')}
-              </button>
+              </Row>
             </Section>
 
             <Section title={t('prefs.about')}>
@@ -127,6 +83,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
                 <span className="text-ink-muted">cairn</span>
                 <span className="font-mono text-ink-subtle">v{window.cairn.version}</span>
               </div>
+              <p className="text-[12px] leading-relaxed text-ink-tertiary">{t('prefs.privacy')}</p>
             </Section>
           </div>
         </Dialog.Content>
@@ -138,7 +95,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
+      <h3 className="mb-2.5 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
         {title}
       </h3>
       <div className="flex flex-col gap-3">{children}</div>

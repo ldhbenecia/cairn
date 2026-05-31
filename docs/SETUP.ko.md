@@ -106,11 +106,7 @@ NOTION_TOKEN_PERSONAL=ntn_...
 
 ## 7. `worklog.config.json`
 
-```bash
-cp worklog.config.example.json worklog.config.json
-```
-
-채울 내용:
+repo 루트에 `worklog.config.json` 을 만들고 다음을 채운다:
 
 ```json
 {
