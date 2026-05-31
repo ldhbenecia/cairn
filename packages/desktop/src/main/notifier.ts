@@ -32,6 +32,10 @@ export function sendResultNotification(mode: CoreMode, result: CoreResult): void
     notify(`${label} 실패`, `exit ${result.exitCode ?? 'unknown'}`, mode);
     return;
   }
+  if (result.publishKind === 'no-target') {
+    notify(label, '발행 대상 없음 — Preferences 설정 확인', mode);
+    return;
+  }
   if (result.noActivity) {
     notify(label, '활동 없음 — 발행 안 함', mode);
     return;

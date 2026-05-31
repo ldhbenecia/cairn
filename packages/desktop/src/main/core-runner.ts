@@ -165,6 +165,7 @@ export async function runCore(
       const lastKind = (kindMatches.at(-1)?.[1] as PublishKind) ?? null;
       const pageIdMatches = [...stdoutAll.matchAll(PAGE_ID_REGEX)];
       const lastPageId = pageIdMatches.at(-1)?.[1] ?? null;
+      const finalNoActivity = noActivity && !lastKind && !lastUrl && !lastPageId;
       emit('meta', `[exit] code=${exitCode ?? 'null'}`);
       if (exitCode === 0) emitStep('done');
       const result: CoreResult = {
@@ -173,7 +174,7 @@ export async function runCore(
         notionUrl: lastUrl,
         publishKind: lastKind,
         publishPageId: lastPageId,
-        noActivity,
+        noActivity: finalNoActivity,
         stderrTail: tail,
       };
       sendResultNotification(mode, result);

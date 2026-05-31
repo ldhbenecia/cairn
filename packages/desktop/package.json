@@ -1,6 +1,6 @@
 {
   "name": "@cairn/desktop",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "description": "cairn desktop — Electron shell for cairn engine. menubar tray + manual triggers + native notifications.",
   "type": "module",
@@ -9,12 +9,12 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "dev": "pnpm --filter @cairn/core build && electron-vite dev",
+    "build": "pnpm --filter @cairn/core build && electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "pack": "electron-vite build && electron-builder --dir",
-    "dist": "electron-vite build && electron-builder"
+    "pack": "pnpm --filter @cairn/core build:bundle && electron-vite build && electron-builder --dir",
+    "dist": "pnpm --filter @cairn/core build:bundle && electron-vite build && electron-builder"
   },
   "dependencies": {
     "@cairn/core": "workspace:*",

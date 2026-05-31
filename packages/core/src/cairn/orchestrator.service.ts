@@ -69,8 +69,10 @@ export class OrchestratorService {
     const targetDates = generatePastDates(options.date, options.backfillDays);
     const rangeStart = targetDates[0]!;
     const rangeEnd = targetDates[targetDates.length - 1]!;
-    const published = await this.notionPublisher.findPublishedDates(rangeStart, rangeEnd);
-    const missingDates = targetDates.filter((d) => !published.has(d));
+    const published = options.force
+      ? new Set<string>()
+      : await this.notionPublisher.findPublishedDates(rangeStart, rangeEnd);
+    const missingDates = options.force ? targetDates : targetDates.filter((d) => !published.has(d));
 
     if (missingDates.length === 0) {
       this.logger.info(

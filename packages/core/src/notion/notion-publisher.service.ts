@@ -98,6 +98,9 @@ export class NotionPublisherService {
 
   async publish(input: PublishWorklogInput): Promise<PublishWorklogResult> {
     const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
+    const startedAt = Date.now();
+
+    this.logger.info({ date: input.date, force: input.force }, 'notion publish start');
 
     if (!target) {
       this.logger.warn(
@@ -115,9 +118,19 @@ export class NotionPublisherService {
       return { kind: 'no-target' };
     }
 
+    const ensureStartedAt = Date.now();
     const { dataSourceId } = await this.ensureDatabaseAndDataSource(target, token);
+    this.logger.info(
+      { date: input.date, elapsedMs: Date.now() - ensureStartedAt },
+      'notion publish target resolved',
+    );
 
+    const lookupStartedAt = Date.now();
     const existing = await this.client.findWorklogPageByDate(token, dataSourceId, input.date);
+    this.logger.info(
+      { date: input.date, elapsedMs: Date.now() - lookupStartedAt, found: !!existing },
+      'notion publish existing lookup done',
+    );
     if (existing) {
       if (existing.status === 'final') {
         this.logger.info(
@@ -133,12 +146,26 @@ export class NotionPublisherService {
         );
         return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
       }
+      const archiveStartedAt = Date.now();
       await this.client.archivePage(token, existing.pageId);
       this.logger.info(
-        { date: input.date, archivedPageId: existing.pageId },
+        {
+          date: input.date,
+          archivedPageId: existing.pageId,
+          elapsedMs: Date.now() - archiveStartedAt,
+        },
         '--force: archived existing draft, recreating',
       );
+      const createStartedAt = Date.now();
       const created = await this.createPage(input, token, dataSourceId);
+      this.logger.info(
+        { date: input.date, elapsedMs: Date.now() - createStartedAt },
+        'notion publish recreate done',
+      );
+      this.logger.info(
+        { date: input.date, totalElapsedMs: Date.now() - startedAt },
+        'notion publish done',
+      );
       return {
         kind: 'recreated',
         pageId: created.id,
@@ -147,7 +174,16 @@ export class NotionPublisherService {
       };
     }
 
+    const createStartedAt = Date.now();
     const created = await this.createPage(input, token, dataSourceId);
+    this.logger.info(
+      { date: input.date, elapsedMs: Date.now() - createStartedAt },
+      'notion publish create done',
+    );
+    this.logger.info(
+      { date: input.date, totalElapsedMs: Date.now() - startedAt },
+      'notion publish done',
+    );
     return { kind: 'created', pageId: created.id, url: created.url };
   }
 
@@ -203,6 +239,14 @@ export class NotionPublisherService {
     const children = input.summary
       ? buildSummaryBlocks(input.summary, input)
       : buildFallbackBlocks(input);
+    this.logger.info(
+      {
+        date: input.date,
+        childrenCount: children.length,
+        hasSummary: !!input.summary,
+      },
+      'notion publish payload prepared',
+    );
     const created = await this.client.createWorklogPage({
       token,
       dataSourceId,
