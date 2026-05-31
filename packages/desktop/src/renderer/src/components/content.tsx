@@ -1,5 +1,5 @@
 import type { RunSession } from '../App';
-import type { CoreMode, CoreRunOptions } from '../cairn-api';
+import type { CoreMode, CoreRunOptions, RecentListResult } from '../cairn-api';
 import { LogsPanel } from './logs-panel';
 import { RecentPanel } from './recent-panel';
 import { RunPanel } from './run-panel';
@@ -42,9 +42,18 @@ type Props = {
   sessions: Record<CoreMode, RunSession | null>;
   runningMode: CoreMode | null;
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
+  recent: RecentListResult | null;
+  onReloadRecent: () => Promise<void>;
 };
 
-export function Content({ active, sessions, runningMode, onTrigger }: Props) {
+export function Content({
+  active,
+  sessions,
+  runningMode,
+  onTrigger,
+  recent,
+  onReloadRecent,
+}: Props) {
   const cfg = RUN_KEYS.has(active) ? RUN_CONFIG[active as RunNav] : null;
   return (
     <section className="flex flex-1 flex-col overflow-hidden bg-canvas">
@@ -61,9 +70,10 @@ export function Content({ active, sessions, runningMode, onTrigger }: Props) {
             session={sessions[cfg.mode]}
             otherRunning={runningMode !== null && runningMode !== cfg.mode}
             onTrigger={(options) => onTrigger(cfg.mode, options)}
+            recent={recent}
           />
         ) : active === 'recent' ? (
-          <RecentPanel />
+          <RecentPanel recent={recent} onReload={onReloadRecent} />
         ) : active === 'logs' ? (
           <LogsPanel />
         ) : (

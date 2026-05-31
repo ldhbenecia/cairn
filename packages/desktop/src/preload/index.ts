@@ -4,7 +4,7 @@ const IS_PACKAGED = process.argv.includes('--cairn-packaged');
 
 export type CoreMode = 'daily' | 'weekly' | 'monthly';
 
-export type CoreRunOptions = { backfillDays?: number };
+export type CoreRunOptions = { backfillDays?: number; force?: boolean };
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
 
@@ -12,6 +12,17 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 export type LogTailResult = { lines: string[]; path: string | null };
+
+export type RecentPage = {
+  pageId: string;
+  url: string;
+  title: string;
+  date: string | null;
+  status: string | null;
+  workspaceLabel: string;
+};
+
+export type RecentListResult = { pages: RecentPage[]; warnings: string[] };
 
 export type CoreResult = {
   ok: boolean;
@@ -30,7 +41,7 @@ export type RunLine = {
 };
 
 contextBridge.exposeInMainWorld('cairn', {
-  version: '0.1.1',
+  version: '0.1.2',
   isPackaged: IS_PACKAGED,
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
@@ -59,4 +70,6 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:config:read') as Promise<ConfigResult>,
   tailLogs: (): Promise<LogTailResult> =>
     ipcRenderer.invoke('cairn:logs:tail') as Promise<LogTailResult>,
+  listRecent: (): Promise<RecentListResult> =>
+    ipcRenderer.invoke('cairn:recent:list') as Promise<RecentListResult>,
 });

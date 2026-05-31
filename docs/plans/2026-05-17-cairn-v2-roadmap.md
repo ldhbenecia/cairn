@@ -33,7 +33,18 @@
 
 ## Desktop 트랙
 
-### v0.1 — 셸 (foundation)
+### 진행 상황 (2026-05-30 시점)
+
+| 단계 | 상태 | 비고 |
+|---|---|---|
+| v0.1 셸 | ✅ 완료 (단계 14, v0.14.0 → v0.15.0) | 14.1 ~ 14.7 + packaging fix |
+| v0.1.x 후속 | 🚧 진행 중 | Recent panel 노션 list + UX polish (v0.15.1 ~ v0.15.2) |
+| v0.2 셋업 마법사 | ⏳ 미시작 | |
+| v0.3 OAuth Device Flow | ⏳ 미시작 | |
+| v0.4 Keychain | ⏳ 미시작 | |
+| v0.5+ 인앱 양방향 | ⏳ 미시작 | Recent panel 의 첫 발판 깔림 (v0.15.2) |
+
+### v0.1 — 셸 (foundation) ✅
 
 **기술 결정 (ADR 필요)**:
 - **프레임워크**: Electron vs Tauri vs SwiftUI 네이티브
@@ -59,6 +70,8 @@
 - "Notion 워크스페이스 추가" 누름 → Notion OAuth + 부모 페이지 picker (`/v1/search` 로 페이지 목록)
 - 로컬 repo picker (디렉토리 선택 다이얼로그)
 - 검증 화면: 토큰 health check + first dry-run 결과
+- **튜토리얼 / 가이드**: 노션 페이지 등록 단계별 안내 (스크린샷 / 동영상 또는 인앱 step indicator)
+- **config 위치 = `~/.cairn/worklog.config.json`** 으로 이전 (현재 cairn root → ~/.cairn). 별도 ADR (`0014-config-location-home-dir`)
 
 ### v0.3 — OAuth onboarding (in-app)
 
@@ -92,12 +105,28 @@
 
 **Engine 트랙 schema 변경**: `githubAccounts[].tokenEnv` 가 단순 env 이름이 아닌 secret reference 로 진화할 수 있음. 시점은 v0.4 desktop 도입 시 engine 도 같이 minor bump.
 
+### v0.3.5 — UI 본격 polish + 다크/라이트 테마 토글
+
+(v0.3 OAuth 이후, v0.4 Keychain 이전 사이의 디자인 단계)
+
+- **다크/라이트 모드 토글** — Preference panel 에 테마 switch. CSS variable 의 `@media (prefers-color-scheme)` + 명시 토글 (system / dark / light)
+- light mode 토큰 — 같은 hue 의 다른 shade. cairn theme = storm slate 기반 (다크 = `#455a72`, 라이트 = `#2a3a4c` 더 어두운 변종)
+- **본격 디자인 polish** — Linear 톤 한 번 더 다듬음:
+  - sidebar / nav item 여백 / hover 다듬
+  - RunPanel 의 결과 카드 / step indicator 시각 정교화
+  - 트레이 brand 아이콘 PNG (현재 텍스트 'cairn')
+  - 추가 Radix primitive 도입 (Dialog / Tooltip / Tabs 등)
+- 별도 ADR (`0015-light-mode-tokens` 후보)
+
 ### v0.5+ — 시간대 UI / 알림 / 사용자 정의 / 노션 양방향 / 멀티 머신 sync
 
 - launchd plist 시각 GUI 변경 (`StartCalendarInterval` Hour 값 setter)
 - `pmset wake` opt-in 토글
 - 알림 권한 / 알림 빈도 / 토글
-- **사용자 정의 summarizer prompt** — engine 기본 prompt 를 그대로 두되, 데스크탑 앱에서 사용자가 자기 취향대로 (한국어/영어 톤, doneBullets 형식, 카테고리, 강조점, "이력서 용도" / "회고 용도" / "팀 데일리 용도" 같은 컨텍스트) 덮어쓸 수 있게. v2 앱에선 사용자 본인 OAuth/API 크레딧을 쓰니 prompt 자유도 ↑. 토큰 사용량 추정 미리보기도 같이
+- **사용자 정의 summarizer prompt** ⭐ — engine 기본 prompt 를 그대로 두되, 데스크탑 앱에서 사용자가 자기 취향대로 (한국어/영어 톤, doneBullets 형식, 카테고리, 강조점, "이력서 용도" / "회고 용도" / "팀 데일리 용도" 같은 컨텍스트) 덮어쓸 수 있게. v2 앱에선 사용자 본인 OAuth/API 크레딧을 쓰니 prompt 자유도 ↑. 토큰 사용량 추정 미리보기도 같이
+  - **Preference panel** 안에 prompt template 편집기 (multi-line text + 변수 ${date} / ${activities} 등 token highlight)
+  - 모드별 (daily/weekly/monthly) 분리 가능
+  - cairn engine 의 `worklog.config.json` 또는 별도 `~/.cairn/prompts/` 에 저장
 - **노션 일지 / 롤업 페이지 양방향 편집** — 발행된 노션 페이지를 데스크탑 앱 안에서 열어 편집 후 노션 API 로 push back. read-only viewer X. 노션 블록 → 앱 에디터 → 노션 블록 변환 (mdast / notion-blocks 어댑터 필요). 별도 단계 plan + ADR (publisher 가 양방향이 되면 모델 변화)
 - (장기) 머신 간 cairn 설정 sync — 클라우드 X 정책상 어렵지만 iCloud Drive 의 cairn 폴더 같은 사용자 자율 sync 가이드
 

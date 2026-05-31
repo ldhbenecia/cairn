@@ -120,6 +120,9 @@ importers:
       '@cairn/core':
         specifier: workspace:*
         version: link:../core
+      '@notionhq/client':
+        specifier: ^5.20.0
+        version: 5.20.0
       '@radix-ui/react-dialog':
         specifier: ^1.1.6
         version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)

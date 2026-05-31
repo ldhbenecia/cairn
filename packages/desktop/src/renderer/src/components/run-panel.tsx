@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, ChevronRight, ExternalLink, Loader2, Play } from 'lucide-react';
-import type { CoreMode, CoreResult, CoreRunOptions, RunStep } from '../cairn-api';
+import type {
+  CoreMode,
+  CoreResult,
+  CoreRunOptions,
+  RecentListResult,
+  RecentPage,
+  RunStep,
+} from '../cairn-api';
 import type { RunSession } from '../App';
+import { Toggle } from './toggle';
 
 type Props = {
   mode: CoreMode;
@@ -10,7 +18,10 @@ type Props = {
   session: RunSession | null;
   otherRunning: boolean;
   onTrigger: (options?: CoreRunOptions) => Promise<void>;
+  recent: RecentListResult | null;
 };
+
+const MINI_LIST_LIMIT = 5;
 
 const STEPS: { key: RunStep; label: string }[] = [
   { key: 'boot', label: '부팅' },
@@ -27,9 +38,18 @@ const STEP_RANK: Record<RunStep, number> = {
   done: 4,
 };
 
-export function RunPanel({ mode, label, description, session, otherRunning, onTrigger }: Props) {
+export function RunPanel({
+  mode,
+  label,
+  description,
+  session,
+  otherRunning,
+  onTrigger,
+  recent,
+}: Props) {
   const tailRef = useRef<HTMLDivElement>(null);
   const [includeBackfill, setIncludeBackfill] = useState(false);
+  const [force, setForce] = useState(false);
   const [showRawLog, setShowRawLog] = useState(false);
   const isRunning = session?.state === 'running';
   const isDone = session?.state === 'done';
@@ -46,22 +66,31 @@ export function RunPanel({ mode, label, description, session, otherRunning, onTr
     <div className="flex flex-1 flex-col px-8 pb-8 [-webkit-app-region:no-drag]">
       <p className="mb-6 text-ink-subtle">{description}</p>
 
-      {mode === 'daily' && (
-        <label className="mb-4 inline-flex select-none items-center gap-2 self-start text-ink-muted">
-          <input
-            type="checkbox"
+      <div className="mb-5 flex flex-col gap-3 self-start">
+        {mode === 'daily' && (
+          <Toggle
             checked={includeBackfill}
-            onChange={(e) => setIncludeBackfill(e.target.checked)}
+            onChange={setIncludeBackfill}
             disabled={disabled}
-            className="accent-accent"
+            label="이전 며칠 놓친 일지도 같이 채우기"
           />
-          <span>이전 며칠 놓친 일지도 같이 채우기</span>
-        </label>
-      )}
+        )}
+        <Toggle
+          checked={force}
+          onChange={setForce}
+          disabled={disabled}
+          label="이미 발행됐어도 덮어쓰기"
+        />
+      </div>
 
       <button
         type="button"
-        onClick={() => void onTrigger({ backfillDays: includeBackfill ? undefined : 0 })}
+        onClick={() =>
+          void onTrigger({
+            backfillDays: includeBackfill ? undefined : 0,
+            force,
+          })
+        }
         disabled={disabled}
         className={[
           'self-start flex items-center gap-2 rounded-md px-3.5 py-2 text-[14px] font-medium leading-[1.2] transition-colors',
@@ -93,6 +122,15 @@ export function RunPanel({ mode, label, description, session, otherRunning, onTr
       )}
 
       {session?.state === 'done' && session.result && <Result result={session.result} />}
+
+      {mode === 'daily' && recent && recent.pages.length > 0 && (
+        <RecentMini pages={recent.pages.slice(0, MINI_LIST_LIMIT)} />
+      )}
+      {(mode === 'weekly' || mode === 'monthly') && (
+        <div className="mt-8 rounded-lg border border-hairline bg-surface-1 px-5 py-4 text-[13px] text-ink-tertiary">
+          주간 / 월간 롤업의 최근 발행 목록은 v0.5+ 의 rollup viewer 에서.
+        </div>
+      )}
 
       {lines.length > 0 && (
         <div className="mt-6">
@@ -175,6 +213,51 @@ function StepIndicator({ currentStep, allDone }: { currentStep: RunStep; allDone
           </div>
         );
       })}
+    </div>
+  );
+}
+
+const MINI_STATUS_STYLE: Record<string, string> = {
+  draft: 'border-[#7a5c3a]/40 bg-[#7a5c3a]/15 text-[#d4a574]',
+  final: 'border-success/40 bg-success/15 text-success',
+};
+
+function RecentMini({ pages }: { pages: RecentPage[] }) {
+  return (
+    <div className="mt-8">
+      <h3 className="mb-2 text-[12px] font-medium uppercase tracking-wider text-ink-tertiary">
+        최근 일지
+      </h3>
+      <ul className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
+        {pages.map((p, i) => (
+          <li key={p.pageId}>
+            <button
+              type="button"
+              onClick={() => p.url && void window.cairn.openExternal(p.url)}
+              className={[
+                'flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left text-[13px] transition-colors hover:bg-surface-2',
+                i > 0 ? 'border-t border-hairline' : '',
+              ].join(' ')}
+            >
+              <span className="w-24 shrink-0 font-mono whitespace-nowrap text-ink-muted">
+                {p.date ?? '—'}
+              </span>
+              {p.status && (
+                <span
+                  className={[
+                    'inline-block rounded border px-1.5 py-px text-[11px]',
+                    MINI_STATUS_STYLE[p.status] ?? 'border-hairline text-ink-tertiary',
+                  ].join(' ')}
+                >
+                  {p.status}
+                </span>
+              )}
+              <span className="flex-1 truncate text-ink">{p.title}</span>
+              <span className="shrink-0 text-[12px] text-ink-tertiary">{p.workspaceLabel}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
