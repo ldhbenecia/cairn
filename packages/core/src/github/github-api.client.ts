@@ -8,6 +8,9 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 const CairnOctokit = Octokit.plugin(throttling, retry, restEndpointMethods);
 type CairnOctokit = InstanceType<typeof CairnOctokit>;
 
+const GITHUB_REQUEST_TIMEOUT_MS = 20_000;
+const MAX_RATE_LIMIT_RETRY_AFTER_SECONDS = 30;
+
 export interface GithubIdentity {
   login: string;
 }
@@ -17,6 +20,7 @@ export interface SearchPrItem {
   repo: string;
   number: number;
   title: string;
+  body: string | null;
   state: 'open' | 'closed';
   mergedAt: string | null;
   author: string;
@@ -52,6 +56,7 @@ export class GithubApiClient {
         repo,
         number: item.number,
         title: item.title,
+        body: typeof item.body === 'string' ? item.body : null,
         state: normalizeState(item.state),
         mergedAt: item.pull_request?.merged_at ?? null,
         author: item.user?.login ?? 'unknown',
@@ -76,20 +81,6 @@ export class GithubApiClient {
       per_page: 100,
     });
     return data.map((f) => basename(f.filename));
-  }
-
-  async fetchPrBody(
-    token: string,
-    owner: string,
-    repo: string,
-    pullNumber: number,
-  ): Promise<string | null> {
-    const { data } = await this.getOctokit(token).rest.pulls.get({
-      owner,
-      repo,
-      pull_number: pullNumber,
-    });
-    return data.body ?? null;
   }
 
   async listPrCommitsInRange(
@@ -143,20 +134,23 @@ export class GithubApiClient {
     const octokit = new CairnOctokit({
       auth: token,
       userAgent: 'cairn',
+      request: { timeout: GITHUB_REQUEST_TIMEOUT_MS },
       throttle: {
         onRateLimit: (retryAfter, options, _octokit, retryCount) => {
+          const willRetry = shouldRetryRateLimit(retryAfter, retryCount);
           this.logger.warn(
-            { method: options.method, url: options.url, retryAfter, retryCount },
+            { method: options.method, url: options.url, retryAfter, retryCount, willRetry },
             'github primary rate limit hit',
           );
-          return retryCount < 1;
+          return willRetry;
         },
         onSecondaryRateLimit: (retryAfter, options, _octokit, retryCount) => {
+          const willRetry = shouldRetryRateLimit(retryAfter, retryCount);
           this.logger.warn(
-            { method: options.method, url: options.url, retryAfter, retryCount },
+            { method: options.method, url: options.url, retryAfter, retryCount, willRetry },
             'github secondary rate limit hit',
           );
-          return retryCount < 1;
+          return willRetry;
         },
       },
       retry: {
@@ -167,6 +161,10 @@ export class GithubApiClient {
     this.logger.debug('octokit initialized for token');
     return octokit;
   }
+}
+
+function shouldRetryRateLimit(retryAfterSeconds: number, retryCount: number): boolean {
+  return retryCount < 1 && retryAfterSeconds <= MAX_RATE_LIMIT_RETRY_AFTER_SECONDS;
 }
 
 function parseRepoFromUrl(repositoryUrl: string): [string, string] {
