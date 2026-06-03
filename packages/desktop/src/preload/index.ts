@@ -4,11 +4,18 @@ const IS_PACKAGED = process.argv.includes('--cairn-packaged');
 
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
+export type AutoPublish = {
+  enabled: boolean;
+  time: string;
+  backfillDays: number;
+  confirmBeforeRun: boolean;
+};
 export type Settings = {
   theme: Theme;
   accent: string;
   language: Language;
   notifications: boolean;
+  autoPublish: AutoPublish;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
 };
 

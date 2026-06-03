@@ -37,8 +37,14 @@
     'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace;
 }
 
+/* 네이티브 컨트롤(시간 입력 스피너·달력 아이콘 등)이 테마에 맞게 렌더되도록 */
+:root {
+  color-scheme: dark;
+}
+
 /* 라이트 모드 — 같은 토큰 override (다크는 @theme 기본값 사용) */
 [data-theme='light'] {
+  color-scheme: light;
   --color-canvas: #ffffff;
   --color-surface-1: #f6f7f9;
   --color-surface-2: #eef0f3;
@@ -111,6 +117,34 @@ button:not(:disabled) {
   to {
     opacity: 0;
   }
+}
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes popover-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+}
+.popover-in {
+  animation: popover-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+}
+.popover-out {
+  animation: popover-out 130ms ease-in both;
+  transform-origin: top right;
 }
 @keyframes dialog-in {
   from {

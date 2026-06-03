@@ -46,3 +46,13 @@ export function sendResultNotification(mode: CoreMode, result: CoreResult): void
   }
   notify(`${label} 발행 완료`, '클릭하면 앱에서 결과 확인', mode);
 }
+
+export function notifyAutoStart(mode: CoreMode): void {
+  if (!readSettings().notifications) return;
+  notify('cairn 자동 발행', `${MODE_LABEL[mode]}를 발행하는 중이에요`, mode);
+}
+
+export function notifyAutoConfirm(mode: CoreMode): void {
+  if (!readSettings().notifications) return;
+  notify('cairn 자동 발행 대기', `${MODE_LABEL[mode]}를 발행할까요? 클릭해서 확인`, mode);
+}

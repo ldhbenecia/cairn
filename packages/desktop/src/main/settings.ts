@@ -5,11 +5,19 @@ import { dirname, join } from 'node:path';
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
 
+export type AutoPublish = {
+  enabled: boolean; // opt-in = 동의. 기본 false
+  time: string; // "HH:mm" 매일 발화 시각
+  backfillDays: number; // 실행 시 백필 일수
+  confirmBeforeRun: boolean; // true 면 자동 실행 대신 알림으로 확인
+};
+
 export type Settings = {
   theme: Theme;
   accent: string;
   language: Language;
   notifications: boolean;
+  autoPublish: AutoPublish;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
 };
 
@@ -18,6 +26,7 @@ const DEFAULTS: Settings = {
   accent: 'indigo',
   language: 'en',
   notifications: true,
+  autoPublish: { enabled: false, time: '19:00', backfillDays: 7, confirmBeforeRun: false },
   prompts: { daily: null, weekly: null, monthly: null },
 };
 
@@ -30,6 +39,7 @@ export function readSettings(): Settings {
     return {
       ...DEFAULTS,
       ...parsed,
+      autoPublish: { ...DEFAULTS.autoPublish, ...(parsed.autoPublish ?? {}) },
       prompts: { ...DEFAULTS.prompts, ...(parsed.prompts ?? {}) },
     };
   } catch {
@@ -38,10 +48,12 @@ export function readSettings(): Settings {
 }
 
 export function writeSettings(patch: Partial<Settings>): Settings {
+  const prev = readSettings();
   const next: Settings = {
-    ...readSettings(),
+    ...prev,
     ...patch,
-    prompts: { ...readSettings().prompts, ...(patch.prompts ?? {}) },
+    autoPublish: { ...prev.autoPublish, ...(patch.autoPublish ?? {}) },
+    prompts: { ...prev.prompts, ...(patch.prompts ?? {}) },
   };
   mkdirSync(dirname(SETTINGS_PATH), { recursive: true });
   writeFileSync(SETTINGS_PATH, `${JSON.stringify(next, null, 2)}\n`);
