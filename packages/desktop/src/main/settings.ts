@@ -17,6 +17,7 @@ export type AutoPublish = {
 export type Settings = {
   theme: Theme;
   accent: string;
+  liquidGlass: boolean;
   language: Language;
   notifications: boolean;
   autoPublish: AutoPublish;
@@ -26,6 +27,7 @@ export type Settings = {
 const DEFAULTS: Settings = {
   theme: 'system',
   accent: 'indigo',
+  liquidGlass: false,
   language: 'en',
   notifications: true,
   autoPublish: {
@@ -46,15 +48,20 @@ export function readSettings(): Settings {
   try {
     const parsed = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8')) as Partial<Settings> & {
       autoPublish?: Partial<AutoPublish> & { enabled?: boolean };
+      liquidGlass?: boolean | string;
     };
     const ap = { ...DEFAULTS.autoPublish, ...(parsed.autoPublish ?? {}) };
     // 레거시: 단일 토글 enabled → daily 로 이관
     if (parsed.autoPublish?.enabled !== undefined && parsed.autoPublish.daily === undefined) {
       ap.daily = parsed.autoPublish.enabled;
     }
+    // 레거시: liquidGlass 가 enum('clear'/'tint') 이던 시기 → boolean 으로
+    const lg: unknown = parsed.liquidGlass;
+    const liquidGlass = lg === true || lg === 'clear' || lg === 'tint';
     return {
       ...DEFAULTS,
       ...parsed,
+      liquidGlass,
       autoPublish: {
         daily: ap.daily,
         weekly: ap.weekly,

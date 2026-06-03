@@ -51,7 +51,7 @@ autoPublish: {
 - confirmBeforeRun 의 알림→인앱 확인 다이얼로그 고도화
 - launchd 정리/이관 안내
 - **커스텀 프롬프트 = billing 기능 후보로 최후 보류** (그룹 1 plan 의 그룹 3 → billing 으로 흡수)
-- **Liquid Glass 스타일 토글** (Preferences > 화면) — 애플 Liquid Glass 풍 frosted/translucent 디자인을 ON/OFF. 현재 flat = OFF, 글래스 구현 시 ON. 지금은 미착수. 참고: https://getdesign.md/apple/design-md
+- ~~Liquid Glass 스타일 토글~~ ✅ (Preferences > 화면) — frosted/translucent. v1 은 떠 있는 표면(다이얼로그·드로어·드롭다운)에 `.glass-panel` + `[data-glass=on]` backdrop-blur. 윈도우 vibrancy(전체 투명)는 후속. 참고: https://getdesign.md/apple/design-md
 
 ## 관련 plan (이미 기록됨)
 

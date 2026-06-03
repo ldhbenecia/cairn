@@ -56,7 +56,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50" />
         <Dialog.Content
           style={{ width: 920, height: 600, maxWidth: '92vw', maxHeight: '86vh' }}
-          className="dialog-content fixed top-1/2 left-1/2 z-50 flex flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 focus:outline-none"
+          className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 focus:outline-none"
         >
           <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
             <Dialog.Title className="text-[16px] font-semibold tracking-[-0.2px] text-ink">
@@ -135,6 +135,23 @@ function AppearanceTab() {
               onSelect={() => update({ theme: o.value })}
             />
           ))}
+        </div>
+      </Field>
+
+      <Field label={t('prefs.glass')} desc={t('prefs.glass.desc')}>
+        <div className="flex gap-3">
+          <GlassCard
+            glass={false}
+            label={t('prefs.glass.default')}
+            selected={!settings.liquidGlass}
+            onSelect={() => update({ liquidGlass: false })}
+          />
+          <GlassCard
+            glass
+            label={t('prefs.glass.on')}
+            selected={settings.liquidGlass}
+            onSelect={() => update({ liquidGlass: true })}
+          />
         </div>
       </Field>
 
@@ -304,7 +321,7 @@ function Select({
           ref={listRef}
           className={[
             closing ? 'popover-out' : 'popover-in',
-            'absolute right-0 z-10 mt-1.5 max-h-64 overflow-y-auto rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40',
+            'glass-panel absolute right-0 z-10 mt-1.5 max-h-64 overflow-y-auto rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40',
             menuWidth,
           ].join(' ')}
         >
@@ -467,6 +484,66 @@ function ThemeCard({
         ].join(' ')}
       >
         {value === 'system' ? <AutoMock /> : <Mock variant={value} />}
+        {selected && (
+          <span className="absolute top-1 right-1 flex size-4 items-center justify-center rounded-full bg-accent text-white shadow">
+            <Check size={10} strokeWidth={3} />
+          </span>
+        )}
+      </span>
+      <span
+        className={['text-[12px]', selected ? 'font-semibold text-ink' : 'text-ink-subtle'].join(
+          ' ',
+        )}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function GlassMock({ glass }: { glass: boolean }) {
+  return (
+    <div
+      className="flex h-full w-full items-center justify-center"
+      style={{ background: glass ? 'linear-gradient(135deg, #5b61e6, #16a89a)' : '#1b1b20' }}
+    >
+      <div
+        className="h-[74%] w-[78%] rounded-[5px] border"
+        style={
+          glass
+            ? {
+                background: 'rgba(255,255,255,0.14)',
+                backdropFilter: 'blur(4px)',
+                WebkitBackdropFilter: 'blur(4px)',
+                borderColor: 'rgba(255,255,255,0.28)',
+              }
+            : { background: '#26262c', borderColor: '#3a3a42' }
+        }
+      />
+    </div>
+  );
+}
+
+function GlassCard({
+  glass,
+  label,
+  selected,
+  onSelect,
+}: {
+  glass: boolean;
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button type="button" onClick={onSelect} className="group flex flex-col items-center gap-2">
+      <span
+        className={[
+          'relative block h-16 w-24 overflow-hidden rounded-lg border-2 transition-colors',
+          selected ? 'border-accent' : 'border-hairline group-hover:border-hairline-strong',
+        ].join(' ')}
+      >
+        <GlassMock glass={glass} />
         {selected && (
           <span className="absolute top-1 right-1 flex size-4 items-center justify-center rounded-full bg-accent text-white shadow">
             <Check size={10} strokeWidth={3} />

@@ -15,6 +15,7 @@ export type AutoPublish = {
 export type Settings = {
   theme: Theme;
   accent: string;
+  liquidGlass: boolean;
   language: Language;
   notifications: boolean;
   autoPublish: AutoPublish;

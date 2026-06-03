@@ -284,3 +284,15 @@ button:not(:disabled) {
 [data-theme='light'] .chip-final {
   color: #1d7a43;
 }
+
+/* Liquid Glass (Preferences) — 떠 있는 표면(.glass-panel) frosted/translucent */
+[data-glass='on'] .glass-panel {
+  background: color-mix(in srgb, var(--color-surface-1) 52%, transparent);
+  backdrop-filter: blur(30px) saturate(1.8);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  border-color: color-mix(in srgb, var(--color-ink) 14%, transparent);
+}
+/* 글래스일 때 다이얼로그 오버레이를 밝혀 뒤 콘텐츠가 frosted 로 비치게 */
+[data-glass='on'] .dialog-overlay {
+  background-color: rgba(0, 0, 0, 0.28);
+}
