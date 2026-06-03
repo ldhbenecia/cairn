@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowDownUp,
   ChevronDown,
@@ -9,6 +8,8 @@ import {
   RefreshCw,
   Search,
 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import type { RunSession } from '../App';
 import type {
   CoreMode,
   CoreRunOptions,
@@ -16,7 +17,6 @@ import type {
   RecentListResult,
   RecentPage,
 } from '../cairn-api';
-import type { RunSession } from '../App';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { PublishDialog } from './publish-dialog';

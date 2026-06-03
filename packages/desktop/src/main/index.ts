@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
 import { isRunning, probeClaude, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { readConfig, tailLatestLog } from './files';
 import { fetchPageContent, listRecentPages } from './notion-client';
@@ -100,7 +101,11 @@ void app.whenReady().then(() => {
       setupComplete: isSetupComplete(),
     };
   });
-  ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => writeSettings(patch));
+  ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {
+    const next = writeSettings(patch);
+    if (patch.autoPublish) reconfigureAutoPublish(); // 자동 발행 토글/시각 변경 시 타이머 재설정
+    return next;
+  });
 
   ipcMain.handle('cairn:onboarding:probe-notion', (_e, token: string) => probeNotion(token));
   ipcMain.handle('cairn:onboarding:search-notion', (_e, token: string, query?: string) =>
@@ -124,6 +129,9 @@ void app.whenReady().then(() => {
     allowQuit = true;
     app.quit();
   });
+
+  // 자동 발행 — 실행 시 백필 + 매일 로컬 시각 발화 (opt-in, ADR 0015)
+  initAutoPublish();
 
   app.on('activate', () => {
     if (win.isMinimized()) win.restore();
