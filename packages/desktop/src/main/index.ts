@@ -35,10 +35,10 @@ app.on('second-instance', () => {
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
-    width: 1080,
-    height: 720,
-    minWidth: 820,
-    minHeight: 560,
+    width: 1240,
+    height: 760,
+    minWidth: 940,
+    minHeight: 620,
     show: false,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 18, y: 24 },
@@ -55,7 +55,8 @@ function createWindow(): BrowserWindow {
   win.on('ready-to-show', () => win.show());
 
   win.on('close', (e) => {
-    if (allowQuit) return;
+    // dev 에선 상주 안 함 — 창 닫기/Ctrl+C 로 완전 종료 (stale 인스턴스 방지). 배포에서만 트레이 상주
+    if (allowQuit || !app.isPackaged) return;
     e.preventDefault();
     win.hide();
   });
@@ -132,11 +133,13 @@ void app.whenReady().then(() => {
 });
 
 app.on('before-quit', (e) => {
-  // 트레이 "완전 종료" 가 아니면 종료를 막고 백그라운드로 (창 숨김)
-  if (!allowQuit) {
+  // 배포에서만: 트레이 "완전 종료" 가 아니면 종료를 막고 백그라운드로 (창 숨김). dev 는 그냥 종료
+  if (!allowQuit && app.isPackaged) {
     e.preventDefault();
     BrowserWindow.getAllWindows().forEach((w) => w.hide());
   }
 });
 
-app.on('window-all-closed', () => {});
+app.on('window-all-closed', () => {
+  if (!app.isPackaged) app.quit();
+});
