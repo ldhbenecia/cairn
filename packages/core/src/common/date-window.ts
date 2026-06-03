@@ -3,16 +3,18 @@ export interface UtcWindow {
   endIso: string;
 }
 
-export function kstDateToUtcWindow(kstDate: string): UtcWindow {
-  const parts = kstDate.split('-').map(Number);
+// "YYYY-MM-DD"(사용자 로컬 캘린더 날짜) → 그 날 하루의 UTC 윈도우.
+// 로컬 TZ 기준 (rules/timezone.md) — Date 로컬 생성자가 머신 TZ·DST 를 반영한다.
+export function localDateToUtcWindow(date: string): UtcWindow {
+  const parts = date.split('-').map(Number);
   const year = parts[0];
   const month = parts[1];
   const day = parts[2];
   if (year === undefined || month === undefined || day === undefined) {
-    throw new Error(`invalid kstDate: ${kstDate}`);
+    throw new Error(`invalid date: ${date}`);
   }
-  const start = new Date(Date.UTC(year, month - 1, day, -9, 0, 0));
-  const end = new Date(Date.UTC(year, month - 1, day, 14, 59, 59));
+  const start = new Date(year, month - 1, day, 0, 0, 0, 0);
+  const end = new Date(year, month - 1, day, 23, 59, 59, 0);
   return {
     startIso: trimMillis(start),
     endIso: trimMillis(end),
@@ -27,7 +29,11 @@ function trimMillis(d: Date): string {
   return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
-export function todayKstIsoDate(): string {
-  const kstOffsetMs = 9 * 60 * 60 * 1000;
-  return new Date(Date.now() + kstOffsetMs).toISOString().slice(0, 10);
+// 사용자 로컬 기준 오늘 "YYYY-MM-DD"
+export function todayLocalIsoDate(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }

@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { todayKstIsoDate } from '../common/date-window.js';
+import { todayLocalIsoDate } from '../common/date-window.js';
 import type { RunMode, RunOptions, RunSource } from './run-options.js';
 
 const VALID_MODES: readonly RunMode[] = ['daily', 'weekly', 'monthly'];
@@ -44,7 +44,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
 function defaultDateForMode(mode: RunMode): string {
   if (mode === 'weekly') return kstIsoDateOffset(-7);
   if (mode === 'monthly') return kstIsoDateOffset(-5);
-  return todayKstIsoDate();
+  return todayLocalIsoDate();
 }
 
 function kstIsoDateOffset(dayOffset: number): string {

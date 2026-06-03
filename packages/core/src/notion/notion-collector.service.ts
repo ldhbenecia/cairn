@@ -6,7 +6,7 @@ import type {
   NotionPageEdit,
   NotionWorkspaceActivity,
 } from '../contracts/notion-activity.types.js';
-import { kstDateToUtcWindow } from '../common/date-window.js';
+import { localDateToUtcWindow } from '../common/date-window.js';
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
@@ -26,7 +26,7 @@ export class NotionCollectorService {
   ) {}
 
   async collect(date: string): Promise<NotionActivity> {
-    const window = kstDateToUtcWindow(date);
+    const window = localDateToUtcWindow(date);
     const workspaceConfigs = this.worklogConfig.getNotionWorkspaces();
 
     if (workspaceConfigs.length === 0) {
