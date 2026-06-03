@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { withConcurrency } from '../common/concurrency.js';
-import { kstDateToUtcWindow, searchRangeFragment, todayKstIsoDate } from '../common/date-window.js';
+import {
+  localDateToUtcWindow,
+  searchRangeFragment,
+  todayLocalIsoDate,
+} from '../common/date-window.js';
 import { CairnError } from '../common/error.js';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type {
@@ -37,11 +41,11 @@ export class GithubCollectorService {
   ) {}
 
   async collect(date: string, lookbackDays = 14): Promise<GithubActivity> {
-    const window = kstDateToUtcWindow(date);
+    const window = localDateToUtcWindow(date);
     const range = searchRangeFragment(window);
     // 오늘 (live daily) 은 PR.updated_at 이 아직 밀리지 않은 시점 → narrow 로 충분.
     // 과거 (backfill) 만 widening 적용해서 updated_at 이 밀린 케이스 cover.
-    const isBackfill = date < todayKstIsoDate();
+    const isBackfill = date < todayLocalIsoDate();
     const effectiveLookback = isBackfill ? lookbackDays : 0;
     const lookbackStartIso = computeLookbackStartIso(date, effectiveLookback, window.startIso);
     const widenedRange = effectiveLookback > 0 ? `>=${lookbackStartIso}` : range;

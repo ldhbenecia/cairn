@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { basename } from 'node:path';
 import { withConcurrency } from '../common/concurrency.js';
-import { kstDateToUtcWindow } from '../common/date-window.js';
+import { localDateToUtcWindow } from '../common/date-window.js';
 import { CairnError } from '../common/error.js';
 import type {
   LocalGitActivity,
@@ -25,7 +25,7 @@ export class LocalGitCollectorService {
   ) {}
 
   async collect(date: string): Promise<LocalGitActivity> {
-    const window = kstDateToUtcWindow(date);
+    const window = localDateToUtcWindow(date);
     const repoPaths = this.worklogConfig.getLocalGitRepos();
 
     if (repoPaths.length === 0) {
