@@ -7,14 +7,16 @@ export type Language = 'ko' | 'en';
 
 export type Settings = {
   theme: Theme;
+  accent: string;
   language: Language;
   notifications: boolean;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
 };
 
 const DEFAULTS: Settings = {
-  theme: 'dark',
-  language: 'ko',
+  theme: 'system',
+  accent: 'indigo',
+  language: 'en',
   notifications: true,
   prompts: { daily: null, weekly: null, monthly: null },
 };
