@@ -5,7 +5,9 @@ const IS_PACKAGED = process.argv.includes('--cairn-packaged');
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
 export type AutoPublish = {
-  enabled: boolean;
+  daily: boolean;
+  weekly: boolean;
+  monthly: boolean;
   time: string;
   backfillDays: number;
   confirmBeforeRun: boolean;

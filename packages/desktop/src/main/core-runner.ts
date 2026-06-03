@@ -12,6 +12,7 @@ export type CoreMode = 'daily' | 'weekly' | 'monthly';
 export type CoreRunOptions = {
   backfillDays?: number;
   force?: boolean;
+  date?: string; // "YYYY-MM-DD" — 미지정 시 엔진이 로컬 today 사용 (롤업 기간 anchor 등)
 };
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
@@ -120,6 +121,7 @@ export async function runCore(
   const args = [`--mode=${mode}`];
   if (options.backfillDays !== undefined) args.push(`--backfill-days=${options.backfillDays}`);
   if (options.force) args.push('--force');
+  if (options.date) args.push(`--date=${options.date}`);
 
   emit('meta', `[fork] ${CORE_ENTRY} ${args.join(' ')}`);
   emit('meta', `[cwd] ${CAIRN_ROOT}`);
