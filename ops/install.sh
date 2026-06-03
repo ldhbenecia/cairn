@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# [DEPRECATED] cairn 자동 발행은 데스크톱 앱이 소유한다 (ADR 0015).
+# 앱과 함께 배포·사용하는 게 기본이라 이 launchd 경로는 더 이상 권장하지 않는다.
+# 엔진만 헤드리스로 돌리는 레거시/특수 케이스용으로만 남겨둠.
+# 이미 등록돼 있다면 앱의 자동 발행과 중복되지만, publisher 의 already-published
+# precheck 로 중복 발행은 무해(크레딧 낭비 없음). 정리하려면 `ops/install.sh --uninstall`.
+
 # cairn launchd 등록 헬퍼 (daily / weekly / monthly 일괄)
 #
 # - 각 plist template 의 placeholder (__NODE_PATH__ / __CAIRN_DIR__ /
