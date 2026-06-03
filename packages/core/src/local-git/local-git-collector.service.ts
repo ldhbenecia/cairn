@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { basename } from 'node:path';
+import { withConcurrency } from '../common/concurrency.js';
 import { kstDateToUtcWindow } from '../common/date-window.js';
 import { CairnError } from '../common/error.js';
 import type {
@@ -79,7 +80,7 @@ export class LocalGitCollectorService {
     }
 
     const raw = await this.client.listCommits(repoPath, since, until, email);
-    const commits = await Promise.all(raw.map((c) => this.enrich(repoPath, c)));
+    const commits = await withConcurrency(raw, 8, (c) => this.enrich(repoPath, c));
 
     return { repo, commitCount: commits.length, commits };
   }

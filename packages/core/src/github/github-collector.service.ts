@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { withConcurrency } from '../common/concurrency.js';
 import { kstDateToUtcWindow, searchRangeFragment, todayKstIsoDate } from '../common/date-window.js';
 import { CairnError } from '../common/error.js';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
@@ -136,31 +137,47 @@ export class GithubCollectorService {
     this.tag(buckets, account.label, reviewed, 'reviewed');
     this.tag(buckets, account.label, commented, 'commented');
 
-    // Phase 1: listCommits + day-relevance 판정 (PR 당 1 API call). secondary rate limit
-    // 회피를 위해 token 당 동시 호출 5 개로 제한.
+    // Phase 1: day-relevance 판정. 이미 narrow query(review/comment)나 created/merged date로
+    // 관련성이 확정된 PR은 commits 조회를 생략하고, widened involved PR만 추가 확인한다.
+    // GitHub API secondary rate limit 회피를 위해 token 당 동시 호출 5 개로 제한.
     const phase1 = await withConcurrency([...buckets.values()], 5, async (bucket) => {
       const { item, categories } = bucket;
       const skipCommitsOnDate = categories.has('authored_merged') && item.createdAt < sinceIso;
-      const commitsOnDate = skipCommitsOnDate
-        ? []
-        : await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin);
       const createdInDay = item.createdAt >= sinceIso && item.createdAt <= untilIso;
       const hasNarrow = categories.has('reviewed') || categories.has('commented');
       const hasAuthoredMerged = categories.has('authored_merged');
+      const needsCommitsForEligibility =
+        !skipCommitsOnDate && !hasNarrow && !hasAuthoredMerged && !createdInDay;
+      const commitsOnDate = needsCommitsForEligibility
+        ? await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin)
+        : [];
       const eligible = hasNarrow || hasAuthoredMerged || createdInDay || commitsOnDate.length > 0;
-      return { bucket, commitsOnDate, eligible };
+      return { bucket, commitsOnDate, eligible, commitLookupAttempted: needsCommitsForEligibility };
     });
 
     const eligible = phase1.filter((p) => p.eligible);
 
-    // Phase 2: eligible PR 만 files + body fetch (2 calls/eligible). 동시성 5 제한 유지.
+    this.logger.info(
+      {
+        account: account.label,
+        bucketCount: buckets.size,
+        commitLookupCount: phase1.filter((p) => p.commitLookupAttempted).length,
+        eligibleCount: eligible.length,
+      },
+      'github collect account classified',
+    );
+
+    // Phase 2: eligible PR 만 files fetch. PR body 는 search result payload 를 재사용한다.
     return withConcurrency(eligible, 5, async ({ bucket, commitsOnDate }) => {
       const { account: acc, item, categories } = bucket;
       const skipBody = categories.size === 1 && categories.has('involved');
-      const [changedFileNames, body] = await Promise.all([
-        this.client.listPrFileBasenames(token, item.owner, item.repo, item.number),
-        skipBody ? Promise.resolve(null) : this.fetchSafeBody(token, item),
-      ]);
+      const changedFileNames = await this.client.listPrFileBasenames(
+        token,
+        item.owner,
+        item.repo,
+        item.number,
+      );
+      const body = skipBody ? null : this.safeSearchBody(item);
       return {
         account: acc,
         repo: item.repo,
@@ -247,17 +264,8 @@ export class GithubCollectorService {
     return out;
   }
 
-  private async fetchSafeBody(token: string, item: SearchPrItem): Promise<string | null> {
-    let raw: string | null;
-    try {
-      raw = await this.client.fetchPrBody(token, item.owner, item.repo, item.number);
-    } catch (err) {
-      this.logger.warn(
-        { repo: item.repo, number: item.number, err: CairnError.from(err, 'github').code },
-        'pr body fetch failed — body null',
-      );
-      return null;
-    }
+  private safeSearchBody(item: SearchPrItem): string | null {
+    const raw = item.body;
     if (!raw) return null;
     const truncated = raw.length > PR_BODY_MAX_CHARS ? raw.slice(0, PR_BODY_MAX_CHARS) : raw;
     try {
@@ -285,23 +293,4 @@ function computeLookbackStartIso(date: string, lookbackDays: number, dayStartIso
   if (y === undefined || m === undefined || d === undefined) return dayStartIso;
   const startKst = new Date(Date.UTC(y, m - 1, d - lookbackDays, -9, 0, 0));
   return startKst.toISOString().replace(/\.\d{3}Z$/, 'Z');
-}
-
-// GitHub API 의 secondary rate limit 회피 — token 당 simultaneous 호출 cap
-async function withConcurrency<T, R>(
-  items: readonly T[],
-  limit: number,
-  fn: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = new Array<R>(items.length);
-  let cursor = 0;
-  const worker = async (): Promise<void> => {
-    while (cursor < items.length) {
-      const idx = cursor++;
-      results[idx] = await fn(items[idx]!);
-    }
-  };
-  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
-  await Promise.all(workers);
-  return results;
 }

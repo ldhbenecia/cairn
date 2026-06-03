@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { withConcurrency } from '../common/concurrency.js';
 import { CairnError } from '../common/error.js';
 import type {
   RollupActivity,
@@ -88,16 +89,16 @@ export class RollupCollectorService {
     let commitTotal = 0;
     let notionTotal = 0;
 
-    for (const page of pages) {
+    const parsedSummaries = await withConcurrency(pages, 4, async (page) => {
       const counts = parseSourceCounts(page.sourceCounts);
-      dailies.push({
+      const daily: RollupDailyPageMeta = {
         date: page.date,
         pageId: page.pageId,
         url: page.url ?? '',
         prCount: counts.prCount,
         commitCount: counts.commitCount,
         notionPageCount: counts.notionPageCount,
-      });
+      };
       prTotal += counts.prCount;
       commitTotal += counts.commitCount;
       notionTotal += counts.notionPageCount;
@@ -105,13 +106,19 @@ export class RollupCollectorService {
       try {
         const blocks = await this.api.getPageBlocks(token, page.pageId);
         const parsed = parseSummaryFromBlocks(blocks);
-        if (parsed) summaries.push({ date: page.date, ...parsed });
+        return { daily, summary: parsed ? { date: page.date, ...parsed } : null };
       } catch (err) {
         this.logger.warn(
           { date: page.date, error: CairnError.from(err, 'notion') },
           'rollup collect: page body fetch failed — skipping summary text for this day',
         );
+        return { daily, summary: null };
       }
+    });
+
+    for (const item of parsedSummaries) {
+      dailies.push(item.daily);
+      if (item.summary) summaries.push(item.summary);
     }
 
     const metrics: RollupMetrics = {

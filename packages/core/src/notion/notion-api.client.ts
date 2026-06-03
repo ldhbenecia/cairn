@@ -37,6 +37,7 @@ interface SearchPageItem {
 @Injectable()
 export class NotionApiClient {
   private readonly clients = new Map<string, Client>();
+  private static readonly REQUEST_TIMEOUT_MS = 30_000;
 
   constructor(
     @InjectPinoLogger(NotionApiClient.name)
@@ -226,7 +227,7 @@ export class NotionApiClient {
   getClient(token: string): Client {
     let client = this.clients.get(token);
     if (!client) {
-      client = new Client({ auth: token });
+      client = new Client({ auth: token, timeoutMs: NotionApiClient.REQUEST_TIMEOUT_MS });
       this.clients.set(token, client);
       this.logger.debug('notion client initialized');
     }

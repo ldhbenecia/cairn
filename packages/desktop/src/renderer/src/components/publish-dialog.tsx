@@ -43,6 +43,8 @@ const STEP_HINT_KEY: Record<RunStep, I18nKey> = {
   done: 'publish.hint.publish',
 };
 
+const DAILY_BACKFILL_DAYS = 7;
+
 export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
   const { t } = useSettings();
   const [open, setOpen] = useState(false);
@@ -139,7 +141,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                   onClick={() => {
                     setShowProgress(true);
                     void onTrigger(mode, {
-                      backfillDays: mode === 'daily' && includeBackfill ? undefined : 0,
+                      backfillDays: mode === 'daily' && includeBackfill ? DAILY_BACKFILL_DAYS : 0,
                       force,
                     });
                   }}
