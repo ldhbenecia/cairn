@@ -62,11 +62,11 @@ export function applyAccent(id: string): void {
   accentMounted = true;
 }
 
-export function applyGlass(mode: string): void {
+export function applyGlass(on: boolean): void {
   runWithCrossfade(() => {
     const root = document.documentElement;
-    if (!mode || mode === 'off') root.removeAttribute('data-glass');
-    else root.setAttribute('data-glass', mode);
+    if (on) root.setAttribute('data-glass', 'on');
+    else root.removeAttribute('data-glass');
   }, !glassMounted);
   glassMounted = true;
 }

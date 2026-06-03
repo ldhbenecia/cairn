@@ -60,7 +60,6 @@ export type RunLine = {
 };
 
 export type Theme = 'dark' | 'light' | 'system';
-export type GlassMode = 'off' | 'clear' | 'tint';
 export type Language = 'ko' | 'en';
 
 export type NotionProbe = { ok: boolean; persons: { id: string; name: string }[]; error?: string };
@@ -92,7 +91,7 @@ export type AutoPublish = {
 export type Settings = {
   theme: Theme;
   accent: string;
-  liquidGlass: GlassMode;
+  liquidGlass: boolean;
   language: Language;
   notifications: boolean;
   autoPublish: AutoPublish;

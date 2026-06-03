@@ -285,25 +285,14 @@ button:not(:disabled) {
   color: #1d7a43;
 }
 
-/* Liquid Glass (Preferences) — clear=더 투명, tint=accent 틴트. 떠 있는 표면(.glass-panel) frosted */
-[data-glass='clear'] .glass-panel,
-[data-glass='tint'] .glass-panel {
+/* Liquid Glass (Preferences) — 떠 있는 표면(.glass-panel) frosted/translucent */
+[data-glass='on'] .glass-panel {
+  background: color-mix(in srgb, var(--color-surface-1) 52%, transparent);
   backdrop-filter: blur(30px) saturate(1.8);
   -webkit-backdrop-filter: blur(30px) saturate(1.8);
   border-color: color-mix(in srgb, var(--color-ink) 14%, transparent);
 }
-[data-glass='clear'] .glass-panel {
-  background: color-mix(in srgb, var(--color-surface-1) 48%, transparent);
-}
-[data-glass='tint'] .glass-panel {
-  background: color-mix(
-    in srgb,
-    var(--color-accent) 14%,
-    color-mix(in srgb, var(--color-surface-1) 72%, transparent)
-  );
-}
 /* 글래스일 때 다이얼로그 오버레이를 밝혀 뒤 콘텐츠가 frosted 로 비치게 */
-[data-glass='clear'] .dialog-overlay,
-[data-glass='tint'] .dialog-overlay {
+[data-glass='on'] .dialog-overlay {
   background-color: rgba(0, 0, 0, 0.28);
 }
