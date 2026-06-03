@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 const IS_PACKAGED = process.argv.includes('--cairn-packaged');
 
 export type Theme = 'dark' | 'light' | 'system';
+export type GlassMode = 'off' | 'clear' | 'tint';
 export type Language = 'ko' | 'en';
 export type AutoPublish = {
   daily: boolean;
@@ -15,7 +16,7 @@ export type AutoPublish = {
 export type Settings = {
   theme: Theme;
   accent: string;
-  liquidGlass: boolean;
+  liquidGlass: GlassMode;
   language: Language;
   notifications: boolean;
   autoPublish: AutoPublish;

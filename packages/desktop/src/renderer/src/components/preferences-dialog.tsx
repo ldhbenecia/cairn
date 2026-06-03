@@ -14,7 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { Language, Theme } from '../cairn-api';
+import type { GlassMode, Language, Theme } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { ACCENTS, useSettings } from '../settings-context';
 import { Toggle } from './toggle';
@@ -121,6 +121,11 @@ function AppearanceTab() {
     { value: 'ko', label: '한국어' },
     { value: 'en', label: 'English' },
   ];
+  const glassOptions: { value: GlassMode; label: string }[] = [
+    { value: 'off', label: t('prefs.glass.off') },
+    { value: 'clear', label: t('prefs.glass.clear') },
+    { value: 'tint', label: t('prefs.glass.tint') },
+  ];
 
   return (
     <div className="divide-y divide-hairline">
@@ -166,7 +171,11 @@ function AppearanceTab() {
       </Field>
 
       <Field label={t('prefs.glass')} desc={t('prefs.glass.desc')}>
-        <Toggle checked={settings.liquidGlass} onChange={(v) => update({ liquidGlass: v })} />
+        <Segmented
+          options={glassOptions}
+          value={settings.liquidGlass}
+          onChange={(v) => update({ liquidGlass: v })}
+        />
       </Field>
     </div>
   );

@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 export type Theme = 'dark' | 'light' | 'system';
+export type GlassMode = 'off' | 'clear' | 'tint';
 export type Language = 'ko' | 'en';
 
 export type AutoPublish = {
@@ -17,7 +18,7 @@ export type AutoPublish = {
 export type Settings = {
   theme: Theme;
   accent: string;
-  liquidGlass: boolean;
+  liquidGlass: GlassMode;
   language: Language;
   notifications: boolean;
   autoPublish: AutoPublish;
@@ -27,7 +28,7 @@ export type Settings = {
 const DEFAULTS: Settings = {
   theme: 'system',
   accent: 'indigo',
-  liquidGlass: false,
+  liquidGlass: 'off',
   language: 'en',
   notifications: true,
   autoPublish: {
@@ -48,15 +49,24 @@ export function readSettings(): Settings {
   try {
     const parsed = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8')) as Partial<Settings> & {
       autoPublish?: Partial<AutoPublish> & { enabled?: boolean };
+      liquidGlass?: GlassMode | boolean;
     };
     const ap = { ...DEFAULTS.autoPublish, ...(parsed.autoPublish ?? {}) };
     // 레거시: 단일 토글 enabled → daily 로 이관
     if (parsed.autoPublish?.enabled !== undefined && parsed.autoPublish.daily === undefined) {
       ap.daily = parsed.autoPublish.enabled;
     }
+    // 레거시: liquidGlass boolean → enum
+    const liquidGlass: GlassMode =
+      typeof parsed.liquidGlass === 'boolean'
+        ? parsed.liquidGlass
+          ? 'clear'
+          : 'off'
+        : (parsed.liquidGlass ?? DEFAULTS.liquidGlass);
     return {
       ...DEFAULTS,
       ...parsed,
+      liquidGlass,
       autoPublish: {
         daily: ap.daily,
         weekly: ap.weekly,
