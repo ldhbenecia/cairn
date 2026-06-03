@@ -81,7 +81,9 @@ export type OnboardingPayload = {
   localGitRepos: string[];
 };
 export type AutoPublish = {
-  enabled: boolean;
+  daily: boolean;
+  weekly: boolean;
+  monthly: boolean;
   time: string;
   backfillDays: number;
   confirmBeforeRun: boolean;

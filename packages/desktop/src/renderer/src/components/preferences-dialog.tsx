@@ -191,48 +191,59 @@ const timeToMinutes = (t: string): number => {
 function AutoPublishTab() {
   const { settings, update, t } = useSettings();
   const ap = settings.autoPublish;
-  const on = ap.enabled;
+  const anyOn = ap.daily || ap.weekly || ap.monthly;
+  const set = (patch: Partial<typeof ap>): void => update({ autoPublish: { ...ap, ...patch } });
 
   return (
     <div className="divide-y divide-hairline">
-      <Field label={t('prefs.autoPublish.enabled')} desc={t('prefs.autoPublish.enabledDesc')}>
-        <Toggle checked={on} onChange={(v) => update({ autoPublish: { ...ap, enabled: v } })} />
+      <Field label={t('prefs.autoPublish.daily')} desc={t('prefs.autoPublish.dailyDesc')}>
+        <Toggle checked={ap.daily} onChange={(v) => set({ daily: v })} />
+      </Field>
+      <Field label={t('prefs.autoPublish.weekly')} desc={t('prefs.autoPublish.weeklyDesc')}>
+        <Toggle checked={ap.weekly} onChange={(v) => set({ weekly: v })} />
+      </Field>
+      <Field label={t('prefs.autoPublish.monthly')} desc={t('prefs.autoPublish.monthlyDesc')}>
+        <Toggle checked={ap.monthly} onChange={(v) => set({ monthly: v })} />
       </Field>
 
-      <Field label={t('prefs.autoPublish.time')} desc={t('prefs.autoPublish.timeDesc')} dim={!on}>
+      <Field
+        label={t('prefs.autoPublish.time')}
+        desc={t('prefs.autoPublish.timeDesc')}
+        dim={!anyOn}
+      >
         <Select
           value={timeToMinutes(ap.time)}
           options={TIME_SLOTS}
-          disabled={!on}
+          disabled={!anyOn}
           format={fmtTime}
           menuWidth="w-40"
-          onChange={(mins) => update({ autoPublish: { ...ap, time: fmtTime(mins) } })}
+          onChange={(mins) => set({ time: fmtTime(mins) })}
         />
       </Field>
 
       <Field
         label={t('prefs.autoPublish.backfill')}
         desc={t('prefs.autoPublish.backfillDesc')}
-        dim={!on}
+        dim={!ap.daily}
       >
         <Select
           value={ap.backfillDays}
           options={BACKFILL_DAYS}
-          disabled={!on}
+          disabled={!ap.daily}
           format={(d) => String(d)}
-          onChange={(d) => update({ autoPublish: { ...ap, backfillDays: d } })}
+          onChange={(d) => set({ backfillDays: d })}
         />
       </Field>
 
       <Field
         label={t('prefs.autoPublish.confirm')}
         desc={t('prefs.autoPublish.confirmDesc')}
-        dim={!on}
+        dim={!anyOn}
       >
         <Toggle
           checked={ap.confirmBeforeRun}
-          disabled={!on}
-          onChange={(v) => update({ autoPublish: { ...ap, confirmBeforeRun: v } })}
+          disabled={!anyOn}
+          onChange={(v) => set({ confirmBeforeRun: v })}
         />
       </Field>
 

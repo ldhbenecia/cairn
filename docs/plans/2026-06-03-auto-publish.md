@@ -47,7 +47,7 @@ autoPublish: {
 
 ## 보류 / 후속
 
-- weekly/monthly 자동 발화 (이번엔 daily 우선)
+- ~~weekly/monthly 자동 발화~~ ✅ — **일간/주간/월간 독립 토글**(주간/월간은 크레딧 차등 안내). 월요일=weekly(어제 anchor=지난주), 1일=monthly(어제=지난달), daily→weekly→monthly 순차
 - confirmBeforeRun 의 알림→인앱 확인 다이얼로그 고도화
 - launchd 정리/이관 안내
 - **커스텀 프롬프트 = billing 기능 후보로 최후 보류** (그룹 1 plan 의 그룹 3 → billing 으로 흡수)

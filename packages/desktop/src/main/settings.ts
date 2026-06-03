@@ -6,9 +6,11 @@ export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
 
 export type AutoPublish = {
-  enabled: boolean; // opt-in = 동의. 기본 false
-  time: string; // "HH:mm" 매일 발화 시각
-  backfillDays: number; // 실행 시 백필 일수
+  daily: boolean; // 매일 일지 (opt-in)
+  weekly: boolean; // 월요일에 지난주 정리 (opt-in)
+  monthly: boolean; // 매월 1일에 지난달 정리 (opt-in)
+  time: string; // "HH:mm" 발화 시각 (공유)
+  backfillDays: number; // daily 백필 일수
   confirmBeforeRun: boolean; // true 면 자동 실행 대신 알림으로 확인
 };
 
@@ -26,7 +28,14 @@ const DEFAULTS: Settings = {
   accent: 'indigo',
   language: 'en',
   notifications: true,
-  autoPublish: { enabled: false, time: '19:00', backfillDays: 7, confirmBeforeRun: false },
+  autoPublish: {
+    daily: false,
+    weekly: false,
+    monthly: false,
+    time: '19:00',
+    backfillDays: 7,
+    confirmBeforeRun: false,
+  },
   prompts: { daily: null, weekly: null, monthly: null },
 };
 
@@ -35,11 +44,25 @@ const SETTINGS_PATH = join(homedir(), '.cairn', 'settings.json');
 
 export function readSettings(): Settings {
   try {
-    const parsed = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8')) as Partial<Settings>;
+    const parsed = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8')) as Partial<Settings> & {
+      autoPublish?: Partial<AutoPublish> & { enabled?: boolean };
+    };
+    const ap = { ...DEFAULTS.autoPublish, ...(parsed.autoPublish ?? {}) };
+    // 레거시: 단일 토글 enabled → daily 로 이관
+    if (parsed.autoPublish?.enabled !== undefined && parsed.autoPublish.daily === undefined) {
+      ap.daily = parsed.autoPublish.enabled;
+    }
     return {
       ...DEFAULTS,
       ...parsed,
-      autoPublish: { ...DEFAULTS.autoPublish, ...(parsed.autoPublish ?? {}) },
+      autoPublish: {
+        daily: ap.daily,
+        weekly: ap.weekly,
+        monthly: ap.monthly,
+        time: ap.time,
+        backfillDays: ap.backfillDays,
+        confirmBeforeRun: ap.confirmBeforeRun,
+      },
       prompts: { ...DEFAULTS.prompts, ...(parsed.prompts ?? {}) },
     };
   } catch {
