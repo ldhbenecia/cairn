@@ -56,7 +56,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50" />
         <Dialog.Content
           style={{ width: 920, height: 600, maxWidth: '92vw', maxHeight: '86vh' }}
-          className="dialog-content fixed top-1/2 left-1/2 z-50 flex flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 focus:outline-none"
+          className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 focus:outline-none"
         >
           <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
             <Dialog.Title className="text-[16px] font-semibold tracking-[-0.2px] text-ink">
@@ -163,6 +163,10 @@ function AppearanceTab() {
           value={settings.language}
           onChange={(v) => update({ language: v })}
         />
+      </Field>
+
+      <Field label={t('prefs.glass')} desc={t('prefs.glass.desc')}>
+        <Toggle checked={settings.liquidGlass} onChange={(v) => update({ liquidGlass: v })} />
       </Field>
     </div>
   );
@@ -304,7 +308,7 @@ function Select({
           ref={listRef}
           className={[
             closing ? 'popover-out' : 'popover-in',
-            'absolute right-0 z-10 mt-1.5 max-h-64 overflow-y-auto rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40',
+            'glass-panel absolute right-0 z-10 mt-1.5 max-h-64 overflow-y-auto rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40',
             menuWidth,
           ].join(' ')}
         >

@@ -284,3 +284,10 @@ button:not(:disabled) {
 [data-theme='light'] .chip-final {
   color: #1d7a43;
 }
+
+/* Liquid Glass (Preferences 토글) — data-glass=on 일 때 떠 있는 표면을 frosted/translucent */
+[data-glass='on'] .glass-panel {
+  background: color-mix(in srgb, var(--color-surface-1) 68%, transparent);
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+}
