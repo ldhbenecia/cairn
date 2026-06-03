@@ -12,4 +12,4 @@
 - [ ] `package.json` version bump (ADR 0005)
 - [ ] `docs/progress/` 일지 갱신, 단계 완료 시 진행률 표도 갱신
 - [ ] 외부 송신·민감정보 점검 (ADR 0003)
-- [ ] `node dist/main.js --mode=... --dry-run` 검증 (해당 시)
+- [ ] 동작 검증 — 엔진: `node dist/main.js --mode=… --dry-run` / 데스크톱: typecheck·build·실행 확인
