@@ -17,7 +17,7 @@ import type { I18nKey } from '../i18n';
 import { ACCENTS, useSettings } from '../settings-context';
 import { Toggle } from './toggle';
 
-const FEEDBACK_EMAIL = 'jh07050@gmail.com';
+const FEEDBACK_EMAIL = 'cairnlog@gmail.com';
 
 type TabId = 'appearance' | 'notifications' | 'connections' | 'billing' | 'feedback' | 'about';
 
