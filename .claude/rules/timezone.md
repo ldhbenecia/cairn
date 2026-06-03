@@ -11,11 +11,10 @@
 - 표시(발행 시각, 마지막 편집 등)도 로컬 기준으로 보여준다.
 - 설정으로 타임존을 바꿀 수 있게 할 거면 명시적 옵션으로. 기본값은 머신 로컬 TZ.
 
-## 현재 알려진 부채 (국제 배포 전 필수 처리)
+## core 날짜 윈도우 (해결됨 — ADR 0016)
 
-- core `packages/core/src/common/date-window.ts` 의 `todayKstIsoDate`, `kstDateToUtcWindow` 등이 **KST 하드코딩**. 한국 밖 사용자는 "오늘"이 어긋나 엉뚱한 날짜의 일지를 만든다.
-- 날짜 윈도우 수학을 **머신 로컬 TZ(또는 설정 가능 TZ)** 기준으로 일반화해야 함. 날짜 경계 단위 테스트 동반.
-- 관련 plan: [docs/plans/2026-06-03-auto-publish.md](../../docs/plans/2026-06-03-auto-publish.md) 의 "타임존 / 국제화" 섹션.
+- `date-window.ts` 의 KST 하드코딩(`kstDateToUtcWindow`/`todayKstIsoDate`)을 **머신 로컬 TZ** 기준(`localDateToUtcWindow`/`todayLocalIsoDate`)으로 일반화함. 경계 단위 테스트 동반. 한국 사용자는 로컬=KST 라 무변경.
+- 새 날짜 로직도 이 함수들(로컬 기준)을 쓰고, KST/UTC 단정 금지.
 
 ## 새 코드 작성 시
 
