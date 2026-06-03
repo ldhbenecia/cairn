@@ -1,77 +1,70 @@
 # cairn
 
-> Automatic worklog and rollup tool that aggregates GitHub, local Git, and Notion activity into Notion pages.
+> 등산로의 돌탑처럼, 매일 작업 흔적 하나씩 쌓아 길을 남긴다.
 
-cairn collects a single developer's daily activity — GitHub PRs and reviews, local Git commits across multiple repositories, and Notion edits — and publishes a Korean-language summary to a Notion page each evening. Weekly and monthly rollups are produced automatically.
+cairn turns your daily dev activity — GitHub PRs/reviews and local Git commits across multiple repos — into a Claude-summarized worklog published to Notion, with automatic weekly and monthly rollups.
 
-The tool runs locally on macOS via `launchd` and uses the Claude Agent SDK (no direct Anthropic API calls). Source code is never sent to external services.
+It runs as an **Electron desktop app** on top of a headless engine. Everything stays on your machine: it uses the Claude Agent SDK (no direct Anthropic API calls) and never sends source code or diffs to external services.
 
-## Status
+## Highlights
 
-v0.9.0 — all 8 stages complete (CLI + launchd + daily / weekly / monthly + setup guide). 1.0.0 is deferred until robustness work (multi-account GitHub, sleep-aware backfill) lands. Current state: [docs/progress/](docs/progress/).
+- **Aggregate** — GitHub PRs/reviews + local Git commits across multiple repositories
+- **Summarize** — Claude (Agent SDK) writes a Korean-language worklog
+- **Publish** — to Notion: daily logs + automatic weekly/monthly rollups
+- **Desktop app** — guided first-run setup, one-click publish, opt-in auto-publish at a time you choose (your local timezone), in-app Notion viewer, dark/light/system themes, ko/en
+- **Local-first & private** — machine-local secrets, no server, no code-body egress (ADR 0003)
 
 ## Requirements
 
-- macOS (launchd)
-- Node 24 LTS (see [.nvmrc](.nvmrc))
-- pnpm 10+
-- Claude Pro/Max subscription (for Agent SDK quota)
+- macOS
+- Claude Pro/Max subscription or Anthropic API key (for the Agent SDK)
 - GitHub fine-grained PAT (read-only)
 - Notion internal integration token
 
-## Setup
+The desktop app's first-run setup walks you through connecting these and writes the config for you.
 
-Full step-by-step guide: [docs/SETUP.md](docs/SETUP.md) ([한국어](docs/SETUP.ko.md)).
+## Build & run from source
 
-Quick start:
+Packaged releases are planned; for now build from source.
+
+- Node 24 LTS (see [.nvmrc](.nvmrc)), pnpm 10+
 
 ```bash
-git clone <repo-url> cairn
+git clone https://github.com/ldhbenecia/cairn.git
 cd cairn
 nvm use
 pnpm install
 
-cp .env.example .env
-# fill in tokens in .env, then create worklog.config.json (see docs/SETUP.md)
-# — or just run the desktop app: the first-run setup writes both for you
-
-pnpm build
-node packages/core/dist/main.js --mode=daily --date=$(date +%F) --dry-run
-ops/install.sh   # register daily + weekly + monthly launchd jobs
+pnpm --filter @cairn/desktop dev   # run the desktop app (dev)
 ```
 
-## Commands
-
-| Script | Description |
-|--------|-------------|
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm lint` | ESLint |
-| `pnpm lint:fix` | ESLint with autofix |
-| `pnpm format` | Prettier write |
-| `pnpm format:check` | Prettier check |
-| `pnpm build` | Build all packages (`@cairn/core` → `packages/core/dist/`) |
-| `pnpm start` | Run `packages/core/dist/main.js` |
-
-## Usage
+Headless engine only (CLI):
 
 ```bash
+pnpm build
 node packages/core/dist/main.js --mode=daily --date=$(date +%F) --dry-run
 ```
 
-Modes: `daily`, `weekly`, `monthly`. Sources can be limited with repeated `--source=` flags (`github`, `local-git`, `notion`).
+Modes: `daily`, `weekly`, `monthly`. Manual setup of `.env` + `worklog.config.json` is documented in [docs/SETUP.md](docs/SETUP.md) ([한국어](docs/SETUP.ko.md)) — though the desktop app generates both.
+
+> The `launchd` jobs under [ops/](ops/) are **deprecated** — auto-publish is owned by the desktop app (ADR 0015). They remain only for headless/CLI-only setups.
+
+## Architecture
+
+pnpm monorepo:
+
+- `packages/core` — headless engine (collectors → Claude summarizer → Notion publisher), runnable as a CLI
+- `packages/desktop` — Electron app (setup wizard, manual/auto publishing, in-app log viewer, preferences)
 
 ## Documentation
 
 | Path | Contents |
 |------|----------|
-| [docs/SETUP.md](docs/SETUP.md) ([한국어](docs/SETUP.ko.md)) | Step-by-step setup guide |
+| [docs/SETUP.md](docs/SETUP.md) ([한국어](docs/SETUP.ko.md)) | Manual setup guide |
 | [docs/plans/](docs/plans/) | Living design plans |
 | [docs/progress/](docs/progress/) | Work log entries and stage progress |
 | [docs/decisions/](docs/decisions/) | Architecture Decision Records |
-| [CLAUDE.md](CLAUDE.md) | Working context for Claude Code |
-| [AGENTS.md](AGENTS.md) | Working context for Codex |
-| [packages/core/AGENTS.md](packages/core/AGENTS.md) | Codex context for core CLI |
-| [packages/desktop/AGENTS.md](packages/desktop/AGENTS.md) | Codex context for desktop app |
+| [CLAUDE.md](CLAUDE.md) / [AGENTS.md](AGENTS.md) | Working context for Claude Code / Codex |
 | [.claude/rules/](.claude/rules/) | Project rules |
 
 ## License
