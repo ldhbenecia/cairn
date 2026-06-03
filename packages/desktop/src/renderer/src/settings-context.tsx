@@ -2,6 +2,22 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import type { Settings, Theme } from './cairn-api';
 import { translate, type I18nKey } from './i18n';
 
+// 테마/강조색 스왑은 View Transitions API 로 화면 전체를 한 번에 크로스페이드
+// (per-element 트랜지션의 "끝에서 노드별로 늦게 끝나는" 잔상 없이 매끄럽게)
+type ViewTransitionDoc = Document & { startViewTransition?: (cb: () => void) => unknown };
+
+let themeMounted = false;
+let accentMounted = false;
+
+function runWithCrossfade(mutate: () => void, skip: boolean): void {
+  const doc = document as ViewTransitionDoc;
+  if (skip || typeof doc.startViewTransition !== 'function') {
+    mutate();
+    return;
+  }
+  doc.startViewTransition(mutate);
+}
+
 export function applyTheme(theme: Theme): void {
   const resolved =
     theme === 'system'
@@ -9,7 +25,40 @@ export function applyTheme(theme: Theme): void {
         ? 'light'
         : 'dark'
       : theme;
-  document.documentElement.setAttribute('data-theme', resolved);
+  // 첫 마운트는 즉시(크로스페이드 X — 초기 로드 깜빡임 방지), 이후 사용자 전환만 크로스페이드
+  runWithCrossfade(
+    () => document.documentElement.setAttribute('data-theme', resolved),
+    !themeMounted,
+  );
+  themeMounted = true;
+}
+
+// accent 프리셋. indigo = 기본값(스타일시트의 테마별 accent 를 그대로 사용 → override 안 함)
+export const ACCENTS = [
+  { id: 'indigo', color: '#5b61e6', hover: '#757bf0', focus: '#474dcc' },
+  { id: 'blue', color: '#3b82f6', hover: '#5b9bff', focus: '#2861c8' },
+  { id: 'violet', color: '#8b5cf6', hover: '#a47cff', focus: '#6d3ed0' },
+  { id: 'teal', color: '#14b8a6', hover: '#2dd4c2', focus: '#0c8f81' },
+  { id: 'rose', color: '#f43f5e', hover: '#ff5d77', focus: '#c92742' },
+  { id: 'amber', color: '#f59e0b', hover: '#ffb52e', focus: '#c47d00' },
+] as const;
+
+export function applyAccent(id: string): void {
+  const apply = (): void => {
+    const root = document.documentElement.style;
+    const a = ACCENTS.find((x) => x.id === id);
+    if (!a || a.id === 'indigo') {
+      root.removeProperty('--color-accent');
+      root.removeProperty('--color-accent-hover');
+      root.removeProperty('--color-accent-focus');
+      return;
+    }
+    root.setProperty('--color-accent', a.color);
+    root.setProperty('--color-accent-hover', a.hover);
+    root.setProperty('--color-accent-focus', a.focus);
+  };
+  runWithCrossfade(apply, !accentMounted);
+  accentMounted = true;
 }
 
 type Ctx = {
@@ -22,6 +71,10 @@ const SettingsContext = createContext<Ctx | null>(null);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(window.cairn.initialSettings);
+
+  useEffect(() => {
+    applyAccent(settings.accent);
+  }, [settings.accent]);
 
   useEffect(() => {
     applyTheme(settings.theme);

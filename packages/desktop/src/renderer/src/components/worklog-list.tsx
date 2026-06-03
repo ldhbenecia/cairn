@@ -254,15 +254,16 @@ export function WorklogList({
   );
 }
 
+// 칩 색은 테마별로 다르게 — styles.css 의 .chip-* (다크 기본 + 라이트 대비 보정)
 const CATEGORY_STYLE: Record<RecentCategory, string> = {
-  daily: 'border-accent/40 bg-accent/15 text-[#aab0f5]',
-  weekly: 'border-[#2f6fa8]/45 bg-[#2f6fa8]/15 text-[#7cc0ee]',
-  monthly: 'border-[#7c4aa8]/45 bg-[#7c4aa8]/15 text-[#c79af0]',
+  daily: 'chip-daily',
+  weekly: 'chip-weekly',
+  monthly: 'chip-monthly',
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  draft: 'border-[#7a5c3a]/40 bg-[#7a5c3a]/15 text-[#d4a574]',
-  final: 'border-success/40 bg-success/15 text-success',
+  draft: 'chip-draft',
+  final: 'chip-final',
 };
 
 type Group = { key: string; label: string; rows: RecentPage[] };
@@ -325,7 +326,7 @@ function PageRow({ page, t, onOpen }: { page: RecentPage; t: T; onOpen: (p: Rece
           {page.status}
         </span>
       )}
-      <span className="hidden w-16 shrink-0 text-right text-[12px] text-ink-tertiary sm:inline">
+      <span className="hidden w-16 shrink-0 text-right text-[12px] text-ink-subtle sm:inline">
         {page.workspaceLabel}
       </span>
     </button>

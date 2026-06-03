@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Check, ExternalLink, FolderPlus, Loader2, Plus, Search, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import type { NotionDb, NotionPage } from '../cairn-api';
 import { BrandMark } from './brand-mark';
 

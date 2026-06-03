@@ -6,6 +6,7 @@ export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
 export type Settings = {
   theme: Theme;
+  accent: string;
   language: Language;
   notifications: boolean;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };

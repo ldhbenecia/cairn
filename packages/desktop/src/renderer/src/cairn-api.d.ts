@@ -82,6 +82,7 @@ export type OnboardingPayload = {
 };
 export type Settings = {
   theme: Theme;
+  accent: string;
   language: Language;
   notifications: boolean;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
