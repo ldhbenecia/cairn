@@ -25,6 +25,7 @@ export type RunSession = {
   step: RunStep;
   lines: RunLine[];
   result?: CoreResult;
+  error?: string;
 };
 
 const TAIL_MAX = 200;
@@ -136,6 +137,12 @@ export function App() {
           return { ...prev, [mode]: { ...current, state: 'done', step: 'done', result } };
         });
         void loadRecent();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setSessions((prev) => {
+          const current = prev[mode] ?? { state: 'running', step: 'boot', lines: [] };
+          return { ...prev, [mode]: { ...current, state: 'done', error: message } };
+        });
       } finally {
         setRunningMode(null);
       }
