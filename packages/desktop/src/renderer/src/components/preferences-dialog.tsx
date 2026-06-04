@@ -415,12 +415,17 @@ function FeedbackTab() {
 }
 
 function AboutTab() {
-  const { t } = useSettings();
+  const { settings, update, t } = useSettings();
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between rounded-lg border border-hairline bg-surface-2 px-4 py-3 text-[13px]">
         <span className="text-ink-muted">cairn</span>
         <span className="font-mono text-ink-subtle">v{window.cairn.version}</span>
+      </div>
+      <div className="divide-y divide-hairline">
+        <Field label={t('prefs.telemetry')} desc={t('prefs.telemetry.desc')}>
+          <Toggle checked={settings.telemetry} onChange={(v) => update({ telemetry: v })} />
+        </Field>
       </div>
       <p className="text-[12px] leading-relaxed text-ink-tertiary">{t('prefs.privacy')}</p>
     </div>
