@@ -15,14 +15,13 @@ import {
 } from './onboarding';
 import { readSettings, writeSettings, type Settings } from './settings';
 import { isSetupComplete } from './setup';
+import { initTelemetry, shutdownTelemetry, trackAppLaunched } from './telemetry';
 import { setupTray } from './tray';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// 트레이의 "완전 종료" 로만 진짜 종료. dock Quit / Cmd+Q / 창 닫기는 백그라운드(트레이 유지)
 let allowQuit = false;
 
-// 단일 인스턴스 — 백그라운드 상주 중 재실행하면 기존 창 포커스 + 새 프로세스 종료 (트레이 중복 방지)
 if (!app.requestSingleInstanceLock()) {
   app.exit(0);
 }
@@ -56,7 +55,6 @@ function createWindow(): BrowserWindow {
   win.on('ready-to-show', () => win.show());
 
   win.on('close', (e) => {
-    // dev 에선 상주 안 함 — 창 닫기/Ctrl+C 로 완전 종료 (stale 인스턴스 방지). 배포에서만 트레이 상주
     if (allowQuit || !app.isPackaged) return;
     e.preventDefault();
     win.hide();
@@ -72,7 +70,6 @@ function createWindow(): BrowserWindow {
 }
 
 void app.whenReady().then(() => {
-  // dev 에선 dock 아이콘이 Electron 기본이라, 우리 아이콘으로 교체 (패키징은 electron-builder 가 처리)
   if (!app.isPackaged && process.platform === 'darwin') {
     try {
       app.dock?.setIcon(join(__dirname, '../../resources/icon.png'));
@@ -93,7 +90,6 @@ void app.whenReady().then(() => {
     fetchPageContent(pageId, workspaceLabel),
   );
 
-  // 무플래시 초기 로드용 동기 부트스트랩 (preload sandbox 에서 sendSync)
   ipcMain.on('cairn:bootstrap-sync', (e) => {
     e.returnValue = {
       settings: readSettings(),
@@ -103,7 +99,7 @@ void app.whenReady().then(() => {
   });
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {
     const next = writeSettings(patch);
-    if (patch.autoPublish) reconfigureAutoPublish(); // 자동 발행 토글/시각 변경 시 타이머 재설정
+    if (patch.autoPublish) reconfigureAutoPublish();
     return next;
   });
 
@@ -132,6 +128,8 @@ void app.whenReady().then(() => {
 
   // 자동 발행 — 실행 시 백필 + 매일 로컬 시각 발화 (opt-in, ADR 0015)
   initAutoPublish();
+  initTelemetry();
+  trackAppLaunched();
 
   app.on('activate', () => {
     if (win.isMinimized()) win.restore();
@@ -141,11 +139,12 @@ void app.whenReady().then(() => {
 });
 
 app.on('before-quit', (e) => {
-  // 배포에서만: 트레이 "완전 종료" 가 아니면 종료를 막고 백그라운드로 (창 숨김). dev 는 그냥 종료
   if (!allowQuit && app.isPackaged) {
     e.preventDefault();
     BrowserWindow.getAllWindows().forEach((w) => w.hide());
+    return;
   }
+  void shutdownTelemetry();
 });
 
 app.on('window-all-closed', () => {

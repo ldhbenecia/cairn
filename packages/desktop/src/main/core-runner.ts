@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sendResultNotification } from './notifier';
 import { readSettings } from './settings';
+import { trackPublish } from './telemetry';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 
@@ -181,6 +182,8 @@ export async function runCore(
         noActivity: finalNoActivity,
         stderrTail: tail,
       };
+      const outcome = result.ok ? (finalNoActivity ? 'no-activity' : 'ok') : 'fail';
+      trackPublish(mode, outcome);
       sendResultNotification(mode, result);
       resolvePromise(result);
     });

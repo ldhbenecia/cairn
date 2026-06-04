@@ -20,6 +20,8 @@ export type Settings = {
   liquidGlass: boolean;
   language: Language;
   notifications: boolean;
+  telemetry: boolean;
+  installId: string;
   autoPublish: AutoPublish;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
 };
@@ -30,6 +32,8 @@ const DEFAULTS: Settings = {
   liquidGlass: false,
   language: 'en',
   notifications: true,
+  telemetry: true,
+  installId: '',
   autoPublish: {
     daily: false,
     weekly: false,
