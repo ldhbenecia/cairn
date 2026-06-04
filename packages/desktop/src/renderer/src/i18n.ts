@@ -95,8 +95,11 @@ const STRINGS = {
     'prefs.feedback.placeholder': '무엇이든 적어주세요',
     'prefs.feedback.send': '메일로 보내기',
     'prefs.about': 'About',
+    'prefs.telemetry': '익명 사용 통계',
+    'prefs.telemetry.desc':
+      '제품 개선을 위한 익명 통계(앱 버전·발행 횟수 등)를 보냅니다. 일지 내용·코드·개인정보는 보내지 않아요.',
     'prefs.privacy':
-      '모든 데이터는 이 기기에만 저장돼요. Notion · GitHub · Claude 외 어디에도 전송하지 않습니다.',
+      '일지·코드·토큰은 이 기기에만 저장돼요. Notion · GitHub · Claude, 그리고 익명 사용 통계(끌 수 있음) 외에는 어디에도 전송하지 않습니다.',
   },
   en: {
     'brand.worklog': 'Worklog',
@@ -191,8 +194,11 @@ const STRINGS = {
     'prefs.feedback.placeholder': 'Write anything',
     'prefs.feedback.send': 'Send via email',
     'prefs.about': 'About',
+    'prefs.telemetry': 'Anonymous usage stats',
+    'prefs.telemetry.desc':
+      'Send anonymous stats (app version, publish counts, etc.) to help improve cairn. No worklog content, code, or personal info is sent.',
     'prefs.privacy':
-      'Everything stays on this device — nothing is sent anywhere except Notion · GitHub · Claude.',
+      'Your worklogs, code, and tokens stay on this device. Nothing is sent anywhere except Notion · GitHub · Claude, and anonymous usage stats (which you can turn off).',
   },
 } as const;
 

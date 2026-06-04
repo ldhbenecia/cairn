@@ -1,6 +1,6 @@
 {
   "name": "@cairn/desktop",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "private": true,
   "description": "cairn desktop — Electron shell for cairn engine. menubar tray + manual triggers + native notifications.",
   "type": "module",
@@ -22,6 +22,7 @@
     "@radix-ui/react-dialog": "^1.1.6",
     "highlight.js": "^11.11.1",
     "lucide-react": "^0.475.0",
+    "posthog-node": "^5.35.14",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

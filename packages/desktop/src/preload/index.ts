@@ -18,6 +18,7 @@ export type Settings = {
   liquidGlass: boolean;
   language: Language;
   notifications: boolean;
+  telemetry: boolean;
   autoPublish: AutoPublish;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
 };
