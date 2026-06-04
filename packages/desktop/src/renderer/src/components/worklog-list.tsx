@@ -308,7 +308,7 @@ function PageRow({ page, t, onOpen }: { page: RecentPage; t: T; onOpen: (p: Rece
     <button
       type="button"
       onClick={() => onOpen(page)}
-      className="flex w-full cursor-pointer items-center gap-4 border-b border-hairline px-4 py-3.5 text-left text-[13px] transition-[background-color] last:border-b-0 hover:bg-surface-2"
+      className="flex w-full items-center gap-4 border-b border-hairline px-4 py-3.5 text-left text-[13px] transition-[background-color] last:border-b-0 hover:bg-surface-2"
     >
       <span className="min-w-0 flex-1 truncate text-ink">{page.title}</span>
       {counts && (

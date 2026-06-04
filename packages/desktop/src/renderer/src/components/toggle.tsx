@@ -10,7 +10,7 @@ export function Toggle({ checked, onChange, disabled, label }: Props) {
     <label
       className={[
         'inline-flex select-none items-center gap-3 text-[13px] text-ink-muted',
-        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+        disabled ? 'cursor-not-allowed opacity-50' : '',
       ].join(' ')}
     >
       <button
