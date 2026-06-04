@@ -3,6 +3,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  GitCommitHorizontal,
+  GitPullRequest,
   ListTree,
   Loader2,
   RefreshCw,
@@ -292,7 +294,16 @@ function groupRows(rows: RecentPage[], groupBy: GroupBy, t: T): Group[] | null {
   return keys.map((k) => ({ key: k, label: labelOf(k), rows: map.get(k) as RecentPage[] }));
 }
 
+// "gh:6 / git:43 / notion:0"(과거 포맷) → { gh, git }. notion 은 무시.
+function parseSourceCounts(s: string): { gh: number; git: number } | null {
+  const gh = Number(/gh:(\d+)/.exec(s)?.[1]);
+  const git = Number(/git:(\d+)/.exec(s)?.[1]);
+  if (!Number.isFinite(gh) && !Number.isFinite(git)) return null;
+  return { gh: Number.isFinite(gh) ? gh : 0, git: Number.isFinite(git) ? git : 0 };
+}
+
 function PageRow({ page, t, onOpen }: { page: RecentPage; t: T; onOpen: (p: RecentPage) => void }) {
+  const counts = page.sourceCounts ? parseSourceCounts(page.sourceCounts) : null;
   return (
     <button
       type="button"
@@ -300,9 +311,16 @@ function PageRow({ page, t, onOpen }: { page: RecentPage; t: T; onOpen: (p: Rece
       className="flex w-full cursor-pointer items-center gap-4 border-b border-hairline px-4 py-3.5 text-left text-[13px] transition-[background-color] last:border-b-0 hover:bg-surface-2"
     >
       <span className="min-w-0 flex-1 truncate text-ink">{page.title}</span>
-      {page.sourceCounts && (
-        <span className="hidden shrink-0 font-mono text-[11px] text-ink-tertiary lg:inline">
-          {page.sourceCounts}
+      {counts && (
+        <span className="hidden shrink-0 items-center gap-2.5 font-mono text-[11px] text-ink-tertiary lg:flex">
+          <span className="flex items-center gap-1" title="GitHub PR">
+            <GitPullRequest size={11} strokeWidth={2} />
+            {counts.gh}
+          </span>
+          <span className="flex items-center gap-1" title="commits">
+            <GitCommitHorizontal size={11} strokeWidth={2} />
+            {counts.git}
+          </span>
         </span>
       )}
       <span
