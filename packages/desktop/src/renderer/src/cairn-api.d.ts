@@ -119,6 +119,7 @@ declare global {
       run: (mode: CoreMode, options?: CoreRunOptions) => Promise<CoreResult>;
       running: () => Promise<boolean>;
       openExternal: (url: string) => Promise<void>;
+      repoStars: () => Promise<number | null>;
       onRunLine: (cb: (l: RunLine) => void) => () => void;
       onFocusMode: (cb: (mode: CoreMode) => void) => () => void;
       onRunStep: (cb: (p: { mode: CoreMode; step: RunStep }) => void) => () => void;

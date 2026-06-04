@@ -94,7 +94,10 @@ const STRINGS = {
     'prefs.feedback.desc': '버그나 아이디어를 개발자에게 보내요',
     'prefs.feedback.placeholder': '무엇이든 적어주세요',
     'prefs.feedback.send': '메일로 보내기',
+    'prefs.feedback.send.issue': 'GitHub 이슈로 등록',
     'prefs.about': 'About',
+    'prefs.about.repo': 'GitHub 저장소',
+    'prefs.about.repo.desc': '소스 코드 · 이슈 · 기여 환영',
     'prefs.telemetry': '익명 사용 통계',
     'prefs.telemetry.desc':
       '제품 개선을 위한 익명 통계(앱 버전·발행 횟수 등)를 보냅니다. 일지 내용·코드·개인정보는 보내지 않아요.',
@@ -193,7 +196,10 @@ const STRINGS = {
     'prefs.feedback.desc': 'Send bugs or ideas to the developer',
     'prefs.feedback.placeholder': 'Write anything',
     'prefs.feedback.send': 'Send via email',
+    'prefs.feedback.send.issue': 'Open a GitHub issue',
     'prefs.about': 'About',
+    'prefs.about.repo': 'GitHub repository',
+    'prefs.about.repo.desc': 'Source · issues · contributions welcome',
     'prefs.telemetry': 'Anonymous usage stats',
     'prefs.telemetry.desc':
       'Send anonymous stats (app version, publish counts, etc.) to help improve cairn. No worklog content, code, or personal info is sent.',

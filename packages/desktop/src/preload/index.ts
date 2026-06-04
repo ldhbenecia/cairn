@@ -94,6 +94,8 @@ contextBridge.exposeInMainWorld('cairn', {
   running: (): Promise<boolean> => ipcRenderer.invoke('cairn:running') as Promise<boolean>,
   openExternal: (url: string): Promise<void> =>
     ipcRenderer.invoke('cairn:open-external', url) as Promise<void>,
+  repoStars: (): Promise<number | null> =>
+    ipcRenderer.invoke('cairn:repo:stars') as Promise<number | null>,
   onRunLine: (cb: (l: RunLine) => void): (() => void) => {
     const listener = (_e: Electron.IpcRendererEvent, payload: RunLine): void => cb(payload);
     ipcRenderer.on('cairn:run-line', listener);

@@ -13,6 +13,7 @@ import {
   searchNotionPages,
   type OnboardingPayload,
 } from './onboarding';
+import { fetchRepoStars } from './repo';
 import { readSettings, writeSettings, type Settings } from './settings';
 import { isSetupComplete } from './setup';
 import { initTelemetry, shutdownTelemetry, trackAppLaunched } from './telemetry';
@@ -83,6 +84,7 @@ void app.whenReady().then(() => {
   );
   ipcMain.handle('cairn:running', () => isRunning());
   ipcMain.handle('cairn:open-external', (_e, url: string) => shell.openExternal(url));
+  ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());
   ipcMain.handle('cairn:logs:tail', () => tailLatestLog());
   ipcMain.handle('cairn:recent:list', () => listRecentPages());
