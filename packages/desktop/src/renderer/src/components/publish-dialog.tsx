@@ -1,8 +1,8 @@
 import * as Dialog from '@radix-ui/react-dialog';
+import { Check, ExternalLink, Loader2, Plus, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Check, ExternalLink, Loader2, Plus, X } from 'lucide-react';
-import type { CoreMode, CoreResult, CoreRunOptions, RunStep } from '../cairn-api';
 import type { RunSession } from '../App';
+import type { CoreMode, CoreResult, CoreRunOptions, RunStep } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { Toggle } from './toggle';
@@ -93,7 +93,9 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
           </div>
 
           <div className="overflow-y-auto px-5 py-5">
-            {showProgress && isDone && session?.result ? (
+            {showProgress && isDone && session?.error ? (
+              <ErrorCard message={session.error} t={t} onClose={() => setOpen(false)} />
+            ) : showProgress && isDone && session?.result ? (
               <Result result={session.result} t={t} onClose={() => setOpen(false)} />
             ) : showProgress && (isRunning || busy) ? (
               <Progress session={session} t={t} />
@@ -240,6 +242,27 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
 function pageIdToUrl(pageId: string | null): string | null {
   if (!pageId) return null;
   return `https://www.notion.so/${pageId.replace(/-/g, '')}`;
+}
+
+function ErrorCard({ message, t, onClose }: { message: string; t: T; onClose: () => void }) {
+  return (
+    <div className="flex flex-col gap-5 py-2">
+      <p className="flex items-center gap-2 text-[15px] text-[#f87171]">
+        <TriangleAlert size={18} strokeWidth={2.25} />
+        {t('publish.result.error')}
+      </p>
+      <p className="text-[13px] leading-relaxed text-ink-muted">{message}</p>
+      <div className="flex items-center">
+        <button
+          type="button"
+          onClick={onClose}
+          className="ml-auto rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink"
+        >
+          {t('publish.close')}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function Result({ result, t, onClose }: { result: CoreResult; t: T; onClose: () => void }) {

@@ -49,6 +49,7 @@ const STRINGS = {
     'publish.result.skipped': '이미 발행됨 — skip',
     'publish.result.noTarget': '발행 대상 없음 — Preferences 에서 설정 확인',
     'publish.result.fail': '실패',
+    'publish.result.error': '작업을 시작하지 못했어요',
     'publish.openNotion': '노션에서 열기',
     'publish.close': '닫기',
 
@@ -144,6 +145,7 @@ const STRINGS = {
     'publish.result.skipped': 'Already published — skipped',
     'publish.result.noTarget': 'No publish target — check Preferences',
     'publish.result.fail': 'Failed',
+    'publish.result.error': 'Could not start the job',
     'publish.openNotion': 'Open in Notion',
     'publish.close': 'Close',
 
