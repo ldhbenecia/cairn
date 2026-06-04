@@ -1,9 +1,10 @@
 import { parseArgs } from 'node:util';
 import { todayLocalIsoDate } from '../common/date-window.js';
-import type { RunMode, RunOptions, RunSource } from './run-options.js';
+import type { RunMode, RunOptions, RunSource, WorklogLang } from './run-options.js';
 
 const VALID_MODES: readonly RunMode[] = ['daily', 'weekly', 'monthly'];
-const VALID_SOURCES: readonly RunSource[] = ['github', 'local-git', 'notion'];
+const VALID_SOURCES: readonly RunSource[] = ['github', 'local-git'];
+const VALID_LANGS: readonly WorklogLang[] = ['ko', 'en'];
 
 export function parseCliArgs(argv: readonly string[]): RunOptions {
   const { values } = parseArgs({
@@ -16,6 +17,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
       'backfill-days': { type: 'string', default: '7' },
       'lookback-days': { type: 'string', default: '14' },
       source: { type: 'string', multiple: true, default: [] },
+      lang: { type: 'string', default: 'ko' },
     },
     strict: true,
     allowPositionals: false,
@@ -28,6 +30,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
   const backfillDays = parseBackfillDays(values['backfill-days']);
   const lookbackDays = parseLookbackDays(values['lookback-days']);
   const sources = parseSources(values.source);
+  const lang = assertLang(values.lang);
 
   return {
     mode,
@@ -38,19 +41,31 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
     backfillDays,
     lookbackDays,
     sources,
+    lang,
   };
 }
 
 function defaultDateForMode(mode: RunMode): string {
-  if (mode === 'weekly') return kstIsoDateOffset(-7);
-  if (mode === 'monthly') return kstIsoDateOffset(-5);
+  if (mode === 'weekly') return localIsoDateOffset(-7);
+  if (mode === 'monthly') return localIsoDateOffset(-5);
   return todayLocalIsoDate();
 }
 
-function kstIsoDateOffset(dayOffset: number): string {
-  const kstOffsetMs = 9 * 60 * 60 * 1000;
-  const ms = Date.now() + kstOffsetMs + dayOffset * 24 * 60 * 60 * 1000;
-  return new Date(ms).toISOString().slice(0, 10);
+// 로컬 타임존 기준 (rules/timezone.md, ADR 0016)
+function localIsoDateOffset(dayOffset: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+
+function assertLang(value: unknown): WorklogLang {
+  if (typeof value !== 'string' || !VALID_LANGS.includes(value as WorklogLang)) {
+    throw new Error(`--lang must be one of ${VALID_LANGS.join(', ')} (got: ${String(value)})`);
+  }
+  return value as WorklogLang;
 }
 
 function assertMode(value: unknown): RunMode {

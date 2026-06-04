@@ -1,6 +1,8 @@
 export type RunMode = 'daily' | 'weekly' | 'monthly';
 
-export type RunSource = 'github' | 'local-git' | 'notion';
+export type RunSource = 'github' | 'local-git';
+
+export type WorklogLang = 'ko' | 'en';
 
 export interface RunOptions {
   mode: RunMode;
@@ -11,4 +13,5 @@ export interface RunOptions {
   backfillDays: number;
   lookbackDays: number;
   sources: readonly RunSource[] | 'all';
+  lang: WorklogLang;
 }

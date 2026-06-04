@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type { GithubActivity } from '../contracts/github-activity.types.js';
 import type { LocalGitActivity } from '../contracts/local-git-activity.types.js';
-import type { NotionActivity } from '../contracts/notion-activity.types.js';
 import { buildActivityPayload, type SummarizerInput } from './summarizer-tools.js';
 
 const githubActivity: GithubActivity = {
@@ -81,34 +80,12 @@ const localGitActivity: LocalGitActivity = {
   ],
 };
 
-const notionActivity: NotionActivity = {
-  date: '2026-05-09',
-  rangeStart: '2026-05-08T15:00:00Z',
-  rangeEnd: '2026-05-09T14:59:59Z',
-  workspaces: [
-    {
-      workspace: 'personal',
-      pageCount: 1,
-      pages: [
-        {
-          id: '35b4fa8f-67dd-80f0-9616-c6b1d18c7be9',
-          title: '오늘의 작업 메모',
-          url: 'https://www.notion.so/Note-abc123',
-          lastEditedAt: '2026-05-09T03:00:00Z',
-          parentType: 'page_id',
-        },
-      ],
-    },
-  ],
-};
-
 describe('buildActivityPayload', () => {
-  it('builds expected shape with all 3 sources', () => {
+  it('builds expected shape from github + local-git', () => {
     const input: SummarizerInput = {
       date: '2026-05-09',
       github: githubActivity,
       localGit: localGitActivity,
-      notion: notionActivity,
     };
     const payload = buildActivityPayload(input);
 
@@ -121,7 +98,6 @@ describe('buildActivityPayload', () => {
     expect(payload.inProgress.prs[0]?.kind).toBe('pr_open');
     expect(payload.inProgress.commits).toHaveLength(1);
     expect(payload.inProgress.commits[0]?.kind).toBe('commit_unpushed');
-    expect(payload.notes).toHaveLength(1);
     expect(payload.sourceErrors).toEqual({});
   });
 
@@ -130,7 +106,6 @@ describe('buildActivityPayload', () => {
       date: '2026-05-09',
       github: githubActivity,
       localGit: localGitActivity,
-      notion: notionActivity,
     };
     const payload = buildActivityPayload(input);
     expect(() => assertNoForbiddenPayload(payload, 'test.full')).not.toThrow();
@@ -141,14 +116,12 @@ describe('buildActivityPayload', () => {
       date: '2026-05-09',
       github: null,
       localGit: null,
-      notion: null,
     };
     const payload = buildActivityPayload(input);
     expect(payload.done.prs).toEqual([]);
     expect(payload.done.commits).toEqual([]);
     expect(payload.inProgress.prs).toEqual([]);
     expect(payload.inProgress.commits).toEqual([]);
-    expect(payload.notes).toEqual([]);
     expect(payload.sourceErrors).toEqual({});
   });
 });

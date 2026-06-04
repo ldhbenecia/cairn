@@ -4,6 +4,7 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sendResultNotification } from './notifier';
+import { readSettings } from './settings';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 
@@ -122,6 +123,7 @@ export async function runCore(
   if (options.backfillDays !== undefined) args.push(`--backfill-days=${options.backfillDays}`);
   if (options.force) args.push('--force');
   if (options.date) args.push(`--date=${options.date}`);
+  args.push(`--lang=${readSettings().language}`);
 
   emit('meta', `[fork] ${CORE_ENTRY} ${args.join(' ')}`);
   emit('meta', `[cwd] ${CAIRN_ROOT}`);

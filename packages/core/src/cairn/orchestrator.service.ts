@@ -4,7 +4,6 @@ import { CairnError } from '../common/error.js';
 import { GithubCollectorService } from '../github/github-collector.service.js';
 import { LocalGitCollectorService } from '../local-git/local-git-collector.service.js';
 import { NotificationService } from '../notification/notification.service.js';
-import { NotionCollectorService } from '../notion/notion-collector.service.js';
 import {
   NotionPublisherService,
   type PublishWorklogResult,
@@ -24,7 +23,6 @@ export class OrchestratorService {
   constructor(
     private readonly githubCollector: GithubCollectorService,
     private readonly localGitCollector: LocalGitCollectorService,
-    private readonly notionCollector: NotionCollectorService,
     private readonly notionPublisher: NotionPublisherService,
     private readonly summarizer: DailySummarizerService,
     private readonly notification: NotificationService,
@@ -108,9 +106,8 @@ export class OrchestratorService {
   ): Promise<PublishWorklogResult['kind'] | 'no-activity'> {
     const wantsGithub = wantsSource(options.sources, 'github');
     const wantsLocalGit = wantsSource(options.sources, 'local-git');
-    const wantsNotion = wantsSource(options.sources, 'notion');
 
-    if (!wantsGithub && !wantsLocalGit && !wantsNotion) {
+    if (!wantsGithub && !wantsLocalGit) {
       this.logger.warn({ sources: options.sources }, 'daily: no enabled source — skipping');
       return 'no-activity';
     }
@@ -127,7 +124,6 @@ export class OrchestratorService {
           await this.notify(date, pre, {
             prCount: 0,
             commitCount: 0,
-            notionPageCount: 0,
             summarizerOk: false,
           });
         }
@@ -135,12 +131,11 @@ export class OrchestratorService {
       }
     }
 
-    const [githubActivity, localGitActivity, notionActivity] = await Promise.all([
+    const [githubActivity, localGitActivity] = await Promise.all([
       wantsGithub
         ? this.githubCollector.collect(date, options.lookbackDays)
         : Promise.resolve(null),
       wantsLocalGit ? this.localGitCollector.collect(date) : Promise.resolve(null),
-      wantsNotion ? this.notionCollector.collect(date) : Promise.resolve(null),
     ]);
 
     if (options.dryRun) {
@@ -154,20 +149,13 @@ export class OrchestratorService {
         process.stdout.write(JSON.stringify(localGitActivity, null, 2));
         process.stdout.write('\n');
       }
-      if (notionActivity) {
-        process.stdout.write('--- notion activity (dry-run) ---\n');
-        process.stdout.write(JSON.stringify(notionActivity, null, 2));
-        process.stdout.write('\n');
-      }
       return 'no-activity';
     }
 
     const prCount = githubActivity?.prs.length ?? 0;
     const commitCount = localGitActivity?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
-    const notionPageCount =
-      notionActivity?.workspaces.reduce((acc, w) => acc + w.pageCount, 0) ?? 0;
 
-    if (prCount + commitCount + notionPageCount === 0) {
+    if (prCount + commitCount === 0) {
       this.logger.info({ date }, 'daily: no activity collected — skipping summarizer + publisher');
       if (!opts.silent) {
         await this.notification.notify('cairn 일지', `${date} 활동 없음 — 일지 생략`);
@@ -175,19 +163,20 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
-    const summary = await this.summarizer.summarize({
-      date,
-      github: githubActivity,
-      localGit: localGitActivity,
-      notion: notionActivity,
-    });
+    const summary = await this.summarizer.summarize(
+      {
+        date,
+        github: githubActivity,
+        localGit: localGitActivity,
+      },
+      options.lang,
+    );
 
     const result = await this.notionPublisher.publish({
       date,
       force: options.force,
       github: githubActivity,
       localGit: localGitActivity,
-      notion: notionActivity,
       summary,
     });
 
@@ -196,7 +185,6 @@ export class OrchestratorService {
         date,
         prCount,
         commitCountTotal: commitCount,
-        notionPageCountTotal: notionPageCount,
         summarizerOk: !!summary,
         publishResult: result,
       },
@@ -207,7 +195,6 @@ export class OrchestratorService {
       await this.notify(date, result, {
         prCount,
         commitCount,
-        notionPageCount,
         summarizerOk: !!summary,
       });
     }
@@ -248,11 +235,10 @@ export class OrchestratorService {
     counts: {
       prCount: number;
       commitCount: number;
-      notionPageCount: number;
       summarizerOk: boolean;
     },
   ): Promise<void> {
-    const counts_label = `gh:${counts.prCount} / git:${counts.commitCount} / notion:${counts.notionPageCount}`;
+    const counts_label = `gh:${counts.prCount} / git:${counts.commitCount}`;
     const summary_tag = counts.summarizerOk ? '' : ' [요약 실패]';
 
     if (result.kind === 'created') {
@@ -313,7 +299,7 @@ export class OrchestratorService {
       return;
     }
 
-    const summary = await this.rollupSummarizer.summarize({ activity });
+    const summary = await this.rollupSummarizer.summarize({ activity }, options.lang);
 
     const result = await this.rollupPublisher.publish({
       activity,
