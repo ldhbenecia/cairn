@@ -1,0 +1,38 @@
+name: Bug report
+description: Something isn't working or threw an error
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English or Korean is fine. Please don't paste secrets (tokens, emails, absolute paths, company code).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The symptom, and what you expected instead
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: 'e.g. 0.2.4'
+  - type: input
+    id: os
+    attributes:
+      label: OS / environment
+      placeholder: 'e.g. macOS 15.2 (Apple Silicon)'
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context (optional)
+      description: Screenshots, etc. Scrub sensitive info from logs before attaching.

@@ -1,0 +1,25 @@
+name: Feature request
+description: A new feature or improvement idea
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English or Korean is fine.
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What feature or improvement would you like
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why is it needed
+      description: What problem or friction does it solve
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives (optional)
+      description: Other approaches you considered
