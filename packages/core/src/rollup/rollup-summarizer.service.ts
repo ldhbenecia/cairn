@@ -5,35 +5,28 @@ import { CairnError } from '../common/error.js';
 import { isOperator } from '../common/operator.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogSummaryUsage } from '../contracts/worklog-summary.types.js';
+import type { WorklogLang } from '../cairn/run-options.js';
 import { buildRollupTools, type RollupSummarizerInput } from './rollup-tools.js';
 
-const SYSTEM_PROMPT = [
-  'You are cairn, a Korean rollup summarizer for a backend developer.',
-  '',
-  "Purpose: This rollup accumulates over months/years and will be used as raw material for the developer's resume, performance reviews, and retrospectives. Phrase highlights/themes so they remain meaningful when read months later — emphasize the project, the meaningful unit of work, and outcome.",
-  '',
-  'Workflow:',
-  '1. Call get_rollup_activity exactly once to retrieve the period data (per-day summaries already produced).',
-  '2. Read the response (metrics / dailies / summaries / sourceError).',
-  '3. Call submit_rollup exactly once with a Korean rollup.',
-  '',
-  'Output rules (strict):',
-  '- Output language MUST be Korean.',
-  '- paragraphKo: 2-5 short Korean sentences capturing the period theme at the project level. Mention overall direction + which projects/initiatives moved.',
-  '- themes: 2-6 themed groupings. Each theme has a Korean title (e.g. "cairn 단계 5 — Summarizer 도입") and 2-8 items (Korean phrases of work that fall under it).',
-  '- highlights: 3-8 Korean phrases of the most resume-worthy / retrospective-worthy items across the whole period. Format: "[프로젝트명] 의미 있는 한국어 작업 단위 — 결과/규모".',
-  '- Empty arrays are OK if material is thin.',
-  '',
-  'Style — STRICT:',
-  '- Synthesize across days. Do NOT just concatenate per-day done bullets verbatim.',
-  '- Do NOT include branch names or commit type prefixes.',
-  '- Group by project and by meaningful unit, not by date.',
-  '- Phrases should read well 6 months later.',
-  '',
-  'Do not invent items. Only summarize what get_rollup_activity returned.',
-  'Do not include code bodies, diffs, absolute file paths, or token strings.',
-  'If sourceError is present, briefly mention the limitation in paragraphKo.',
-].join('\n');
+function systemPrompt(lang: WorklogLang): string {
+  const langName = lang === 'en' ? 'English' : 'Korean';
+  return [
+    'You are a rollup summarizer for a developer.',
+    "Purpose: the rollup accumulates over months/years as raw material for the developer's resume, reviews, and retrospectives. Phrase highlights/themes to stay meaningful months later — project, the meaningful work unit, outcome.",
+    '',
+    'Workflow: call get_rollup_activity exactly once (per-day summaries already produced), then call submit_rollup exactly once.',
+    '',
+    `Output language MUST be ${langName}.`,
+    '- paragraphKo: 2-5 short sentences capturing the period theme at project level — overall direction + which projects/initiatives moved.',
+    '- themes: 2-6 themed groupings, each with a title and 2-8 items (phrases of work under it).',
+    '- highlights: 3-8 phrases of the most resume/retrospective-worthy items across the period, format "[project] meaningful work unit — outcome/scale".',
+    '- Empty arrays are OK if material is thin.',
+    '',
+    'Style: synthesize across days (do NOT concatenate per-day bullets verbatim); no branch names or commit type prefixes; group by project and meaningful unit, not by date.',
+    '',
+    'Do not invent items — only summarize what get_rollup_activity returned. No code bodies, diffs, absolute paths, or tokens. If sourceError is present, mention the limitation briefly in paragraphKo.',
+  ].join('\n');
+}
 
 const MCP_SERVER_NAME = 'cairn-rollup';
 
@@ -44,7 +37,7 @@ export class RollupSummarizerService {
     private readonly logger: PinoLogger,
   ) {}
 
-  async summarize(input: RollupSummarizerInput): Promise<RollupSummary | null> {
+  async summarize(input: RollupSummarizerInput, lang: WorklogLang): Promise<RollupSummary | null> {
     const { server, getSubmission } = buildRollupTools(input);
     const a = input.activity;
 
@@ -59,7 +52,7 @@ export class RollupSummarizerService {
       const q = query({
         prompt: userPrompt,
         options: {
-          systemPrompt: SYSTEM_PROMPT,
+          systemPrompt: systemPrompt(lang),
           mcpServers: {
             [MCP_SERVER_NAME]: server,
           },

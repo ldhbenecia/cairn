@@ -163,11 +163,14 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
-    const summary = await this.summarizer.summarize({
-      date,
-      github: githubActivity,
-      localGit: localGitActivity,
-    });
+    const summary = await this.summarizer.summarize(
+      {
+        date,
+        github: githubActivity,
+        localGit: localGitActivity,
+      },
+      options.lang,
+    );
 
     const result = await this.notionPublisher.publish({
       date,
@@ -296,7 +299,7 @@ export class OrchestratorService {
       return;
     }
 
-    const summary = await this.rollupSummarizer.summarize({ activity });
+    const summary = await this.rollupSummarizer.summarize({ activity }, options.lang);
 
     const result = await this.rollupPublisher.publish({
       activity,

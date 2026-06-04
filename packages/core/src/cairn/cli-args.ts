@@ -1,9 +1,10 @@
 import { parseArgs } from 'node:util';
 import { todayLocalIsoDate } from '../common/date-window.js';
-import type { RunMode, RunOptions, RunSource } from './run-options.js';
+import type { RunMode, RunOptions, RunSource, WorklogLang } from './run-options.js';
 
 const VALID_MODES: readonly RunMode[] = ['daily', 'weekly', 'monthly'];
 const VALID_SOURCES: readonly RunSource[] = ['github', 'local-git'];
+const VALID_LANGS: readonly WorklogLang[] = ['ko', 'en'];
 
 export function parseCliArgs(argv: readonly string[]): RunOptions {
   const { values } = parseArgs({
@@ -16,6 +17,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
       'backfill-days': { type: 'string', default: '7' },
       'lookback-days': { type: 'string', default: '14' },
       source: { type: 'string', multiple: true, default: [] },
+      lang: { type: 'string', default: 'ko' },
     },
     strict: true,
     allowPositionals: false,
@@ -28,6 +30,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
   const backfillDays = parseBackfillDays(values['backfill-days']);
   const lookbackDays = parseLookbackDays(values['lookback-days']);
   const sources = parseSources(values.source);
+  const lang = assertLang(values.lang);
 
   return {
     mode,
@@ -38,6 +41,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
     backfillDays,
     lookbackDays,
     sources,
+    lang,
   };
 }
 
@@ -51,6 +55,13 @@ function kstIsoDateOffset(dayOffset: number): string {
   const kstOffsetMs = 9 * 60 * 60 * 1000;
   const ms = Date.now() + kstOffsetMs + dayOffset * 24 * 60 * 60 * 1000;
   return new Date(ms).toISOString().slice(0, 10);
+}
+
+function assertLang(value: unknown): WorklogLang {
+  if (typeof value !== 'string' || !VALID_LANGS.includes(value as WorklogLang)) {
+    throw new Error(`--lang must be one of ${VALID_LANGS.join(', ')} (got: ${String(value)})`);
+  }
+  return value as WorklogLang;
 }
 
 function assertMode(value: unknown): RunMode {
