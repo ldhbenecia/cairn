@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto';
 import { app } from 'electron';
+import { randomUUID } from 'node:crypto';
 import { PostHog } from 'posthog-node';
 import { readSettings, writeSettings } from './settings';
 
@@ -29,6 +29,7 @@ function capture(event: string, properties: Record<string, string | boolean>): v
       app_version: app.getVersion(),
       os: process.platform,
       arch: process.arch,
+      $ip: null,
       $geoip_disable: true,
       ...properties,
     },
