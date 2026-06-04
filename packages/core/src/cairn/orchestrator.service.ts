@@ -178,6 +178,7 @@ export class OrchestratorService {
       github: githubActivity,
       localGit: localGitActivity,
       summary,
+      lang: options.lang,
     });
 
     this.logger.info(
@@ -305,6 +306,7 @@ export class OrchestratorService {
       activity,
       force: options.force,
       summary,
+      lang: options.lang,
     });
 
     this.logger.info(

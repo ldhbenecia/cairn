@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { isOperator } from '../common/operator.js';
+import { CLAUDE_ICON_URL } from '../common/branding.js';
 import type { RollupActivity } from '../contracts/rollup-activity.types.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
+import type { WorklogLang } from '../cairn/run-options.js';
 import { NotionApiClient } from '../notion/notion-api.client.js';
 import { NotionRollupApiClient } from '../notion/notion-rollup-api.client.js';
 import { SecretsService } from '../secrets/secrets.service.js';
@@ -16,6 +18,7 @@ export interface PublishRollupInput {
   activity: RollupActivity;
   force: boolean;
   summary?: RollupSummary | null;
+  lang: WorklogLang;
 }
 
 export type PublishRollupResult =
@@ -199,11 +202,11 @@ export class RollupPublisherService {
     token: string,
     dataSourceId: string,
   ): Promise<{ id: string; url: string | null }> {
-    const { activity, summary } = input;
-    const title = buildTitle(activity);
+    const { activity, summary, lang } = input;
+    const title = buildTitle(activity, lang);
     const children = summary
-      ? buildRollupBlocks(summary, activity)
-      : buildRollupFallbackBlocks(activity);
+      ? buildRollupBlocks(summary, activity, lang)
+      : buildRollupFallbackBlocks(activity, lang);
     const created = await this.rollupApi.createRollupPage({
       token,
       dataSourceId,
@@ -229,20 +232,35 @@ export class RollupPublisherService {
   }
 }
 
-function buildTitle(activity: RollupActivity): string {
+function buildTitle(activity: RollupActivity, lang: WorklogLang): string {
   if (activity.period === 'weekly') {
-    return `${isoWeekLabel(activity.rangeStart)} 주간 정리`;
+    const label = isoWeekLabel(activity.rangeStart);
+    return lang === 'en' ? `${label} Weekly rollup` : `${label} 주간 정리`;
   }
-  return `${monthLabel(activity.rangeStart)} 월간 정리`;
+  const label = monthLabel(activity.rangeStart);
+  return lang === 'en' ? `${label} Monthly rollup` : `${label} 월간 정리`;
 }
 
-function buildRollupBlocks(summary: RollupSummary, activity: RollupActivity): readonly unknown[] {
+function buildRollupBlocks(
+  summary: RollupSummary,
+  activity: RollupActivity,
+  lang: WorklogLang,
+): readonly unknown[] {
   const blocks: unknown[] = [];
+  const period =
+    activity.period === 'weekly'
+      ? lang === 'en'
+        ? 'weekly'
+        : '주간'
+      : lang === 'en'
+        ? 'monthly'
+        : '월간';
 
   blocks.push(
-    callout(
-      '🤖',
-      `cairn 이 자동 생성한 ${activity.period === 'weekly' ? '주간' : '월간'} 롤업입니다 (${activity.rangeStart} ~ ${activity.rangeEnd}).`,
+    claudeCallout(
+      lang === 'en'
+        ? `Auto-generated ${period} rollup by cairn (${activity.rangeStart} ~ ${activity.rangeEnd}).`
+        : `cairn 이 자동 생성한 ${period} 롤업입니다 (${activity.rangeStart} ~ ${activity.rangeEnd}).`,
     ),
   );
 
@@ -278,11 +296,23 @@ function buildRollupBlocks(summary: RollupSummary, activity: RollupActivity): re
   return blocks;
 }
 
-function buildRollupFallbackBlocks(activity: RollupActivity): readonly unknown[] {
+function buildRollupFallbackBlocks(
+  activity: RollupActivity,
+  lang: WorklogLang,
+): readonly unknown[] {
+  const period =
+    activity.period === 'weekly'
+      ? lang === 'en'
+        ? 'weekly'
+        : '주간'
+      : lang === 'en'
+        ? 'monthly'
+        : '월간';
   return [
-    callout(
-      '🤖',
-      `cairn 이 자동 생성한 ${activity.period === 'weekly' ? '주간' : '월간'} 롤업 (Summarizer 미실행 또는 실패).`,
+    claudeCallout(
+      lang === 'en'
+        ? `Auto-generated ${period} rollup by cairn (summarizer skipped or failed).`
+        : `cairn 이 자동 생성한 ${period} 롤업 (Summarizer 미실행 또는 실패).`,
     ),
     heading2('Metrics'),
     paragraph(
@@ -300,6 +330,17 @@ function buildDailyRefBullets(activity: RollupActivity): unknown[] {
     const link = d.url ? ` → ${d.url}` : '';
     return bulletItem(`${d.date} (${counts})${link}`);
   });
+}
+
+function claudeCallout(text: string): unknown {
+  return {
+    object: 'block',
+    type: 'callout',
+    callout: {
+      icon: { type: 'external', external: { url: CLAUDE_ICON_URL } },
+      rich_text: [{ type: 'text', text: { content: text } }],
+    },
+  };
 }
 
 function callout(emoji: string, text: string): unknown {
