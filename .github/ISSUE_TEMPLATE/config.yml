@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 피드백 / 문의 (이메일)
+    url: mailto:cairnlog@gmail.com
+    about: 공개 이슈로 남기기 어려운 피드백은 이메일로 보내주세요.
