@@ -8,13 +8,11 @@ import type {
   PrCommitOnDate,
 } from '../contracts/github-activity.types.js';
 import type { LocalGitActivity } from '../contracts/local-git-activity.types.js';
-import type { NotionActivity, NotionParentType } from '../contracts/notion-activity.types.js';
 
 export interface SummarizerInput {
   date: string;
   github: GithubActivity | null;
   localGit: LocalGitActivity | null;
-  notion: NotionActivity | null;
 }
 
 export const submitSummarySchema = z.object({
@@ -75,25 +73,15 @@ interface UnpushedCommitItem {
   authoredAt: string;
 }
 
-interface NoteItem {
-  workspace: string;
-  title: string;
-  url: string;
-  lastEditedAt: string;
-  parentType: NotionParentType;
-}
-
 interface SourceErrorsView {
   github?: { account: string; error: ReturnType<typeof sanitizeCairnError> }[];
   localGit?: { repo: string; error: ReturnType<typeof sanitizeCairnError> }[];
-  notion?: { workspace: string; error: ReturnType<typeof sanitizeCairnError> }[];
 }
 
 export interface ActivityPayload {
   date: string;
   done: { prs: DonePrItem[]; commits: DoneCommitItem[] };
   inProgress: { prs: OpenPrItem[]; commits: UnpushedCommitItem[] };
-  notes: NoteItem[];
   sourceErrors: SourceErrorsView;
 }
 
@@ -108,7 +96,6 @@ export function buildActivityPayload(input: SummarizerInput): ActivityPayload {
       prs: computeOpenPrs(input),
       commits: computeUnpushedCommits(input),
     },
-    notes: computeNotes(input),
     sourceErrors: computeSourceErrors(input),
   };
 }
@@ -123,7 +110,7 @@ export function buildSummarizerTools(input: SummarizerInput): SummarizerToolsBun
 
   const getActivity = tool(
     'get_activity',
-    "Returns today's activity in one call: done (merged PRs + pushed commits), inProgress (open PRs + unpushed commits), notes (edited Notion pages), and sourceErrors. Call this exactly once, then call submit_summary.",
+    "Returns today's activity in one call: done (merged PRs + pushed commits), inProgress (open PRs + unpushed commits), and sourceErrors. Call this exactly once, then call submit_summary.",
     {},
     // eslint-disable-next-line @typescript-eslint/require-await
     async () => {
@@ -240,22 +227,6 @@ function computeUnpushedCommits(input: SummarizerInput): UnpushedCommitItem[] {
   return out;
 }
 
-function computeNotes(input: SummarizerInput): NoteItem[] {
-  const out: NoteItem[] = [];
-  for (const ws of input.notion?.workspaces ?? []) {
-    for (const page of ws.pages) {
-      out.push({
-        workspace: ws.workspace,
-        title: page.title,
-        url: page.url,
-        lastEditedAt: page.lastEditedAt,
-        parentType: page.parentType,
-      });
-    }
-  }
-  return out;
-}
-
 function computeSourceErrors(input: SummarizerInput): SourceErrorsView {
   const out: SourceErrorsView = {};
 
@@ -269,11 +240,6 @@ function computeSourceErrors(input: SummarizerInput): SourceErrorsView {
     r.error ? [{ repo: r.repo, error: sanitizeCairnError(r.error) }] : [],
   );
   if (localGitErrors.length > 0) out.localGit = localGitErrors;
-
-  const notionErrors = (input.notion?.workspaces ?? []).flatMap((w) =>
-    w.error ? [{ workspace: w.workspace, error: sanitizeCairnError(w.error) }] : [],
-  );
-  if (notionErrors.length > 0) out.notion = notionErrors;
 
   return out;
 }

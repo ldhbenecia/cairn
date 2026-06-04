@@ -1,6 +1,6 @@
 export type RunMode = 'daily' | 'weekly' | 'monthly';
 
-export type RunSource = 'github' | 'local-git' | 'notion';
+export type RunSource = 'github' | 'local-git';
 
 export interface RunOptions {
   mode: RunMode;

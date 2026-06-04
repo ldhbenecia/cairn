@@ -3,7 +3,6 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { isOperator } from '../common/operator.js';
 import type { GithubActivity } from '../contracts/github-activity.types.js';
 import type { LocalGitActivity } from '../contracts/local-git-activity.types.js';
-import type { NotionActivity } from '../contracts/notion-activity.types.js';
 import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
@@ -17,7 +16,6 @@ export interface PublishWorklogInput {
   force: boolean;
   github: GithubActivity | null;
   localGit: LocalGitActivity | null;
-  notion: NotionActivity | null;
   summary?: WorklogSummary | null;
 }
 
@@ -273,8 +271,7 @@ export class NotionPublisherService {
 function formatSourceCounts(input: PublishWorklogInput): string {
   const gh = input.github?.prs.length ?? 0;
   const git = input.localGit?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
-  const notion = input.notion?.workspaces.reduce((acc, w) => acc + w.pageCount, 0) ?? 0;
-  return `gh:${gh} / git:${git} / notion:${notion}`;
+  return `gh:${gh} / git:${git}`;
 }
 
 function buildSummaryBlocks(
@@ -320,11 +317,7 @@ function buildFallbackBlocks(input: PublishWorklogInput): readonly unknown[] {
 }
 
 function buildRawDumpToggle(input: PublishWorklogInput): unknown {
-  const rawDump = JSON.stringify(
-    { github: input.github, localGit: input.localGit, notion: input.notion },
-    null,
-    2,
-  );
+  const rawDump = JSON.stringify({ github: input.github, localGit: input.localGit }, null, 2);
   return {
     object: 'block',
     type: 'toggle',

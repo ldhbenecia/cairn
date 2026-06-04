@@ -3,7 +3,7 @@ import { todayLocalIsoDate } from '../common/date-window.js';
 import type { RunMode, RunOptions, RunSource } from './run-options.js';
 
 const VALID_MODES: readonly RunMode[] = ['daily', 'weekly', 'monthly'];
-const VALID_SOURCES: readonly RunSource[] = ['github', 'local-git', 'notion'];
+const VALID_SOURCES: readonly RunSource[] = ['github', 'local-git'];
 
 export function parseCliArgs(argv: readonly string[]): RunOptions {
   const { values } = parseArgs({
