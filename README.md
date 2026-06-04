@@ -67,6 +67,17 @@ pnpm monorepo:
 | [CLAUDE.md](CLAUDE.md) / [AGENTS.md](AGENTS.md) | Working context for Claude Code / Codex |
 | [.claude/rules/](.claude/rules/) | Project rules |
 
+## Privacy
+
+Your worklogs, code, and tokens stay on your machine. They are only sent to the services you configure (Notion, GitHub, Claude) — never anywhere else.
+
+cairn sends **anonymous usage telemetry** (PostHog) to understand how many people use it and which versions are active. It is enabled by default and can be turned off in **Preferences → About → Anonymous usage stats**.
+
+- **Sent**: a random anonymous install id, app version, OS/arch, and event names (`app_launched`, `publish` with mode + outcome).
+- **Never sent**: worklog content, PR titles, repo names, commit messages, file paths, tokens, or any personal information.
+
+See [docs/decisions/0017-anonymous-telemetry.md](docs/decisions/0017-anonymous-telemetry.md).
+
 ## License
 
 [AGPL-3.0-or-later](LICENSE). Copyright (C) 2026 Donghyeok Lim.
