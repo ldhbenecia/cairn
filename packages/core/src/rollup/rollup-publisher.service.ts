@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { isOperator } from '../common/operator.js';
+import { CLAUDE_ICON_URL } from '../common/branding.js';
 import type { RollupActivity } from '../contracts/rollup-activity.types.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogLang } from '../cairn/run-options.js';
@@ -256,8 +257,7 @@ function buildRollupBlocks(
         : '월간';
 
   blocks.push(
-    callout(
-      '🤖',
+    claudeCallout(
       lang === 'en'
         ? `Auto-generated ${period} rollup by cairn (${activity.rangeStart} ~ ${activity.rangeEnd}).`
         : `cairn 이 자동 생성한 ${period} 롤업입니다 (${activity.rangeStart} ~ ${activity.rangeEnd}).`,
@@ -309,8 +309,7 @@ function buildRollupFallbackBlocks(
         ? 'monthly'
         : '월간';
   return [
-    callout(
-      '🤖',
+    claudeCallout(
       lang === 'en'
         ? `Auto-generated ${period} rollup by cairn (summarizer skipped or failed).`
         : `cairn 이 자동 생성한 ${period} 롤업 (Summarizer 미실행 또는 실패).`,
@@ -331,6 +330,17 @@ function buildDailyRefBullets(activity: RollupActivity): unknown[] {
     const link = d.url ? ` → ${d.url}` : '';
     return bulletItem(`${d.date} (${counts})${link}`);
   });
+}
+
+function claudeCallout(text: string): unknown {
+  return {
+    object: 'block',
+    type: 'callout',
+    callout: {
+      icon: { type: 'external', external: { url: CLAUDE_ICON_URL } },
+      rich_text: [{ type: 'text', text: { content: text } }],
+    },
+  };
 }
 
 function callout(emoji: string, text: string): unknown {
