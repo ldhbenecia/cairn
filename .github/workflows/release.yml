@@ -40,6 +40,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ROOT="$(node -p "require('./package.json').version")"
-          pnpm --filter @cairn/desktop run dist -- \
-            --publish always \
-            --config.extraMetadata.version="$ROOT"
+          pnpm --filter @cairn/core build:bundle
+          pnpm --filter @cairn/desktop exec electron-vite build
+          pnpm --filter @cairn/desktop exec electron-builder --publish always --config.extraMetadata.version="$ROOT"
