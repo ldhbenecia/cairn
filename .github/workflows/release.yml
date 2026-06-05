@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Validate tag format
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag '${GITHUB_REF_NAME}' (expected vMAJOR.MINOR.PATCH)"
+            exit 1
+          fi
+
+      - name: Validate tag == workspace version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          ROOT="$(node -p "require('./package.json').version")"
+          if [[ "$TAG" != "$ROOT" ]]; then
+            echo "Tag $TAG != workspace version $ROOT — bump root package.json or fix tag"
+            exit 1
+          fi
+
+      - name: Build + publish (inject workspace version)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ROOT="$(node -p "require('./package.json').version")"
+          pnpm --filter @cairn/desktop run dist -- \
+            --publish always \
+            --config.extraMetadata.version="$ROOT"
