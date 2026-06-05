@@ -1,7 +1,8 @@
-import { app } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { PostHog } from 'posthog-node';
 import { readSettings, writeSettings } from './settings';
+
+declare const __WORKSPACE_VERSION__: string;
 
 const KEY = process.env.CAIRN_POSTHOG_KEY ?? 'phc_sCEqcPmP6EduVvxNTSGGrhoMRn9jNNd4vRV7ntzWKFeM';
 const HOST = process.env.CAIRN_POSTHOG_HOST ?? 'https://us.i.posthog.com';
@@ -26,7 +27,7 @@ function capture(event: string, properties: Record<string, string | boolean>): v
     distinctId,
     event,
     properties: {
-      app_version: app.getVersion(),
+      app_version: __WORKSPACE_VERSION__,
       os: process.platform,
       arch: process.arch,
       $ip: null,

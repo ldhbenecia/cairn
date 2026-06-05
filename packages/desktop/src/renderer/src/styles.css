@@ -84,9 +84,6 @@ button {
   font-family: inherit;
   cursor: default;
 }
-button:not(:disabled) {
-  cursor: pointer;
-}
 
 @keyframes panel-enter {
   from {

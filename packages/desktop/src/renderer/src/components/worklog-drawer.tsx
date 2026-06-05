@@ -191,7 +191,7 @@ function Block({ b }: { b: SimpleBlock }) {
   if (b.type === 'toggle') {
     return (
       <details className="group">
-        <summary className="cursor-pointer list-none marker:content-none">
+        <summary className="list-none marker:content-none">
           <span className="text-ink-tertiary">▸ </span>
           <Rich spans={b.rich} />
         </summary>

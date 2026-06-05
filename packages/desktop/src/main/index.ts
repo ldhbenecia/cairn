@@ -13,10 +13,13 @@ import {
   searchNotionPages,
   type OnboardingPayload,
 } from './onboarding';
+import { fetchRepoStars } from './repo';
 import { readSettings, writeSettings, type Settings } from './settings';
 import { isSetupComplete } from './setup';
 import { initTelemetry, shutdownTelemetry, trackAppLaunched } from './telemetry';
 import { setupTray } from './tray';
+
+declare const __WORKSPACE_VERSION__: string;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -83,6 +86,7 @@ void app.whenReady().then(() => {
   );
   ipcMain.handle('cairn:running', () => isRunning());
   ipcMain.handle('cairn:open-external', (_e, url: string) => shell.openExternal(url));
+  ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());
   ipcMain.handle('cairn:logs:tail', () => tailLatestLog());
   ipcMain.handle('cairn:recent:list', () => listRecentPages());
@@ -93,7 +97,7 @@ void app.whenReady().then(() => {
   ipcMain.on('cairn:bootstrap-sync', (e) => {
     e.returnValue = {
       settings: readSettings(),
-      version: app.getVersion(),
+      version: __WORKSPACE_VERSION__,
       setupComplete: isSetupComplete(),
     };
   });

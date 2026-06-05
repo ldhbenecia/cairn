@@ -6,11 +6,14 @@ import {
   Check,
   ChevronDown,
   CreditCard,
+  ExternalLink,
+  Github,
   Info,
   Link2,
   MessageSquare,
   Monitor,
   Send,
+  Star,
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -20,6 +23,7 @@ import { ACCENTS, useSettings } from '../settings-context';
 import { Toggle } from './toggle';
 
 const FEEDBACK_EMAIL = 'cairnlog@gmail.com';
+const REPO_URL = 'https://github.com/ldhbenecia/cairn';
 
 type TabId =
   | 'appearance'
@@ -85,23 +89,28 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
                   {t(labelKey)}
                 </button>
               ))}
+              <p className="mt-auto px-2.5 pt-2 text-[11px] text-ink-tertiary/60">
+                cairn v{window.cairn.version}
+              </p>
             </nav>
 
             <div className="min-w-0 flex-1 overflow-y-auto px-7 py-6 [scrollbar-gutter:stable]">
-              {tab === 'appearance' && <AppearanceTab />}
-              {tab === 'notifications' && <NotificationsTab />}
-              {tab === 'autopublish' && <AutoPublishTab />}
-              {tab === 'connections' && (
-                <ConnectionsTab
-                  onRerun={() => {
-                    onOpenChange(false);
-                    onRerunSetup();
-                  }}
-                />
-              )}
-              {tab === 'billing' && <BillingTab />}
-              {tab === 'feedback' && <FeedbackTab />}
-              {tab === 'about' && <AboutTab />}
+              <div key={tab} className="panel-enter">
+                {tab === 'appearance' && <AppearanceTab />}
+                {tab === 'notifications' && <NotificationsTab />}
+                {tab === 'autopublish' && <AutoPublishTab />}
+                {tab === 'connections' && (
+                  <ConnectionsTab
+                    onRerun={() => {
+                      onOpenChange(false);
+                      onRerunSetup();
+                    }}
+                  />
+                )}
+                {tab === 'billing' && <BillingTab />}
+                {tab === 'feedback' && <FeedbackTab />}
+                {tab === 'about' && <AboutTab />}
+              </div>
             </div>
           </div>
         </Dialog.Content>
@@ -391,6 +400,13 @@ function FeedbackTab() {
     setFeedback('');
   }
 
+  function openIssue() {
+    const body = `${feedback}\n\n---\ncairn v${window.cairn.version}`;
+    const url = `${REPO_URL}/issues/new?body=${encodeURIComponent(body)}`;
+    void window.cairn.openExternal(url);
+    setFeedback('');
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[12px] leading-relaxed text-ink-tertiary">{t('prefs.feedback.desc')}</p>
@@ -401,27 +417,78 @@ function FeedbackTab() {
         rows={6}
         className="w-full resize-none rounded-md border border-hairline bg-surface-2 px-3 py-2 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/50 focus:outline-none"
       />
-      <button
-        type="button"
-        onClick={send}
-        disabled={!feedback.trim()}
-        className="inline-flex items-center gap-1.5 self-start rounded-md bg-accent px-3 py-1.5 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-40"
-      >
-        <Send size={13} strokeWidth={2} />
-        {t('prefs.feedback.send')}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={send}
+          disabled={!feedback.trim()}
+          className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-40"
+        >
+          <Send size={13} strokeWidth={2} />
+          {t('prefs.feedback.send')}
+        </button>
+        <button
+          type="button"
+          onClick={openIssue}
+          disabled={!feedback.trim()}
+          className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-[13px] font-medium text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-40"
+        >
+          <Github size={13} strokeWidth={2} />
+          {t('prefs.feedback.send.issue')}
+        </button>
+      </div>
     </div>
   );
 }
 
 function AboutTab() {
   const { settings, update, t } = useSettings();
+  const [stars, setStars] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void window.cairn.repoStars?.().then((n) => {
+      if (alive) setStars(n);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between rounded-lg border border-hairline bg-surface-2 px-4 py-3 text-[13px]">
-        <span className="text-ink-muted">cairn</span>
-        <span className="font-mono text-ink-subtle">v{window.cairn.version}</span>
-      </div>
+    <div className="flex flex-col gap-5">
+      <button
+        type="button"
+        aria-label={t('prefs.about.repo')}
+        onClick={() => void window.cairn.openExternal(REPO_URL)}
+        className="group flex items-center gap-3.5 rounded-xl border border-hairline bg-surface-2 px-4 py-4 text-left transition-colors hover:border-ink/15 hover:bg-surface-2/70"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-1 text-ink">
+          <Github size={22} strokeWidth={1.75} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-[13px] font-semibold text-ink">
+            ldhbenecia/cairn
+            <ExternalLink
+              size={12}
+              strokeWidth={2}
+              className="text-ink-tertiary opacity-0 transition-opacity group-hover:opacity-100"
+            />
+          </div>
+          <div className="mt-0.5 text-[12px] text-ink-tertiary">{t('prefs.about.repo.desc')}</div>
+        </div>
+        {stars !== null && (
+          <span className="group/star flex shrink-0 items-center gap-1 rounded-md border border-hairline px-2 py-1 text-[12px] text-ink-subtle transition-colors hover:border-yellow-400/40">
+            <Star
+              size={12}
+              strokeWidth={2}
+              className="fill-current transition-colors group-hover/star:text-yellow-400"
+            />
+            {stars}
+          </span>
+        )}
+      </button>
+
       <div className="divide-y divide-hairline">
         <Field label={t('prefs.telemetry')} desc={t('prefs.telemetry.desc')}>
           <Toggle checked={settings.telemetry} onChange={(v) => update({ telemetry: v })} />
