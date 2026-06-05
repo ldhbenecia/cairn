@@ -11,8 +11,16 @@ extraResources:
     to: core/bundle
 mac:
   category: public.app-category.productivity
+  identity: null
   target:
-    - target: dir
+    - target: dmg
+      arch:
+        - arm64
+    - target: zip
       arch:
         - arm64
 asar: true
+publish:
+  provider: github
+  owner: ldhbenecia
+  repo: cairn
