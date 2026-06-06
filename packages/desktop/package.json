@@ -24,7 +24,7 @@
     "electron-updater": "^6.8.3",
     "highlight.js": "^11.11.1",
     "lucide-react": "^0.475.0",
-    "posthog-node": "^5.35.14",
+    "posthog-node": "^5.36.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
