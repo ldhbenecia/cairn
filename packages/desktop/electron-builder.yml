@@ -1,5 +1,6 @@
 appId: io.cairn.desktop
-productName: cairn
+afterPack: scripts/adhoc-sign.cjs
+productName: Cairn
 directories:
   output: dist
   buildResources: resources
@@ -11,7 +12,6 @@ extraResources:
     to: core/bundle
 mac:
   category: public.app-category.productivity
-  identity: null
   target:
     - target: dmg
       arch:

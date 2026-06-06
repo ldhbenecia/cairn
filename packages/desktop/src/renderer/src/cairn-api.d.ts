@@ -39,6 +39,7 @@ export type SimpleBlock = {
   checked?: boolean;
   language?: string;
   icon?: string;
+  iconUrl?: string;
   children?: SimpleBlock[];
 };
 export type PageContent = { blocks: SimpleBlock[]; warning?: string };
