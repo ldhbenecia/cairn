@@ -23,9 +23,17 @@ It runs as an **Electron desktop app** on top of a headless engine. Everything s
 
 The desktop app's first-run setup walks you through connecting these and writes the config for you.
 
+## Download
+
+Grab the latest `.dmg` from the [Releases page](https://github.com/ldhbenecia/cairn/releases/latest).
+
+- **macOS (Apple Silicon / arm64)** for now. Intel and other platforms may follow.
+- The app is **not yet code-signed**, so on first launch macOS Gatekeeper will warn. Open it once via **right-click → Open** (or run `xattr -cr /Applications/cairn.app`); after that it launches normally.
+- It checks for new versions and notifies you when one is available — download the new `.dmg` to update. (Seamless auto-update will come once the app is signed.)
+
 ## Build & run from source
 
-Packaged releases are planned; for now build from source.
+Prefer building it yourself? You can.
 
 - Node 24 LTS (see [.nvmrc](.nvmrc)), pnpm 10+
 
