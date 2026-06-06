@@ -263,7 +263,11 @@ function Block({ b }: { b: SimpleBlock }) {
     case 'callout':
       body = (
         <p className="flex gap-2 rounded-md border border-hairline bg-surface-2 px-3 py-2">
-          {b.icon && <span className="shrink-0">{b.icon}</span>}
+          {b.iconUrl ? (
+            <img src={b.iconUrl} alt="" className="mt-0.5 h-4 w-4 shrink-0 rounded-sm" />
+          ) : (
+            b.icon && <span className="shrink-0">{b.icon}</span>
+          )}
           <span>
             <Rich spans={b.rich} />
           </span>

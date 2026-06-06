@@ -242,6 +242,7 @@ export type SimpleBlock = {
   checked?: boolean;
   language?: string;
   icon?: string;
+  iconUrl?: string;
   children?: SimpleBlock[];
 };
 
@@ -289,13 +290,16 @@ async function fetchBlocks(notion: Client, blockId: string, depth: number): Prom
             rich_text?: RawRichText[];
             checked?: boolean;
             language?: string;
-            icon?: { emoji?: string };
+            icon?: { emoji?: string; external?: { url?: string }; file?: { url?: string } };
           }
         | undefined;
       const sb: SimpleBlock = { id: block.id, type, rich: richSpans(body?.rich_text) };
       if (type === 'to_do') sb.checked = body?.checked ?? false;
       if (type === 'code') sb.language = body?.language;
-      if (type === 'callout') sb.icon = body?.icon?.emoji;
+      if (type === 'callout') {
+        sb.icon = body?.icon?.emoji;
+        sb.iconUrl = body?.icon?.external?.url ?? body?.icon?.file?.url;
+      }
       if (
         block.has_children &&
         type !== 'child_database' &&
