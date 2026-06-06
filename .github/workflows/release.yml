@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build · Publish (macOS arm64)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate tag format
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag '${GITHUB_REF_NAME}' (expected vMAJOR.MINOR.PATCH)"
+            exit 1
+          fi
+
+      - name: Validate tag == workspace version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          ROOT="$(node -p "require('./package.json').version")"
+          if [[ "$TAG" != "$ROOT" ]]; then
+            echo "Tag $TAG != workspace version $ROOT — bump root package.json or fix tag"
+            exit 1
+          fi
+
+      - name: Build + publish (inject workspace version)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ROOT="$(node -p "require('./package.json').version")"
+          pnpm --filter @cairn/core build:bundle
+          pnpm --filter @cairn/desktop exec electron-vite build
+          pnpm --filter @cairn/desktop exec electron-builder --publish always --config.extraMetadata.version="$ROOT"
+
+      - name: Generate release notes (draft 에 자동 채움)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository }}/releases/generate-notes" \
+            -f tag_name="${GITHUB_REF_NAME}" --jq .body > /tmp/notes.md
+          gh release edit "${GITHUB_REF_NAME}" --notes-file /tmp/notes.md
