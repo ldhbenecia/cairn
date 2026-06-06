@@ -59,4 +59,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git-cliff --latest --strip all -o RELEASE_NOTES.md
-          gh release edit "${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md
+          gh release edit "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md
