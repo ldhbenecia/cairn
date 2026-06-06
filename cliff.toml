@@ -4,13 +4,17 @@ body = """
 {% for group, commits in commits | group_by(attribute="group") %}
 ### {{ group | upper_first }}
 {% for commit in commits %}
-- {{ commit.message | split(pat="\n") | first | trim }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/ldhbenecia/cairn/commit/{{ commit.id }})){% if commit.remote.username %} by @{{ commit.remote.username }}{% endif %}
+- {{ commit.message | split(pat="\n") | first | trim | replace(from="@", to="&#64;") }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/ldhbenecia/cairn/commit/{{ commit.id }})){% if commit.remote.username %} by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){% endif %}
 {%- endfor %}
 {% endfor %}
 {% if previous and previous.version %}**Full Changelog**: https://github.com/ldhbenecia/cairn/compare/{{ previous.version }}...{{ version }}{% endif %}"""
 trim = true
 footer = ""
 postprocessors = [{ pattern = '<!-- [0-9]+ -->', replace = "" }]
+
+[remote.github]
+owner = "ldhbenecia"
+repo = "cairn"
 
 [git]
 conventional_commits = true
