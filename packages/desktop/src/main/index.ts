@@ -18,6 +18,7 @@ import { readSettings, writeSettings, type Settings } from './settings';
 import { isSetupComplete } from './setup';
 import { initTelemetry, shutdownTelemetry, trackAppLaunched } from './telemetry';
 import { setupTray } from './tray';
+import { initUpdater } from './updater';
 
 declare const __WORKSPACE_VERSION__: string;
 
@@ -134,6 +135,7 @@ void app.whenReady().then(() => {
   initAutoPublish();
   initTelemetry();
   trackAppLaunched();
+  initUpdater();
 
   app.on('activate', () => {
     if (win.isMinimized()) win.restore();
