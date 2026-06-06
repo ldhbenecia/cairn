@@ -19,7 +19,7 @@
     "@vercel/ncc": "^0.38.0"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.138",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.167",
     "@nestjs/common": "^11.1.19",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.19",
