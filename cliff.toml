@@ -4,7 +4,7 @@ body = """
 {% for group, commits in commits | group_by(attribute="group") %}
 ### {{ group | upper_first }}
 {% for commit in commits %}
-- {{ commit.message | split(pat="\n") | first | trim | replace(from="@", to="&#64;") }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/ldhbenecia/cairn/commit/{{ commit.id }})){% if commit.remote.username %} by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){% endif %}
+- {{ commit.message | split(pat="\n") | first | trim | replace(from="@", to="@​") }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/ldhbenecia/cairn/commit/{{ commit.id }})){% if commit.remote.username %} by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){% endif %}
 {%- endfor %}
 {% endfor %}
 {% if previous and previous.version %}**Full Changelog**: https://github.com/ldhbenecia/cairn/compare/{{ previous.version }}...{{ version }}{% endif %}"""
