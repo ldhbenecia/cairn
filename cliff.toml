@@ -1,0 +1,35 @@
+[changelog]
+header = ""
+body = """
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in commits %}
+- {{ commit.message | split(pat="\n") | first | trim }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/ldhbenecia/cairn/commit/{{ commit.id }})){% if commit.remote.username %} by @{{ commit.remote.username }}{% endif %}
+{%- endfor %}
+{% endfor %}
+{% if previous and previous.version %}**Full Changelog**: https://github.com/ldhbenecia/cairn/compare/{{ previous.version }}...{{ version }}{% endif %}"""
+trim = true
+footer = ""
+postprocessors = [{ pattern = '<!-- [0-9]+ -->', replace = "" }]
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+commit_parsers = [
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^feat", group = "<!-- 1 -->🚀 Features" },
+  { message = "^fix", group = "<!-- 2 -->🐛 Bug Fixes" },
+  { message = "^perf", group = "<!-- 3 -->⚡ Performance" },
+  { message = "^refactor", group = "<!-- 4 -->♻️ Refactor" },
+  { message = "^docs", group = "<!-- 5 -->📝 Docs" },
+  { message = "^build\\(deps\\)|^chore\\(deps\\)", group = "<!-- 6 -->⬆️ Dependencies" },
+  { message = "^build|^ci", group = "<!-- 7 -->🔧 Build & CI" },
+  { message = "^test", group = "<!-- 8 -->✅ Tests" },
+  { message = "^style", group = "<!-- 9 -->🎨 Style" },
+  { message = "^revert", group = "<!-- 10 -->⏪ Revert" },
+  { message = "^chore", group = "<!-- 11 -->🧹 Chores" },
+]
+filter_commits = true
+sort_commits = "oldest"
+tag_pattern = "v[0-9]*"

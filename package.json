@@ -1,6 +1,6 @@
 {
   "name": "cairn-workspace",
-  "version": "0.17.4",
+  "version": "0.17.5",
   "private": true,
   "description": "Automatic worklog and rollup tool that aggregates GitHub, local Git, and Notion activity into Notion pages.",
   "engines": {
@@ -41,7 +41,7 @@
   },
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
-    "@commitlint/cli": "^20.5.2",
+    "@commitlint/cli": "^21.0.2",
     "@commitlint/config-conventional": "^20.5.0",
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.6.0",
