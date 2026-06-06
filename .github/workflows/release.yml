@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   release:
+    name: Build · Publish (macOS arm64)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,7 +18,8 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - name: Install
+        run: pnpm install --frozen-lockfile
 
       - name: Validate tag format
         run: |

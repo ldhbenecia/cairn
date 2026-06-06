@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   check:
+    name: Type-check · Lint · Test
     runs-on: ubuntu-latest
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
@@ -20,7 +21,11 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm -r typecheck
-      - run: pnpm lint
-      - run: pnpm -r test
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Type-check
+        run: pnpm -r typecheck
+      - name: Lint
+        run: pnpm lint
+      - name: Test
+        run: pnpm -r test
