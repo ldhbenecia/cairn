@@ -12,9 +12,11 @@ jobs:
     name: Build · Publish (macOS arm64)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
@@ -46,10 +48,15 @@ jobs:
           pnpm --filter @cairn/desktop exec electron-vite build
           pnpm --filter @cairn/desktop exec electron-builder --publish always --config.extraMetadata.version="$ROOT"
 
-      - name: Generate release notes (draft 에 자동 채움)
+      - name: Install git-cliff
+        uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
+
+      - name: Generate release notes (git-cliff → draft)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api "repos/${{ github.repository }}/releases/generate-notes" \
-            -f tag_name="${GITHUB_REF_NAME}" --jq .body > /tmp/notes.md
-          gh release edit "${GITHUB_REF_NAME}" --notes-file /tmp/notes.md
+          git-cliff --latest --strip all -o RELEASE_NOTES.md
+          gh release edit "${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md
