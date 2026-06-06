@@ -13,6 +13,7 @@ export default [
       '**/node_modules/**',
       'eslint.config.mjs',
       'commitlint.config.js',
+      'packages/desktop/scripts/**',
     ],
   },
   eslint.configs.recommended,
