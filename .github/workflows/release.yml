@@ -43,3 +43,11 @@ jobs:
           pnpm --filter @cairn/core build:bundle
           pnpm --filter @cairn/desktop exec electron-vite build
           pnpm --filter @cairn/desktop exec electron-builder --publish always --config.extraMetadata.version="$ROOT"
+
+      - name: Generate release notes (draft 에 자동 채움)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository }}/releases/generate-notes" \
+            -f tag_name="${GITHUB_REF_NAME}" --jq .body > /tmp/notes.md
+          gh release edit "${GITHUB_REF_NAME}" --notes-file /tmp/notes.md
