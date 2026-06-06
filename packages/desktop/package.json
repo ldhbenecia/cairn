@@ -25,12 +25,12 @@
     "highlight.js": "^11.11.1",
     "lucide-react": "^0.475.0",
     "posthog-node": "^5.36.3",
-    "react": "^19.0.0",
+    "react": "^19.2.7",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
-    "@types/react": "^19.0.0",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^34.0.0",
