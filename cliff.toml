@@ -7,7 +7,13 @@ body = """
 - {{ commit.message | split(pat="\n") | first | trim | replace(from="@", to="@​") }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/ldhbenecia/cairn/commit/{{ commit.id }})){% if commit.remote.username %} by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){% endif %}
 {%- endfor %}
 {% endfor %}
-{% if previous and previous.version %}**Full Changelog**: https://github.com/ldhbenecia/cairn/compare/{{ previous.version }}...{{ version }}{% endif %}"""
+{% if previous and previous.version %}**Full Changelog**: https://github.com/ldhbenecia/cairn/compare/{{ previous.version }}...{{ version }}{% endif %}
+{% if github.contributors | length > 0 %}
+### 👥 Contributors
+{% for c in github.contributors %}
+- [@{{ c.username }}](https://github.com/{{ c.username }})
+{%- endfor %}
+{% endif %}"""
 trim = true
 footer = ""
 postprocessors = [{ pattern = '<!-- [0-9]+ -->', replace = "" }]
