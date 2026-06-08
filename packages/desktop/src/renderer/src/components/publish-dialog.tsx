@@ -180,13 +180,18 @@ function collectHintKey(lines: RunSession['lines']): I18nKey {
 function Progress({ session, t }: { session: RunSession | null; t: T }) {
   const step = session?.step ?? 'boot';
   const currentRank = STEP_RANK[step];
-  const [elapsed, setElapsed] = useState(0);
+  const running = session?.state === 'running';
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    if (!running) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [running]);
 
+  const startedAt = session?.startedAt;
+  const end = session?.endedAt ?? now;
+  const elapsed = startedAt ? Math.max(0, Math.floor((end - startedAt) / 1000)) : 0;
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
   const ss = String(elapsed % 60).padStart(2, '0');
   const hint =

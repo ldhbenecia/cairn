@@ -26,6 +26,8 @@ export type RunSession = {
   lines: RunLine[];
   result?: CoreResult;
   error?: string;
+  startedAt: number;
+  endedAt?: number;
 };
 
 const TAIL_MAX = 200;
@@ -80,7 +82,7 @@ export function App() {
   useEffect(() => {
     const off = window.cairn.onRunLine((l) => {
       setSessions((prev) => {
-        const current = prev[l.mode] ?? { state: 'running', step: 'boot', lines: [] };
+        const current = prev[l.mode] ?? { state: 'running', step: 'boot', lines: [], startedAt: Date.now() };
         const next: RunSession = {
           ...current,
           lines:
@@ -97,7 +99,7 @@ export function App() {
   useEffect(() => {
     const off = window.cairn.onRunStep(({ mode, step }) => {
       setSessions((prev) => {
-        const current = prev[mode] ?? { state: 'running', step: 'boot', lines: [] };
+        const current = prev[mode] ?? { state: 'running', step: 'boot', lines: [], startedAt: Date.now() };
         return { ...prev, [mode]: { ...current, step } };
       });
     });
@@ -128,20 +130,26 @@ export function App() {
       setRunningMode(mode);
       setSessions((prev) => ({
         ...prev,
-        [mode]: { state: 'running', step: 'boot', lines: [] },
+        [mode]: { state: 'running', step: 'boot', lines: [], startedAt: Date.now() },
       }));
       try {
         const result = await window.cairn.run(mode, options);
         setSessions((prev) => {
           const current = prev[mode] ?? { state: 'running', step: 'done', lines: [] };
-          return { ...prev, [mode]: { ...current, state: 'done', step: 'done', result } };
+          return {
+            ...prev,
+            [mode]: { ...current, state: 'done', step: 'done', result, endedAt: Date.now() },
+          };
         });
         void loadRecent();
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         setSessions((prev) => {
-          const current = prev[mode] ?? { state: 'running', step: 'boot', lines: [] };
-          return { ...prev, [mode]: { ...current, state: 'done', error: message } };
+          const current = prev[mode] ?? { state: 'running', step: 'boot', lines: [], startedAt: Date.now() };
+          return {
+            ...prev,
+            [mode]: { ...current, state: 'done', error: message, endedAt: Date.now() },
+          };
         });
       } finally {
         setRunningMode(null);
