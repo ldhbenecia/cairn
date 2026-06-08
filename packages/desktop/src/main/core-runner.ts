@@ -3,6 +3,7 @@ import { fork, type ChildProcess } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { claudeEnv } from './claude-path';
 import { sendResultNotification } from './notifier';
 import { readSettings } from './settings';
 import { trackPublish } from './telemetry';
@@ -85,7 +86,7 @@ export async function probeClaude(): Promise<{ ok: boolean }> {
     const child = fork(CORE_ENTRY, ['--probe-claude'], {
       cwd: CAIRN_ROOT,
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-      env: { ...process.env, CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false' },
+      env: { ...process.env, CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false', ...claudeEnv() },
     });
     let out = '';
     child.stdout?.on('data', (b: Buffer) => (out += b.toString('utf8')));
@@ -132,7 +133,7 @@ export async function runCore(
   const child = fork(CORE_ENTRY, args, {
     cwd: CAIRN_ROOT,
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-    env: { ...process.env, CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false' },
+    env: { ...process.env, CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false', ...claudeEnv() },
   });
   running = child;
   emit('meta', `[fork] pid=${child.pid ?? '?'}`);
