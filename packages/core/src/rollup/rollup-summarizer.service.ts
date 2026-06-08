@@ -1,6 +1,7 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { claudeExecutableOptions } from '../common/claude-executable.js';
 import { CairnError } from '../common/error.js';
 import { isOperator } from '../common/operator.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
@@ -61,6 +62,7 @@ export class RollupSummarizerService {
             `mcp__${MCP_SERVER_NAME}__submit_rollup`,
           ],
           maxTurns: 10,
+          ...claudeExecutableOptions(),
         },
       });
 

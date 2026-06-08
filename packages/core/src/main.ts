@@ -6,12 +6,16 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
 import { parseCliArgs } from './cairn/cli-args.js';
 import { OrchestratorService } from './cairn/orchestrator.service.js';
+import { claudeExecutableOptions } from './common/claude-executable.js';
 
 // Claude 연결 확인용 — 인증(API key / Claude Code CLI 인계)이 동작하는지 가벼운 query 1회.
 // 데스크탑 온보딩의 "연결 확인" 버튼이 `--probe-claude` 로 fork.
 async function probeClaude(): Promise<void> {
   try {
-    const q = query({ prompt: 'Reply with the single word: ok', options: { maxTurns: 1 } });
+    const q = query({
+      prompt: 'Reply with the single word: ok',
+      options: { maxTurns: 1, ...claudeExecutableOptions() },
+    });
     let ok = false;
     for await (const message of q) {
       if (message.type === 'result') {

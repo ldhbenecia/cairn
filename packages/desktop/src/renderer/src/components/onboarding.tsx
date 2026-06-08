@@ -256,11 +256,23 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             <Section desc="cairn 은 활동을 한국어로 요약하는 데 Claude 를 씁니다.">
               <div className="rounded-lg border border-hairline bg-surface-1 p-4 text-[13px] leading-relaxed text-ink-muted">
                 <p className="mb-2 font-medium text-ink">
-                  Claude Code CLI 가 로그인돼 있으면 자동 — 추가 과금 0
+                  Claude Code CLI 가 설치·로그인돼 있으면 자동 — 추가 과금 0
                 </p>
                 <p className="text-ink-subtle">
-                  로그인된 Claude(Pro/Max 등) 인증을 그대로 인계받습니다. 아래는 선택 사항이에요.
+                  cairn 은 시스템에 설치된 Claude Code 를 사용합니다(앱에 포함하지 않음). 로그인된
+                  Claude(Pro/Max 등) 인증을 그대로 인계받아요.
                 </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    void window.cairn.openExternal(
+                      'https://docs.claude.com/en/docs/claude-code/setup',
+                    )
+                  }
+                  className="mt-2 inline-flex items-center gap-1 text-[12px] text-accent hover:text-accent-hover"
+                >
+                  <ExternalLink size={11} strokeWidth={2} /> Claude Code 설치
+                </button>
               </div>
               <div>
                 <p className="mb-1.5 text-[13px] text-ink-muted">또는 Anthropic API key (선택)</p>
@@ -300,7 +312,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 )}
                 {claudeStatus === 'err' && (
                   <span className="text-[13px] text-[#f87171]">
-                    연결 안 됨 — claude 로그인 또는 API key 필요
+                    연결 안 됨 — Claude Code 설치·로그인 또는 API key 필요
                   </span>
                 )}
                 {claudeStatus === 'testing' && (
