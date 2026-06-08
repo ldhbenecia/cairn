@@ -1,6 +1,6 @@
 {
   "name": "@cairn/desktop",
-  "version": "0.3.5",
+  "version": "0.3.7",
   "private": true,
   "description": "cairn desktop — Electron shell for cairn engine. menubar tray + manual triggers + native notifications.",
   "author": "Donghyeok Lim",
@@ -25,15 +25,15 @@
     "highlight.js": "^11.11.1",
     "lucide-react": "^0.475.0",
     "posthog-node": "^5.36.3",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.3.4",
-    "electron": "^34.0.0",
+    "electron": "^42.3.3",
     "electron-builder": "^25.1.8",
     "electron-vite": "^3.0.0",
     "tailwindcss": "^4.0.0",
