@@ -7,8 +7,6 @@ directories:
 files:
   - out/**/*
   - package.json
-  # 번들 Claude Code 바이너리(210MB) 제외 — 시스템 설치본 사용 (ADR 0019).
-  # SDK JS 는 core/bundle 에 ncc 로 인라인되어 있어 무관.
   - '!**/node_modules/@anthropic-ai/**'
 extraResources:
   - from: ../core/dist/bundle
