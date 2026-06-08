@@ -43,6 +43,7 @@ interface RollupActivityPayload {
     date: string;
     paragraphKo: string;
     doneBullets: readonly string[];
+    reviewedBullets: readonly string[];
     inProgressBullets: readonly string[];
     notesBullets: readonly string[];
   }>;
@@ -67,6 +68,7 @@ export function buildRollupActivityPayload(input: RollupSummarizerInput): Rollup
       date: s.date,
       paragraphKo: s.paragraphKo,
       doneBullets: s.doneBullets,
+      reviewedBullets: s.reviewedBullets,
       inProgressBullets: s.inProgressBullets,
       notesBullets: s.notesBullets,
     })),

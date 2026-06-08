@@ -25,6 +25,7 @@ interface ParsedSourceCounts {
 interface ParsedSummaryText {
   paragraphKo: string;
   doneBullets: string[];
+  reviewedBullets: string[];
   inProgressBullets: string[];
   notesBullets: string[];
 }
@@ -170,10 +171,11 @@ export function parseSummaryFromBlocks(
 ): ParsedSummaryText | null {
   let paragraphKo = '';
   const doneBullets: string[] = [];
+  const reviewedBullets: string[] = [];
   const inProgressBullets: string[] = [];
   const notesBullets: string[] = [];
 
-  let section: 'summary' | 'done' | 'inprogress' | 'notes' | null = null;
+  let section: 'summary' | 'done' | 'reviewed' | 'inprogress' | 'notes' | null = null;
   let pickedSummaryParagraph = false;
 
   for (const block of blocks) {
@@ -194,6 +196,7 @@ export function parseSummaryFromBlocks(
       const text = block.text.trim();
       if (!text) continue;
       if (section === 'done') doneBullets.push(text);
+      else if (section === 'reviewed') reviewedBullets.push(text);
       else if (section === 'inprogress') inProgressBullets.push(text);
       else if (section === 'notes') notesBullets.push(text);
     }
@@ -202,18 +205,22 @@ export function parseSummaryFromBlocks(
   if (
     !paragraphKo &&
     doneBullets.length === 0 &&
+    reviewedBullets.length === 0 &&
     inProgressBullets.length === 0 &&
     notesBullets.length === 0
   ) {
     return null;
   }
-  return { paragraphKo, doneBullets, inProgressBullets, notesBullets };
+  return { paragraphKo, doneBullets, reviewedBullets, inProgressBullets, notesBullets };
 }
 
-function headingToSection(text: string): 'summary' | 'done' | 'inprogress' | 'notes' | null {
+function headingToSection(
+  text: string,
+): 'summary' | 'done' | 'reviewed' | 'inprogress' | 'notes' | null {
   const lc = text.toLowerCase().trim();
   if (lc === 'summary') return 'summary';
   if (lc === 'done') return 'done';
+  if (lc === 'reviewed') return 'reviewed';
   if (lc === 'in progress') return 'inprogress';
   if (lc === 'notes') return 'notes';
   return null;
