@@ -171,16 +171,15 @@ export class GithubCollectorService {
       'github collect account classified',
     );
 
-    // Phase 2: eligible PR 만 files fetch. PR body 는 search result payload 를 재사용한다.
-    return withConcurrency(eligible, 5, async ({ bucket, commitsOnDate }) => {
+    let summaryCommitLookupCount = 0;
+    const summaries = await withConcurrency(eligible, 5, async ({ bucket, commitsOnDate }) => {
       const { account: acc, item, categories } = bucket;
       const skipBody = categories.size === 1 && categories.has('involved');
-      const changedFileNames = await this.client.listPrFileBasenames(
-        token,
-        item.owner,
-        item.repo,
-        item.number,
-      );
+      const shouldFetchCommitsForSummary = commitsOnDate.length === 0 && categories.has('authored');
+      const summaryCommitsOnDate = shouldFetchCommitsForSummary
+        ? await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin)
+        : commitsOnDate;
+      if (shouldFetchCommitsForSummary) summaryCommitLookupCount += 1;
       const body = skipBody ? null : this.safeSearchBody(item);
       return {
         account: acc,
@@ -194,12 +193,17 @@ export class GithubCollectorService {
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
         mergedAt: item.mergedAt,
-        changedFileNames,
+        changedFileNames: [],
         categories: [...categories],
         body,
-        commitsOnDate,
+        commitsOnDate: summaryCommitsOnDate,
       };
     });
+    this.logger.info(
+      { account: account.label, summaryCommitLookupCount },
+      'github collect account summarized',
+    );
+    return summaries;
   }
 
   private tag(
