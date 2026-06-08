@@ -1,12 +1,14 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, join } from 'node:path';
 
-// packaged GUI 앱의 process.env.PATH 는 launchd 최소 PATH(/usr/bin:/bin...)라
-// 사용자가 설치한 claude(/opt/homebrew/bin 등)를 못 찾는다. 로그인 셸 PATH 를 한 번 읽어 보강.
 let cachedDirs: string[] | undefined;
 let cachedClaude: string | null | undefined;
+
+function dedupe(items: string[]): string[] {
+  return [...new Set(items)];
+}
 
 function loginShellDirs(): string[] {
   try {
@@ -24,7 +26,7 @@ function loginShellDirs(): string[] {
 
 function searchDirs(): string[] {
   if (cachedDirs) return cachedDirs;
-  cachedDirs = [
+  cachedDirs = dedupe([
     ...loginShellDirs(),
     ...(process.env.PATH?.split(delimiter).filter(Boolean) ?? []),
     '/opt/homebrew/bin',
@@ -32,29 +34,56 @@ function searchDirs(): string[] {
     join(homedir(), '.claude', 'local'),
     join(homedir(), '.local', 'bin'),
     join(homedir(), '.npm-global', 'bin'),
-  ];
+  ]);
   return cachedDirs;
 }
 
-// 시스템에 설치된 claude 실행파일 경로. 못 찾으면 null.
+// VS Code/Cursor 등 IDE 의 Claude Code 확장이 동봉한 claude 바이너리.
+// 확장만 쓰는 사용자는 PATH 에 claude 가 없으므로 확장 디렉토리를 직접 뒤진다.
+function ideExtensionClaude(): string | null {
+  const exe = process.platform === 'win32' ? 'claude.exe' : 'claude';
+  const roots = ['.vscode/extensions', '.vscode-insiders/extensions', '.cursor/extensions'].map(
+    (r) => join(homedir(), r),
+  );
+  const found: string[] = [];
+  for (const root of roots) {
+    let entries: string[];
+    try {
+      entries = readdirSync(root);
+    } catch {
+      continue;
+    }
+    for (const name of entries) {
+      if (!name.startsWith('anthropic.claude-code-')) continue;
+      const p = join(root, name, 'resources', 'native-binary', exe);
+      if (existsSync(p)) found.push(p);
+    }
+  }
+  return found.sort().at(-1) ?? null;
+}
+
+// 로컬에 설치된 claude 실행파일. CAIRN_CLAUDE_PATH override → PATH/brew/npm → IDE 확장. 없으면 null.
 export function resolveClaudePath(): string | null {
   if (cachedClaude !== undefined) return cachedClaude;
+  const configured = process.env.CAIRN_CLAUDE_PATH;
+  if (configured && existsSync(configured)) {
+    cachedClaude = configured;
+    return cachedClaude;
+  }
+  const exe = process.platform === 'win32' ? 'claude.exe' : 'claude';
   for (const d of searchDirs()) {
-    const p = join(d, 'claude');
+    const p = join(d, exe);
     if (existsSync(p)) {
       cachedClaude = p;
       return p;
     }
   }
-  cachedClaude = null;
-  return null;
+  cachedClaude = ideExtensionClaude();
+  return cachedClaude;
 }
 
-// core fork 에 넘길 env — 보강된 PATH + 해석된 claude 경로(CAIRN_CLAUDE_PATH).
 export function claudeEnv(): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = {
-    PATH: searchDirs().join(delimiter),
-  };
+  const env: NodeJS.ProcessEnv = { PATH: searchDirs().join(delimiter) };
   const claude = resolveClaudePath();
   if (claude) env.CAIRN_CLAUDE_PATH = claude;
   return env;

@@ -49,6 +49,23 @@ const githubActivity: GithubActivity = {
       body: null,
       commitsOnDate: [],
     },
+    {
+      account: 'work',
+      repo: 'team-api',
+      number: 24,
+      title: 'fix(api): quiz query chunking',
+      state: 'merged',
+      author: 'teammate',
+      labels: ['bug'],
+      htmlUrl: 'https://github.com/x/team-api/pull/24',
+      createdAt: '2026-05-09T01:00:00Z',
+      updatedAt: '2026-05-09T08:00:00Z',
+      mergedAt: '2026-05-09T09:00:00Z',
+      changedFileNames: [],
+      categories: ['reviewed'],
+      body: 'Fixes oversized query strings by chunking ids.',
+      commitsOnDate: [],
+    },
   ],
 };
 
@@ -92,6 +109,8 @@ describe('buildActivityPayload', () => {
     expect(payload.date).toBe('2026-05-09');
     expect(payload.done.prs).toHaveLength(1);
     expect(payload.done.prs[0]?.kind).toBe('pr_merged');
+    expect(payload.reviewed.prs).toHaveLength(1);
+    expect(payload.reviewed.prs[0]?.kind).toBe('pr_reviewed');
     expect(payload.done.commits).toHaveLength(1);
     expect(payload.done.commits[0]?.kind).toBe('commit_pushed');
     expect(payload.inProgress.prs).toHaveLength(1);
@@ -120,6 +139,7 @@ describe('buildActivityPayload', () => {
     const payload = buildActivityPayload(input);
     expect(payload.done.prs).toEqual([]);
     expect(payload.done.commits).toEqual([]);
+    expect(payload.reviewed.prs).toEqual([]);
     expect(payload.inProgress.prs).toEqual([]);
     expect(payload.inProgress.commits).toEqual([]);
     expect(payload.sourceErrors).toEqual({});

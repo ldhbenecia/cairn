@@ -1,5 +1,6 @@
 import { app, type WebContents } from 'electron';
 import { fork, type ChildProcess } from 'node:child_process';
+import { appendFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,6 +39,7 @@ const CORE_ENTRY = app.isPackaged
 const CAIRN_ROOT = app.isPackaged
   ? (process.env.CAIRN_HOME ?? join(homedir(), '.cairn'))
   : resolve(__dirname, '../../../..');
+const LOGS_DIR = join(homedir(), '.cairn', 'logs');
 
 const STDERR_TAIL_LINES = 20;
 const NOTION_URL_REGEX = /https:\/\/www\.notion\.so\/\S+/g;
@@ -61,6 +63,20 @@ const STEP_TRIGGERS: { regex: RegExp; step: RunStep }[] = [
 
 function stripAnsi(s: string): string {
   return s.replace(ANSI_REGEX, '');
+}
+
+function appendRunLog(mode: CoreMode, level: 'info' | 'err' | 'meta', line: string): void {
+  try {
+    mkdirSync(LOGS_DIR, { recursive: true });
+    const day = new Date().toISOString().slice(0, 10);
+    appendFileSync(
+      join(LOGS_DIR, `desktop-run.${day}.log`),
+      `${new Date().toISOString()} [${mode}] [${level}] ${line}\n`,
+      'utf8',
+    );
+  } catch {
+    return;
+  }
 }
 
 function detectStep(line: string): RunStep | null {
@@ -110,7 +126,9 @@ export async function runCore(
   if (running) throw new Error('이미 다른 작업이 실행 중입니다');
 
   const emit = (level: 'info' | 'err' | 'meta', line: string): void => {
-    sender?.send('cairn:run-line', { mode, level, line: stripAnsi(line) });
+    const clean = stripAnsi(line);
+    appendRunLog(mode, level, clean);
+    sender?.send('cairn:run-line', { mode, level, line: clean });
   };
 
   let currentStep: RunStep = 'boot';
@@ -139,6 +157,7 @@ export async function runCore(
   emit('meta', `[fork] pid=${child.pid ?? '?'}`);
 
   const stderrLines: string[] = [];
+  const stdoutLines: string[] = [];
   let stdoutAll = '';
   let noActivity = false;
 
@@ -148,6 +167,7 @@ export async function runCore(
     if (NO_ACTIVITY_REGEX.test(text)) noActivity = true;
     for (const line of text.split('\n')) {
       if (line.length === 0) continue;
+      stdoutLines.push(line);
       emit('info', line);
       const step = detectStep(line);
       if (step) emitStep(step);
@@ -164,7 +184,8 @@ export async function runCore(
   return new Promise<CoreResult>((resolvePromise) => {
     child.on('close', (exitCode) => {
       running = null;
-      const tail = stderrLines.slice(-STDERR_TAIL_LINES).join('\n');
+      const tailSource = stderrLines.length > 0 ? stderrLines : stdoutLines;
+      const tail = tailSource.slice(-STDERR_TAIL_LINES).join('\n');
       const urlMatches = stdoutAll.match(NOTION_URL_REGEX) ?? [];
       const lastUrl = urlMatches.at(-1)?.replace(/["',}\]]+$/, '') ?? null;
       const kindMatches = [...stdoutAll.matchAll(PUBLISH_KIND_REGEX)];

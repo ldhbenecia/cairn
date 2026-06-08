@@ -28,13 +28,9 @@
   --radius-xl: 16px;
   --radius-2xl: 24px;
 
-  --font-sans:
-    'Inter', 'SF Pro Display', -apple-system, system-ui, 'Segoe UI', Roboto,
-    sans-serif;
-  --font-text:
-    'Inter', 'SF Pro Text', -apple-system, system-ui, sans-serif;
-  --font-mono:
-    'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace;
+  --font-sans: 'Inter', 'SF Pro Display', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-text: 'Inter', 'SF Pro Text', -apple-system, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace;
 }
 
 /* 네이티브 컨트롤(시간 입력 스피너·달력 아이콘 등)이 테마에 맞게 렌더되도록 */

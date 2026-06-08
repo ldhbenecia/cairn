@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { withConcurrency } from '../common/concurrency.js';
 import { CairnError } from '../common/error.js';
 import { GithubCollectorService } from '../github/github-collector.service.js';
 import { LocalGitCollectorService } from '../local-git/local-git-collector.service.js';
@@ -17,6 +18,8 @@ import { RollupSummarizerService } from '../rollup/rollup-summarizer.service.js'
 import { periodRange } from '../rollup/period-range.js';
 import { DailySummarizerService } from '../summarizer/daily-summarizer.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
+
+const BACKFILL_CONCURRENCY = 2;
 
 @Injectable()
 export class OrchestratorService {
@@ -90,11 +93,22 @@ export class OrchestratorService {
       'daily: backfill — multiple missing dates detected',
     );
 
-    const results: Array<{ date: string; kind: PublishWorklogResult['kind'] | 'no-activity' }> = [];
-    for (const date of missingDates) {
-      const outcome = await this.runDailyForDate(date, options, { silent: true, precheck: false });
-      results.push({ date, kind: outcome });
-    }
+    const results = await withConcurrency<
+      string,
+      { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' }
+    >(missingDates, BACKFILL_CONCURRENCY, async (date) => {
+      try {
+        const outcome = await this.runDailyForDate(date, options, {
+          silent: true,
+          precheck: false,
+        });
+        return { date, kind: outcome };
+      } catch (err) {
+        const error = CairnError.from(err, 'config');
+        this.logger.error({ date, error }, 'daily: backfill date failed — continuing batch');
+        return { date, kind: 'failed' };
+      }
+    });
 
     await this.notifyBackfillBatch(missingDates, results);
   }
@@ -113,7 +127,7 @@ export class OrchestratorService {
     }
 
     // 수집·요약 전에 미리 확인 — 이미 발행됨 / final 보호 / 발행 대상 없음이면 바로 단락
-    if (!options.dryRun && opts.precheck !== false) {
+    if (!options.dryRun && !options.force && opts.precheck !== false) {
       const pre = await this.notionPublisher.precheckDaily(date, options.force);
       if (pre) {
         this.logger.info(
@@ -131,12 +145,14 @@ export class OrchestratorService {
       }
     }
 
+    const collectStart = Date.now();
     const [githubActivity, localGitActivity] = await Promise.all([
       wantsGithub
         ? this.githubCollector.collect(date, options.lookbackDays)
         : Promise.resolve(null),
       wantsLocalGit ? this.localGitCollector.collect(date) : Promise.resolve(null),
     ]);
+    const collectMs = Date.now() - collectStart;
 
     if (options.dryRun) {
       if (githubActivity) {
@@ -163,6 +179,7 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
+    const summarizeStart = Date.now();
     const summary = await this.summarizer.summarize(
       {
         date,
@@ -171,7 +188,9 @@ export class OrchestratorService {
       },
       options.lang,
     );
+    const summarizeMs = Date.now() - summarizeStart;
 
+    const publishStart = Date.now();
     const result = await this.notionPublisher.publish({
       date,
       force: options.force,
@@ -180,6 +199,7 @@ export class OrchestratorService {
       summary,
       lang: options.lang,
     });
+    const publishMs = Date.now() - publishStart;
 
     this.logger.info(
       {
@@ -188,6 +208,7 @@ export class OrchestratorService {
         commitCountTotal: commitCount,
         summarizerOk: !!summary,
         publishResult: result,
+        timingMs: { collect: collectMs, summarize: summarizeMs, publish: publishMs },
       },
       'daily: publish done',
     );
@@ -206,13 +227,14 @@ export class OrchestratorService {
     missingDates: readonly string[],
     results: ReadonlyArray<{
       date: string;
-      kind: PublishWorklogResult['kind'] | 'no-activity';
+      kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed';
     }>,
   ): Promise<void> {
     const created = results.filter((r) => r.kind === 'created' || r.kind === 'recreated').length;
     const skipped = results.filter((r) => r.kind === 'skipped').length;
     const noActivity = results.filter((r) => r.kind === 'no-activity').length;
     const noTarget = results.filter((r) => r.kind === 'no-target').length;
+    const failed = results.filter((r) => r.kind === 'failed').length;
 
     const first = missingDates[0]!;
     const last = missingDates[missingDates.length - 1]!;
@@ -223,6 +245,7 @@ export class OrchestratorService {
     if (skipped > 0) parts.push(`skip ${skipped}`);
     if (noActivity > 0) parts.push(`활동 없음 ${noActivity}`);
     if (noTarget > 0) parts.push(`설정 누락 ${noTarget}`);
+    if (failed > 0) parts.push(`실패 ${failed}`);
 
     await this.notification.notify(
       'cairn 일지',
@@ -264,7 +287,7 @@ export class OrchestratorService {
 
   private async runRollup(period: 'weekly' | 'monthly', options: RunOptions): Promise<void> {
     // 수집·요약 전에 미리 확인 — 이미 발행됨 / final 보호 / 발행 대상 없음이면 바로 단락
-    if (!options.dryRun) {
+    if (!options.dryRun && !options.force) {
       const pre = await this.rollupPublisher.precheck(period, options.date, options.force);
       if (pre) {
         const { start, end } = periodRange(period, options.date);

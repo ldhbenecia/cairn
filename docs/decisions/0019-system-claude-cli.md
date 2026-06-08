@@ -38,3 +38,13 @@ OpenUsage 등 다른 Claude 연동 도구는 사용자 로컬에 설치된 Claud
 - **사용자 요구사항 추가**: Claude Code CLI 설치가 필수가 된다(이전엔 API key만으로도 가능했음). 온보딩에서 안내.
 - packaged GUI PATH 문제로 claude 경로 해석이 핵심 — 해석 실패 시 요약이 안 되므로 견고한 다중 위치 탐색 + 명시 전달이 필요.
 - dev 환경에선 번들 바이너리가 그대로 있어(빌드에서만 제외) `CAIRN_CLAUDE_PATH` 미설정 시 built-in으로 폴백.
+
+## 갱신 (2026-06-08)
+
+진단 결과 추가로 확인된 것:
+
+- **근본 원인**: packaged 가 forking 하는 건 `core/bundle/index.js`(ncc 번들)인데, **ncc 가 SDK 의 claude 바이너리 자동 탐색을 깨뜨린다**. 그래서 `pathToClaudeCodeExecutable` 로 경로를 **명시하는 것이 필수**다(명시하면 번들에서도 정상 — probe CLAUDE_OK 로 확인). 6/1 이후 packaged 요약이 전부 fallback 이던 진짜 원인이 이것.
+- **인증은 spawn 하는 바이너리가 `~/.claude` 크리덴셜을 읽어 처리**한다. cairn 은 어떤 claude 바이너리든 찾아서 spawn 만 하면 되고, 로그인은 그 바이너리가 알아서 인계받는다.
+- **감지 소스에 IDE 확장 번들 추가**: VS Code/Cursor 의 Claude Code 확장은 `claude` 를 PATH 에 노출하지 않고 `~/.vscode/extensions/anthropic.claude-code-*/resources/native-binary/claude` 에 동봉한다. 확장만 쓰는 사용자(대다수 개발자)를 위해 PATH·brew·npm 에 더해 이 위치도 탐색한다.
+- **OpenUsage 대비**: OpenUsage 는 바이너리를 spawn 하지 않고 OAuth 크리덴셜을 읽어 API 를 직접 호출한다. cairn 은 Agent SDK(ADR 0001)라 바이너리 spawn 이 필요 → 바이너리 탐색이 맞는 접근.
+- 못 찾으면 온보딩에서 **설치 안내 알럿**. 우선 macOS 데스크톱만 지원.

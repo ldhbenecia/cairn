@@ -68,21 +68,6 @@ export class GithubApiClient {
     });
   }
 
-  async listPrFileBasenames(
-    token: string,
-    owner: string,
-    repo: string,
-    pullNumber: number,
-  ): Promise<string[]> {
-    const { data } = await this.getOctokit(token).rest.pulls.listFiles({
-      owner,
-      repo,
-      pull_number: pullNumber,
-      per_page: 100,
-    });
-    return data.map((f) => basename(f.filename));
-  }
-
   async listPrCommitsInRange(
     token: string,
     owner: string,
@@ -177,9 +162,4 @@ function parseRepoFromUrl(repositoryUrl: string): [string, string] {
 
 function normalizeState(state: string): 'open' | 'closed' {
   return state === 'open' ? 'open' : 'closed';
-}
-
-function basename(path: string): string {
-  const last = path.split('/').pop();
-  return last ?? path;
 }

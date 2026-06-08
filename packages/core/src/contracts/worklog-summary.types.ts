@@ -1,6 +1,7 @@
 export interface WorklogSummary {
   paragraphKo: string;
   doneBullets: readonly string[];
+  reviewedBullets: readonly string[];
   inProgressBullets: readonly string[];
   notesBullets: readonly string[];
   usage?: WorklogSummaryUsage;

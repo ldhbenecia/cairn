@@ -1,17 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { isOperator } from '../common/operator.js';
+import type { WorklogLang } from '../cairn/run-options.js';
 import { CLAUDE_ICON_URL } from '../common/branding.js';
+import { isOperator } from '../common/operator.js';
 import type { GithubActivity } from '../contracts/github-activity.types.js';
 import type { LocalGitActivity } from '../contracts/local-git-activity.types.js';
 import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
-import type { WorklogLang } from '../cairn/run-options.js';
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
 import { NotionApiClient } from './notion-api.client.js';
 
 const WORKLOG_DB_TITLE = 'Daily Worklog (cairn)';
+const RAW_DUMP_CHUNK_SIZE = 1900;
+const RAW_DUMP_MAX_CHUNKS = 8;
 
 export interface PublishWorklogInput {
   date: string;
@@ -295,6 +297,9 @@ function buildSummaryBlocks(
   blocks.push(heading2('Done'));
   blocks.push(...bulletsOrEmpty(summary.doneBullets));
 
+  blocks.push(heading2('Reviewed'));
+  blocks.push(...bulletsOrEmpty(summary.reviewedBullets));
+
   blocks.push(heading2('In Progress'));
   blocks.push(...bulletsOrEmpty(summary.inProgressBullets));
 
@@ -331,6 +336,7 @@ function buildFallbackBlocks(input: PublishWorklogInput): readonly unknown[] {
 
 function buildRawDumpToggle(input: PublishWorklogInput): unknown {
   const rawDump = JSON.stringify({ github: input.github, localGit: input.localGit }, null, 2);
+  const chunks = chunkRawDump(rawDump);
   return {
     object: 'block',
     type: 'toggle',
@@ -341,18 +347,28 @@ function buildRawDumpToggle(input: PublishWorklogInput): unknown {
           text: { content: input.lang === 'en' ? 'Raw metadata (debug)' : '원본 메타 (디버그)' },
         },
       ],
-      children: [
-        {
-          object: 'block',
-          type: 'code',
-          code: {
-            language: 'json',
-            rich_text: [{ type: 'text', text: { content: rawDump.slice(0, 1900) } }],
-          },
-        },
-      ],
+      children: chunks.map((content) => codeBlock('json', content)),
     },
   };
+}
+
+function chunkRawDump(rawDump: string): string[] {
+  const chunks: string[] = [];
+  for (
+    let i = 0;
+    i < rawDump.length && chunks.length < RAW_DUMP_MAX_CHUNKS;
+    i += RAW_DUMP_CHUNK_SIZE
+  ) {
+    chunks.push(rawDump.slice(i, i + RAW_DUMP_CHUNK_SIZE));
+  }
+  if (
+    chunks.length === RAW_DUMP_MAX_CHUNKS &&
+    rawDump.length > RAW_DUMP_CHUNK_SIZE * RAW_DUMP_MAX_CHUNKS
+  ) {
+    const last = chunks.length - 1;
+    chunks[last] = `${chunks[last]}\n... truncated`;
+  }
+  return chunks.length > 0 ? chunks : ['{}'];
 }
 
 function claudeCallout(text: string): unknown {
@@ -393,6 +409,17 @@ function paragraph(text: string): unknown {
     type: 'paragraph',
     paragraph: {
       rich_text: [{ type: 'text', text: { content: text } }],
+    },
+  };
+}
+
+function codeBlock(language: string, content: string): unknown {
+  return {
+    object: 'block',
+    type: 'code',
+    code: {
+      language,
+      rich_text: [{ type: 'text', text: { content } }],
     },
   };
 }

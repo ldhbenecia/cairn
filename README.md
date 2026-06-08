@@ -28,7 +28,13 @@ The desktop app's first-run setup walks you through connecting these and writes 
 Grab the latest `.dmg` from the [Releases page](https://github.com/ldhbenecia/cairn/releases/latest).
 
 - **macOS (Apple Silicon / arm64)** for now. Intel and other platforms may follow.
-- The app is **not yet code-signed**, so on first launch macOS Gatekeeper will warn. Open it once via **right-click → Open** (or run `xattr -cr /Applications/cairn.app`); after that it launches normally.
+- The app is **not yet code-signed** (no paid Apple Developer ID), so macOS Gatekeeper blocks it on first launch. After dragging it to Applications, clear the quarantine flag once:
+
+  ```sh
+  xattr -cr /Applications/Cairn.app
+  ```
+
+  then open it normally. (Alternatively, on macOS Sequoia/Tahoe: **System Settings → Privacy & Security → Open Anyway**.)
 - It checks for new versions and notifies you when one is available — download the new `.dmg` to update. (Seamless auto-update will come once the app is signed.)
 
 ## Build & run from source

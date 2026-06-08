@@ -21,6 +21,7 @@ function systemPrompt(lang: WorklogLang): string {
     '- paragraphKo: 2-5 short sentences capturing the period theme at project level — overall direction + which projects/initiatives moved.',
     '- themes: 2-6 themed groupings, each with a title and 2-8 items (phrases of work under it).',
     '- highlights: 3-8 phrases of the most resume/retrospective-worthy items across the period, format "[project] meaningful work unit — outcome/scale".',
+    '- reviewedBullets are review/support work. Do not describe them as implementation by the user.',
     '- Empty arrays are OK if material is thin.',
     '',
     'Style: synthesize across days (do NOT concatenate per-day bullets verbatim); no branch names or commit type prefixes; group by project and meaningful unit, not by date.',

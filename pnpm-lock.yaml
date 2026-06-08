@@ -117,34 +117,19 @@ importers:
 
   packages/desktop:
     dependencies:
-      '@cairn/core':
-        specifier: workspace:*
-        version: link:../core
       '@notionhq/client':
         specifier: ^5.20.0
         version: 5.20.0
-      '@radix-ui/react-dialog':
-        specifier: ^1.1.6
-        version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       electron-updater:
         specifier: ^6.8.3
         version: 6.8.3
-      highlight.js:
-        specifier: ^11.11.1
-        version: 11.11.1
-      lucide-react:
-        specifier: ^0.475.0
-        version: 0.475.0(react@19.2.7)
       posthog-node:
         specifier: ^5.36.3
         version: 5.36.3(rxjs@7.8.2)
-      react:
-        specifier: ^19.2.7
-        version: 19.2.7
-      react-dom:
-        specifier: ^19.2.7
-        version: 19.2.7(react@19.2.7)
     devDependencies:
+      '@radix-ui/react-dialog':
+        specifier: ^1.1.6
+        version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tailwindcss/vite':
         specifier: ^4.0.0
         version: 4.3.0(vite@6.4.2(@types/node@25.9.2)(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.8.3))
@@ -166,6 +151,18 @@ importers:
       electron-vite:
         specifier: ^3.0.0
         version: 3.1.0(vite@6.4.2(@types/node@25.9.2)(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.8.3))
+      highlight.js:
+        specifier: ^11.11.1
+        version: 11.11.1
+      lucide-react:
+        specifier: ^0.475.0
+        version: 0.475.0(react@19.2.7)
+      react:
+        specifier: ^19.2.7
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.2.7
+        version: 19.2.7(react@19.2.7)
       tailwindcss:
         specifier: ^4.0.0
         version: 4.3.0

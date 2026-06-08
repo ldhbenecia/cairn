@@ -18,17 +18,12 @@
     "dist": "pnpm --filter @cairn/core build:bundle && electron-vite build && electron-builder"
   },
   "dependencies": {
-    "@cairn/core": "workspace:*",
     "@notionhq/client": "^5.20.0",
-    "@radix-ui/react-dialog": "^1.1.6",
     "electron-updater": "^6.8.3",
-    "highlight.js": "^11.11.1",
-    "lucide-react": "^0.475.0",
-    "posthog-node": "^5.36.3",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "posthog-node": "^5.36.3"
   },
   "devDependencies": {
+    "@radix-ui/react-dialog": "^1.1.6",
     "@tailwindcss/vite": "^4.0.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
@@ -36,6 +31,10 @@
     "electron": "^42.3.3",
     "electron-builder": "^25.1.8",
     "electron-vite": "^3.0.0",
+    "highlight.js": "^11.11.1",
+    "lucide-react": "^0.475.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "tailwindcss": "^4.0.0",
     "vite": "^6.0.0"
   }

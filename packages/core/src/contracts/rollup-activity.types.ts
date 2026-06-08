@@ -15,6 +15,7 @@ export interface RollupDailySummaryText {
   date: string;
   paragraphKo: string;
   doneBullets: readonly string[];
+  reviewedBullets: readonly string[];
   inProgressBullets: readonly string[];
   notesBullets: readonly string[];
 }
