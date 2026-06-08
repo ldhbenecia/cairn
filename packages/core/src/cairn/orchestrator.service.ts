@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { withConcurrency } from '../common/concurrency.js';
 import { CairnError } from '../common/error.js';
 import { GithubCollectorService } from '../github/github-collector.service.js';
 import { LocalGitCollectorService } from '../local-git/local-git-collector.service.js';
@@ -17,6 +18,8 @@ import { RollupSummarizerService } from '../rollup/rollup-summarizer.service.js'
 import { periodRange } from '../rollup/period-range.js';
 import { DailySummarizerService } from '../summarizer/daily-summarizer.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
+
+const BACKFILL_CONCURRENCY = 2;
 
 @Injectable()
 export class OrchestratorService {
@@ -90,23 +93,22 @@ export class OrchestratorService {
       'daily: backfill — multiple missing dates detected',
     );
 
-    const results: Array<{
-      date: string;
-      kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed';
-    }> = [];
-    for (const date of missingDates) {
+    const results = await withConcurrency<
+      string,
+      { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' }
+    >(missingDates, BACKFILL_CONCURRENCY, async (date) => {
       try {
         const outcome = await this.runDailyForDate(date, options, {
           silent: true,
           precheck: false,
         });
-        results.push({ date, kind: outcome });
+        return { date, kind: outcome };
       } catch (err) {
         const error = CairnError.from(err, 'config');
         this.logger.error({ date, error }, 'daily: backfill date failed — continuing batch');
-        results.push({ date, kind: 'failed' });
+        return { date, kind: 'failed' };
       }
-    }
+    });
 
     await this.notifyBackfillBatch(missingDates, results);
   }
@@ -143,12 +145,14 @@ export class OrchestratorService {
       }
     }
 
+    const collectStart = Date.now();
     const [githubActivity, localGitActivity] = await Promise.all([
       wantsGithub
         ? this.githubCollector.collect(date, options.lookbackDays)
         : Promise.resolve(null),
       wantsLocalGit ? this.localGitCollector.collect(date) : Promise.resolve(null),
     ]);
+    const collectMs = Date.now() - collectStart;
 
     if (options.dryRun) {
       if (githubActivity) {
@@ -175,6 +179,7 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
+    const summarizeStart = Date.now();
     const summary = await this.summarizer.summarize(
       {
         date,
@@ -183,7 +188,9 @@ export class OrchestratorService {
       },
       options.lang,
     );
+    const summarizeMs = Date.now() - summarizeStart;
 
+    const publishStart = Date.now();
     const result = await this.notionPublisher.publish({
       date,
       force: options.force,
@@ -192,6 +199,7 @@ export class OrchestratorService {
       summary,
       lang: options.lang,
     });
+    const publishMs = Date.now() - publishStart;
 
     this.logger.info(
       {
@@ -200,6 +208,7 @@ export class OrchestratorService {
         commitCountTotal: commitCount,
         summarizerOk: !!summary,
         publishResult: result,
+        timingMs: { collect: collectMs, summarize: summarizeMs, publish: publishMs },
       },
       'daily: publish done',
     );
