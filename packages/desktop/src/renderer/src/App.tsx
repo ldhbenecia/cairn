@@ -82,7 +82,12 @@ export function App() {
   useEffect(() => {
     const off = window.cairn.onRunLine((l) => {
       setSessions((prev) => {
-        const current = prev[l.mode] ?? { state: 'running', step: 'boot', lines: [], startedAt: Date.now() };
+        const current = prev[l.mode] ?? {
+          state: 'running',
+          step: 'boot',
+          lines: [],
+          startedAt: Date.now(),
+        };
         const next: RunSession = {
           ...current,
           lines:
@@ -99,7 +104,12 @@ export function App() {
   useEffect(() => {
     const off = window.cairn.onRunStep(({ mode, step }) => {
       setSessions((prev) => {
-        const current = prev[mode] ?? { state: 'running', step: 'boot', lines: [], startedAt: Date.now() };
+        const current = prev[mode] ?? {
+          state: 'running',
+          step: 'boot',
+          lines: [],
+          startedAt: Date.now(),
+        };
         return { ...prev, [mode]: { ...current, step } };
       });
     });
@@ -145,7 +155,12 @@ export function App() {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         setSessions((prev) => {
-          const current = prev[mode] ?? { state: 'running', step: 'boot', lines: [], startedAt: Date.now() };
+          const current = prev[mode] ?? {
+            state: 'running',
+            step: 'boot',
+            lines: [],
+            startedAt: Date.now(),
+          };
           return {
             ...prev,
             [mode]: { ...current, state: 'done', error: message, endedAt: Date.now() },
