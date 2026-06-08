@@ -90,10 +90,22 @@ export class OrchestratorService {
       'daily: backfill — multiple missing dates detected',
     );
 
-    const results: Array<{ date: string; kind: PublishWorklogResult['kind'] | 'no-activity' }> = [];
+    const results: Array<{
+      date: string;
+      kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed';
+    }> = [];
     for (const date of missingDates) {
-      const outcome = await this.runDailyForDate(date, options, { silent: true, precheck: false });
-      results.push({ date, kind: outcome });
+      try {
+        const outcome = await this.runDailyForDate(date, options, {
+          silent: true,
+          precheck: false,
+        });
+        results.push({ date, kind: outcome });
+      } catch (err) {
+        const error = CairnError.from(err, 'config');
+        this.logger.error({ date, error }, 'daily: backfill date failed — continuing batch');
+        results.push({ date, kind: 'failed' });
+      }
     }
 
     await this.notifyBackfillBatch(missingDates, results);
@@ -113,7 +125,7 @@ export class OrchestratorService {
     }
 
     // 수집·요약 전에 미리 확인 — 이미 발행됨 / final 보호 / 발행 대상 없음이면 바로 단락
-    if (!options.dryRun && opts.precheck !== false) {
+    if (!options.dryRun && !options.force && opts.precheck !== false) {
       const pre = await this.notionPublisher.precheckDaily(date, options.force);
       if (pre) {
         this.logger.info(
@@ -206,13 +218,14 @@ export class OrchestratorService {
     missingDates: readonly string[],
     results: ReadonlyArray<{
       date: string;
-      kind: PublishWorklogResult['kind'] | 'no-activity';
+      kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed';
     }>,
   ): Promise<void> {
     const created = results.filter((r) => r.kind === 'created' || r.kind === 'recreated').length;
     const skipped = results.filter((r) => r.kind === 'skipped').length;
     const noActivity = results.filter((r) => r.kind === 'no-activity').length;
     const noTarget = results.filter((r) => r.kind === 'no-target').length;
+    const failed = results.filter((r) => r.kind === 'failed').length;
 
     const first = missingDates[0]!;
     const last = missingDates[missingDates.length - 1]!;
@@ -223,6 +236,7 @@ export class OrchestratorService {
     if (skipped > 0) parts.push(`skip ${skipped}`);
     if (noActivity > 0) parts.push(`활동 없음 ${noActivity}`);
     if (noTarget > 0) parts.push(`설정 누락 ${noTarget}`);
+    if (failed > 0) parts.push(`실패 ${failed}`);
 
     await this.notification.notify(
       'cairn 일지',
@@ -264,7 +278,7 @@ export class OrchestratorService {
 
   private async runRollup(period: 'weekly' | 'monthly', options: RunOptions): Promise<void> {
     // 수집·요약 전에 미리 확인 — 이미 발행됨 / final 보호 / 발행 대상 없음이면 바로 단락
-    if (!options.dryRun) {
+    if (!options.dryRun && !options.force) {
       const pre = await this.rollupPublisher.precheck(period, options.date, options.force);
       if (pre) {
         const { start, end } = periodRange(period, options.date);
