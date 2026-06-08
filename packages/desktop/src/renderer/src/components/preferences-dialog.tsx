@@ -152,14 +152,16 @@ function AppearanceTab() {
           <GlassCard
             glass={false}
             label={t('prefs.glass.default')}
-            selected={!settings.liquidGlass}
+            selected
             onSelect={() => update({ liquidGlass: false })}
           />
           <GlassCard
             glass
             label={t('prefs.glass.on')}
-            selected={settings.liquidGlass}
-            onSelect={() => update({ liquidGlass: true })}
+            selected={false}
+            disabled
+            soon={t('prefs.glass.soon')}
+            onSelect={() => undefined}
           />
         </div>
       </Field>
@@ -601,20 +603,35 @@ function GlassCard({
   label,
   selected,
   onSelect,
+  disabled = false,
+  soon,
 }: {
   glass: boolean;
   label: string;
   selected: boolean;
   onSelect: () => void;
+  disabled?: boolean;
+  soon?: string;
 }) {
   return (
-    <button type="button" onClick={onSelect} className="group flex flex-col items-center gap-2">
+    <button
+      type="button"
+      onClick={disabled ? undefined : onSelect}
+      disabled={disabled}
+      className="group flex flex-col items-center gap-2 disabled:cursor-not-allowed"
+    >
       <span
         className={[
           'relative block h-16 w-24 overflow-hidden rounded-lg border-2 transition-colors',
           selected ? 'border-accent' : 'border-hairline group-hover:border-hairline-strong',
+          disabled ? 'opacity-45' : '',
         ].join(' ')}
       >
+        {soon && (
+          <span className="absolute top-1 left-1 z-10 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-medium text-white/90">
+            {soon}
+          </span>
+        )}
         <GlassMock glass={glass} />
         {selected && (
           <span className="absolute top-1 right-1 flex size-4 items-center justify-center rounded-full bg-accent text-white shadow">
