@@ -8,7 +8,6 @@ type ViewTransitionDoc = Document & { startViewTransition?: (cb: () => void) => 
 
 let themeMounted = false;
 let accentMounted = false;
-let glassMounted = false;
 
 function runWithCrossfade(mutate: () => void, skip: boolean): void {
   const doc = document as ViewTransitionDoc;
@@ -62,15 +61,6 @@ export function applyAccent(id: string): void {
   accentMounted = true;
 }
 
-export function applyGlass(on: boolean): void {
-  runWithCrossfade(() => {
-    const root = document.documentElement;
-    if (on) root.setAttribute('data-glass', 'on');
-    else root.removeAttribute('data-glass');
-  }, !glassMounted);
-  glassMounted = true;
-}
-
 type Ctx = {
   settings: Settings;
   update: (patch: Partial<Settings>) => void;
@@ -85,10 +75,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     applyAccent(settings.accent);
   }, [settings.accent]);
-
-  useEffect(() => {
-    applyGlass(settings.liquidGlass);
-  }, [settings.liquidGlass]);
 
   useEffect(() => {
     applyTheme(settings.theme);
