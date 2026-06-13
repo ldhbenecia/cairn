@@ -113,7 +113,7 @@ export function WorklogList({
   }
 
   return (
-    <section className="flex flex-1 flex-col overflow-hidden bg-canvas">
+    <section className="glass-content flex flex-1 flex-col overflow-hidden bg-canvas">
       <div className="h-20 shrink-0 [-webkit-app-region:drag]" />
       <header className="shrink-0 pb-4">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-2 px-6">

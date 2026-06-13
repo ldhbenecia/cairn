@@ -41,7 +41,10 @@ export function Sidebar({
 }: Props) {
   const { t } = useSettings();
   return (
-    <nav style={{ width }} className="flex shrink-0 flex-col border-r border-hairline bg-surface-1">
+    <nav
+      style={{ width }}
+      className="glass-sidebar flex shrink-0 flex-col border-r border-hairline bg-surface-1"
+    >
       <div className="h-20 [-webkit-app-region:drag]" />
       <div className="flex items-center gap-2.5 px-5 pb-6 [-webkit-app-region:drag]">
         <span className="flex size-6 items-center justify-center rounded-md bg-accent text-white">

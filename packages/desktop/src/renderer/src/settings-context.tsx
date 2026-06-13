@@ -86,10 +86,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     applyAccent(settings.accent);
   }, [settings.accent]);
 
-  // 리퀴드 글래스는 준비 중(UI 비활성) — 저장된 값과 무관하게 효과는 적용하지 않음
+  // 리퀴드 글래스 — data-glass 틴트(CSS)와 네이티브 vibrancy(main 프로세스)가 함께 토글됨
   useEffect(() => {
-    applyGlass(false);
-  }, []);
+    applyGlass(settings.liquidGlass);
+  }, [settings.liquidGlass]);
 
   useEffect(() => {
     applyTheme(settings.theme);

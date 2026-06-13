@@ -37,7 +37,20 @@ app.on('second-instance', () => {
   win.focus();
 });
 
+// 리퀴드 글래스 — 네이티브 vibrancy(NSVisualEffectView). CSS backdrop-filter 는 packaged
+// 에서 합성되지 않아(styles.css 참고) OS 창 유리를 쓴다. 런타임 토글 가능 — 재시작 불필요.
+const GLASS_BG = '#00000000';
+const SOLID_BG = '#0a0a0a';
+const isMac = process.platform === 'darwin';
+
+function applyWindowGlass(win: BrowserWindow, on: boolean): void {
+  if (!isMac) return;
+  win.setVibrancy(on ? 'under-window' : null);
+  win.setBackgroundColor(on ? GLASS_BG : SOLID_BG);
+}
+
 function createWindow(): BrowserWindow {
+  const glass = isMac && readSettings().liquidGlass;
   const win = new BrowserWindow({
     width: 1240,
     height: 760,
@@ -46,7 +59,8 @@ function createWindow(): BrowserWindow {
     show: false,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 18, y: 24 },
-    backgroundColor: '#0a0a0a',
+    backgroundColor: glass ? GLASS_BG : SOLID_BG,
+    ...(glass ? { vibrancy: 'under-window' as const } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
       sandbox: true,
@@ -105,6 +119,10 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {
     const next = writeSettings(patch);
     if (patch.autoPublish) reconfigureAutoPublish();
+    if (patch.liquidGlass !== undefined) {
+      const w = BrowserWindow.getAllWindows()[0];
+      if (w) applyWindowGlass(w, next.liquidGlass);
+    }
     return next;
   });
 

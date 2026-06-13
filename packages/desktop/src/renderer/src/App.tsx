@@ -196,7 +196,7 @@ export function App() {
   }
 
   return (
-    <div className="flex h-screen w-screen bg-canvas text-ink">
+    <div className="glass-root flex h-screen w-screen bg-canvas text-ink">
       <Sidebar
         width={sidebarWidth}
         filter={filter}
@@ -210,7 +210,7 @@ export function App() {
       />
       <div
         onMouseDown={startResize}
-        className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/40 [-webkit-app-region:no-drag]"
+        className="glass-divider w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/40 [-webkit-app-region:no-drag]"
       />
       <WorklogList
         recent={recent}

@@ -278,6 +278,22 @@ button {
   color: #1d7a43;
 }
 
+/* Liquid Glass — 네이티브 창 vibrancy(macOS NSVisualEffectView) 위에 앱 표면을
+   반투명 틴트로 얹는다. blur 는 OS 가 창 뒤에서 처리하므로 packaged 에서도 동작. */
+[data-glass='on'],
+[data-glass='on'] body,
+[data-glass='on'] #root,
+[data-glass='on'] .glass-root {
+  background: transparent;
+}
+[data-glass='on'] .glass-sidebar {
+  background: color-mix(in srgb, var(--color-surface-1) 55%, transparent);
+}
+[data-glass='on'] .glass-content,
+[data-glass='on'] .glass-divider {
+  background: color-mix(in srgb, var(--color-canvas) 72%, transparent);
+}
+
 /* Frosted 표면(.glass-panel). packaged Electron 에선 CSS backdrop-filter blur 가
    합성되지 않으므로(Electron 34/42·blur 값 무관, 실측 확인) blur 에 기대지 않는다.
    sheen gradient + 상/하 엣지 + 그림자로 '유리 면'을 만들고, 배경은 읽힐 만큼 단단하게.
