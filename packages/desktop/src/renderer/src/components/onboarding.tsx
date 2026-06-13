@@ -1,9 +1,29 @@
 import { Check, ExternalLink, FolderPlus, Loader2, Plus, Search, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { NotionDb, NotionPage } from '../cairn-api';
 import { BrandMark } from './brand-mark';
 
 type Status = 'idle' | 'testing' | 'ok' | 'err';
+
+type TokenKind = 'notion' | 'github';
+
+// 토큰 prefix 로 "다른 서비스 토큰을 잘못 붙여넣음"을 즉시 감지 (알 수 없는 형식은 침묵)
+function tokenMismatch(kind: TokenKind, token: string): string | null {
+  const t = token.trim();
+  if (!t) return null;
+  const looksNotion = t.startsWith('ntn_') || t.startsWith('secret_');
+  const looksGithub = ['ghp_', 'github_pat_', 'gho_'].some((p) => t.startsWith(p));
+  const looksAnthropic = t.startsWith('sk-ant-');
+  if (kind === 'notion' && (looksGithub || looksAnthropic))
+    return looksGithub
+      ? 'GitHub 토큰 같아요 — 여기엔 Notion integration 토큰(ntn_…)을 붙여넣어 주세요'
+      : 'Anthropic API key 같아요 — Claude 단계에서 입력해 주세요';
+  if (kind === 'github' && (looksNotion || looksAnthropic))
+    return looksNotion
+      ? 'Notion 토큰 같아요 — 여기엔 GitHub 토큰(ghp_… / github_pat_…)을 붙여넣어 주세요'
+      : 'Anthropic API key 같아요 — Claude 단계에서 입력해 주세요';
+  return null;
+}
 
 type NotionEntry = {
   label: string;
@@ -149,6 +169,11 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     setClaudeStatus(r.ok ? 'ok' : 'err');
   }
 
+  // Claude 단계 진입 시 자동 연결 확인 — 버튼 누르기 전에 결과가 먼저 와 있게
+  useEffect(() => {
+    if (step === 'claude' && claudeStatus === 'idle') void testClaude();
+  }, [step]);
+
   async function addRepo() {
     const p = await window.cairn.onboarding.pickFolder();
     if (p && !repos.includes(p)) setRepos((prev) => [...prev, p]);
@@ -160,7 +185,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     <div className="panel-enter flex h-screen w-screen flex-col bg-canvas text-ink">
       <div className="h-11 shrink-0 [-webkit-app-region:drag]" />
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-hidden px-8">
-        <div className="flex items-center gap-2.5 pb-5">
+        <div className="flex items-center gap-2.5 pb-3">
           <span className="flex size-7 items-center justify-center rounded-md bg-accent text-white">
             <BrandMark size={17} />
           </span>
@@ -168,6 +193,21 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
           <span className="ml-auto text-[12px] text-ink-tertiary">
             {stepIdx + 1} / {STEPS.length} · {STEP_TITLE[step]}
           </span>
+        </div>
+        <div className="flex items-center gap-1.5 pb-5">
+          {STEPS.map((s, i) => (
+            <span
+              key={s}
+              className={[
+                'h-1 rounded-full transition-all duration-300',
+                i === stepIdx
+                  ? 'w-6 bg-accent'
+                  : i < stepIdx
+                    ? 'w-3 bg-accent/45'
+                    : 'w-3 bg-surface-3',
+              ].join(' ')}
+            />
+          ))}
         </div>
 
         <div key={step} className="panel-enter flex-1 overflow-y-auto [scrollbar-gutter:stable]">
@@ -206,11 +246,17 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
           )}
           {step === 'github' && (
             <Section
-              desc="PR · 리뷰 · 커밋을 수집할 GitHub 계정 (선택)"
-              link={{
-                label: 'GitHub Fine-grained PAT 만들기',
-                url: 'https://github.com/settings/personal-access-tokens/new',
-              }}
+              desc="PR · 커밋을 수집할 GitHub 계정 (선택). 토큰을 만들어 붙여넣으면 자동으로 확인합니다."
+              links={[
+                {
+                  label: 'Classic 토큰 만들기 — 권장 설정 자동 입력',
+                  url: 'https://github.com/settings/tokens/new?scopes=repo,read:user&description=cairn%20worklog',
+                },
+                {
+                  label: 'Fine-grained PAT 만들기',
+                  url: 'https://github.com/settings/personal-access-tokens/new',
+                },
+              ]}
             >
               <div className="rounded-lg border border-hairline bg-surface-1 p-3.5 text-[12px] leading-relaxed text-ink-subtle">
                 <p className="mb-1.5 text-[13px] font-medium text-ink-muted">
@@ -353,6 +399,13 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 <li>Claude {anthropicKey.trim() ? 'API key' : '자동(CLI 인계)'}</li>
                 <li>로컬 Git {repos.length}개</li>
               </ul>
+              {claudeStatus !== 'ok' && !anthropicKey.trim() && (
+                <div className="rounded-lg border border-[#fbbf24]/30 bg-[#fbbf24]/10 p-3 text-[12px] leading-relaxed text-[#fbbf24]">
+                  Claude 연결이 확인되지 않았어요. 이대로 시작하면 발행은 되지만 AI 요약 없이
+                  원자료만 담긴 일지가 만들어집니다 — 이전 단계에서 Claude Code 로그인 또는 API key
+                  를 연결하는 것을 권장해요.
+                </div>
+              )}
               {finishErr && <p className="text-[13px] text-[#f87171]">작성 실패: {finishErr}</p>}
             </Section>
           )}
@@ -431,23 +484,31 @@ function Welcome() {
 function Section({
   desc,
   link,
+  links,
   children,
 }: {
   desc: string;
   link?: { label: string; url: string };
+  links?: { label: string; url: string }[];
   children: React.ReactNode;
 }) {
+  const all = links ?? (link ? [link] : []);
   return (
     <div className="flex flex-col gap-3 py-2">
       <p className="text-[13px] leading-relaxed text-ink-muted">{desc}</p>
-      {link && (
-        <button
-          type="button"
-          onClick={() => void window.cairn.openExternal(link.url)}
-          className="inline-flex w-fit items-center gap-1 text-[12px] text-accent hover:text-accent-hover"
-        >
-          <ExternalLink size={11} strokeWidth={2} /> {link.label}
-        </button>
+      {all.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {all.map((l) => (
+            <button
+              key={l.url}
+              type="button"
+              onClick={() => void window.cairn.openExternal(l.url)}
+              className="inline-flex w-fit items-center gap-1 text-[12px] text-accent hover:text-accent-hover"
+            >
+              <ExternalLink size={11} strokeWidth={2} /> {l.label}
+            </button>
+          ))}
+        </div>
       )}
       {children}
     </div>
@@ -482,6 +543,7 @@ function StatusDot({ status }: { status: Status }) {
 }
 
 function LabelToken({
+  kind,
   label,
   token,
   status,
@@ -489,6 +551,7 @@ function LabelToken({
   onTest,
   onRemove,
 }: {
+  kind: TokenKind;
   label: string;
   token: string;
   status: Status;
@@ -496,40 +559,58 @@ function LabelToken({
   onTest: () => void;
   onRemove?: () => void;
 }) {
+  const mismatch = tokenMismatch(kind, token);
+  // 붙여넣기/입력 후 자동 검증 — 테스트 버튼을 누를 필요 없게 (디바운스 800ms)
+  const onTestRef = useRef(onTest);
+  onTestRef.current = onTest;
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (!token.trim() || mismatch) return;
+    const t = setTimeout(() => onTestRef.current(), 800);
+    return () => clearTimeout(t);
+  }, [token]);
+
   return (
-    <div className="flex items-center gap-2">
-      <input
-        value={label}
-        onChange={(e) => onChange({ label: e.target.value })}
-        placeholder="라벨"
-        className="w-24 rounded-md border border-hairline bg-surface-1 px-2.5 py-2 text-[13px] text-ink focus:border-accent/60 focus:outline-none"
-      />
-      <input
-        type="password"
-        value={token}
-        onChange={(e) => onChange({ token: e.target.value })}
-        placeholder="토큰"
-        className="flex-1 rounded-md border border-hairline bg-surface-1 px-2.5 py-2 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/60 focus:outline-none"
-      />
-      <button
-        type="button"
-        onClick={onTest}
-        disabled={!token.trim() || status === 'testing'}
-        className="shrink-0 rounded-md border border-hairline px-2.5 py-2 text-[12px] text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
-      >
-        테스트
-      </button>
-      <StatusDot status={status} />
-      {onRemove && (
+    <>
+      <div className="flex items-center gap-2">
+        <input
+          value={label}
+          onChange={(e) => onChange({ label: e.target.value })}
+          placeholder="라벨"
+          className="w-24 rounded-md border border-hairline bg-surface-1 px-2.5 py-2 text-[13px] text-ink focus:border-accent/60 focus:outline-none"
+        />
+        <input
+          type="password"
+          value={token}
+          onChange={(e) => onChange({ token: e.target.value })}
+          placeholder="토큰 붙여넣기 — 자동으로 확인합니다"
+          className="flex-1 rounded-md border border-hairline bg-surface-1 px-2.5 py-2 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/60 focus:outline-none"
+        />
         <button
           type="button"
-          onClick={onRemove}
-          className="shrink-0 text-ink-tertiary hover:text-ink"
+          onClick={onTest}
+          disabled={!token.trim() || status === 'testing' || !!mismatch}
+          className="shrink-0 rounded-md border border-hairline px-2.5 py-2 text-[12px] text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
         >
-          <Trash2 size={14} strokeWidth={2} />
+          테스트
         </button>
-      )}
-    </div>
+        <StatusDot status={status} />
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="shrink-0 text-ink-tertiary hover:text-ink"
+          >
+            <Trash2 size={14} strokeWidth={2} />
+          </button>
+        )}
+      </div>
+      {mismatch && <p className="text-[12px] text-[#fbbf24]">{mismatch}</p>}
+    </>
   );
 }
 
@@ -551,6 +632,7 @@ function NotionCard({
   return (
     <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-1 p-3">
       <LabelToken
+        kind="notion"
         label={e.label}
         token={e.token}
         status={e.status}
@@ -674,6 +756,7 @@ function GithubCard({
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-hairline bg-surface-1 p-3">
       <LabelToken
+        kind="github"
         label={e.label}
         token={e.token}
         status={e.status}
