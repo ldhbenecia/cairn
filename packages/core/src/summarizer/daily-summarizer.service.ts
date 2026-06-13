@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { claudeExecutableOptions } from '../common/claude-executable.js';
 import { customPromptFor, withCustomPrompt } from '../common/custom-prompt.js';
+import { summaryModelOption } from '../common/summary-model.js';
 import { CairnError } from '../common/error.js';
 import { isOperator } from '../common/operator.js';
 import type { WorklogSummary, WorklogSummaryUsage } from '../contracts/worklog-summary.types.js';
@@ -45,6 +46,7 @@ export class DailySummarizerService {
             `mcp__${MCP_SERVER_NAME}__submit_summary`,
           ],
           maxTurns: 5,
+          ...summaryModelOption(),
           ...claudeExecutableOptions(),
         },
       });
