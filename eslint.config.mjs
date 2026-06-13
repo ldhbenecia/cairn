@@ -1,19 +1,21 @@
 // @ts-check
 import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
 import unusedImports from 'eslint-plugin-unused-imports';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default [
   {
     ignores: [
       '**/dist/**',
       '**/out/**',
+      '**/.next/**',
       '**/node_modules/**',
       'eslint.config.mjs',
       'commitlint.config.js',
       'packages/desktop/scripts/**',
+      'packages/web/**',
     ],
   },
   eslint.configs.recommended,
