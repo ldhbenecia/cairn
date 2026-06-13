@@ -1,9 +1,4 @@
-export type GithubActivityCategory =
-  | 'authored'
-  | 'authored_merged'
-  | 'reviewed'
-  | 'commented'
-  | 'involved';
+export type GithubActivityCategory = 'authored' | 'authored_merged' | 'assigned' | 'involved';
 
 export type GithubPrState = 'open' | 'closed' | 'merged';
 

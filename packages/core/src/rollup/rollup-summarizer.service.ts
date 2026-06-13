@@ -14,7 +14,7 @@ function systemPrompt(lang: WorklogLang, period: 'weekly' | 'monthly'): string {
   const langName = lang === 'en' ? 'English' : 'Korean';
   const periodFocus =
     period === 'weekly'
-      ? 'Weekly focus: an operational digest. Show what moved this week per project — concrete work units shipped, review activity, and progress on in-flight efforts. Keep enough detail that the month-end rollup can be built from these.'
+      ? 'Weekly focus: an operational digest. Show what moved this week per project — concrete work units shipped and progress on in-flight efforts. Keep enough detail that the month-end rollup can be built from these.'
       : 'Monthly focus: an achievement record. Phrase highlights as resume-ready accomplishment statements — scope, scale, and impact first. Aggregate small fixes into initiative-level items; a month should read as a list of accomplishments, not chores.';
   return [
     'You are a rollup summarizer for a developer.',
@@ -27,7 +27,7 @@ function systemPrompt(lang: WorklogLang, period: 'weekly' | 'monthly'): string {
     '- paragraphKo: 2-5 short sentences capturing the period theme at project level — overall direction + which projects/initiatives moved. Open with the period totals from metrics (PR count, commit count, active days out of the range).',
     '- themes: 2-6 themed groupings, each with a title and 2-8 items (phrases of work under it). Group by project/initiative, not by date.',
     '- highlights: 3-8 phrases of the most resume/retrospective-worthy items across the period, format "[project] meaningful work unit — outcome/scale".',
-    '- reviewedBullets are review/support work. Do not describe them as implementation by the user.',
+    '- reviewedBullets in older daily summaries are review/support work — exclude them from themes/highlights; only development work belongs in the rollup.',
     '- Empty arrays are OK if material is thin.',
     '',
     'Quantify: weave the provided metrics into paragraphKo, and carry concrete numbers from the daily summaries (counts, %, ms, sizes, before→after) into themes and highlights. NEVER invent or estimate numbers that are not present in the data.',

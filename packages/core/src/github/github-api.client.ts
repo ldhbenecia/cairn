@@ -28,6 +28,7 @@ export interface SearchPrItem {
   state: 'open' | 'closed';
   mergedAt: string | null;
   author: string;
+  assignees: readonly string[];
   labels: readonly string[];
   htmlUrl: string;
   createdAt: string;
@@ -74,6 +75,7 @@ export class GithubApiClient {
         state: normalizeState(item.state),
         mergedAt: item.pull_request?.merged_at ?? null,
         author: item.user?.login ?? 'unknown',
+        assignees: (item.assignees ?? []).flatMap((a) => (a?.login ? [a.login] : [])),
         labels: item.labels.flatMap((l) => (typeof l === 'string' ? [l] : l.name ? [l.name] : [])),
         htmlUrl: item.html_url,
         createdAt: item.created_at,

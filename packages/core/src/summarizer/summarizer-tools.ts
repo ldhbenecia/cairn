@@ -18,7 +18,8 @@ export interface SummarizerInput {
 export const submitSummarySchema = z.object({
   paragraphKo: z.string().min(1).max(2000),
   doneBullets: z.array(z.string().min(1).max(300)).max(20),
-  reviewedBullets: z.array(z.string().min(1).max(300)).max(20),
+  // 리뷰 활동은 수집·요약하지 않음 — 과거 페이지 호환을 위해 필드만 유지 (생략 시 빈 배열)
+  reviewedBullets: z.array(z.string().min(1).max(300)).max(20).default([]),
   inProgressBullets: z.array(z.string().min(1).max(300)).max(20),
   notesBullets: z.array(z.string().min(1).max(300)).max(20),
 });
@@ -64,21 +65,6 @@ interface OpenPrItem {
   commitsOnDate: readonly PrCommitOnDate[];
 }
 
-interface ReviewedPrItem {
-  source: 'github';
-  kind: 'pr_reviewed';
-  account: string;
-  repo: string;
-  number: number;
-  title: string;
-  state: GithubPrState;
-  categories: readonly GithubActivityCategory[];
-  htmlUrl: string;
-  updatedAt: string;
-  mergedAt: string | null;
-  body: string | null;
-}
-
 interface UnpushedCommitItem {
   source: 'local-git';
   kind: 'commit_unpushed';
@@ -97,7 +83,6 @@ interface SourceErrorsView {
 export interface ActivityPayload {
   date: string;
   done: { prs: DonePrItem[]; commits: DoneCommitItem[] };
-  reviewed: { prs: ReviewedPrItem[] };
   inProgress: { prs: OpenPrItem[]; commits: UnpushedCommitItem[] };
   sourceErrors: SourceErrorsView;
 }
@@ -108,9 +93,6 @@ export function buildActivityPayload(input: SummarizerInput): ActivityPayload {
     done: {
       prs: computeDonePrs(input),
       commits: computeDoneCommits(input),
-    },
-    reviewed: {
-      prs: computeReviewedPrs(input),
     },
     inProgress: {
       prs: computeOpenPrs(input),
@@ -130,7 +112,7 @@ export function buildSummarizerTools(input: SummarizerInput): SummarizerToolsBun
 
   const getActivity = tool(
     'get_activity',
-    "Returns today's activity in one call: done (authored merged PRs + pushed commits), reviewed (reviewed/commented PRs not authored by the user), inProgress (authored open PRs + unpushed commits), and sourceErrors. Call this exactly once, then call submit_summary.",
+    "Returns today's activity in one call: done (authored/assigned merged PRs + pushed commits), inProgress (authored/assigned open PRs + unpushed commits), and sourceErrors. Call this exactly once, then call submit_summary.",
     {},
     // eslint-disable-next-line @typescript-eslint/require-await
     async () => {
@@ -165,7 +147,7 @@ export function buildSummarizerTools(input: SummarizerInput): SummarizerToolsBun
 function computeDonePrs(input: SummarizerInput): DonePrItem[] {
   const out: DonePrItem[] = [];
   for (const pr of input.github?.prs ?? []) {
-    if (pr.mergedAt && isAuthoredWork(pr)) {
+    if (pr.mergedAt && isMyWork(pr)) {
       out.push({
         source: 'github',
         kind: 'pr_merged',
@@ -181,29 +163,6 @@ function computeDonePrs(input: SummarizerInput): DonePrItem[] {
         commitsOnDate: pr.commitsOnDate,
       });
     }
-  }
-  return out;
-}
-
-function computeReviewedPrs(input: SummarizerInput): ReviewedPrItem[] {
-  const out: ReviewedPrItem[] = [];
-  for (const pr of input.github?.prs ?? []) {
-    if (isAuthoredWork(pr)) continue;
-    if (!pr.categories.includes('reviewed') && !pr.categories.includes('commented')) continue;
-    out.push({
-      source: 'github',
-      kind: 'pr_reviewed',
-      account: pr.account,
-      repo: pr.repo,
-      number: pr.number,
-      title: pr.title,
-      state: pr.state,
-      categories: pr.categories,
-      htmlUrl: pr.htmlUrl,
-      updatedAt: pr.updatedAt,
-      mergedAt: pr.mergedAt,
-      body: pr.body,
-    });
   }
   return out;
 }
@@ -231,7 +190,7 @@ function computeDoneCommits(input: SummarizerInput): DoneCommitItem[] {
 function computeOpenPrs(input: SummarizerInput): OpenPrItem[] {
   const out: OpenPrItem[] = [];
   for (const pr of input.github?.prs ?? []) {
-    if (pr.state === 'open' && isAuthoredWork(pr)) {
+    if (pr.state === 'open' && isMyWork(pr)) {
       out.push({
         source: 'github',
         kind: 'pr_open',
@@ -250,8 +209,12 @@ function computeOpenPrs(input: SummarizerInput): OpenPrItem[] {
   return out;
 }
 
-function isAuthoredWork(pr: { categories: readonly GithubActivityCategory[] }): boolean {
-  return pr.categories.includes('authored') || pr.categories.includes('authored_merged');
+function isMyWork(pr: { categories: readonly GithubActivityCategory[] }): boolean {
+  return (
+    pr.categories.includes('authored') ||
+    pr.categories.includes('authored_merged') ||
+    pr.categories.includes('assigned')
+  );
 }
 
 function computeUnpushedCommits(input: SummarizerInput): UnpushedCommitItem[] {
