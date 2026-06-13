@@ -130,6 +130,30 @@ describe('buildActivityPayload', () => {
     expect(() => assertNoForbiddenPayload(payload, 'test.full')).not.toThrow();
   });
 
+  it('final payload assertion is a backstop — catches a forbidden subject', () => {
+    // collector 가 drop 못 한 경우라도 최종 payload 검사가 잡아 발행을 막는다 (fail-closed).
+    const tainted: LocalGitActivity = {
+      ...localGitActivity,
+      repos: [
+        {
+          repo: 'cairn',
+          commitCount: 1,
+          commits: [
+            {
+              shortSha: 'bad0001',
+              subject: 'move config from /Users/me/.env',
+              authoredAt: '2026-05-09T05:00:00+09:00',
+              branch: null,
+              pushed: true,
+            },
+          ],
+        },
+      ],
+    };
+    const payload = buildActivityPayload({ date: '2026-05-09', github: null, localGit: tainted });
+    expect(() => assertNoForbiddenPayload(payload, 'test.tainted')).toThrow(/absolute-mac-path/);
+  });
+
   it('handles all-null input (no enabled sources)', () => {
     const input: SummarizerInput = {
       date: '2026-05-09',
