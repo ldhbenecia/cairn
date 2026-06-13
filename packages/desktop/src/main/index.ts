@@ -26,6 +26,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let allowQuit = false;
 
+// 미서명 앱이라 macOS 키체인 ACL 이 안정적이지 않아 Safe Storage 접근 때마다 암호 프롬프트가 뜬다.
+// cairn 은 토큰을 .env 평문으로 저장하므로(키체인 미사용) Electron 도 평문 store 로 — 프롬프트 제거.
+if (process.platform === 'darwin' || process.platform === 'linux') {
+  app.commandLine.appendSwitch('password-store', 'basic');
+}
+
 if (!app.requestSingleInstanceLock()) {
   app.exit(0);
 }
