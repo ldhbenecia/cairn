@@ -55,7 +55,7 @@ const STEP_TRIGGERS: { regex: RegExp; step: RunStep }[] = [
   { regex: /(github|notion|local-git) collect/i, step: 'collect' },
   { regex: /summarizer (start|finished)|DailySummarizerService/i, step: 'summarize' },
   {
-    regex: /NotionPublisherService|worklog page (created|already exists)|publish done/i,
+    regex: /notion publish start|worklog page (created|already exists)|publish done/i,
     step: 'publish',
   },
   { regex: /orchestrator\.run done/, step: 'done' },

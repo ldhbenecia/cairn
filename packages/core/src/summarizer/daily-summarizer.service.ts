@@ -22,6 +22,9 @@ export class DailySummarizerService {
   async summarize(input: SummarizerInput, lang: WorklogLang): Promise<WorklogSummary | null> {
     const { server, getSubmission } = buildSummarizerTools(input);
 
+    // 데스크톱 단계 표시가 이 라인으로 collect → summarize 전환을 감지한다 (core-runner STEP_TRIGGERS)
+    this.logger.info({ date: input.date }, 'summarizer start');
+
     const userPrompt = `Summarize my work for ${input.date}.`;
 
     let inputTokens = 0;
