@@ -4,6 +4,8 @@ import { dirname, join } from 'node:path';
 
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
+// 요약 모델 — 'default' 는 Claude 로그인 기본 모델, 나머지는 해당 모델로 override
+export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
 
 export type AutoPublish = {
   daily: boolean; // 매일 일지 (opt-in)
@@ -24,6 +26,7 @@ export type Settings = {
   installId: string;
   autoPublish: AutoPublish;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
+  summaryModel: SummaryModel;
 };
 
 const DEFAULTS: Settings = {
@@ -43,6 +46,7 @@ const DEFAULTS: Settings = {
     confirmBeforeRun: false,
   },
   prompts: { daily: null, weekly: null, monthly: null },
+  summaryModel: 'sonnet',
 };
 
 // 사용자 환경설정은 머신 로컬 ~/.cairn/settings.json (worklog.config.json = 엔진 데이터 config 와 분리)

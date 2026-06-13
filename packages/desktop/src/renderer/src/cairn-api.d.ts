@@ -62,6 +62,7 @@ export type RunLine = {
 
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
+export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
 
 export type NotionProbe = { ok: boolean; persons: { id: string; name: string }[]; error?: string };
 export type NotionPage = { id: string; title: string };
@@ -98,6 +99,7 @@ export type Settings = {
   telemetry: boolean;
   autoPublish: AutoPublish;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
+  summaryModel: SummaryModel;
 };
 
 declare global {

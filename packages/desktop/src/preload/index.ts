@@ -4,6 +4,7 @@ const IS_PACKAGED = process.argv.includes('--cairn-packaged');
 
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
+export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
 export type AutoPublish = {
   daily: boolean;
   weekly: boolean;
@@ -21,6 +22,7 @@ export type Settings = {
   telemetry: boolean;
   autoPublish: AutoPublish;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
+  summaryModel: SummaryModel;
 };
 
 // 무플래시: 첫 페인트 전에 main 에서 동기로 설정·버전을 받아온다 (sandbox preload 라 fs 불가 → sendSync)
