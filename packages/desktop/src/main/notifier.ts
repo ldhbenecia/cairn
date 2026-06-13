@@ -1,12 +1,9 @@
 import { BrowserWindow, Notification } from 'electron';
 import type { CoreMode, CoreResult } from './core-runner';
+import { mt } from './i18n';
 import { readSettings } from './settings';
 
-const MODE_LABEL: Record<CoreMode, string> = {
-  daily: '오늘 일지',
-  weekly: '이번 주 정리',
-  monthly: '이번 달 정리',
-};
+const modeLabel = (mode: CoreMode): string => mt(`mode.${mode}`);
 
 function focusModeInApp(mode: CoreMode): void {
   const win = BrowserWindow.getAllWindows()[0];
@@ -26,33 +23,33 @@ function notify(title: string, body: string, mode: CoreMode): void {
 
 export function sendResultNotification(mode: CoreMode, result: CoreResult): void {
   if (!readSettings().notifications) return;
-  const label = MODE_LABEL[mode];
+  const label = modeLabel(mode);
 
   if (!result.ok) {
-    notify(`${label} 실패`, `exit ${result.exitCode ?? 'unknown'}`, mode);
+    notify(`${label} ${mt('notify.failSuffix')}`, `exit ${result.exitCode ?? 'unknown'}`, mode);
     return;
   }
   if (result.publishKind === 'no-target') {
-    notify(label, '발행 대상 없음 — Preferences 설정 확인', mode);
+    notify(label, mt('notify.noTarget'), mode);
     return;
   }
   if (result.noActivity) {
-    notify(label, '활동 없음 — 발행 안 함', mode);
+    notify(label, mt('notify.noActivity'), mode);
     return;
   }
   if (result.publishKind === 'skipped') {
-    notify(label, '이미 발행됨 — 클릭하면 앱에서 확인', mode);
+    notify(label, mt('notify.skipped'), mode);
     return;
   }
-  notify(`${label} 발행 완료`, '클릭하면 앱에서 결과 확인', mode);
+  notify(`${label} ${mt('notify.doneSuffix')}`, mt('notify.doneBody'), mode);
 }
 
 export function notifyAutoStart(mode: CoreMode): void {
   if (!readSettings().notifications) return;
-  notify('cairn 자동 발행', `${MODE_LABEL[mode]}를 발행하는 중이에요`, mode);
+  notify(mt('notify.autoTitle'), mt('notify.autoRunning', { mode: modeLabel(mode) }), mode);
 }
 
 export function notifyAutoConfirm(mode: CoreMode): void {
   if (!readSettings().notifications) return;
-  notify('cairn 자동 발행 대기', `${MODE_LABEL[mode]}를 발행할까요? 클릭해서 확인`, mode);
+  notify(mt('notify.autoConfirmTitle'), mt('notify.autoConfirm', { mode: modeLabel(mode) }), mode);
 }

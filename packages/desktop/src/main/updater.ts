@@ -1,5 +1,6 @@
 import { app, Notification, shell } from 'electron';
 import electronUpdater from 'electron-updater';
+import { mt } from './i18n';
 import { readSettings } from './settings';
 
 const RELEASES_URL = 'https://github.com/ldhbenecia/cairn/releases/latest';
@@ -15,8 +16,8 @@ export function initUpdater(): void {
   autoUpdater.on('update-available', (info) => {
     if (!readSettings().notifications || !Notification.isSupported()) return;
     const noti = new Notification({
-      title: '새 버전이 있어요',
-      body: `cairn ${info.version} — 클릭하면 다운로드 페이지로`,
+      title: mt('updater.title'),
+      body: mt('updater.body', { version: info.version }),
     });
     noti.on('click', () => void shell.openExternal(RELEASES_URL));
     noti.show();

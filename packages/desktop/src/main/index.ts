@@ -17,7 +17,7 @@ import { fetchRepoStars } from './repo';
 import { readSettings, writeSettings, type Settings } from './settings';
 import { isSetupComplete } from './setup';
 import { initTelemetry, shutdownTelemetry, trackAppLaunched } from './telemetry';
-import { setupTray } from './tray';
+import { reconfigureTray, setupTray } from './tray';
 import { initUpdater } from './updater';
 
 declare const __WORKSPACE_VERSION__: string;
@@ -114,6 +114,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {
     const next = writeSettings(patch);
     if (patch.autoPublish) reconfigureAutoPublish();
+    if (patch.language) reconfigureTray();
     return next;
   });
 

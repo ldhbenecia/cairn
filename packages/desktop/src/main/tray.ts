@@ -1,5 +1,6 @@
 import { BrowserWindow, Menu, nativeImage, Tray, type MenuItemConstructorOptions } from 'electron';
 import { runCore, type CoreMode } from './core-runner';
+import { mt } from './i18n';
 import { TRAY_ICON_1X, TRAY_ICON_2X } from './tray-icon';
 
 function buildTrayIcon(): Electron.NativeImage {
@@ -18,42 +19,56 @@ function triggerCore(window: BrowserWindow, mode: CoreMode): void {
 }
 
 let tray: Tray | null = null;
+let trayWindow: BrowserWindow | null = null;
+let trayOnQuit: (() => void) | null = null;
 
 export function setupTray(window: BrowserWindow, onQuit: () => void): void {
+  trayWindow = window;
+  trayOnQuit = onQuit;
   tray = new Tray(buildTrayIcon());
-  tray.setToolTip('cairn — 자동 작업 일지');
-
-  const menu = buildMenu(window, onQuit);
-  tray.on('right-click', () => tray?.popUpContextMenu(menu));
+  applyTrayLabels(window, onQuit);
   tray.on('click', () => showWindow(window));
+}
+
+// 언어 변경 시 트레이 툴팁·메뉴를 즉시 다시 적용 (index.ts settings:set 에서 호출)
+export function reconfigureTray(): void {
+  if (tray && trayWindow && trayOnQuit) applyTrayLabels(trayWindow, trayOnQuit);
+}
+
+function applyTrayLabels(window: BrowserWindow, onQuit: () => void): void {
+  if (!tray) return;
+  tray.setToolTip(mt('tray.tooltip'));
+  const menu = buildMenu(window, onQuit);
+  tray.removeAllListeners('right-click');
+  tray.on('right-click', () => tray?.popUpContextMenu(menu));
 }
 
 function buildMenu(window: BrowserWindow, onQuit: () => void): Menu {
   const items: MenuItemConstructorOptions[] = [
     {
-      label: '오늘 일지 발행',
+      label: mt('tray.daily'),
       accelerator: 'CommandOrControl+1',
       click: () => triggerCore(window, 'daily'),
     },
     {
-      label: '이번 주 정리',
+      label: mt('tray.weekly'),
       accelerator: 'CommandOrControl+2',
       click: () => triggerCore(window, 'weekly'),
     },
     {
-      label: '이번 달 정리',
+      label: mt('tray.monthly'),
       accelerator: 'CommandOrControl+3',
       click: () => triggerCore(window, 'monthly'),
     },
     { type: 'separator' },
     {
-      label: '대시보드 열기',
+      label: mt('tray.dashboard'),
       accelerator: 'CommandOrControl+D',
       click: () => showWindow(window),
     },
     { type: 'separator' },
     {
-      label: 'cairn 완전 종료',
+      label: mt('tray.quit'),
       click: () => onQuit(),
     },
   ];
