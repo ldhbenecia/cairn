@@ -114,7 +114,7 @@ export class GithubCollectorService {
       throw CairnError.githubTokenMissing(account.tokenEnv);
     }
 
-    const loginPromise = this.client.healthCheck(token).then((id) => id.login);
+    const loginPromise = this.client.getAuthenticatedLogin(token);
     const [involved, reviewed, commented] = await Promise.all([
       this.client.searchPrs(token, `involves:@me updated:${widenedRange}`),
       this.client.searchPrs(token, `reviewed-by:@me updated:${range}`),
