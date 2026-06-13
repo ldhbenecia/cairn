@@ -24,6 +24,9 @@ export class RollupSummarizerService {
     const { server, getSubmission } = buildRollupTools(input);
     const a = input.activity;
 
+    // 데스크톱 단계 표시가 이 라인으로 collect → summarize 전환을 감지한다 (core-runner STEP_TRIGGERS)
+    this.logger.info({ period: a.period }, 'rollup summarizer start');
+
     const userPrompt = `Summarize my work for the ${a.period} period ${a.rangeStart} ~ ${a.rangeEnd}. Call get_rollup_activity, then submit_rollup.`;
 
     let inputTokens = 0;
