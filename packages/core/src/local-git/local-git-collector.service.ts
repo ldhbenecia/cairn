@@ -4,6 +4,7 @@ import { basename } from 'node:path';
 import { withConcurrency } from '../common/concurrency.js';
 import { localDateToUtcWindow } from '../common/date-window.js';
 import { CairnError } from '../common/error.js';
+import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type {
   LocalGitActivity,
   LocalGitCommitSummary,
@@ -80,7 +81,16 @@ export class LocalGitCollectorService {
     }
 
     const raw = await this.client.listCommits(repoPath, since, until, email);
-    const commits = await withConcurrency(raw, 8, (c) => this.enrich(repoPath, c));
+    const safe = raw.filter((c) => {
+      if (!isForbiddenSubject(c.subject)) return true;
+      // GitHub PR commit 경로와 대칭 — subject 에 금지 패턴이 있으면 그 commit 만 빼고 계속.
+      this.logger.warn(
+        { repo, sha: c.shortSha },
+        'local commit subject contains forbidden pattern — commit dropped',
+      );
+      return false;
+    });
+    const commits = await withConcurrency(safe, 8, (c) => this.enrich(repoPath, c));
 
     return { repo, commitCount: commits.length, commits };
   }
@@ -98,6 +108,17 @@ export class LocalGitCollectorService {
       branch: pickBranch(localBranches),
       pushed: remoteBranches.length > 0,
     };
+  }
+}
+
+// commit subject 에 외부 송신 금지 패턴(diff·절대경로·토큰)이 있는지 검사.
+// 있으면 그 commit 을 수집에서 제외해 최종 payload 백스톱이 발행 전체를 막지 않게 한다.
+export function isForbiddenSubject(subject: string): boolean {
+  try {
+    assertNoForbiddenPayload(subject, 'local-git.precheck');
+    return false;
+  } catch {
+    return true;
   }
 }
 
