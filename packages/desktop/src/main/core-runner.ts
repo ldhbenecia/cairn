@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { claudeEnv } from './claude-path';
 import { sendResultNotification } from './notifier';
-import { readSettings } from './settings';
+import { readSettings, type Settings } from './settings';
 import { trackPublish } from './telemetry';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
@@ -90,6 +90,15 @@ function stepRank(step: RunStep): number {
   return STEP_ORDER.indexOf(step);
 }
 
+// 설정의 커스텀 프롬프트 → core 가 읽는 CAIRN_PROMPT_* env (빈 값은 전달하지 않음)
+function promptEnv(prompts: Settings['prompts']): Record<string, string> {
+  const env: Record<string, string> = {};
+  if (prompts.daily?.trim()) env.CAIRN_PROMPT_DAILY = prompts.daily;
+  if (prompts.weekly?.trim()) env.CAIRN_PROMPT_WEEKLY = prompts.weekly;
+  if (prompts.monthly?.trim()) env.CAIRN_PROMPT_MONTHLY = prompts.monthly;
+  return env;
+}
+
 let running: ChildProcess | null = null;
 
 export function isRunning(): boolean {
@@ -139,11 +148,12 @@ export async function runCore(
   };
   sender?.send('cairn:run-step', { mode, step: currentStep });
 
+  const settings = readSettings();
   const args = [`--mode=${mode}`];
   if (options.backfillDays !== undefined) args.push(`--backfill-days=${options.backfillDays}`);
   if (options.force) args.push('--force');
   if (options.date) args.push(`--date=${options.date}`);
-  args.push(`--lang=${readSettings().language}`);
+  args.push(`--lang=${settings.language}`);
 
   emit('meta', `[fork] ${CORE_ENTRY} ${args.join(' ')}`);
   emit('meta', `[cwd] ${CAIRN_ROOT}`);
@@ -151,7 +161,12 @@ export async function runCore(
   const child = fork(CORE_ENTRY, args, {
     cwd: CAIRN_ROOT,
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-    env: { ...process.env, CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false', ...claudeEnv() },
+    env: {
+      ...process.env,
+      CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
+      ...claudeEnv(),
+      ...promptEnv(settings.prompts),
+    },
   });
   running = child;
   emit('meta', `[fork] pid=${child.pid ?? '?'}`);
