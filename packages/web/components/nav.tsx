@@ -1,3 +1,4 @@
+import { content, type Lang } from '../lib/content';
 import { BrandMark } from './brand-mark';
 import { REPO, REPO_URL } from '../lib/github';
 
@@ -6,25 +7,41 @@ function formatStars(n: number): string {
   return String(n);
 }
 
-export function Nav({ stars }: { stars: number }) {
+export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
+  const c = content[lang].nav;
   return (
     <header className="sticky top-0 z-50 border-b border-hairline/70 bg-canvas/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-        <a href="#top" className="flex items-center gap-2 text-[15px] font-semibold">
+        <a href={lang === 'ko' ? '/ko' : '/'} className="flex items-center gap-2 text-[15px] font-semibold">
           <BrandMark size={18} className="text-accent" />
           cairn
         </a>
         <nav className="hidden items-center gap-7 text-[14px] text-ink-subtle sm:flex">
           <a href="#how" className="transition-colors hover:text-ink">
-            How it works
+            {c.how}
           </a>
           <a href="#output" className="transition-colors hover:text-ink">
-            Worklog
+            {c.worklog}
           </a>
           <a href="#setup" className="transition-colors hover:text-ink">
-            Setup
+            {c.setup}
           </a>
         </nav>
+        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-0.5 rounded-lg border border-hairline-strong bg-surface-1 p-0.5 text-[12px]">
+          <a
+            href="/"
+            className={`rounded-md px-2 py-1 transition-colors ${lang === 'en' ? 'bg-surface-3 font-medium text-ink' : 'text-ink-subtle hover:text-ink'}`}
+          >
+            EN
+          </a>
+          <a
+            href="/ko"
+            className={`rounded-md px-2 py-1 transition-colors ${lang === 'ko' ? 'bg-surface-3 font-medium text-ink' : 'text-ink-subtle hover:text-ink'}`}
+          >
+            한국어
+          </a>
+        </div>
         <a
           href={REPO_URL}
           target="_blank"
@@ -49,6 +66,7 @@ export function Nav({ stars }: { stars: number }) {
             <span className="font-mono">{formatStars(stars)}</span>
           </span>
         </a>
+        </div>
       </div>
     </header>
   );
