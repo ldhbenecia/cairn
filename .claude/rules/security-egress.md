@@ -25,9 +25,9 @@
 
 1. **타입 정의에서 제외**: 외부 송신 페이로드 타입에 코드/diff 필드 자체를 두지 않음. agent harness에 노출되는 도구 응답 타입도 같음.
 2. **단위 테스트로 강제**: 송신 페이로드 객체를 `JSON.stringify` 후 정규식으로 `diff|patch|@@|^---|^\+\+\+` 키워드 검사. 매칭되면 테스트 실패.
-3. **redaction 헬퍼**: 커밋 메시지에 `(api[_-]?key|token|secret|password)\s*[:=]\s*\S+` 같은 패턴이 있으면 마스킹.
+3. **fail-closed 검사 + graceful drop** (ADR 0021): `assertNoForbiddenPayload` 가 외부 송신 payload 에서 금지 패턴(diff·절대경로·토큰 prefix) 매칭 시 throw. 항목 단위로 검사 가능한 경로(GitHub PR body·commit subject, local-git commit subject)는 위반 항목만 drop+warn 후 계속. **자유 텍스트(subject·body)에는 마스킹을 쓰지 않는다** — `key[:=]value` 마스킹이 정상 subject 를 오탐 훼손하기 때문. 시크릿이 섞이면 마스킹이 아니라 항목 drop.
 4. **로그 redaction**: pino redact paths에 `*.token`, `*.api_key`, `headers.authorization`, `env.*PAT*` 등록.
 
 ## 보안 ADR
 
-이 원칙의 근본은 `docs/decisions/0003-no-code-body-egress.md`. 변경 시 새 ADR 추가.
+이 원칙의 근본은 `docs/decisions/0003-no-code-body-egress.md`, 강제 방식은 `docs/decisions/0021-egress-enforcement-fail-closed.md`. 변경 시 새 ADR 추가.
