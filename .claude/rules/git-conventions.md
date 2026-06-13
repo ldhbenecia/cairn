@@ -38,5 +38,5 @@
 - 제목도 Conventional Commits 형식 (`Stage 0:` 같은 형식 X)
 - 본문은 [.github/pull_request_template.md](../../.github/pull_request_template.md) 양식 그대로 (체크리스트 빠뜨리지 말 것)
 - PR 단위: 한 PR 은 한 가지 일. 리뷰 30 분 이내 사이즈
-- PR 마다 `package.json` version SemVer bump (ADR 0005)
+- 버전은 ADR 0020 기준 — **patch 기본**(버그/성능/리팩토링/작은 개선), 체감 기능 묶음당 **minor 1회**, docs/CI 만이면 무 bump. 릴리스는 배포 시점에 태그 푸시 (태그 == root version)
 - PR 직렬화: 다음 작업은 직전 PR 머지 후 시작

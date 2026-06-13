@@ -1,6 +1,6 @@
 # 0005. SemVer + 단계별 minor bump + PR 단위 patch bump
 
-- 상태: accepted (버전 bump 단위는 ADR 0018 로 구체화 — core/desktop 모듈별 + root 통합 버전, 앱은 root 표시)
+- 상태: superseded by 0020 (bump 기준은 ADR 0020 — patch 기본, 기능 묶음당 minor 1회. 모듈/root 버전 구조는 ADR 0018 유지)
 - 작성일: 2026-04-26
 
 ## 맥락
