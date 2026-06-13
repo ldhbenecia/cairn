@@ -300,3 +300,33 @@ button {
 [data-glass='on'] .dialog-overlay {
   background-color: rgba(0, 0, 0, 0.28);
 }
+
+/* 발행 대기 — 요약 단계의 브랜드 마크 숨쉬기 + 순환 문구 페이드 */
+@keyframes cairn-breathe {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+.cairn-breathe {
+  animation: cairn-breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes hint-fade {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hint-fade {
+  animation: hint-fade 320ms ease-out;
+}

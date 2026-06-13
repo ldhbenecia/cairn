@@ -1,10 +1,11 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { Check, ExternalLink, Loader2, Plus, TriangleAlert, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { RunSession } from '../App';
 import type { CoreMode, CoreResult, CoreRunOptions, RunStep } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
+import { BrandMark } from './brand-mark';
 import { Toggle } from './toggle';
 
 type T = (key: I18nKey) => string;
@@ -176,6 +177,28 @@ function collectHintKey(lines: RunSession['lines']): I18nKey {
   return 'publish.hint.collect';
 }
 
+// 수집 결과 카운트 — 엔진 로그의 prCount/commitCountTotal 필드만 추출 (pretty·JSON 양식 모두 매칭)
+function collectedCounts(lines: RunSession['lines']): { pr: number | null; commit: number | null } {
+  let pr: number | null = null;
+  let commit: number | null = null;
+  for (const l of lines) {
+    const mPr = /prCount["':\s]+(\d+)/.exec(l.line);
+    if (mPr) pr = Number(mPr[1]);
+    const mCommit = /commitCountTotal["':\s]+(\d+)/.exec(l.line);
+    if (mCommit) commit = Number(mCommit[1]);
+  }
+  return { pr, commit };
+}
+
+// 요약(~2분) 동안 8초 간격으로 순환하는 상태 문구
+const SUMMARIZE_HINTS: I18nKey[] = [
+  'publish.hint.summarize',
+  'publish.hint.summarize.read',
+  'publish.hint.summarize.commits',
+  'publish.hint.summarize.numbers',
+  'publish.hint.summarize.polish',
+];
+
 function Progress({ session, t }: { session: RunSession | null; t: T }) {
   const step = session?.step ?? 'boot';
   const currentRank = STEP_RANK[step];
@@ -193,8 +216,15 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
   const elapsed = startedAt ? Math.max(0, Math.floor((end - startedAt) / 1000)) : 0;
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
   const ss = String(elapsed % 60).padStart(2, '0');
+  const lines = session?.lines ?? [];
+  const counts = useMemo(() => collectedCounts(lines), [lines.length]);
+  const hintIdx = step === 'summarize' ? Math.floor(elapsed / 8) % SUMMARIZE_HINTS.length : 0;
   const hint =
-    step === 'collect' ? t(collectHintKey(session?.lines ?? [])) : t(STEP_HINT_KEY[step]);
+    step === 'collect'
+      ? t(collectHintKey(lines))
+      : step === 'summarize'
+        ? t(SUMMARIZE_HINTS[hintIdx]!)
+        : t(STEP_HINT_KEY[step]);
 
   return (
     <div className="flex flex-col gap-5 py-1">
@@ -229,16 +259,36 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
         })}
       </div>
 
+      {step === 'summarize' && (
+        <div className="flex justify-center py-1.5">
+          <BrandMark size={28} className="cairn-breathe text-accent" />
+        </div>
+      )}
+
       <div className="h-1 overflow-hidden rounded-full bg-surface-2">
         <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
       </div>
 
-      <div className="flex items-center justify-between text-[13px]">
-        <span className="text-ink-muted">{hint}</span>
-        <span className="font-mono text-ink-tertiary">
+      <div className="flex items-center justify-between gap-3 text-[13px]">
+        <span key={hint} className="hint-fade min-w-0 truncate text-ink-muted">
+          {hint}
+        </span>
+        <span className="shrink-0 font-mono text-ink-tertiary">
           {mm}:{ss}
         </span>
       </div>
+
+      {currentRank >= STEP_RANK.summarize && counts.pr !== null && counts.commit !== null && (
+        <div className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
+          <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
+            PR {counts.pr}
+          </span>
+          <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
+            {t('publish.collected.commits')} {counts.commit}
+          </span>
+          <span>{t('publish.collected')}</span>
+        </div>
+      )}
     </div>
   );
 }
