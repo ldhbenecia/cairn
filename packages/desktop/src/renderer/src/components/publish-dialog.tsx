@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Check, ExternalLink, Loader2, Plus, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { RunSession } from '../App';
-import type { CoreMode, CoreResult, CoreRunOptions, RunStep } from '../cairn-api';
+import type { CoreMode, CoreResult, CoreRunOptions, RunStep, SummaryModel } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { BrandMark } from './brand-mark';
@@ -46,8 +46,15 @@ const STEP_HINT_KEY: Record<RunStep, I18nKey> = {
 
 const DAILY_BACKFILL_DAYS = 7;
 
+const MODEL_NAME: Record<SummaryModel, string> = {
+  default: '',
+  sonnet: 'Sonnet',
+  haiku: 'Haiku',
+  opus: 'Opus',
+};
+
 export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
-  const { t } = useSettings();
+  const { t, settings } = useSettings();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<CoreMode>('daily');
   const [includeBackfill, setIncludeBackfill] = useState(false);
@@ -97,7 +104,17 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
             {showProgress && isDone && session?.error ? (
               <ErrorCard message={session.error} t={t} onClose={() => setOpen(false)} />
             ) : showProgress && isDone && session?.result ? (
-              <Result result={session.result} t={t} onClose={() => setOpen(false)} />
+              <Result
+                result={session.result}
+                elapsedSec={
+                  session.endedAt
+                    ? Math.max(0, Math.floor((session.endedAt - session.startedAt) / 1000))
+                    : null
+                }
+                modelLabel={MODEL_NAME[settings.summaryModel] || t('prefs.prompts.model.default')}
+                t={t}
+                onClose={() => setOpen(false)}
+              />
             ) : showProgress && (isRunning || busy) ? (
               <Progress session={session} t={t} />
             ) : (
@@ -319,8 +336,31 @@ function ErrorCard({ message, t, onClose }: { message: string; t: T; onClose: ()
   );
 }
 
-function Result({ result, t, onClose }: { result: CoreResult; t: T; onClose: () => void }) {
+function fmtElapsed(sec: number): string {
+  const mm = String(Math.floor(sec / 60)).padStart(2, '0');
+  const ss = String(sec % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
+function Result({
+  result,
+  elapsedSec,
+  modelLabel,
+  t,
+  onClose,
+}: {
+  result: CoreResult;
+  elapsedSec: number | null;
+  modelLabel: string;
+  t: T;
+  onClose: () => void;
+}) {
   const url = result.notionUrl ?? pageIdToUrl(result.publishPageId);
+  const isSuccess =
+    result.ok &&
+    result.publishKind !== 'no-target' &&
+    result.publishKind !== 'skipped' &&
+    !result.noActivity;
   let body: React.ReactNode;
   if (!result.ok) {
     body = (
@@ -344,7 +384,16 @@ function Result({ result, t, onClose }: { result: CoreResult; t: T; onClose: () 
   }
   return (
     <div className="flex flex-col gap-5 py-2">
-      {body}
+      <div className="flex flex-col gap-1.5">
+        {body}
+        {isSuccess && (modelLabel || elapsedSec !== null) && (
+          <p className="text-[12px] text-ink-tertiary">
+            {[modelLabel, elapsedSec !== null ? fmtElapsed(elapsedSec) : null]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        )}
+      </div>
       <div className="flex items-center gap-3">
         {url && (
           <button
