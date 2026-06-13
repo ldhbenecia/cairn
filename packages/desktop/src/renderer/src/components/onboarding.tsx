@@ -1,27 +1,27 @@
 import { Check, ExternalLink, FolderPlus, Loader2, Plus, Search, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { NotionDb, NotionPage } from '../cairn-api';
+import type { I18nKey } from '../i18n';
+import { useSettings } from '../settings-context';
 import { BrandMark } from './brand-mark';
+
+type T = (key: I18nKey) => string;
 
 type Status = 'idle' | 'testing' | 'ok' | 'err';
 
 type TokenKind = 'notion' | 'github';
 
 // 토큰 prefix 로 "다른 서비스 토큰을 잘못 붙여넣음"을 즉시 감지 (알 수 없는 형식은 침묵)
-function tokenMismatch(kind: TokenKind, token: string): string | null {
+function tokenMismatchKey(kind: TokenKind, token: string): I18nKey | null {
   const t = token.trim();
   if (!t) return null;
   const looksNotion = t.startsWith('ntn_') || t.startsWith('secret_');
   const looksGithub = ['ghp_', 'github_pat_', 'gho_'].some((p) => t.startsWith(p));
   const looksAnthropic = t.startsWith('sk-ant-');
   if (kind === 'notion' && (looksGithub || looksAnthropic))
-    return looksGithub
-      ? 'GitHub 토큰 같아요 — 여기엔 Notion integration 토큰(ntn_…)을 붙여넣어 주세요'
-      : 'Anthropic API key 같아요 — Claude 단계에서 입력해 주세요';
+    return looksGithub ? 'onb.token.notionWrongGithub' : 'onb.token.wrongAnthropic';
   if (kind === 'github' && (looksNotion || looksAnthropic))
-    return looksNotion
-      ? 'Notion 토큰 같아요 — 여기엔 GitHub 토큰(ghp_… / github_pat_…)을 붙여넣어 주세요'
-      : 'Anthropic API key 같아요 — Claude 단계에서 입력해 주세요';
+    return looksNotion ? 'onb.token.githubWrongNotion' : 'onb.token.wrongAnthropic';
   return null;
 }
 
@@ -45,13 +45,13 @@ type GithubEntry = { label: string; token: string; status: Status; error?: strin
 
 const STEPS = ['welcome', 'notion', 'github', 'claude', 'repos', 'review'] as const;
 type Step = (typeof STEPS)[number];
-const STEP_TITLE: Record<Step, string> = {
-  welcome: '시작하기',
-  notion: 'Notion 연결',
-  github: 'GitHub 연결',
-  claude: 'Claude',
-  repos: '로컬 Git (선택)',
-  review: '완료',
+const STEP_TITLE_KEY: Record<Step, I18nKey> = {
+  welcome: 'onb.step.welcome',
+  notion: 'onb.step.notion',
+  github: 'onb.step.github',
+  claude: 'onb.step.claude',
+  repos: 'onb.step.repos',
+  review: 'onb.step.review',
 };
 
 const newNotion = (label: string): NotionEntry => ({
@@ -70,6 +70,7 @@ const newNotion = (label: string): NotionEntry => ({
 });
 
 export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
+  const { t } = useSettings();
   const [stepIdx, setStepIdx] = useState(0);
   const step = STEPS[stepIdx]!;
   const [notion, setNotion] = useState<NotionEntry[]>([newNotion('Personal')]);
@@ -191,7 +192,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
           </span>
           <span className="text-[17px] font-semibold tracking-[-0.3px]">cairn</span>
           <span className="ml-auto text-[12px] text-ink-tertiary">
-            {stepIdx + 1} / {STEPS.length} · {STEP_TITLE[step]}
+            {stepIdx + 1} / {STEPS.length} · {t(STEP_TITLE_KEY[step])}
           </span>
         </div>
         <div className="flex items-center gap-1.5 pb-5">
@@ -211,14 +212,13 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
         </div>
 
         <div key={step} className="panel-enter flex-1 overflow-y-auto [scrollbar-gutter:stable]">
-          {step === 'welcome' && <Welcome />}
+          {step === 'welcome' && <Welcome t={t} />}
           {step === 'notion' && (
             <Section
-              desc="일지를 발행할 Notion 워크스페이스. integration 토큰 + 발행할 부모 페이지를 연결합니다."
-              link={{
-                label: 'Notion integration 만들기',
-                url: 'https://www.notion.so/my-integrations',
-              }}
+              desc={t('onb.notion.desc')}
+              links={[
+                { label: t('onb.notion.link'), url: 'https://www.notion.so/my-integrations' },
+              ]}
             >
               {notion.map((e, i) => (
                 <NotionCard
@@ -239,40 +239,33 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 />
               ))}
               <AddButton
-                label="워크스페이스 추가"
+                label={t('onb.notion.add')}
                 onClick={() => setNotion((p) => [...p, newNotion(`Workspace ${p.length + 1}`)])}
               />
             </Section>
           )}
           {step === 'github' && (
             <Section
-              desc="PR · 커밋을 수집할 GitHub 계정 (선택). 토큰을 만들어 붙여넣으면 자동으로 확인합니다."
+              desc={t('onb.github.desc')}
               links={[
                 {
-                  label: 'Classic 토큰 만들기 — 권장 설정 자동 입력',
+                  label: t('onb.github.linkClassic'),
                   url: 'https://github.com/settings/tokens/new?scopes=repo,read:user&description=cairn%20worklog',
                 },
                 {
-                  label: 'Fine-grained PAT 만들기',
+                  label: t('onb.github.linkFine'),
                   url: 'https://github.com/settings/personal-access-tokens/new',
                 },
               ]}
             >
               <div className="rounded-lg border border-hairline bg-surface-1 p-3.5 text-[12px] leading-relaxed text-ink-subtle">
                 <p className="mb-1.5 text-[13px] font-medium text-ink-muted">
-                  Fine-grained PAT 설정
+                  {t('onb.github.fineTitle')}
                 </p>
-                <p>
-                  · Repository access: <span className="text-ink-muted">All repositories</span> 권장
-                </p>
-                <p>
-                  · Permissions:{' '}
-                  <span className="text-ink-muted">Pull requests · Contents · Metadata = Read</span>
-                </p>
-                <p className="mt-1.5 text-ink-tertiary">계정마다 종류 섞어도 됩니다.</p>
-                <p className="text-ink-tertiary">
-                  예) 개인 계정 = Fine-grained PAT · 조직 private repo = classic token (scope: repo)
-                </p>
+                <p>{t('onb.github.fineRepo')}</p>
+                <p>{t('onb.github.finePerms')}</p>
+                <p className="mt-1.5 text-ink-tertiary">{t('onb.github.fineMix')}</p>
+                <p className="text-ink-tertiary">{t('onb.github.fineExample')}</p>
               </div>
               {github.map((e, i) => (
                 <GithubCard
@@ -288,7 +281,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 />
               ))}
               <AddButton
-                label="계정 추가"
+                label={t('onb.github.add')}
                 onClick={() =>
                   setGithub((p) => [
                     ...p,
@@ -299,15 +292,10 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             </Section>
           )}
           {step === 'claude' && (
-            <Section desc="cairn 은 활동을 한국어로 요약하는 데 Claude 를 씁니다.">
+            <Section desc={t('onb.claude.desc')}>
               <div className="rounded-lg border border-hairline bg-surface-1 p-4 text-[13px] leading-relaxed text-ink-muted">
-                <p className="mb-2 font-medium text-ink">
-                  Claude Code CLI 가 설치·로그인돼 있으면 자동 — 추가 과금 0
-                </p>
-                <p className="text-ink-subtle">
-                  cairn 은 시스템에 설치된 Claude Code 를 사용합니다(앱에 포함하지 않음). 로그인된
-                  Claude(Pro/Max 등) 인증을 그대로 인계받아요.
-                </p>
+                <p className="mb-2 font-medium text-ink">{t('onb.claude.autoTitle')}</p>
+                <p className="text-ink-subtle">{t('onb.claude.autoBody')}</p>
                 <button
                   type="button"
                   onClick={() =>
@@ -317,11 +305,11 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   }
                   className="mt-2 inline-flex items-center gap-1 text-[12px] text-accent hover:text-accent-hover"
                 >
-                  <ExternalLink size={11} strokeWidth={2} /> Claude Code 설치
+                  <ExternalLink size={11} strokeWidth={2} /> {t('onb.claude.install')}
                 </button>
               </div>
               <div>
-                <p className="mb-1.5 text-[13px] text-ink-muted">또는 Anthropic API key (선택)</p>
+                <p className="mb-1.5 text-[13px] text-ink-muted">{t('onb.claude.orApiKey')}</p>
                 <input
                   type="password"
                   value={anthropicKey}
@@ -336,7 +324,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   }
                   className="mt-1.5 inline-flex items-center gap-1 text-[12px] text-accent hover:text-accent-hover"
                 >
-                  <ExternalLink size={11} strokeWidth={2} /> API key 발급
+                  <ExternalLink size={11} strokeWidth={2} /> {t('onb.claude.issueKey')}
                 </button>
               </div>
               <div className="flex items-center gap-2.5">
@@ -349,26 +337,24 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   {claudeStatus === 'testing' && (
                     <Loader2 size={13} strokeWidth={2} className="animate-spin" />
                   )}
-                  연결 확인
+                  {t('onb.claude.test')}
                 </button>
                 {claudeStatus === 'ok' && (
                   <span className="inline-flex items-center gap-1 text-[13px] text-success">
-                    <Check size={14} strokeWidth={2.5} /> Claude 연결됨
+                    <Check size={14} strokeWidth={2.5} /> {t('onb.claude.connected')}
                   </span>
                 )}
                 {claudeStatus === 'err' && (
-                  <span className="text-[13px] text-[#f87171]">
-                    연결 안 됨 — Claude Code 설치·로그인 또는 API key 필요
-                  </span>
+                  <span className="text-[13px] text-[#f87171]">{t('onb.claude.failed')}</span>
                 )}
                 {claudeStatus === 'testing' && (
-                  <span className="text-[12px] text-ink-tertiary">확인 중... (최대 1분)</span>
+                  <span className="text-[12px] text-ink-tertiary">{t('onb.claude.testing')}</span>
                 )}
               </div>
             </Section>
           )}
           {step === 'repos' && (
-            <Section desc="커밋을 수집할 로컬 Git 저장소 경로. (선택)">
+            <Section desc={t('onb.repos.desc')}>
               <div className="flex flex-col gap-2">
                 {repos.map((r, i) => (
                   <div
@@ -386,27 +372,41 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   </div>
                 ))}
               </div>
-              <AddButton icon={FolderPlus} label="폴더 추가" onClick={() => void addRepo()} />
+              <AddButton
+                icon={FolderPlus}
+                label={t('onb.repos.add')}
+                onClick={() => void addRepo()}
+              />
             </Section>
           )}
           {step === 'review' && (
-            <Section desc="아래 내용으로 설정 파일을 작성합니다.">
+            <Section desc={t('onb.review.desc')}>
               <ul className="flex flex-col gap-1.5 text-[13px] text-ink-muted">
                 <li>
-                  Notion 워크스페이스 {notion.filter((e) => e.status === 'ok' && e.pageId).length}개
+                  {t('onb.review.notion')}{' '}
+                  {notion.filter((e) => e.status === 'ok' && e.pageId).length}
                 </li>
-                <li>GitHub 계정 {github.filter((e) => e.status === 'ok').length}개</li>
-                <li>Claude {anthropicKey.trim() ? 'API key' : '자동(CLI 인계)'}</li>
-                <li>로컬 Git {repos.length}개</li>
+                <li>
+                  {t('onb.review.github')} {github.filter((e) => e.status === 'ok').length}
+                </li>
+                <li>
+                  {t('onb.review.claude')}{' '}
+                  {anthropicKey.trim() ? t('onb.review.claudeApiKey') : t('onb.review.claudeAuto')}
+                </li>
+                <li>
+                  {t('onb.review.repos')} {repos.length}
+                </li>
               </ul>
               {claudeStatus !== 'ok' && !anthropicKey.trim() && (
                 <div className="rounded-lg border border-[#fbbf24]/30 bg-[#fbbf24]/10 p-3 text-[12px] leading-relaxed text-[#fbbf24]">
-                  Claude 연결이 확인되지 않았어요. 이대로 시작하면 발행은 되지만 AI 요약 없이
-                  원자료만 담긴 일지가 만들어집니다 — 이전 단계에서 Claude Code 로그인 또는 API key
-                  를 연결하는 것을 권장해요.
+                  {t('onb.review.warnNoClaude')}
                 </div>
               )}
-              {finishErr && <p className="text-[13px] text-[#f87171]">작성 실패: {finishErr}</p>}
+              {finishErr && (
+                <p className="text-[13px] text-[#f87171]">
+                  {t('onb.review.failPrefix')}: {finishErr}
+                </p>
+              )}
             </Section>
           )}
         </div>
@@ -418,7 +418,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
               onClick={() => setStepIdx((s) => s - 1)}
               className="rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink"
             >
-              이전
+              {t('onb.nav.prev')}
             </button>
           )}
           {onCancel && (
@@ -427,7 +427,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
               onClick={onCancel}
               className="rounded-md px-3 py-2 text-[13px] text-ink-tertiary hover:text-ink-muted"
             >
-              취소
+              {t('onb.nav.cancel')}
             </button>
           )}
           <div className="ml-auto">
@@ -439,7 +439,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 className="flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
               >
                 {finishing && <Loader2 size={14} strokeWidth={2} className="animate-spin" />}
-                시작하기
+                {t('onb.nav.start')}
               </button>
             ) : (
               <button
@@ -448,7 +448,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 onClick={() => setStepIdx((s) => s + 1)}
                 className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
               >
-                다음
+                {t('onb.nav.next')}
               </button>
             )}
           </div>
@@ -458,23 +458,20 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   );
 }
 
-function Welcome() {
+function Welcome({ t }: { t: T }) {
   return (
     <div className="flex flex-col gap-4 py-4">
-      <h1 className="text-[22px] font-semibold tracking-[-0.4px]">cairn 셋업</h1>
-      <p className="text-[14px] leading-relaxed text-ink-muted">
-        등산로의 돌탑처럼, 매일 작업 흔적을 모아 Notion 일지로 남깁니다. 시작하려면 세 가지만
-        연결하면 돼요:
-      </p>
+      <h1 className="text-[22px] font-semibold tracking-[-0.4px]">{t('onb.welcome.title')}</h1>
+      <p className="text-[14px] leading-relaxed text-ink-muted">{t('onb.welcome.desc')}</p>
       <ul className="flex flex-col gap-2 text-[13px] text-ink-subtle">
         <li>
-          · <span className="text-ink-muted">Notion</span> — 일지를 발행할 곳
+          · <span className="text-ink-muted">Notion</span> — {t('onb.welcome.notion')}
         </li>
         <li>
-          · <span className="text-ink-muted">GitHub</span> — PR·리뷰·커밋 수집 (선택)
+          · <span className="text-ink-muted">GitHub</span> — {t('onb.welcome.github')}
         </li>
         <li>
-          · <span className="text-ink-muted">Claude</span> — 한국어 요약 (CLI 로그인 시 자동)
+          · <span className="text-ink-muted">Claude</span> — {t('onb.welcome.claude')}
         </li>
       </ul>
     </div>
@@ -483,16 +480,14 @@ function Welcome() {
 
 function Section({
   desc,
-  link,
   links,
   children,
 }: {
   desc: string;
-  link?: { label: string; url: string };
   links?: { label: string; url: string }[];
   children: React.ReactNode;
 }) {
-  const all = links ?? (link ? [link] : []);
+  const all = links ?? [];
   return (
     <div className="flex flex-col gap-3 py-2">
       <p className="text-[13px] leading-relaxed text-ink-muted">{desc}</p>
@@ -559,7 +554,8 @@ function LabelToken({
   onTest: () => void;
   onRemove?: () => void;
 }) {
-  const mismatch = tokenMismatch(kind, token);
+  const { t } = useSettings();
+  const mismatchKey = tokenMismatchKey(kind, token);
   // 붙여넣기/입력 후 자동 검증 — 테스트 버튼을 누를 필요 없게 (디바운스 800ms)
   const onTestRef = useRef(onTest);
   onTestRef.current = onTest;
@@ -569,9 +565,9 @@ function LabelToken({
       first.current = false;
       return;
     }
-    if (!token.trim() || mismatch) return;
-    const t = setTimeout(() => onTestRef.current(), 800);
-    return () => clearTimeout(t);
+    if (!token.trim() || mismatchKey) return;
+    const id = setTimeout(() => onTestRef.current(), 800);
+    return () => clearTimeout(id);
   }, [token]);
 
   return (
@@ -580,23 +576,23 @@ function LabelToken({
         <input
           value={label}
           onChange={(e) => onChange({ label: e.target.value })}
-          placeholder="라벨"
+          placeholder={t('onb.field.labelPh')}
           className="w-24 rounded-md border border-hairline bg-surface-1 px-2.5 py-2 text-[13px] text-ink focus:border-accent/60 focus:outline-none"
         />
         <input
           type="password"
           value={token}
           onChange={(e) => onChange({ token: e.target.value })}
-          placeholder="토큰 붙여넣기 — 자동으로 확인합니다"
+          placeholder={t('onb.field.tokenPh')}
           className="flex-1 rounded-md border border-hairline bg-surface-1 px-2.5 py-2 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/60 focus:outline-none"
         />
         <button
           type="button"
           onClick={onTest}
-          disabled={!token.trim() || status === 'testing' || !!mismatch}
+          disabled={!token.trim() || status === 'testing' || !!mismatchKey}
           className="shrink-0 rounded-md border border-hairline px-2.5 py-2 text-[12px] text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
         >
-          테스트
+          {t('onb.field.test')}
         </button>
         <StatusDot status={status} />
         {onRemove && (
@@ -609,7 +605,7 @@ function LabelToken({
           </button>
         )}
       </div>
-      {mismatch && <p className="text-[12px] text-[#fbbf24]">{mismatch}</p>}
+      {mismatchKey && <p className="text-[12px] text-[#fbbf24]">{t(mismatchKey)}</p>}
     </>
   );
 }
@@ -629,6 +625,7 @@ function NotionCard({
   onSelectPage: (pageId: string) => void;
   onRemove?: () => void;
 }) {
+  const { t } = useSettings();
   return (
     <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-1 p-3">
       <LabelToken
@@ -649,7 +646,7 @@ function NotionCard({
               onChange={(ev) => onChange({ personId: ev.target.value })}
               className="rounded-md border border-hairline bg-surface-2 px-2.5 py-2 text-[13px] text-ink"
             >
-              <option value="">내 계정 선택</option>
+              <option value="">{t('onb.notion.selectAccount')}</option>
               {e.persons.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -664,7 +661,7 @@ function NotionCard({
               onKeyDown={(ev) => {
                 if (ev.key === 'Enter') onSearch();
               }}
-              placeholder="발행할 페이지 이름 검색"
+              placeholder={t('onb.notion.searchPh')}
               className="flex-1 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/60 focus:outline-none"
             />
             <button
@@ -678,7 +675,7 @@ function NotionCard({
               ) : (
                 <Search size={12} strokeWidth={2} />
               )}
-              검색
+              {t('onb.notion.search')}
             </button>
           </div>
           {e.pages.length > 0 && (
@@ -705,19 +702,17 @@ function NotionCard({
           )}
           {e.pageId && e.databases.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <p className="text-[12px] text-ink-tertiary">
-                이 페이지의 기존 DB 연결 (선택 — 비우면 자동 생성)
-              </p>
+              <p className="text-[12px] text-ink-tertiary">{t('onb.notion.dbHint')}</p>
               <div className="flex gap-2">
                 <select
                   value={e.worklogDbId}
                   onChange={(ev) => onChange({ worklogDbId: ev.target.value })}
                   className="flex-1 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink"
                 >
-                  <option value="">일지 DB: 자동 생성</option>
+                  <option value="">{t('onb.notion.worklogAuto')}</option>
                   {e.databases.map((d) => (
                     <option key={d.databaseId} value={d.databaseId}>
-                      일지: {d.title}
+                      {t('onb.notion.worklogPrefix')}: {d.title}
                     </option>
                   ))}
                 </select>
@@ -726,10 +721,10 @@ function NotionCard({
                   onChange={(ev) => onChange({ rollupDbId: ev.target.value })}
                   className="flex-1 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink"
                 >
-                  <option value="">롤업 DB: 자동 생성</option>
+                  <option value="">{t('onb.notion.rollupAuto')}</option>
                   {e.databases.map((d) => (
                     <option key={d.databaseId} value={d.databaseId}>
-                      롤업: {d.title}
+                      {t('onb.notion.rollupPrefix')}: {d.title}
                     </option>
                   ))}
                 </select>
@@ -753,6 +748,7 @@ function GithubCard({
   onTest: () => void;
   onRemove?: () => void;
 }) {
+  const { t } = useSettings();
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-hairline bg-surface-1 p-3">
       <LabelToken
@@ -766,7 +762,9 @@ function GithubCard({
       />
       {e.status === 'err' && <p className="text-[12px] text-[#f87171]">{e.error}</p>}
       {e.status === 'ok' && e.login && (
-        <p className="text-[12px] text-ink-subtle">@{e.login} 연결됨</p>
+        <p className="text-[12px] text-ink-subtle">
+          @{e.login} {t('onb.github.connected')}
+        </p>
       )}
     </div>
   );
