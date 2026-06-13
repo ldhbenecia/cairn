@@ -2,6 +2,10 @@
 
 > 등산로의 돌탑처럼, 매일 작업 흔적 하나씩 쌓아 길을 남긴다.
 
+> 상태: 부분 superseded — Notion 편집 활동 수집(소스)은 2026-06-03 제거됨
+> (`docs/progress/2026-06-03-remove-notion-source.md`). 현재 수집 소스는 GitHub + 로컬 Git 뿐이고,
+> Notion 은 출력(발행) 대상으로만 쓰임. 아래 Notion 수집 서술은 역사 기록으로 남겨둔다.
+
 ## Context
 
 회사 백엔드 개발자(NestJS 주력)로 일하면서 매일 한 작업이 GitHub·로컬 Git·Notion에 흩어져 있음. 평가 시즌이나 회고할 때 본인 이력을 모으려고 하면 놓치는 게 많음. 또 매일 잡일 사이에서 "오늘 뭐 했지"를 정리하는 데 맥락 전환 비용이 큼.
@@ -42,7 +46,7 @@
 - 안티패턴: `feat(github): everything for github collector` (한 줄 다목적 커밋)
 
 ### 커밋 컨벤션 (Conventional Commits)
-- 형식: `type(scope): subject` (subject는 명령형 영어 또는 한국어, 50자 이내)
+- 형식: `type(scope): subject` (subject 톤은 `.claude/rules/git-conventions.md` 가 기준 — 한국어 명사구 우선, 영어 명령형 동사 지양)
 - **type**: `feat` | `fix` | `refactor` | `perf` | `docs` | `test` | `chore` | `build` | `ci` | `style` | `revert`
 - **scope** (예시): `github`, `local-git`, `notion`, `summarizer`, `rollup`, `state`, `ops`, `docs`, `claude`, `repo`
 - 예시:

@@ -2,7 +2,7 @@
 
 > 등산로의 돌탑처럼, 매일 작업 흔적 하나씩 쌓아 길을 남긴다.
 
-회사 백엔드 개발자(NestJS) 본인용 자동 작업 일지. GitHub PR/리뷰 + 로컬 Git 커밋 + Notion 편집 활동을 모아 Claude Agent SDK 로 한국어 요약 → Notion 일지 페이지 발행. 주간/월간 롤업도 자동.
+회사 백엔드 개발자(NestJS) 본인용 자동 작업 일지. GitHub PR/리뷰 + 로컬 Git 커밋을 모아 Claude Agent SDK 로 한국어 요약 → Notion 일지 페이지 발행. 주간/월간 롤업도 자동. (Notion 편집 활동 수집은 2026-06-03 제거 — Notion 은 출력 대상만)
 
 ## 살아있는 plan
 
