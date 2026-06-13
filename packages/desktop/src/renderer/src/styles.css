@@ -278,23 +278,23 @@ button {
   color: #1d7a43;
 }
 
-/* Frosted 표면(.glass-panel). packaged Electron 에선 CSS backdrop-filter blur 가
-   합성되지 않으므로(Electron 34/42·blur 값 무관, 실측 확인) blur 에 기대지 않는다.
-   sheen gradient + 상/하 엣지 + 그림자로 '유리 면'을 만들고, 배경은 읽힐 만큼 단단하게.
-   blur 는 지원되는 환경(브라우저/dev)에서만 보너스로 얹힘. */
+/* Frosted 표면(.glass-panel) — 처음 구현의 투명감(≈55% 표면)으로. 뒤 콘텐츠가 실제로
+   비쳐야 유리로 읽힌다. blur 는 dev/지원 환경에서 frosted 로 얹히고, packaged 처럼
+   backdrop-filter 가 합성되지 않는 환경(실측)에선 sharp 한 반투명 유리로 보인다 —
+   dialog-overlay 가 뒤를 어둡게 깔아줘 가독성 유지. */
 [data-glass='on'] .glass-panel {
   background: linear-gradient(
     155deg,
-    color-mix(in srgb, var(--color-surface-1) 84%, transparent),
-    color-mix(in srgb, var(--color-surface-1) 93%, transparent)
+    color-mix(in srgb, var(--color-surface-1) 52%, transparent),
+    color-mix(in srgb, var(--color-surface-1) 62%, transparent)
   );
-  backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
-  border-color: color-mix(in srgb, var(--color-ink) 18%, transparent);
+  backdrop-filter: blur(30px) saturate(1.8);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  border-color: color-mix(in srgb, var(--color-ink) 16%, transparent);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #ffffff 12%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #000000 14%, transparent),
-    0 12px 40px color-mix(in srgb, #000000 32%, transparent);
+    inset 0 -1px 0 color-mix(in srgb, #000000 12%, transparent),
+    0 12px 40px color-mix(in srgb, #000000 30%, transparent);
 }
 /* 글래스일 때 다이얼로그 오버레이를 밝혀 뒤 콘텐츠가 frosted 로 비치게 */
 [data-glass='on'] .dialog-overlay {
