@@ -1,5 +1,6 @@
 import { content, type Lang } from '../lib/content';
 import { BrandMark } from './brand-mark';
+import { LangSwitcher } from './lang-switcher';
 import { REPO, REPO_URL } from '../lib/github';
 
 function formatStars(n: number): string {
@@ -28,20 +29,7 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
           </a>
         </nav>
         <div className="flex items-center gap-2.5">
-        <div className="flex items-center gap-0.5 rounded-lg border border-hairline-strong bg-surface-1 p-0.5 text-[12px]">
-          <a
-            href="/"
-            className={`rounded-md px-2 py-1 transition-colors ${lang === 'en' ? 'bg-surface-3 font-medium text-ink' : 'text-ink-subtle hover:text-ink'}`}
-          >
-            EN
-          </a>
-          <a
-            href="/ko"
-            className={`rounded-md px-2 py-1 transition-colors ${lang === 'ko' ? 'bg-surface-3 font-medium text-ink' : 'text-ink-subtle hover:text-ink'}`}
-          >
-            한국어
-          </a>
-        </div>
+        <LangSwitcher lang={lang} />
         <a
           href={REPO_URL}
           target="_blank"
