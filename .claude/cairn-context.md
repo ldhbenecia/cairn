@@ -28,7 +28,7 @@
 | [0002](../docs/decisions/0002-portable-deploy.md) | 머신별 시크릿 분리, 클라우드 X |
 | [0003](../docs/decisions/0003-no-code-body-egress.md) | 코드 본문·diff 외부 송신 금지 |
 | [0004](../docs/decisions/0004-nestjs-conventions.md) | NestJS 공식 컨벤션 준수 |
-| [0005](../docs/decisions/0005-versioning-policy.md) | SemVer + PR 단위 bump |
+| [0020](../docs/decisions/0020-version-bump-criteria.md) | 버전 기준 — patch 기본, 기능 묶음당 minor 1회 (0005 supersede) |
 | [0006](../docs/decisions/0006-github-flow-not-git-flow.md) | GitHub Flow (main 단일 트렁크) |
 | [0007](../docs/decisions/0007-merge-commit-strategy.md) | merge commit 정책 |
 
