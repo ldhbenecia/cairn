@@ -14,10 +14,16 @@ import type {
   RunLine,
   RunStep,
 } from './cairn-api';
+import { Dashboard } from './components/dashboard';
 import { Onboarding } from './components/onboarding';
 import { PreferencesDialog } from './components/preferences-dialog';
 import { WorklogDrawer } from './components/worklog-drawer';
-import { Sidebar, type FilterCounts, type WorklogFilter } from './components/sidebar';
+import {
+  Sidebar,
+  type FilterCounts,
+  type MainView,
+  type WorklogFilter,
+} from './components/sidebar';
 import { WorklogList } from './components/worklog-list';
 
 export type RunSession = {
@@ -40,6 +46,7 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
 
 export function App() {
   const [filter, setFilter] = useState<WorklogFilter>('all');
+  const [view, setView] = useState<MainView>('worklogs');
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
   const [selectedPage, setSelectedPage] = useState<RecentPage | null>(null);
@@ -118,6 +125,7 @@ export function App() {
 
   useEffect(() => {
     const off = window.cairn.onFocusMode((focused) => {
+      setView('worklogs');
       setFilter(focused);
     });
     return off;
@@ -199,12 +207,18 @@ export function App() {
     <div className="flex h-screen w-screen bg-canvas text-ink">
       <Sidebar
         width={sidebarWidth}
+        view={view}
         filter={filter}
         counts={counts}
         preferencesActive={prefsOpen}
         onFilterChange={(f) => {
           setPrefsOpen(false);
+          setView('worklogs');
           setFilter(f);
+        }}
+        onOpenStats={() => {
+          setPrefsOpen(false);
+          setView('stats');
         }}
         onOpenPreferences={() => setPrefsOpen(true)}
       />
@@ -212,15 +226,19 @@ export function App() {
         onMouseDown={startResize}
         className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/40 [-webkit-app-region:no-drag]"
       />
-      <WorklogList
-        recent={recent}
-        filter={filter}
-        sessions={sessions}
-        runningMode={runningMode}
-        onTrigger={trigger}
-        onReload={loadRecent}
-        onOpen={setSelectedPage}
-      />
+      {view === 'stats' ? (
+        <Dashboard recent={recent} />
+      ) : (
+        <WorklogList
+          recent={recent}
+          filter={filter}
+          sessions={sessions}
+          runningMode={runningMode}
+          onTrigger={trigger}
+          onReload={loadRecent}
+          onOpen={setSelectedPage}
+        />
+      )}
       {selectedPage && <WorklogDrawer page={selectedPage} onClose={() => setSelectedPage(null)} />}
       <PreferencesDialog
         open={prefsOpen}

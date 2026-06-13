@@ -2,6 +2,7 @@ import {
   CalendarClock,
   CalendarDays,
   CalendarRange,
+  ChartColumn,
   LayoutList,
   Settings2,
   type LucideIcon,
@@ -12,6 +13,7 @@ import { useSettings } from '../settings-context';
 import { BrandMark } from './brand-mark';
 
 export type WorklogFilter = 'all' | 'daily' | 'weekly' | 'monthly';
+export type MainView = 'worklogs' | 'stats';
 
 export type FilterCounts = Record<WorklogFilter, number>;
 
@@ -24,22 +26,27 @@ const FILTERS: { key: WorklogFilter; labelKey: I18nKey; icon: LucideIcon }[] = [
 
 type Props = {
   width: number;
+  view: MainView;
   filter: WorklogFilter;
   counts: FilterCounts;
   preferencesActive: boolean;
   onFilterChange: (f: WorklogFilter) => void;
+  onOpenStats: () => void;
   onOpenPreferences: () => void;
 };
 
 export function Sidebar({
   width,
+  view,
   filter,
   counts,
   preferencesActive,
   onFilterChange,
+  onOpenStats,
   onOpenPreferences,
 }: Props) {
   const { t } = useSettings();
+  const worklogActive = !preferencesActive && view === 'worklogs';
   return (
     <nav style={{ width }} className="flex shrink-0 flex-col border-r border-hairline bg-surface-1">
       <div className="h-20 [-webkit-app-region:drag]" />
@@ -60,10 +67,20 @@ export function Sidebar({
             icon={f.icon}
             label={t(f.labelKey)}
             count={counts[f.key]}
-            active={!preferencesActive && filter === f.key}
+            active={worklogActive && filter === f.key}
             onClick={() => onFilterChange(f.key)}
           />
         ))}
+
+        <div className="px-2 pb-1.5 pt-5 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
+          {t('nav.insights')}
+        </div>
+        <FilterItem
+          icon={ChartColumn}
+          label={t('nav.stats')}
+          active={!preferencesActive && view === 'stats'}
+          onClick={onOpenStats}
+        />
       </div>
 
       <div className="px-4 pb-4">
