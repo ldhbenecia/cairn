@@ -11,8 +11,12 @@ type CairnOctokit = InstanceType<typeof CairnOctokit>;
 const GITHUB_REQUEST_TIMEOUT_MS = 20_000;
 const MAX_RATE_LIMIT_RETRY_AFTER_SECONDS = 30;
 
-export interface GithubIdentity {
-  login: string;
+interface RawPrCommit {
+  shortSha: string;
+  subject: string;
+  authoredAt: string;
+  authorLogin: string | null;
+  isMerge: boolean;
 }
 
 export interface SearchPrItem {
@@ -33,15 +37,25 @@ export interface SearchPrItem {
 @Injectable()
 export class GithubApiClient {
   private readonly octokits = new Map<string, CairnOctokit>();
+  // 프로세스 수명 캐시 — 백필이 같은 run 안에서 날짜마다 동일 조회를 반복하는 것을 막는다.
+  // 실패한 Promise 는 캐시에서 제거해 다음 호출이 재시도하게 한다.
+  private readonly loginCache = new Map<string, Promise<string>>();
+  private readonly prCommitsCache = new Map<string, Promise<RawPrCommit[]>>();
 
   constructor(
     @InjectPinoLogger(GithubApiClient.name)
     private readonly logger: PinoLogger,
   ) {}
 
-  async healthCheck(token: string): Promise<GithubIdentity> {
-    const { data } = await this.getOctokit(token).rest.users.getAuthenticated();
-    return { login: data.login };
+  async getAuthenticatedLogin(token: string): Promise<string> {
+    const cached = this.loginCache.get(token);
+    if (cached) return cached;
+    const promise = this.getOctokit(token)
+      .rest.users.getAuthenticated()
+      .then(({ data }) => data.login);
+    this.loginCache.set(token, promise);
+    promise.catch(() => this.loginCache.delete(token));
+    return promise;
   }
 
   async searchPrs(token: string, query: string): Promise<SearchPrItem[]> {
@@ -77,8 +91,41 @@ export class GithubApiClient {
     untilIso: string,
     authorLogin?: string,
   ): Promise<Array<{ shortSha: string; subject: string; authoredAt: string }>> {
+    const all = await this.listPrCommitsCached(token, owner, repo, pullNumber);
+    return all
+      .filter(
+        (c) =>
+          !c.isMerge &&
+          c.authoredAt >= sinceIso &&
+          c.authoredAt <= untilIso &&
+          (!authorLogin || !c.authorLogin || c.authorLogin === authorLogin),
+      )
+      .map(({ shortSha, subject, authoredAt }) => ({ shortSha, subject, authoredAt }));
+  }
+
+  private listPrCommitsCached(
+    token: string,
+    owner: string,
+    repo: string,
+    pullNumber: number,
+  ): Promise<RawPrCommit[]> {
+    const key = `${token}:${owner}/${repo}#${pullNumber}`;
+    const cached = this.prCommitsCache.get(key);
+    if (cached) return cached;
+    const promise = this.fetchAllPrCommits(token, owner, repo, pullNumber);
+    this.prCommitsCache.set(key, promise);
+    promise.catch(() => this.prCommitsCache.delete(key));
+    return promise;
+  }
+
+  private async fetchAllPrCommits(
+    token: string,
+    owner: string,
+    repo: string,
+    pullNumber: number,
+  ): Promise<RawPrCommit[]> {
     const octokit = this.getOctokit(token);
-    const out: Array<{ shortSha: string; subject: string; authoredAt: string }> = [];
+    const out: RawPrCommit[] = [];
     let page = 1;
     const perPage = 100;
     // GitHub 가 commit 순서를 author date 로 보장 X — 모두 가져온 뒤 client-side 필터
@@ -91,18 +138,15 @@ export class GithubApiClient {
         page,
       });
       for (const c of data) {
-        const author = c.commit.author;
-        const authorDate = author?.date;
+        const authorDate = c.commit.author?.date;
         if (!authorDate) continue;
-        if (authorDate < sinceIso || authorDate > untilIso) continue;
-        if (c.parents.length > 1) continue;
-        if (authorLogin && c.author?.login && c.author.login !== authorLogin) continue;
         const subjectFull = c.commit.message ?? '';
-        const subject = subjectFull.split('\n')[0]?.trim() ?? '';
         out.push({
           shortSha: c.sha.slice(0, 7),
-          subject,
+          subject: subjectFull.split('\n')[0]?.trim() ?? '',
           authoredAt: authorDate,
+          authorLogin: c.author?.login ?? null,
+          isMerge: c.parents.length > 1,
         });
       }
       if (data.length < perPage) break;
