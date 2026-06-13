@@ -13,7 +13,8 @@ const STRINGS = {
     'nav.preferences': 'Preferences',
 
     'stats.title': '통계',
-    'stats.subtitle': '발행된 일지에서 집계한 내 작업 추이 — 연봉협상·회고 자료',
+    'stats.subtitle': '발행된 일지에서 집계한 내 작업 추이',
+    'stats.countSuffix': '개',
     'stats.empty': '아직 집계할 일지가 없어요. 며칠 발행하면 추이가 보입니다.',
     'stats.totalPr': 'PR',
     'stats.totalCommit': '커밋',
@@ -227,8 +228,8 @@ const STRINGS = {
     'nav.preferences': 'Preferences',
 
     'stats.title': 'Stats',
-    'stats.subtitle':
-      'Your work trends from published worklogs — material for reviews and salary talks',
+    'stats.subtitle': 'Your work trends from published worklogs',
+    'stats.countSuffix': '',
     'stats.empty': 'No worklogs to chart yet. Publish a few days to see trends.',
     'stats.totalPr': 'PRs',
     'stats.totalCommit': 'Commits',
