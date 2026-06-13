@@ -294,6 +294,12 @@ function buildSummaryBlocks(
   blocks.push(heading2('Summary'));
   blocks.push(paragraph(summary.paragraphKo));
 
+  // 보고/스탠드업에 바로 복붙하는 한 줄 bullet 모음 (없으면 생략)
+  if (summary.shareBullets.length > 0) {
+    blocks.push(heading2('Share'));
+    blocks.push(...bulletsOrEmpty(summary.shareBullets));
+  }
+
   blocks.push(heading2('Done'));
   blocks.push(...bulletsOrEmpty(summary.doneBullets));
 
