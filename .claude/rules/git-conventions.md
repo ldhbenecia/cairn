@@ -11,7 +11,7 @@
 
 - 형식: `type(scope): subject`
 - type: `feat` | `fix` | `refactor` | `perf` | `docs` | `test` | `chore` | `build` | `ci` | `style` | `revert`
-- scope 예: `github`, `local-git`, `notion`, `summarizer`, `rollup`, `state`, `ops`, `config`, `repo`, `release`
+- scope 예: `github`, `local-git`, `notion`(발행/출력만 — 수집 소스는 2026-06-03 제거), `summarizer`, `rollup`, `state`, `ops`, `config`, `repo`, `release`, `desktop`, `core`
 - **subject 톤**: 한국어 명사구 우선. 영어 명령형 동사(`add`, `update`) 가능하면 피함
   - 좋음: `feat(github): GithubCollectorService — 4 search queries + dedup`
   - 피함: `feat(github): add github collector`

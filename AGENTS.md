@@ -88,8 +88,8 @@ Package instructions:
 Project context:
 
 - cairn is a local macOS worklog tool for one backend developer.
-- It collects GitHub PR/review activity, local Git commits, and Notion edit
-  activity, then publishes Korean daily/weekly/monthly summaries to Notion.
+- It collects GitHub PR/review activity and local Git commits, then publishes
+  Korean daily/weekly/monthly summaries to Notion.
 - Runtime baseline: Node 24 LTS and pnpm 10+.
 - The core CLI must not send source code bodies, diffs, patches, hunks, absolute
   paths, tokens, emails, or other sensitive identifiers to external APIs.
