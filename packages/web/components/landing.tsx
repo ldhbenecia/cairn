@@ -1,6 +1,7 @@
 import { content, type Lang } from '../lib/content';
 import { getRepoStats, REPO_URL, RELEASES_LATEST } from '../lib/github';
 import { BrandMark } from './brand-mark';
+import { LangSwitcher } from './lang-switcher';
 import { Nav } from './nav';
 import { Reveal } from './reveal';
 import { Screenshot } from './screenshot';
@@ -214,7 +215,7 @@ export async function Landing({ lang }: { lang: Lang }) {
             <BrandMark size={16} className="text-accent" />
             cairn
           </a>
-          <div className="flex gap-6 text-[14px] text-ink-subtle">
+          <div className="flex items-center gap-6 text-[14px] text-ink-subtle">
             <a href={REPO_URL} target="_blank" rel="noreferrer" className="hover:text-ink">
               GitHub
             </a>
@@ -234,6 +235,7 @@ export async function Landing({ lang }: { lang: Lang }) {
             >
               AGPL-3.0
             </a>
+            <LangSwitcher lang={lang} />
           </div>
         </div>
       </footer>
