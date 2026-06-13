@@ -336,3 +336,18 @@ button {
 .hint-fade {
   animation: hint-fade 320ms ease-out;
 }
+
+/* 통계 대시보드 진입 — 블록별 stagger 페이드업 (style 의 animation-delay 로 순차) */
+@keyframes dash-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.dash-rise {
+  animation: dash-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

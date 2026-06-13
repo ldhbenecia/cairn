@@ -1,5 +1,5 @@
 import { CalendarCheck, Flame, GitCommitHorizontal, GitPullRequest } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { RecentListResult, RecentPage } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
@@ -131,7 +131,10 @@ export function Dashboard({ recent }: { recent: RecentListResult | null }) {
             </p>
           ) : (
             <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div
+                className="dash-rise grid grid-cols-2 gap-3 sm:grid-cols-4"
+                style={{ animationDelay: '0ms' }}
+              >
                 <StatCard
                   icon={<GitPullRequest size={15} strokeWidth={2} />}
                   label={t('stats.totalPr')}
@@ -155,16 +158,26 @@ export function Dashboard({ recent }: { recent: RecentListResult | null }) {
                 />
               </div>
 
-              <Heatmap byDate={data.byDate} t={t} />
+              <div className="dash-rise" style={{ animationDelay: '80ms' }}>
+                <Heatmap byDate={data.byDate} t={t} />
+              </div>
 
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div
+                className="dash-rise grid grid-cols-1 gap-6 lg:grid-cols-3"
+                style={{ animationDelay: '160ms' }}
+              >
                 <div className="lg:col-span-2">
                   <MonthlyChart months={recentMonths} t={t} />
                 </div>
                 <WeekdayChart weekday={data.weekday} t={t} />
               </div>
 
-              <p className="text-[11px] text-ink-tertiary">{t('stats.note')}</p>
+              <p
+                className="dash-rise text-[11px] text-ink-tertiary"
+                style={{ animationDelay: '220ms' }}
+              >
+                {t('stats.note')}
+              </p>
             </div>
           )}
         </div>
@@ -242,8 +255,11 @@ function Heatmap({ byDate, t }: { byDate: Map<string, DayActivity>; t: T }) {
     'var(--color-accent)',
   ];
 
+  // 마우스 올린 셀의 날짜·활동량을 셀 위에 떠 있는 커스텀 툴팁으로
+  const [tip, setTip] = useState<{ label: string; x: number; y: number } | null>(null);
+
   return (
-    <div className="rounded-lg border border-hairline bg-surface-1 p-4">
+    <div className="relative rounded-lg border border-hairline bg-surface-1 p-4">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-[13px] font-medium text-ink-muted">{t('stats.heatmap')}</span>
         <span className="flex items-center gap-1 text-[11px] text-ink-tertiary">
@@ -254,20 +270,40 @@ function Heatmap({ byDate, t }: { byDate: Map<string, DayActivity>; t: T }) {
           {t('stats.more')}
         </span>
       </div>
-      <div className="flex gap-[3px] overflow-x-auto">
+      <div className="flex gap-1">
         {weeks.cols.map((col, ci) => (
-          <div key={ci} className="flex flex-col gap-[3px]">
+          <div key={ci} className="flex flex-1 flex-col gap-1">
             {col.map((cell) => (
               <span
                 key={cell.date}
-                className="size-2.5 rounded-sm"
-                style={{ background: cell.future ? 'transparent' : LEVEL_BG[level(cell.total)] }}
-                title={cell.future ? '' : `${cell.date} · ${cell.total}`}
+                className="aspect-square w-full rounded-[3px] transition-transform hover:scale-110"
+                style={{
+                  background: cell.future ? 'transparent' : LEVEL_BG[level(cell.total)],
+                  maxWidth: 18,
+                }}
+                onMouseEnter={(e) => {
+                  if (cell.future) return;
+                  const r = e.currentTarget.getBoundingClientRect();
+                  setTip({
+                    label: `${cell.date} · ${cell.total}${t('stats.countSuffix')}`,
+                    x: r.left + r.width / 2,
+                    y: r.top,
+                  });
+                }}
+                onMouseLeave={() => setTip(null)}
               />
             ))}
           </div>
         ))}
       </div>
+      {tip && (
+        <div
+          className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-md border border-hairline bg-surface-3 px-2 py-1 text-[11px] font-medium whitespace-nowrap text-ink shadow-lg shadow-black/40"
+          style={{ left: tip.x, top: tip.y - 7 }}
+        >
+          {tip.label}
+        </div>
+      )}
     </div>
   );
 }
