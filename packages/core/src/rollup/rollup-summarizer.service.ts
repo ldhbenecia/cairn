@@ -2,6 +2,7 @@ import { query } from '@anthropic-ai/claude-agent-sdk';
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { claudeExecutableOptions } from '../common/claude-executable.js';
+import { customPromptFor, withCustomPrompt } from '../common/custom-prompt.js';
 import { CairnError } from '../common/error.js';
 import { isOperator } from '../common/operator.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
@@ -61,7 +62,7 @@ export class RollupSummarizerService {
       const q = query({
         prompt: userPrompt,
         options: {
-          systemPrompt: systemPrompt(lang, a.period),
+          systemPrompt: withCustomPrompt(systemPrompt(lang, a.period), customPromptFor(a.period)),
           mcpServers: {
             [MCP_SERVER_NAME]: server,
           },

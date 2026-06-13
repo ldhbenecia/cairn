@@ -2,6 +2,7 @@ import { query } from '@anthropic-ai/claude-agent-sdk';
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { claudeExecutableOptions } from '../common/claude-executable.js';
+import { customPromptFor, withCustomPrompt } from '../common/custom-prompt.js';
 import { CairnError } from '../common/error.js';
 import { isOperator } from '../common/operator.js';
 import type { WorklogSummary, WorklogSummaryUsage } from '../contracts/worklog-summary.types.js';
@@ -55,7 +56,7 @@ export class DailySummarizerService {
       const q = query({
         prompt: userPrompt,
         options: {
-          systemPrompt: systemPrompt(lang),
+          systemPrompt: withCustomPrompt(systemPrompt(lang), customPromptFor('daily')),
           mcpServers: {
             [MCP_SERVER_NAME]: server,
           },
