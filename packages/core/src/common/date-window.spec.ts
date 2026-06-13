@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { localDateToUtcWindow, searchRangeFragment, todayLocalIsoDate } from './date-window.js';
+import {
+  localDateStartIsoBefore,
+  localDateToUtcWindow,
+  searchRangeFragment,
+  todayLocalIsoDate,
+} from './date-window.js';
 
 describe('localDateToUtcWindow', () => {
   it('spans the local calendar day (00:00:00 ~ 23:59:59 local)', () => {
@@ -29,6 +34,27 @@ describe('todayLocalIsoDate', () => {
     const now = new Date();
     const expected = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     expect(todayLocalIsoDate()).toBe(expected);
+  });
+});
+
+describe('localDateStartIsoBefore', () => {
+  it('matches the local midnight of (date - days)', () => {
+    const iso = localDateStartIsoBefore('2026-06-13', 14);
+    expect(iso).toBe(localDateToUtcWindow('2026-05-30').startIso);
+  });
+
+  it('days=0 equals the local midnight of the date itself', () => {
+    const iso = localDateStartIsoBefore('2026-06-13', 0);
+    expect(iso).toBe(localDateToUtcWindow('2026-06-13').startIso);
+  });
+
+  it('rolls over month/year boundaries in local time', () => {
+    const iso = localDateStartIsoBefore('2026-01-05', 10);
+    expect(iso).toBe(localDateToUtcWindow('2025-12-26').startIso);
+  });
+
+  it('throws on malformed date', () => {
+    expect(() => localDateStartIsoBefore('2026-06', 7)).toThrow();
   });
 });
 
