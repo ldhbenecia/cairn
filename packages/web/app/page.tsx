@@ -1,5 +1,6 @@
 import { BrandMark } from '../components/brand-mark';
 import { Nav } from '../components/nav';
+import { Reveal } from '../components/reveal';
 import { Screenshot } from '../components/screenshot';
 import { getRepoStats, REPO_URL, RELEASES_LATEST } from '../lib/github';
 
@@ -110,25 +111,24 @@ export default async function Home() {
               t: 'Publish',
               d: 'A dated worklog lands in Notion with a copy-paste-ready Share section. Weekly and monthly rollups are generated automatically.',
             },
-          ].map((s) => (
-            <div
-              key={s.n}
-              className="card-hover rounded-2xl border border-hairline bg-surface-1 p-7"
-            >
-              <span className="flex size-9 items-center justify-center rounded-xl bg-accent/15 font-mono text-[15px] font-semibold text-accent-hover">
-                {s.n}
-              </span>
-              <h3 className="mt-5 text-[19px] font-semibold">{s.t}</h3>
-              <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink-subtle">{s.d}</p>
-            </div>
+          ].map((s, i) => (
+            <Reveal key={s.n} delay={i * 0.08}>
+              <div className="card-hover h-full rounded-2xl border border-hairline bg-surface-1 p-7">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-accent/15 font-mono text-[15px] font-semibold text-accent-hover">
+                  {s.n}
+                </span>
+                <h3 className="mt-5 text-[19px] font-semibold">{s.t}</h3>
+                <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink-subtle">{s.d}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
       {/* WORKLOG OUTPUT */}
-      <section id="dashboard" className="border-y border-hairline bg-surface-1/40">
+      <section id="output" className="border-y border-hairline bg-surface-1/40">
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 lg:grid-cols-2">
-          <div>
+          <Reveal>
             <p className="mb-3 text-[13px] font-medium tracking-wide text-accent-hover uppercase">
               The output
             </p>
@@ -153,8 +153,13 @@ export default async function Home() {
                 </li>
               ))}
             </ul>
-          </div>
-          <Screenshot src="/worklog.png" alt="a published cairn worklog in Notion — Summary, Share, Done" />
+          </Reveal>
+          <Reveal delay={0.1}>
+            <Screenshot
+              src="/worklog.png"
+              alt="a published cairn worklog in Notion — Summary, Share, Done"
+            />
+          </Reveal>
         </div>
       </section>
 
@@ -166,40 +171,46 @@ export default async function Home() {
           lead="cairn keeps everything on your machine — you connect your own tokens during onboarding."
         />
         <div className="mt-14 grid gap-4 md:grid-cols-3">
-          <SetupCard tag="Notion" title="Where worklogs publish">
-            <li>
-              Create an integration at{' '}
-              <SetupLink href="https://www.notion.so/my-integrations">
-                notion.so/my-integrations
-              </SetupLink>{' '}
-              and copy the token (<code className="text-ink-muted">ntn_…</code>).
-            </li>
-            <li>Share the parent page you want worklogs under with that integration.</li>
-            <li>Paste the token — cairn finds the page and auto-creates the DB.</li>
-          </SetupCard>
-          <SetupCard tag="GitHub" title="Where activity is collected">
-            <li>
-              The{' '}
-              <SetupLink href="https://github.com/settings/tokens/new?scopes=repo,read:user&description=cairn%20worklog">
-                classic-token link
-              </SetupLink>{' '}
-              prefills the recommended scopes.
-            </li>
-            <li>
-              Or a fine-grained PAT with <em>Pull requests · Contents · Metadata = Read</em>.
-            </li>
-            <li>Paste it in onboarding — it verifies automatically.</li>
-          </SetupCard>
-          <SetupCard tag="Claude" title="The summarizer">
-            <li>
-              Install{' '}
-              <SetupLink href="https://docs.claude.com/en/docs/claude-code/setup">
-                Claude Code
-              </SetupLink>{' '}
-              and log in — cairn inherits that auth, no extra cost.
-            </li>
-            <li>Or paste an Anthropic API key. Either works.</li>
-          </SetupCard>
+          <Reveal delay={0}>
+            <SetupCard tag="Notion" title="Where worklogs publish">
+              <li>
+                Create an integration at{' '}
+                <SetupLink href="https://www.notion.so/my-integrations">
+                  notion.so/my-integrations
+                </SetupLink>{' '}
+                and copy the token (<code className="text-ink-muted">ntn_…</code>).
+              </li>
+              <li>Share the parent page you want worklogs under with that integration.</li>
+              <li>Paste the token — cairn finds the page and auto-creates the DB.</li>
+            </SetupCard>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <SetupCard tag="GitHub" title="Where activity is collected">
+              <li>
+                The{' '}
+                <SetupLink href="https://github.com/settings/tokens/new?scopes=repo,read:user&description=cairn%20worklog">
+                  classic-token link
+                </SetupLink>{' '}
+                prefills the recommended scopes.
+              </li>
+              <li>
+                Or a fine-grained PAT with <em>Pull requests · Contents · Metadata = Read</em>.
+              </li>
+              <li>Paste it in onboarding — it verifies automatically.</li>
+            </SetupCard>
+          </Reveal>
+          <Reveal delay={0.16}>
+            <SetupCard tag="Claude" title="The summarizer">
+              <li>
+                Install{' '}
+                <SetupLink href="https://docs.claude.com/en/docs/claude-code/setup">
+                  Claude Code
+                </SetupLink>{' '}
+                and log in — cairn inherits that auth, no extra cost.
+              </li>
+              <li>Or paste an Anthropic API key. Either works.</li>
+            </SetupCard>
+          </Reveal>
         </div>
         <div className="mt-7 rounded-2xl border border-[#fbbf24]/25 bg-[#fbbf24]/[0.07] px-6 py-5 text-[14px] leading-relaxed text-[#e8c87a]">
           <strong className="text-[#fbbf24]">macOS note:</strong> the app isn&apos;t code-signed
@@ -288,7 +299,7 @@ function SetupCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="card-hover rounded-2xl border border-hairline bg-surface-1 p-6">
+    <div className="card-hover h-full rounded-2xl border border-hairline bg-surface-1 p-6">
       <h3 className="mb-4 flex items-center gap-2.5 text-[16px] font-semibold">
         <span className="rounded-md bg-accent/15 px-2 py-0.5 font-mono text-[11px] tracking-wide text-accent-hover uppercase">
           {tag}

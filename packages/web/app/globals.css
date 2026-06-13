@@ -129,3 +129,11 @@ body::before {
   pointer-events: none;
   box-shadow: 0 0 0 1px color-mix(in srgb, #ffffff 7%, transparent) inset;
 }
+
+/* 캡처의 윈도우 바깥 검정 여백을 살짝 확대해 프레임 밖으로 크롭 — 윈도우가 프레임을 꽉 채우게 */
+.screenshot-frame > img {
+  display: block;
+  width: 100%;
+  transform: scale(1.035);
+  transform-origin: center;
+}

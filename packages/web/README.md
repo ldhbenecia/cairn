@@ -1,30 +1,30 @@
 # @cairn/web
 
-cairn 홍보 랜딩 사이트. **데스크톱 앱과 독립** — 자체 버전/태그/릴리스를 따르지 않고, Vercel 이 `main` 푸시 시 자동 배포한다.
+The cairn marketing landing site. **Independent of the desktop app** — it has no version/tag/release of its own and is deployed by Vercel on every `main` push.
 
-## 스택
+## Stack
 
 - Next.js (App Router) + React + Tailwind v4
-- GitHub 스타 수·최신 릴리스는 서버 컴포넌트에서 1시간 ISR 로 가져옴 (`lib/github.ts`)
+- GitHub star count and the latest release are fetched in a server component with 1-hour ISR (`lib/github.ts`)
 
-## 로컬
+## Local
 
 ```bash
 pnpm --filter @cairn/web dev     # http://localhost:3000
-pnpm --filter @cairn/web build   # 프로덕션 빌드
+pnpm --filter @cairn/web build   # production build
 ```
 
-## Vercel 배포 (최초 1회 설정)
+## Deploy on Vercel (one-time setup)
 
-1. [vercel.com](https://vercel.com) → **Add New → Project** → cairn 레포 import
-2. **Root Directory** 를 `packages/web` 로 지정 (Framework: Next.js 자동 감지)
-3. Install Command 는 모노레포 루트에서 자동 (`pnpm install`), Build 는 `next build`
-4. Deploy. 이후 `main` 에 web 변경이 푸시되면 자동 재배포
+1. [vercel.com](https://vercel.com) → **Add New → Project** → import the cairn repo
+2. Set **Root Directory** to `packages/web` (Framework: Next.js is auto-detected)
+3. Install runs from the monorepo root (`pnpm install`); build is `next build`
+4. Deploy. Subsequent pushes to `main` that touch the site redeploy automatically.
 
-> 토큰·시크릿 불필요(공개 GitHub API 만 사용). 커스텀 도메인은 Vercel 대시보드에서.
+> No tokens/secrets needed (public GitHub API only). Add a custom domain in the Vercel dashboard.
 
-## 앱과의 분리
+## Separation from the app
 
-- root `eslint.config.mjs` 에서 `packages/web/**` 제외 (Next 자체 lint 사용)
-- web 은 `package.json` 에 `typecheck` 스크립트가 없어 root `pnpm -r typecheck` 에서 자동 제외
-- 버전 bump·git 태그·릴리스 워크플로 대상 아님
+- Excluded from the root `eslint.config.mjs` (uses Next's own lint)
+- Has no `typecheck` script, so it's skipped by the root `pnpm -r typecheck`
+- Not subject to version bumps, git tags, or the release workflow
