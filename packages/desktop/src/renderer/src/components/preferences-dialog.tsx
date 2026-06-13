@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Monitor,
   Send,
+  SquarePen,
   Star,
   X,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ type TabId =
   | 'appearance'
   | 'notifications'
   | 'autopublish'
+  | 'prompts'
   | 'connections'
   | 'billing'
   | 'feedback'
@@ -38,6 +40,7 @@ const TABS: { id: TabId; icon: LucideIcon; labelKey: I18nKey }[] = [
   { id: 'appearance', icon: Monitor, labelKey: 'prefs.appearance' },
   { id: 'notifications', icon: Bell, labelKey: 'prefs.notifications' },
   { id: 'autopublish', icon: CalendarClock, labelKey: 'prefs.autoPublish' },
+  { id: 'prompts', icon: SquarePen, labelKey: 'prefs.prompts' },
   { id: 'connections', icon: Link2, labelKey: 'prefs.connections' },
   { id: 'billing', icon: CreditCard, labelKey: 'prefs.billing' },
   { id: 'feedback', icon: MessageSquare, labelKey: 'prefs.feedback' },
@@ -99,6 +102,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
                 {tab === 'appearance' && <AppearanceTab />}
                 {tab === 'notifications' && <NotificationsTab />}
                 {tab === 'autopublish' && <AutoPublishTab />}
+                {tab === 'prompts' && <PromptsTab />}
                 {tab === 'connections' && (
                   <ConnectionsTab
                     onRerun={() => {
@@ -278,6 +282,67 @@ function AutoPublishTab() {
       <p className="pt-5 text-[12px] leading-relaxed text-ink-tertiary">
         {t('prefs.autoPublish.credit')}
       </p>
+    </div>
+  );
+}
+
+const PROMPT_MAX_CHARS = 4000;
+const PROMPT_MODES = ['daily', 'weekly', 'monthly'] as const;
+
+function PromptsTab() {
+  const { settings, update, t } = useSettings();
+  const labelKey: Record<(typeof PROMPT_MODES)[number], { label: I18nKey; ph: I18nKey }> = {
+    daily: { label: 'prefs.prompts.daily', ph: 'prefs.prompts.daily.ph' },
+    weekly: { label: 'prefs.prompts.weekly', ph: 'prefs.prompts.weekly.ph' },
+    monthly: { label: 'prefs.prompts.monthly', ph: 'prefs.prompts.monthly.ph' },
+  };
+
+  return (
+    <div className="flex flex-col gap-5">
+      <p className="text-[12px] leading-relaxed text-ink-tertiary">{t('prefs.prompts.desc')}</p>
+      {PROMPT_MODES.map((mode) => (
+        <PromptField
+          key={mode}
+          label={t(labelKey[mode].label)}
+          placeholder={t(labelKey[mode].ph)}
+          value={settings.prompts[mode]}
+          onSave={(v) => update({ prompts: { ...settings.prompts, [mode]: v } })}
+        />
+      ))}
+    </div>
+  );
+}
+
+// 저장은 blur 시점 — 키 입력마다 settings.json 을 다시 쓰지 않기 위해
+function PromptField({
+  label,
+  placeholder,
+  value,
+  onSave,
+}: {
+  label: string;
+  placeholder: string;
+  value: string | null;
+  onSave: (v: string | null) => void;
+}) {
+  const [draft, setDraft] = useState(value ?? '');
+
+  useEffect(() => {
+    setDraft(value ?? '');
+  }, [value]);
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className="text-[13px] font-medium text-ink">{label}</p>
+      <textarea
+        value={draft}
+        maxLength={PROMPT_MAX_CHARS}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => onSave(draft.trim().length > 0 ? draft : null)}
+        placeholder={placeholder}
+        rows={4}
+        className="w-full resize-none rounded-md border border-hairline bg-surface-2 px-3 py-2 text-[13px] leading-relaxed text-ink placeholder:text-ink-tertiary focus:border-accent/50 focus:outline-none"
+      />
     </div>
   );
 }
