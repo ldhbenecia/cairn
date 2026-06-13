@@ -170,7 +170,6 @@ function collectHintKey(lines: RunSession['lines']): I18nKey {
   for (let i = lines.length - 1; i >= 0; i--) {
     const t = lines[i]?.line.toLowerCase();
     if (!t) continue;
-    if (t.includes('notion')) return 'publish.hint.collectNotion';
     if (t.includes('github')) return 'publish.hint.collectGithub';
     if (t.includes('local-git')) return 'publish.hint.collectGit';
   }
