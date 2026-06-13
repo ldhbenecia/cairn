@@ -5,6 +5,7 @@ import { claudeExecutableOptions } from '../common/claude-executable.js';
 import { customPromptFor, withCustomPrompt } from '../common/custom-prompt.js';
 import { CairnError } from '../common/error.js';
 import { isOperator } from '../common/operator.js';
+import { summaryModelOption } from '../common/summary-model.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogSummaryUsage } from '../contracts/worklog-summary.types.js';
 import type { WorklogLang } from '../cairn/run-options.js';
@@ -50,6 +51,7 @@ export class RollupSummarizerService {
             `mcp__${MCP_SERVER_NAME}__submit_rollup`,
           ],
           maxTurns: 10,
+          ...summaryModelOption(),
           ...claudeExecutableOptions(),
         },
       });

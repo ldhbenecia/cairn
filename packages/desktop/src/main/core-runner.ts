@@ -166,6 +166,9 @@ export async function runCore(
       CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
       ...claudeEnv(),
       ...promptEnv(settings.prompts),
+      ...(settings.summaryModel !== 'default'
+        ? { CAIRN_SUMMARY_MODEL: settings.summaryModel }
+        : {}),
     },
   });
   running = child;

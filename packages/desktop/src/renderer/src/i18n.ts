@@ -189,6 +189,14 @@ const STRINGS = {
     'prefs.autoPublish.confirm': '발행 전 확인',
     'prefs.autoPublish.confirmDesc': '자동 실행 대신 알림으로 먼저 물어봐요',
     'prefs.prompts': '프롬프트',
+    'prefs.prompts.model': '요약 모델',
+    'prefs.prompts.modelDesc':
+      '요약에 쓸 Claude 모델이에요. 빠른 모델일수록 발행이 빨라집니다. 추가 과금은 없어요(내 Claude 로그인 사용).',
+    'prefs.prompts.model.default': '기본',
+    'prefs.prompts.model.haikuHint': '가장 빠름',
+    'prefs.prompts.model.sonnetHint': '균형 · 권장',
+    'prefs.prompts.model.opusHint': '최고 품질',
+    'prefs.prompts.model.defaultHint': '로그인 모델',
     'prefs.prompts.desc':
       'AI 요약에 나만의 지시를 추가해요. 기본 규칙(수집한 데이터만 요약, 출력 형식)은 유지되고 톤·강조·구성을 바꿀 수 있어요. 비워두면 기본 프롬프트만 사용합니다.',
     'prefs.prompts.daily': '일간 일지',
@@ -405,6 +413,14 @@ const STRINGS = {
     'prefs.autoPublish.confirm': 'Confirm before publishing',
     'prefs.autoPublish.confirmDesc': 'Ask via notification instead of running automatically',
     'prefs.prompts': 'Prompts',
+    'prefs.prompts.model': 'Summary model',
+    'prefs.prompts.modelDesc':
+      'The Claude model used for summaries. Faster models publish quicker. No extra cost — it uses your own Claude login.',
+    'prefs.prompts.model.default': 'Default',
+    'prefs.prompts.model.haikuHint': 'Fastest',
+    'prefs.prompts.model.sonnetHint': 'Balanced · recommended',
+    'prefs.prompts.model.opusHint': 'Best quality',
+    'prefs.prompts.model.defaultHint': 'Login model',
     'prefs.prompts.desc':
       'Add your own instructions to the AI summary. Core rules (summarize only collected data, output format) stay intact — you can change tone, emphasis, and structure. Leave empty to use the default prompt.',
     'prefs.prompts.daily': 'Daily worklog',
