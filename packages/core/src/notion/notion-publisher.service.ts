@@ -297,8 +297,11 @@ function buildSummaryBlocks(
   blocks.push(heading2('Done'));
   blocks.push(...bulletsOrEmpty(summary.doneBullets));
 
-  blocks.push(heading2('Reviewed'));
-  blocks.push(...bulletsOrEmpty(summary.reviewedBullets));
+  // 리뷰 활동은 더 이상 수집하지 않음 — 비어있으면 섹션 자체를 생략
+  if (summary.reviewedBullets.length > 0) {
+    blocks.push(heading2('Reviewed'));
+    blocks.push(...bulletsOrEmpty(summary.reviewedBullets));
+  }
 
   blocks.push(heading2('In Progress'));
   blocks.push(...bulletsOrEmpty(summary.inProgressBullets));

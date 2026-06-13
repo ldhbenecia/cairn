@@ -115,15 +115,16 @@ export class GithubCollectorService {
     }
 
     const loginPromise = this.client.getAuthenticatedLogin(token);
-    const [involved, reviewed, commented] = await Promise.all([
-      this.client.searchPrs(token, `involves:@me updated:${widenedRange}`),
-      this.client.searchPrs(token, `reviewed-by:@me updated:${range}`),
-      this.client.searchPrs(token, `commenter:@me updated:${range}`),
-    ]);
+    const involved = await this.client.searchPrs(token, `involves:@me updated:${widenedRange}`);
     const myLogin = await loginPromise;
 
+    // 내 개발 작업만 수집 — authored(작성) 또는 assigned(할당) PR.
+    // 리뷰/코멘트 활동은 일지 요약 대상이 아니므로 검색·조회하지 않는다 (속도 + 노이즈 제거).
     const buckets = new Map<string, PrBucket>();
     for (const item of involved) {
+      const isAuthored = item.author === myLogin;
+      const isAssigned = item.assignees.includes(myLogin);
+      if (!isAuthored && !isAssigned) continue;
       const key = `${account.label}/${item.owner}/${item.repo}#${item.number}`;
       const bucket = buckets.get(key) ?? {
         account: account.label,
@@ -131,7 +132,8 @@ export class GithubCollectorService {
         categories: new Set<GithubActivityCategory>(),
       };
       bucket.categories.add('involved');
-      if (item.author === myLogin) {
+      if (isAssigned) bucket.categories.add('assigned');
+      if (isAuthored) {
         bucket.categories.add('authored');
         if (item.mergedAt && item.mergedAt >= sinceIso && item.mergedAt <= untilIso) {
           bucket.categories.add('authored_merged');
@@ -139,24 +141,20 @@ export class GithubCollectorService {
       }
       buckets.set(key, bucket);
     }
-    this.tag(buckets, account.label, reviewed, 'reviewed');
-    this.tag(buckets, account.label, commented, 'commented');
 
-    // Phase 1: day-relevance 판정. 이미 narrow query(review/comment)나 created/merged date로
-    // 관련성이 확정된 PR은 commits 조회를 생략하고, widened involved PR만 추가 확인한다.
+    // Phase 1: day-relevance 판정. created/merged date 로 관련성이 확정된 PR 은 commits 조회를
+    // 생략하고, 나머지는 그날 내 커밋이 있는지로 판정한다.
     // GitHub API secondary rate limit 회피를 위해 token 당 동시 호출 5 개로 제한.
     const phase1 = await withConcurrency([...buckets.values()], 5, async (bucket) => {
       const { item, categories } = bucket;
       const skipCommitsOnDate = categories.has('authored_merged') && item.createdAt < sinceIso;
       const createdInDay = item.createdAt >= sinceIso && item.createdAt <= untilIso;
-      const hasNarrow = categories.has('reviewed') || categories.has('commented');
       const hasAuthoredMerged = categories.has('authored_merged');
-      const needsCommitsForEligibility =
-        !skipCommitsOnDate && !hasNarrow && !hasAuthoredMerged && !createdInDay;
+      const needsCommitsForEligibility = !skipCommitsOnDate && !hasAuthoredMerged && !createdInDay;
       const commitsOnDate = needsCommitsForEligibility
         ? await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin)
         : [];
-      const eligible = hasNarrow || hasAuthoredMerged || createdInDay || commitsOnDate.length > 0;
+      const eligible = hasAuthoredMerged || createdInDay || commitsOnDate.length > 0;
       return { bucket, commitsOnDate, eligible, commitLookupAttempted: needsCommitsForEligibility };
     });
 
@@ -175,13 +173,12 @@ export class GithubCollectorService {
     let summaryCommitLookupCount = 0;
     const summaries = await withConcurrency(eligible, 5, async ({ bucket, commitsOnDate }) => {
       const { account: acc, item, categories } = bucket;
-      const skipBody = categories.size === 1 && categories.has('involved');
-      const shouldFetchCommitsForSummary = commitsOnDate.length === 0 && categories.has('authored');
+      const shouldFetchCommitsForSummary = commitsOnDate.length === 0;
       const summaryCommitsOnDate = shouldFetchCommitsForSummary
         ? await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin)
         : commitsOnDate;
       if (shouldFetchCommitsForSummary) summaryCommitLookupCount += 1;
-      const body = skipBody ? null : this.safeSearchBody(item);
+      const body = this.safeSearchBody(item);
       return {
         account: acc,
         repo: item.repo,
@@ -205,23 +202,6 @@ export class GithubCollectorService {
       'github collect account summarized',
     );
     return summaries;
-  }
-
-  private tag(
-    buckets: Map<string, PrBucket>,
-    account: string,
-    items: SearchPrItem[],
-    category: GithubActivityCategory,
-  ): void {
-    for (const item of items) {
-      const key = `${account}/${item.owner}/${item.repo}#${item.number}`;
-      const existing = buckets.get(key);
-      if (existing) {
-        existing.categories.add(category);
-      } else {
-        buckets.set(key, { account, item, categories: new Set([category]) });
-      }
-    }
   }
 
   private async fetchSafeCommitsOnDate(
