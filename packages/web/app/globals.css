@@ -1,0 +1,139 @@
+@import 'tailwindcss';
+@source '../app';
+@source '../components';
+
+@theme {
+  --color-canvas: #050507;
+  --color-surface-1: #0d0e11;
+  --color-surface-2: #14151a;
+  --color-hairline: #1f2128;
+  --color-hairline-strong: #2c2f38;
+  --color-ink: #f7f8f8;
+  --color-ink-muted: #c7ccd6;
+  --color-ink-subtle: #888e9b;
+  --color-ink-tertiary: #5b606c;
+  --color-accent: #6166f1;
+  --color-accent-hover: #818cf8;
+  --color-accent-deep: #4338ca;
+
+  --font-sans: 'Inter', 'SF Pro Display', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.011em;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+/* 페이지 전체에 깔리는 미묘한 도트 그리드 — Linear/Framer 의 은은한 배경 텍스처 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--color-ink) 6%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 36px 36px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+  pointer-events: none;
+}
+
+/* 스크롤 진입 페이드업 — Linear/Framer 톤의 잔잔한 모션 */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 히어로 오로라 — 천천히 떠다니는 그라데이션 */
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(-48%, -18px) scale(1.06);
+    opacity: 1;
+  }
+}
+
+.aurora {
+  animation: drift 14s ease-in-out infinite;
+}
+
+.grad-text {
+  background: linear-gradient(120deg, var(--color-ink) 30%, var(--color-accent-hover));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.card-hover {
+  transition:
+    border-color 0.25s,
+    background 0.25s,
+    transform 0.25s,
+    box-shadow 0.25s;
+}
+
+.card-hover:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 4%, var(--color-surface-1));
+  transform: translateY(-3px);
+  box-shadow: 0 14px 40px color-mix(in srgb, var(--color-accent) 16%, transparent);
+}
+
+/* 제품 스크린샷 프레임 — 맥 윈도우 크롬 + 글로우 + 미묘한 perspective */
+.screenshot-frame {
+  position: relative;
+  border-radius: 16px;
+  border: 1px solid var(--color-hairline-strong);
+  background: var(--color-surface-1);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #ffffff 6%, transparent) inset,
+    0 40px 120px -30px color-mix(in srgb, var(--color-accent) 40%, transparent),
+    0 30px 70px -20px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+.screenshot-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #ffffff 7%, transparent) inset;
+}
+
+/* 캡처의 윈도우 바깥 검정 여백을 살짝 확대해 프레임 밖으로 크롭 — 윈도우가 프레임을 꽉 채우게 */
+.screenshot-frame > img {
+  display: block;
+  width: 100%;
+  transform: scale(1.035);
+  transform-origin: center;
+}
