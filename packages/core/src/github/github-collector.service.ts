@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { withConcurrency } from '../common/concurrency.js';
 import {
+  localDateStartIsoBefore,
   localDateToUtcWindow,
   searchRangeFragment,
   todayLocalIsoDate,
@@ -47,8 +48,8 @@ export class GithubCollectorService {
     // 과거 (backfill) 만 widening 적용해서 updated_at 이 밀린 케이스 cover.
     const isBackfill = date < todayLocalIsoDate();
     const effectiveLookback = isBackfill ? lookbackDays : 0;
-    const lookbackStartIso = computeLookbackStartIso(date, effectiveLookback, window.startIso);
-    const widenedRange = effectiveLookback > 0 ? `>=${lookbackStartIso}` : range;
+    const widenedRange =
+      effectiveLookback > 0 ? `>=${localDateStartIsoBefore(date, effectiveLookback)}` : range;
     const accounts = this.worklogConfig.getGithubAccounts();
 
     if (accounts.length === 0) {
@@ -292,13 +293,4 @@ export class GithubCollectorService {
 function deriveState(item: SearchPrItem): GithubPrState {
   if (item.mergedAt) return 'merged';
   return item.state;
-}
-
-function computeLookbackStartIso(date: string, lookbackDays: number, dayStartIso: string): string {
-  if (lookbackDays <= 0) return dayStartIso;
-  const parts = date.split('-').map(Number);
-  const [y, m, d] = parts;
-  if (y === undefined || m === undefined || d === undefined) return dayStartIso;
-  const startKst = new Date(Date.UTC(y, m - 1, d - lookbackDays, -9, 0, 0));
-  return startKst.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
