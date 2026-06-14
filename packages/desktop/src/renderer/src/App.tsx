@@ -46,7 +46,7 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
 
 export function App() {
   const [filter, setFilter] = useState<WorklogFilter>('all');
-  const [view, setView] = useState<MainView>('worklogs');
+  const [view, setView] = useState<MainView>('stats');
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
   const [selectedPage, setSelectedPage] = useState<RecentPage | null>(null);

@@ -1,5 +1,5 @@
 import { CalendarCheck, Flame, GitCommitHorizontal, GitPullRequest } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { RecentListResult, RecentPage } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
@@ -255,11 +255,14 @@ function Heatmap({ byDate, t }: { byDate: Map<string, DayActivity>; t: T }) {
     'var(--color-accent)',
   ];
 
-  // 마우스 올린 셀의 날짜·활동량을 셀 위에 떠 있는 커스텀 툴팁으로
+  // 마우스 올린 셀의 날짜·활동량을 셀 위에 떠 있는 커스텀 툴팁으로.
+  // 좌표는 컨테이너 기준 상대값(absolute) — fixed 는 transform 가진 상위(.dash-rise)에서
+  // viewport 가 아닌 그 요소 기준이 돼 위치가 틀어지고 스크롤바가 생긴다.
+  const wrapRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<{ label: string; x: number; y: number } | null>(null);
 
   return (
-    <div className="relative rounded-lg border border-hairline bg-surface-1 p-4">
+    <div ref={wrapRef} className="relative rounded-lg border border-hairline bg-surface-1 p-4">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-[13px] font-medium text-ink-muted">{t('stats.heatmap')}</span>
         <span className="flex items-center gap-1 text-[11px] text-ink-tertiary">
@@ -283,11 +286,14 @@ function Heatmap({ byDate, t }: { byDate: Map<string, DayActivity>; t: T }) {
                 }}
                 onMouseEnter={(e) => {
                   if (cell.future) return;
+                  const wrap = wrapRef.current;
+                  if (!wrap) return;
                   const r = e.currentTarget.getBoundingClientRect();
+                  const cr = wrap.getBoundingClientRect();
                   setTip({
                     label: `${cell.date} · ${cell.total}${t('stats.countSuffix')}`,
-                    x: r.left + r.width / 2,
-                    y: r.top,
+                    x: r.left - cr.left + r.width / 2,
+                    y: r.top - cr.top,
                   });
                 }}
                 onMouseLeave={() => setTip(null)}
@@ -298,7 +304,7 @@ function Heatmap({ byDate, t }: { byDate: Map<string, DayActivity>; t: T }) {
       </div>
       {tip && (
         <div
-          className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-md border border-hairline bg-surface-3 px-2 py-1 text-[11px] font-medium whitespace-nowrap text-ink shadow-lg shadow-black/40"
+          className="pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-full rounded-md border border-hairline bg-surface-3 px-2 py-1 text-[11px] font-medium whitespace-nowrap text-ink shadow-lg shadow-black/40"
           style={{ left: tip.x, top: tip.y - 7 }}
         >
           {tip.label}
@@ -355,6 +361,8 @@ function MonthlyChart({ months, t }: { months: MonthBucket[]; t: T }) {
           return (
             <g key={m.month}>
               <rect
+                className="bar-v"
+                style={{ animationDelay: `${i * 45}ms` }}
                 x={cx - barW - gap / 2}
                 y={baseY - prH}
                 width={barW}
@@ -365,6 +373,8 @@ function MonthlyChart({ months, t }: { months: MonthBucket[]; t: T }) {
                 <title>{`${m.month} · PR ${m.pr}`}</title>
               </rect>
               <rect
+                className="bar-v"
+                style={{ animationDelay: `${i * 45 + 60}ms` }}
                 x={cx + gap / 2}
                 y={baseY - commitH}
                 width={barW}
@@ -411,8 +421,8 @@ function WeekdayChart({ weekday, t }: { weekday: number[]; t: T }) {
             <span className="w-7 shrink-0 text-[11px] text-ink-tertiary">{labels[i]}</span>
             <div className="h-3 flex-1 overflow-hidden rounded-sm bg-surface-2">
               <div
-                className="h-full rounded-sm bg-accent transition-all"
-                style={{ width: `${(v / max) * 100}%` }}
+                className="bar-h h-full rounded-sm bg-accent"
+                style={{ width: `${(v / max) * 100}%`, animationDelay: `${i * 50}ms` }}
               />
             </div>
             <span className="w-7 shrink-0 text-right font-mono text-[11px] text-ink-tertiary">
