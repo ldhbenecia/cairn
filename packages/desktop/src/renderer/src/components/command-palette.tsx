@@ -1,4 +1,12 @@
-import { BarChart3, FileText, Plus, Search, Settings, SquareArrowOutUpRight } from 'lucide-react';
+import {
+  BarChart3,
+  FileText,
+  Plus,
+  Search,
+  Settings,
+  Sparkles,
+  SquareArrowOutUpRight,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CoreMode, RecentListResult, RecentPage } from '../cairn-api';
 import { useSettings } from '../settings-context';
@@ -12,6 +20,7 @@ type Props = {
   onPreferences: () => void;
   onPublish: (mode: CoreMode) => void;
   onOpenPage: (page: RecentPage) => void;
+  onAchievements: () => void;
 };
 
 export function CommandPalette({
@@ -21,6 +30,7 @@ export function CommandPalette({
   onPreferences,
   onPublish,
   onOpenPage,
+  onAchievements,
 }: Props) {
   const { t } = useSettings();
   const [q, setQ] = useState('');
@@ -65,13 +75,19 @@ export function CommandPalette({
         run: () => onView('worklogs'),
       },
       {
+        id: 'achievements',
+        label: t('cmd.achievements'),
+        icon: <Sparkles size={12} strokeWidth={2} />,
+        run: onAchievements,
+      },
+      {
         id: 'prefs',
         label: t('cmd.preferences'),
         icon: <Settings size={12} strokeWidth={2} />,
         run: onPreferences,
       },
     ];
-  }, [t, onPublish, onView, onPreferences]);
+  }, [t, onPublish, onView, onPreferences, onAchievements]);
 
   const items = useMemo(() => {
     const query = q.trim().toLowerCase();

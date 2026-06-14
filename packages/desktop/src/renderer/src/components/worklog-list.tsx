@@ -9,6 +9,7 @@ import {
   Loader2,
   RefreshCw,
   Search,
+  Sparkles,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RunSession } from '../App';
@@ -35,6 +36,7 @@ type Props = {
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
   onReload: () => Promise<void>;
   onOpen: (page: RecentPage) => void;
+  onAchievements: () => void;
   drawerOpen: boolean;
 };
 
@@ -61,6 +63,7 @@ export function WorklogList({
   onTrigger,
   onReload,
   onOpen,
+  onAchievements,
   drawerOpen,
 }: Props) {
   const { t } = useSettings();
@@ -195,6 +198,14 @@ export function WorklogList({
             >
               <RefreshCw size={12} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
               {t('list.reload')}
+            </button>
+            <button
+              type="button"
+              onClick={onAchievements}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-muted hover:bg-surface-2 hover:text-ink"
+            >
+              <Sparkles size={12} strokeWidth={2} />
+              {t('list.achievements')}
             </button>
             <PublishDialog sessions={sessions} runningMode={runningMode} onTrigger={onTrigger} />
           </div>
