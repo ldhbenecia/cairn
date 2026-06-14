@@ -10,7 +10,7 @@ import {
   RefreshCw,
   Search,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RunSession } from '../App';
 import type {
   CoreMode,
@@ -35,6 +35,7 @@ type Props = {
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
   onReload: () => Promise<void>;
   onOpen: (page: RecentPage) => void;
+  drawerOpen: boolean;
 };
 
 const PER_PAGE = 20;
@@ -60,6 +61,7 @@ export function WorklogList({
   onTrigger,
   onReload,
   onOpen,
+  drawerOpen,
 }: Props) {
   const { t } = useSettings();
   const [loading, setLoading] = useState(false);
@@ -68,6 +70,7 @@ export function WorklogList({
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(0);
+  const [sel, setSel] = useState(-1); // 키보드 내비게이션 선택 인덱스
 
   const pages = recent?.pages ?? [];
 
@@ -93,6 +96,34 @@ export function WorklogList({
   }, [filter, query, desc]);
   const current = Math.min(page, pageCount - 1);
   const visible = filtered.slice(current * PER_PAGE, current * PER_PAGE + PER_PAGE);
+
+  // 화면에 실제로 그려지는 행들(그룹/페이지 반영) — 키보드 내비 대상
+  const navItems = useMemo(
+    () => (groups ? groups.filter((g) => !collapsed.has(g.key)).flatMap((g) => g.rows) : visible),
+    [groups, collapsed, visible],
+  );
+  const selectedId = sel >= 0 ? (navItems[sel]?.pageId ?? null) : null;
+
+  useEffect(() => setSel(-1), [filter, query, desc, groupBy, current]);
+
+  useEffect(() => {
+    if (drawerOpen) return; // 드로어 열렸을 땐 리스트 내비 비활성
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSel((i) => Math.min(i + 1, navItems.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSel((i) => Math.max(i - 1, 0));
+      } else if (e.key === 'Enter') {
+        const p = navItems[sel];
+        if (p) onOpen(p);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [drawerOpen, navItems, sel, onOpen]);
 
   async function reload() {
     setLoading(true);
@@ -201,7 +232,13 @@ export function WorklogList({
                   {!collapsed.has(g.key) && (
                     <div className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
                       {g.rows.map((p) => (
-                        <PageRow key={p.pageId} page={p} t={t} onOpen={onOpen} />
+                        <PageRow
+                          key={p.pageId}
+                          page={p}
+                          t={t}
+                          onOpen={onOpen}
+                          selected={p.pageId === selectedId}
+                        />
                       ))}
                     </div>
                   )}
@@ -211,7 +248,13 @@ export function WorklogList({
           ) : (
             <div className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
               {visible.map((p) => (
-                <PageRow key={p.pageId} page={p} t={t} onOpen={onOpen} />
+                <PageRow
+                  key={p.pageId}
+                  page={p}
+                  t={t}
+                  onOpen={onOpen}
+                  selected={p.pageId === selectedId}
+                />
               ))}
             </div>
           )}
@@ -302,13 +345,31 @@ function parseSourceCounts(s: string): { gh: number; git: number } | null {
   return { gh: Number.isFinite(gh) ? gh : 0, git: Number.isFinite(git) ? git : 0 };
 }
 
-function PageRow({ page, t, onOpen }: { page: RecentPage; t: T; onOpen: (p: RecentPage) => void }) {
+function PageRow({
+  page,
+  t,
+  onOpen,
+  selected,
+}: {
+  page: RecentPage;
+  t: T;
+  onOpen: (p: RecentPage) => void;
+  selected: boolean;
+}) {
   const counts = page.sourceCounts ? parseSourceCounts(page.sourceCounts) : null;
+  const ref = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (selected) ref.current?.scrollIntoView({ block: 'nearest' });
+  }, [selected]);
   return (
     <button
+      ref={ref}
       type="button"
       onClick={() => onOpen(page)}
-      className="flex w-full items-center gap-4 border-b border-hairline px-4 py-3.5 text-left text-[13px] transition-[background-color] last:border-b-0 hover:bg-surface-2"
+      className={[
+        'flex w-full items-center gap-4 border-b border-hairline px-4 py-3.5 text-left text-[13px] transition-[background-color] last:border-b-0',
+        selected ? 'bg-surface-2 ring-1 ring-accent/50 ring-inset' : 'hover:bg-surface-2',
+      ].join(' ')}
     >
       <span className="min-w-0 flex-1 truncate text-ink">{page.title}</span>
       {counts && (
