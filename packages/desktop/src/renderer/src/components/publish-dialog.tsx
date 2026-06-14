@@ -234,7 +234,7 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
   const ss = String(elapsed % 60).padStart(2, '0');
   const lines = session?.lines ?? [];
-  const counts = useMemo(() => collectedCounts(lines), [lines.length]);
+  const counts = useMemo(() => collectedCounts(lines), [lines]);
   const hintIdx = step === 'summarize' ? Math.floor(elapsed / 8) % SUMMARIZE_HINTS.length : 0;
   const hint =
     step === 'collect'
