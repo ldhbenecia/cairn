@@ -110,7 +110,13 @@ const HEATMAP_WEEKS = 53; // GitHub 잔디처럼 1년치
 const CELL = 12; // 셀 한 변(px) — 작고 촘촘하게
 const CELL_GAP = 3;
 
-export function Dashboard({ recent }: { recent: RecentListResult | null }) {
+export function Dashboard({
+  recent,
+  onPickDate,
+}: {
+  recent: RecentListResult | null;
+  onPickDate?: (date: string) => void;
+}) {
   const { t } = useSettings();
   const data = useMemo(() => aggregate(recent?.pages ?? []), [recent]);
   const recentMonths = data.months.slice(-12);
@@ -161,7 +167,7 @@ export function Dashboard({ recent }: { recent: RecentListResult | null }) {
               </div>
 
               <div className="dash-rise" style={{ animationDelay: '80ms' }}>
-                <Heatmap byDate={data.byDate} t={t} />
+                <Heatmap byDate={data.byDate} t={t} onPickDate={onPickDate} />
               </div>
 
               <div
@@ -214,7 +220,15 @@ function StatCard({
 }
 
 // GitHub 잔디 스타일 — 최근 HEATMAP_WEEKS 주, 날짜별 활동량을 accent 농도로.
-function Heatmap({ byDate, t }: { byDate: Map<string, DayActivity>; t: T }) {
+function Heatmap({
+  byDate,
+  t,
+  onPickDate,
+}: {
+  byDate: Map<string, DayActivity>;
+  t: T;
+  onPickDate?: (date: string) => void;
+}) {
   const weeks = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -295,30 +309,34 @@ function Heatmap({ byDate, t }: { byDate: Map<string, DayActivity>; t: T }) {
           <div className="flex" style={{ gap: CELL_GAP }}>
             {weeks.cols.map((col, ci) => (
               <div key={ci} className="flex flex-col" style={{ gap: CELL_GAP }}>
-                {col.map((cell) => (
-                  <span
-                    key={cell.date}
-                    className="rounded-[2px] transition-transform hover:scale-125"
-                    style={{
-                      width: CELL,
-                      height: CELL,
-                      background: cell.future ? 'transparent' : LEVEL_BG[level(cell.total)],
-                    }}
-                    onMouseEnter={(e) => {
-                      if (cell.future) return;
-                      const wrap = wrapRef.current;
-                      if (!wrap) return;
-                      const r = e.currentTarget.getBoundingClientRect();
-                      const cr = wrap.getBoundingClientRect();
-                      setTip({
-                        label: `${cell.date} · ${cell.total}${t('stats.countSuffix')}`,
-                        x: r.left - cr.left + r.width / 2,
-                        y: r.top - cr.top,
-                      });
-                    }}
-                    onMouseLeave={() => setTip(null)}
-                  />
-                ))}
+                {col.map((cell) => {
+                  const clickable = !cell.future && cell.total > 0 && !!onPickDate;
+                  return (
+                    <span
+                      key={cell.date}
+                      className={`rounded-[2px] transition-transform hover:scale-125 ${clickable ? 'cursor-pointer' : ''}`}
+                      style={{
+                        width: CELL,
+                        height: CELL,
+                        background: cell.future ? 'transparent' : LEVEL_BG[level(cell.total)],
+                      }}
+                      onClick={() => clickable && onPickDate?.(cell.date)}
+                      onMouseEnter={(e) => {
+                        if (cell.future) return;
+                        const wrap = wrapRef.current;
+                        if (!wrap) return;
+                        const r = e.currentTarget.getBoundingClientRect();
+                        const cr = wrap.getBoundingClientRect();
+                        setTip({
+                          label: `${cell.date} · ${cell.total}${t('stats.countSuffix')}`,
+                          x: r.left - cr.left + r.width / 2,
+                          y: r.top - cr.top,
+                        });
+                      }}
+                      onMouseLeave={() => setTip(null)}
+                    />
+                  );
+                })}
               </div>
             ))}
           </div>
