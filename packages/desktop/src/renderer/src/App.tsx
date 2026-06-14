@@ -17,6 +17,7 @@ import type {
 import { Dashboard } from './components/dashboard';
 import { Onboarding } from './components/onboarding';
 import { PreferencesDialog } from './components/preferences-dialog';
+import { CommandPalette } from './components/command-palette';
 import { WorklogDrawer } from './components/worklog-drawer';
 import {
   Sidebar,
@@ -48,6 +49,7 @@ export function App() {
   const [filter, setFilter] = useState<WorklogFilter>('all');
   const [view, setView] = useState<MainView>('stats');
   const [prefsOpen, setPrefsOpen] = useState(false);
+  const [cmdkOpen, setCmdkOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
   const [selectedPage, setSelectedPage] = useState<RecentPage | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
@@ -131,12 +133,15 @@ export function App() {
     return off;
   }, []);
 
-  // Cmd+, — macOS 표준 Preferences 단축키
+  // Cmd+, — Preferences / Cmd+K — 커맨드 팔레트
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === ',') {
         e.preventDefault();
         setPrefsOpen(true);
+      } else if (e.metaKey && e.key === 'k') {
+        e.preventDefault();
+        setCmdkOpen((o) => !o);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -248,6 +253,16 @@ export function App() {
         />
       )}
       {selectedPage && <WorklogDrawer page={selectedPage} onClose={() => setSelectedPage(null)} />}
+      {cmdkOpen && (
+        <CommandPalette
+          recent={recent}
+          onClose={() => setCmdkOpen(false)}
+          onView={setView}
+          onPreferences={() => setPrefsOpen(true)}
+          onPublish={(mode) => void trigger(mode)}
+          onOpenPage={setSelectedPage}
+        />
+      )}
       <PreferencesDialog
         open={prefsOpen}
         onOpenChange={setPrefsOpen}

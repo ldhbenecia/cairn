@@ -156,6 +156,9 @@ export function WorklogList({
               placeholder={t('list.search')}
               className="w-full min-w-0 bg-transparent text-[13px] text-ink placeholder:text-ink-tertiary focus:outline-none"
             />
+            <kbd className="shrink-0 rounded border border-hairline-strong bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-tertiary">
+              ⌘K
+            </kbd>
           </div>
           <span className="shrink-0 text-[12px] text-ink-tertiary">
             {filtered.length}
