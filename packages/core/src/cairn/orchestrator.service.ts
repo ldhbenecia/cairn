@@ -93,21 +93,31 @@ export class OrchestratorService {
       'daily: backfill — multiple missing dates detected',
     );
 
+    let backfillDone = 0;
+    const backfillTotal = missingDates.length;
     const results = await withConcurrency<
       string,
       { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' }
     >(missingDates, BACKFILL_CONCURRENCY, async (date) => {
+      let result: { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' };
       try {
         const outcome = await this.runDailyForDate(date, options, {
           silent: true,
           precheck: false,
         });
-        return { date, kind: outcome };
+        result = { date, kind: outcome };
       } catch (err) {
         const error = CairnError.from(err, 'config');
         this.logger.error({ date, error }, 'daily: backfill date failed — continuing batch');
-        return { date, kind: 'failed' };
+        result = { date, kind: 'failed' };
       }
+      // 데스크톱 발행 화면이 "N/M 일 발행 완료" 를 보여줄 수 있게 진행 로그 (동시성이라 완료 카운트 기준)
+      backfillDone += 1;
+      this.logger.info(
+        { date, done: backfillDone, total: backfillTotal },
+        'daily: backfill progress',
+      );
+      return result;
     });
 
     await this.notifyBackfillBatch(missingDates, results);

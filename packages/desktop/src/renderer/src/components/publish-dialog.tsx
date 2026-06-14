@@ -207,6 +207,20 @@ function collectedCounts(lines: RunSession['lines']): { pr: number | null; commi
   return { pr, commit };
 }
 
+// 백필(여러 날 한 번에) 진행 — 엔진의 "backfill progress" 로그에서 done/total 추출
+function backfillProgress(lines: RunSession['lines']): { done: number; total: number } | null {
+  let done = 0;
+  let total = 0;
+  for (const l of lines) {
+    if (!l.line.includes('backfill progress')) continue;
+    const md = /done["':\s]+(\d+)/.exec(l.line);
+    const mt = /total["':\s]+(\d+)/.exec(l.line);
+    if (md) done = Math.max(done, Number(md[1]));
+    if (mt) total = Number(mt[1]);
+  }
+  return total > 1 ? { done, total } : null;
+}
+
 // 요약(~2분) 동안 8초 간격으로 순환하는 상태 문구
 const SUMMARIZE_HINTS: I18nKey[] = [
   'publish.hint.summarize',
@@ -235,6 +249,7 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
   const ss = String(elapsed % 60).padStart(2, '0');
   const lines = session?.lines ?? [];
   const counts = useMemo(() => collectedCounts(lines), [lines]);
+  const backfill = useMemo(() => backfillProgress(lines), [lines]);
   const hintIdx = step === 'summarize' ? Math.floor(elapsed / 8) % SUMMARIZE_HINTS.length : 0;
   const hint =
     step === 'collect'
@@ -276,7 +291,25 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
         })}
       </div>
 
-      {step === 'summarize' && (
+      {backfill && (
+        <div className="flex flex-col gap-2 rounded-lg border border-hairline bg-surface-2/50 px-3 py-2.5">
+          <div className="flex items-center justify-between text-[12.5px]">
+            <span className="font-medium text-ink-muted">{t('publish.backfill.publishing')}</span>
+            <span className="font-mono text-ink">
+              {backfill.done}/{backfill.total}
+              {t('publish.backfill.daysSuffix')}
+            </span>
+          </div>
+          <div className="h-1 overflow-hidden rounded-full bg-surface-2">
+            <div
+              className="h-full rounded-full bg-accent transition-all"
+              style={{ width: `${(backfill.done / backfill.total) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {step === 'summarize' && !backfill && (
         <div className="flex justify-center py-1.5">
           <BrandMark size={28} className="cairn-breathe text-accent" />
         </div>
