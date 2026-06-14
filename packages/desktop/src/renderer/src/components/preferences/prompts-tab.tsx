@@ -7,15 +7,36 @@ const PROMPT_MAX_CHARS = 4000;
 const PROMPT_MODES = ['daily', 'weekly', 'monthly'] as const;
 
 // 속도 → 품질 순. sonnet 이 기본(권장).
-const MODELS: { id: SummaryModel; name: string; hint: I18nKey }[] = [
-  { id: 'haiku', name: 'Haiku', hint: 'prefs.prompts.model.haikuHint' },
-  { id: 'sonnet', name: 'Sonnet', hint: 'prefs.prompts.model.sonnetHint' },
-  { id: 'opus', name: 'Opus', hint: 'prefs.prompts.model.opusHint' },
-  { id: 'default', name: '', hint: 'prefs.prompts.model.defaultHint' },
+const MODELS: { id: SummaryModel; name: string; hint: I18nKey; desc: I18nKey }[] = [
+  {
+    id: 'haiku',
+    name: 'Haiku',
+    hint: 'prefs.prompts.model.haikuHint',
+    desc: 'prefs.prompts.model.haikuDesc',
+  },
+  {
+    id: 'sonnet',
+    name: 'Sonnet',
+    hint: 'prefs.prompts.model.sonnetHint',
+    desc: 'prefs.prompts.model.sonnetDesc',
+  },
+  {
+    id: 'opus',
+    name: 'Opus',
+    hint: 'prefs.prompts.model.opusHint',
+    desc: 'prefs.prompts.model.opusDesc',
+  },
+  {
+    id: 'default',
+    name: '',
+    hint: 'prefs.prompts.model.defaultHint',
+    desc: 'prefs.prompts.model.defaultDesc',
+  },
 ];
 
 export function PromptsTab() {
   const { settings, update, t } = useSettings();
+  const selectedModel = MODELS.find((m) => m.id === settings.summaryModel) ?? MODELS[1]!;
   const labelKey: Record<(typeof PROMPT_MODES)[number], { label: I18nKey; ph: I18nKey }> = {
     daily: { label: 'prefs.prompts.daily', ph: 'prefs.prompts.daily.ph' },
     weekly: { label: 'prefs.prompts.weekly', ph: 'prefs.prompts.weekly.ph' },
@@ -50,6 +71,13 @@ export function PromptsTab() {
               </button>
             );
           })}
+        </div>
+        <div className="rounded-md border border-hairline bg-surface-1 px-3 py-2.5 text-[12px] leading-relaxed text-ink-secondary">
+          <span className="font-medium text-ink">
+            {selectedModel.name || t('prefs.prompts.model.default')}
+          </span>
+          {' — '}
+          {t(selectedModel.desc)}
         </div>
       </div>
 
