@@ -1,6 +1,6 @@
 {
   "name": "@cairn/core",
-  "version": "0.19.0",
+  "version": "0.19.1",
   "private": true,
   "description": "cairn engine — collects GitHub / local Git / Notion activity and publishes daily / weekly / monthly worklogs.",
   "type": "module",
