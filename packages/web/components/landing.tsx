@@ -67,7 +67,11 @@ export async function Landing({ lang }: { lang: Lang }) {
                 filter: 'blur(36px)',
               }}
             />
-            <Screenshot src="/statistics.png" alt="cairn statistics dashboard" priority />
+            <Screenshot
+              src={`/statistics_${lang === 'ko' ? 'ko' : 'us'}.png`}
+              alt="cairn statistics dashboard"
+              priority
+            />
           </div>
         </div>
       </section>
@@ -123,7 +127,10 @@ export async function Landing({ lang }: { lang: Lang }) {
                 filter: 'blur(44px)',
               }}
             />
-            <Screenshot src="/worklog.png" alt="a published cairn worklog in Notion" />
+            <Screenshot
+              src={`/worklog_${lang === 'ko' ? 'ko' : 'us'}.png`}
+              alt="a published cairn worklog in Notion"
+            />
           </Reveal>
         </div>
       </section>
