@@ -31,6 +31,15 @@ body {
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.011em;
   overflow-x: hidden;
+  /* 한글이 어절(단어) 중간에서 끊기지 않게 — 공백에서만 줄바꿈 (영어엔 영향 적음) */
+  word-break: keep-all;
+}
+
+/* 코드·명령어·링크 토큰은 keep-all 예외 (긴 토큰이 넘치지 않게) */
+code,
+pre {
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
 
 ::selection {
