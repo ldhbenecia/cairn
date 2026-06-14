@@ -56,6 +56,14 @@ export function WorklogDrawer({ page, onClose }: Props) {
   }, []);
 
   useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') requestClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('cairn:drawerWidth', String(width));
   }, [width]);
 

@@ -237,6 +237,7 @@ export function App() {
           onTrigger={trigger}
           onReload={loadRecent}
           onOpen={setSelectedPage}
+          drawerOpen={selectedPage !== null}
         />
       )}
       {selectedPage && <WorklogDrawer page={selectedPage} onClose={() => setSelectedPage(null)} />}
