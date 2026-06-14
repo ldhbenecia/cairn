@@ -106,7 +106,9 @@ function computeStreak(byDate: Map<string, DayActivity>): { current: number; lon
   return { current, longest };
 }
 
-const HEATMAP_WEEKS = 18;
+const HEATMAP_WEEKS = 53; // GitHub 잔디처럼 1년치
+const CELL = 12; // 셀 한 변(px) — 작고 촘촘하게
+const CELL_GAP = 3;
 
 export function Dashboard({ recent }: { recent: RecentListResult | null }) {
   const { t } = useSettings();
@@ -273,34 +275,54 @@ function Heatmap({ byDate, t }: { byDate: Map<string, DayActivity>; t: T }) {
           {t('stats.more')}
         </span>
       </div>
-      <div className="flex gap-1">
-        {weeks.cols.map((col, ci) => (
-          <div key={ci} className="flex flex-1 flex-col gap-1">
-            {col.map((cell) => (
-              <span
-                key={cell.date}
-                className="aspect-square w-full rounded-[3px] transition-transform hover:scale-110"
-                style={{
-                  background: cell.future ? 'transparent' : LEVEL_BG[level(cell.total)],
-                  maxWidth: 18,
-                }}
-                onMouseEnter={(e) => {
-                  if (cell.future) return;
-                  const wrap = wrapRef.current;
-                  if (!wrap) return;
-                  const r = e.currentTarget.getBoundingClientRect();
-                  const cr = wrap.getBoundingClientRect();
-                  setTip({
-                    label: `${cell.date} · ${cell.total}${t('stats.countSuffix')}`,
-                    x: r.left - cr.left + r.width / 2,
-                    y: r.top - cr.top,
-                  });
-                }}
-                onMouseLeave={() => setTip(null)}
-              />
+      <div className="overflow-x-auto pb-1">
+        <div className="flex gap-1.5">
+          {/* 요일 라벨 — 월·수·금만 (GitHub 스타일) */}
+          <div className="flex shrink-0 flex-col" style={{ gap: CELL_GAP }}>
+            {['', t('stats.dow.mon'), '', t('stats.dow.wed'), '', t('stats.dow.fri'), ''].map(
+              (d, i) => (
+                <span
+                  key={i}
+                  className="text-right text-[9px] text-ink-tertiary"
+                  style={{ height: CELL, width: 16, lineHeight: `${CELL}px` }}
+                >
+                  {d}
+                </span>
+              ),
+            )}
+          </div>
+          {/* 잔디 — 고정 작은 셀로 촘촘하게 */}
+          <div className="flex" style={{ gap: CELL_GAP }}>
+            {weeks.cols.map((col, ci) => (
+              <div key={ci} className="flex flex-col" style={{ gap: CELL_GAP }}>
+                {col.map((cell) => (
+                  <span
+                    key={cell.date}
+                    className="rounded-[2px] transition-transform hover:scale-125"
+                    style={{
+                      width: CELL,
+                      height: CELL,
+                      background: cell.future ? 'transparent' : LEVEL_BG[level(cell.total)],
+                    }}
+                    onMouseEnter={(e) => {
+                      if (cell.future) return;
+                      const wrap = wrapRef.current;
+                      if (!wrap) return;
+                      const r = e.currentTarget.getBoundingClientRect();
+                      const cr = wrap.getBoundingClientRect();
+                      setTip({
+                        label: `${cell.date} · ${cell.total}${t('stats.countSuffix')}`,
+                        x: r.left - cr.left + r.width / 2,
+                        y: r.top - cr.top,
+                      });
+                    }}
+                    onMouseLeave={() => setTip(null)}
+                  />
+                ))}
+              </div>
             ))}
           </div>
-        ))}
+        </div>
       </div>
       {tip && (
         <div
