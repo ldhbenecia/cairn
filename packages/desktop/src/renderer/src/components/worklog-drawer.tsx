@@ -1,17 +1,51 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import hljs from 'highlight.js/lib/common';
-import { ExternalLink, Loader2, X } from 'lucide-react';
+import { Check, Copy, ExternalLink, Loader2, X } from 'lucide-react';
 import type { PageContent, RecentPage, RichSpan, SimpleBlock } from '../cairn-api';
 import { useSettings } from '../settings-context';
 import 'highlight.js/styles/github-dark.css';
 
 type Props = { page: RecentPage; onClose: () => void };
 
+const blockText = (b: SimpleBlock): string =>
+  b.rich
+    .map((s) => s.text)
+    .join('')
+    .trim();
+
+// 'Share' 헤딩 아래 bullet 들을 스탠드업 복붙용 plain text 로 추출 (없으면 null)
+function extractShareText(blocks: SimpleBlock[]): string | null {
+  const start = blocks.findIndex(
+    (b) => b.type === 'heading_2' && blockText(b).toLowerCase() === 'share',
+  );
+  if (start === -1) return null;
+  const lines: string[] = [];
+  for (let i = start + 1; i < blocks.length; i++) {
+    const b = blocks[i]!;
+    if (b.type === 'heading_1' || b.type === 'heading_2') break;
+    if (b.type === 'bulleted_list_item') {
+      const text = blockText(b);
+      if (text) lines.push(`- ${text}`);
+    }
+  }
+  return lines.length > 0 ? lines.join('\n') : null;
+}
+
 export function WorklogDrawer({ page, onClose }: Props) {
   const { t } = useSettings();
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [content, setContent] = useState<PageContent | null>(null);
+  const shareText = useMemo(() => (content ? extractShareText(content.blocks) : null), [content]);
+
+  function copyShare() {
+    if (!shareText) return;
+    void navigator.clipboard.writeText(shareText).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
   const [width, setWidth] = useState<number>(() => {
     const s = Number(localStorage.getItem('cairn:drawerWidth'));
     return s >= 360 && s <= 900 ? s : 460;
@@ -89,6 +123,21 @@ export function WorklogDrawer({ page, onClose }: Props) {
               {page.date ?? '—'} · {page.workspaceLabel}
             </p>
           </div>
+          {shareText && (
+            <button
+              type="button"
+              onClick={copyShare}
+              title={t('drawer.copyShare')}
+              className={`flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium transition-colors [-webkit-app-region:no-drag] ${
+                copied
+                  ? 'bg-success/15 text-success'
+                  : 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
+              }`}
+            >
+              {copied ? <Check size={14} strokeWidth={2.5} /> : <Copy size={14} strokeWidth={2} />}
+              {copied ? t('drawer.copied') : t('drawer.share')}
+            </button>
+          )}
           {page.url && (
             <button
               type="button"
@@ -112,12 +161,12 @@ export function WorklogDrawer({ page, onClose }: Props) {
           {!content ? (
             <div className="flex items-center justify-center gap-2 py-16 text-[12px] text-ink-tertiary">
               <Loader2 size={14} strokeWidth={2} className="animate-spin" />
-              노션에서 불러오는 중...
+              {t('drawer.loading')}
             </div>
           ) : content.warning ? (
             <p className="text-[13px] text-ink-tertiary">{content.warning}</p>
           ) : content.blocks.length === 0 ? (
-            <p className="text-[13px] text-ink-tertiary">내용 없음</p>
+            <p className="text-[13px] text-ink-tertiary">{t('drawer.empty')}</p>
           ) : (
             <div className="flex flex-col gap-1.5 text-[13px] leading-relaxed text-ink-muted">
               {content.blocks.map((b) => (

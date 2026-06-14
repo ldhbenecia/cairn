@@ -157,6 +157,11 @@ const STRINGS = {
     'publish.result.fail': '실패',
     'publish.result.error': '작업을 시작하지 못했어요',
     'publish.openNotion': '노션에서 열기',
+    'drawer.share': 'Share',
+    'drawer.copyShare': 'Share 섹션을 스탠드업용으로 복사',
+    'drawer.copied': '복사됨',
+    'drawer.loading': '노션에서 불러오는 중…',
+    'drawer.empty': '내용 없음',
     'publish.close': '닫기',
 
     'prefs.title': 'Preferences',
@@ -388,6 +393,11 @@ const STRINGS = {
     'publish.result.fail': 'Failed',
     'publish.result.error': 'Could not start the job',
     'publish.openNotion': 'Open in Notion',
+    'drawer.share': 'Share',
+    'drawer.copyShare': 'Copy the Share section for standups',
+    'drawer.copied': 'Copied',
+    'drawer.loading': 'Loading from Notion…',
+    'drawer.empty': 'Empty',
     'publish.close': 'Close',
 
     'prefs.title': 'Preferences',
