@@ -351,3 +351,30 @@ button {
 .dash-rise {
   animation: dash-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* 차트 막대 진입 — 월별(세로) 차오름 / 요일(가로) 늘어남. style 의 animation-delay 로 stagger */
+@keyframes bar-grow-v {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes bar-grow-h {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.bar-v {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: bar-grow-v 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.bar-h {
+  transform-origin: left;
+  animation: bar-grow-h 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
