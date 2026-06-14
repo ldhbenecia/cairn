@@ -233,6 +233,7 @@ export function App() {
             const p = recent?.pages.find((x) => x.category === 'daily' && x.date === date);
             if (p) setSelectedPage(p);
           }}
+          onGoToWorklogs={() => setView('worklogs')}
         />
       ) : (
         <WorklogList
