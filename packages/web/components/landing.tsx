@@ -114,16 +114,27 @@ export async function Landing({ lang }: { lang: Lang }) {
               {c.output.title}
             </h2>
             <p className="mt-5 text-[15.5px] leading-relaxed text-ink-subtle">{c.output.lead}</p>
-            <ul className="mt-7 space-y-3">
+            <ul className="mt-7 grid gap-2.5 sm:grid-cols-2">
               {c.output.ticks.map((t) => (
-                <li key={t} className="flex items-start gap-3 text-[15px] text-ink-muted">
+                <li
+                  key={t}
+                  className="flex items-start gap-2.5 rounded-xl border border-hairline bg-surface-1 px-3.5 py-3 text-[13.5px] leading-snug text-ink-muted"
+                >
                   <Check />
                   {t}
                 </li>
               ))}
             </ul>
           </Reveal>
-          <Reveal delay={0.1}>
+          <Reveal delay={0.1} className="relative">
+            <div
+              className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-60"
+              style={{
+                background:
+                  'radial-gradient(60% 60% at 35% 30%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 70%)',
+                filter: 'blur(36px)',
+              }}
+            />
             <Screenshot src="/worklog.png" alt="a published cairn worklog in Notion" />
           </Reveal>
         </div>
