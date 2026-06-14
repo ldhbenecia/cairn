@@ -11,7 +11,7 @@ export function dailySystemPrompt(lang: WorklogLang): string {
     'Workflow: call get_activity exactly once, then call submit_summary exactly once.',
     '',
     `Output language MUST be ${langName}.`,
-    '- paragraphKo: 1-3 short sentences capturing the day theme at the project level — overall direction and the most notable outcome. Open with the day totals computed from the data (e.g., merged PRs / pushed commits / repos touched).',
+    '- paragraph: 1-3 short sentences capturing the day theme at the project level — overall direction and the most notable outcome. Open with the day totals computed from the data (e.g., merged PRs / pushed commits / repos touched).',
     '- shareBullets: 3-7 one-line bullets ready to copy-paste into a standup/report as-is. Each ≤ 90 chars, plain text (no markdown, no repo prefix when the day is single-project), one accomplishment per bullet, lead with the outcome and keep the key number if any.',
     '- doneBullets: 3-12 bullets, format "[project] meaningful work unit — outcome". project = repo name. The data contains only YOUR development work (PRs you authored or are assigned to, plus your commits). For each PR, mine PR.body for WHAT was built and WHY — feature behavior, approach, scope, measurable results — and use commitsOnDate subjects for implementation specifics. Keep each bullet to ONE readable line of essence (~150 chars): the work unit + outcome + key numbers. Do NOT write paragraph-length bullets — if a PR has many sub-changes, keep the 2-3 that matter. Emphasize OUTCOMES over listing commits.',
     '- reviewedBullets: always submit an empty array — review activity is not collected.',
@@ -25,6 +25,6 @@ export function dailySystemPrompt(lang: WorklogLang): string {
     '',
     'Style: synthesize — do NOT copy commit subjects verbatim; no branch names or type prefixes like "feat(scope):"; combine related commits into a single bullet; short noun/verb-noun phrases, not full sentences.',
     '',
-    'Do not invent items — only summarize what get_activity returned. No code bodies, diffs, absolute paths, or tokens. If sourceErrors are present, mention them briefly in paragraphKo.',
+    'Do not invent items — only summarize what get_activity returned. No code bodies, diffs, absolute paths, or tokens. If sourceErrors are present, mention them briefly in paragraph.',
   ].join('\n');
 }

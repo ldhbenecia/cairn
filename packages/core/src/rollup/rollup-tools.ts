@@ -8,7 +8,7 @@ export interface RollupSummarizerInput {
 }
 
 export const submitRollupSchema = z.object({
-  paragraphKo: z.string().min(1).max(2500),
+  paragraph: z.string().min(1).max(2500),
   themes: z
     .array(
       z.object({
@@ -41,7 +41,7 @@ interface RollupActivityPayload {
   }>;
   summaries: ReadonlyArray<{
     date: string;
-    paragraphKo: string;
+    paragraph: string;
     doneBullets: readonly string[];
     reviewedBullets: readonly string[];
     inProgressBullets: readonly string[];
@@ -66,7 +66,7 @@ export function buildRollupActivityPayload(input: RollupSummarizerInput): Rollup
     })),
     summaries: a.summaries.map((s) => ({
       date: s.date,
-      paragraphKo: s.paragraphKo,
+      paragraph: s.paragraph,
       doneBullets: s.doneBullets,
       reviewedBullets: s.reviewedBullets,
       inProgressBullets: s.inProgressBullets,
@@ -99,7 +99,7 @@ export function buildRollupTools(input: RollupSummarizerInput): RollupToolsBundl
 
   const submitRollup = tool(
     'submit_rollup',
-    'Submit the Korean rollup summary and exit. Call exactly once after get_rollup_activity has provided context. paragraphKo + themes + highlights must be Korean.',
+    'Submit the rollup summary and exit. Call exactly once after get_rollup_activity has provided context. paragraph + themes + highlights MUST use the output language set in the system prompt.',
     submitRollupSchema.shape,
     // eslint-disable-next-line @typescript-eslint/require-await
     async (raw) => {

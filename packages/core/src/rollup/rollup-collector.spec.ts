@@ -18,7 +18,7 @@ describe('parseSummaryFromBlocks', () => {
     ];
 
     expect(parseSummaryFromBlocks(blocks)).toEqual({
-      paragraphKo: '요약',
+      paragraph: '요약',
       doneBullets: ['[app] 직접 구현한 작업'],
       reviewedBullets: ['[api] 팀원 PR 리뷰와 승인'],
       inProgressBullets: ['[app] 진행 중인 작업'],

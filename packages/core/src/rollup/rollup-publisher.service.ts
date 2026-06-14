@@ -265,7 +265,7 @@ function buildRollupBlocks(
   );
 
   blocks.push(heading2('Summary'));
-  blocks.push(paragraph(summary.paragraphKo));
+  blocks.push(paragraph(summary.paragraph));
 
   blocks.push(heading2('Highlights'));
   blocks.push(...bulletsOrEmpty(summary.highlights));

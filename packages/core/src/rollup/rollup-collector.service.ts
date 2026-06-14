@@ -23,7 +23,7 @@ interface ParsedSourceCounts {
 }
 
 interface ParsedSummaryText {
-  paragraphKo: string;
+  paragraph: string;
   doneBullets: string[];
   reviewedBullets: string[];
   inProgressBullets: string[];
@@ -169,7 +169,7 @@ export function parseSourceCounts(text: string): ParsedSourceCounts {
 export function parseSummaryFromBlocks(
   blocks: readonly ExtractedBlock[],
 ): ParsedSummaryText | null {
-  let paragraphKo = '';
+  let paragraph = '';
   const doneBullets: string[] = [];
   const reviewedBullets: string[] = [];
   const inProgressBullets: string[] = [];
@@ -187,7 +187,7 @@ export function parseSummaryFromBlocks(
     if (block.type === 'paragraph' && section === 'summary' && !pickedSummaryParagraph) {
       const text = block.text.trim();
       if (text && text !== '—') {
-        paragraphKo = text;
+        paragraph = text;
         pickedSummaryParagraph = true;
       }
       continue;
@@ -203,7 +203,7 @@ export function parseSummaryFromBlocks(
   }
 
   if (
-    !paragraphKo &&
+    !paragraph &&
     doneBullets.length === 0 &&
     reviewedBullets.length === 0 &&
     inProgressBullets.length === 0 &&
@@ -211,7 +211,7 @@ export function parseSummaryFromBlocks(
   ) {
     return null;
   }
-  return { paragraphKo, doneBullets, reviewedBullets, inProgressBullets, notesBullets };
+  return { paragraph, doneBullets, reviewedBullets, inProgressBullets, notesBullets };
 }
 
 function headingToSection(

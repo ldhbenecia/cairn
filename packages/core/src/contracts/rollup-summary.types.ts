@@ -6,7 +6,7 @@ export interface RollupTheme {
 }
 
 export interface RollupSummary {
-  paragraphKo: string;
+  paragraph: string;
   themes: readonly RollupTheme[];
   highlights: readonly string[];
   usage?: WorklogSummaryUsage;

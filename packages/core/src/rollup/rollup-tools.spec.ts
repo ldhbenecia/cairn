@@ -21,7 +21,7 @@ const activity: RollupActivity = {
   summaries: [
     {
       date: '2026-05-09',
-      paragraphKo: 'CairnError 통합과 Notion DB 스키마 작업을 진행함.',
+      paragraph: 'CairnError 통합과 Notion DB 스키마 작업을 진행함.',
       doneBullets: ['[cairn] CairnError 클래스 통합 (#13)'],
       reviewedBullets: [],
       inProgressBullets: ['[cairn] worklog DB 스키마 (#14)'],
