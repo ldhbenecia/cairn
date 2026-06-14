@@ -16,7 +16,7 @@ export interface SummarizerInput {
 }
 
 export const submitSummarySchema = z.object({
-  paragraphKo: z.string().min(1).max(2000),
+  paragraph: z.string().min(1).max(2000),
   // 보고/스탠드업에 바로 복붙할 수 있는 한 줄 bullet 모음
   shareBullets: z.array(z.string().min(1).max(200)).max(10).default([]),
   doneBullets: z.array(z.string().min(1).max(300)).max(20),

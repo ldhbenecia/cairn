@@ -13,7 +13,7 @@ export interface RollupDailyPageMeta {
 
 export interface RollupDailySummaryText {
   date: string;
-  paragraphKo: string;
+  paragraph: string;
   doneBullets: readonly string[];
   reviewedBullets: readonly string[];
   inProgressBullets: readonly string[];
