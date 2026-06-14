@@ -2,33 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import hljs from 'highlight.js/lib/common';
 import { Check, Copy, ExternalLink, Loader2, X } from 'lucide-react';
 import type { PageContent, RecentPage, RichSpan, SimpleBlock } from '../cairn-api';
+import { sectionBullets } from '../lib/blocks';
 import { useSettings } from '../settings-context';
 import 'highlight.js/styles/github-dark.css';
 
 type Props = { page: RecentPage; onClose: () => void };
 
-const blockText = (b: SimpleBlock): string =>
-  b.rich
-    .map((s) => s.text)
-    .join('')
-    .trim();
-
-// 'Share' 헤딩 아래 bullet 들을 스탠드업 복붙용 plain text 로 추출 (없으면 null)
+// 'Share' 헤딩 아래 bullet 들을 스탠드업 복붙용 plain text 로 (없으면 null)
 function extractShareText(blocks: SimpleBlock[]): string | null {
-  const start = blocks.findIndex(
-    (b) => b.type === 'heading_2' && blockText(b).toLowerCase() === 'share',
-  );
-  if (start === -1) return null;
-  const lines: string[] = [];
-  for (let i = start + 1; i < blocks.length; i++) {
-    const b = blocks[i]!;
-    if (b.type === 'heading_1' || b.type === 'heading_2') break;
-    if (b.type === 'bulleted_list_item') {
-      const text = blockText(b);
-      if (text) lines.push(`- ${text}`);
-    }
-  }
-  return lines.length > 0 ? lines.join('\n') : null;
+  const lines = sectionBullets(blocks, 'share');
+  return lines.length > 0 ? lines.map((l) => `- ${l}`).join('\n') : null;
 }
 
 export function WorklogDrawer({ page, onClose }: Props) {

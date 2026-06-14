@@ -17,6 +17,7 @@ import type {
 import { Dashboard } from './components/dashboard';
 import { Onboarding } from './components/onboarding';
 import { PreferencesDialog } from './components/preferences-dialog';
+import { AchievementsDialog } from './components/achievements-dialog';
 import { CommandPalette } from './components/command-palette';
 import { WorklogDrawer } from './components/worklog-drawer';
 import {
@@ -50,6 +51,7 @@ export function App() {
   const [view, setView] = useState<MainView>('stats');
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [cmdkOpen, setCmdkOpen] = useState(false);
+  const [achvOpen, setAchvOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
   const [selectedPage, setSelectedPage] = useState<RecentPage | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
@@ -249,6 +251,7 @@ export function App() {
           onTrigger={trigger}
           onReload={loadRecent}
           onOpen={setSelectedPage}
+          onAchievements={() => setAchvOpen(true)}
           drawerOpen={selectedPage !== null}
         />
       )}
@@ -261,8 +264,10 @@ export function App() {
           onPreferences={() => setPrefsOpen(true)}
           onPublish={(mode) => void trigger(mode)}
           onOpenPage={setSelectedPage}
+          onAchievements={() => setAchvOpen(true)}
         />
       )}
+      {achvOpen && <AchievementsDialog recent={recent} onClose={() => setAchvOpen(false)} />}
       <PreferencesDialog
         open={prefsOpen}
         onOpenChange={setPrefsOpen}
