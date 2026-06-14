@@ -126,9 +126,11 @@ const CELL_GAP = 3;
 export function Dashboard({
   recent,
   onPickDate,
+  onGoToWorklogs,
 }: {
   recent: RecentListResult | null;
   onPickDate?: (date: string) => void;
+  onGoToWorklogs?: () => void;
 }) {
   const { t } = useSettings();
   const data = useMemo(() => aggregate(recent?.pages ?? []), [recent]);
@@ -147,9 +149,18 @@ export function Dashboard({
           {!recent ? (
             <p className="py-16 text-center text-[12px] text-ink-tertiary">{t('list.loading')}</p>
           ) : data.byDate.size === 0 ? (
-            <p className="rounded-lg border border-hairline bg-surface-1 py-16 text-center text-[12px] text-ink-tertiary">
-              {t('stats.empty')}
-            </p>
+            <div className="flex flex-col items-center gap-4 rounded-lg border border-hairline bg-surface-1 py-16 text-center">
+              <p className="text-[12px] text-ink-tertiary">{t('stats.empty')}</p>
+              {onGoToWorklogs && (
+                <button
+                  type="button"
+                  onClick={onGoToWorklogs}
+                  className="rounded-md bg-accent px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover"
+                >
+                  {t('stats.emptyCta')}
+                </button>
+              )}
+            </div>
           ) : (
             <div className="flex flex-col gap-6">
               <div
