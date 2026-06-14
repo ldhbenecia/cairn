@@ -133,3 +133,18 @@ body::after {
   display: block;
   width: 100%;
 }
+
+@keyframes lightbox-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.lightbox-fade {
+  animation: lightbox-in 0.18s ease both;
+}
+.lightbox-fade > img {
+  animation: lightbox-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

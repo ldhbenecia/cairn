@@ -82,9 +82,10 @@ export async function Landing({ lang }: { lang: Lang }) {
         <div className="mt-14 grid gap-3 md:grid-cols-4 md:grid-rows-2">
           {/* step 01 — big square */}
           <Reveal className="md:col-span-2 md:row-span-2">
-            <div className="card-hover flex h-full flex-col justify-between rounded-2xl border border-hairline bg-surface-1 p-8">
+            <div className="card-hover group/c relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-hairline bg-surface-1 p-8">
               <span className="font-mono text-[13px] font-medium text-accent-hover">01</span>
-              <div className="mt-12">
+              <CollectVisual />
+              <div>
                 <h3 className="text-[22px] font-semibold tracking-[-0.02em]">{c.how.steps[0]!.t}</h3>
                 <p className="mt-3 max-w-md text-[14.5px] leading-relaxed text-ink-subtle">
                   {c.how.steps[0]!.d}
@@ -246,6 +247,37 @@ export async function Landing({ lang }: { lang: Lang }) {
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+// Collect 타일 채움 — 여러 소스(PR·커밋)가 쌓이는(cairn 스택) 미니 비주얼
+const COLLECT_ROWS = [
+  { kind: 'PR', text: 'feat(api): chunk oversized queries', meta: '#142' },
+  { kind: 'commit', text: 'fix: race in publish queue', meta: 'a8bf3c' },
+  { kind: 'PR', text: 'refactor: collector dedup + cache', meta: '#138' },
+];
+
+function CollectVisual() {
+  return (
+    <div className="my-6 flex flex-col gap-2">
+      {COLLECT_ROWS.map((r, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-2.5 rounded-lg border border-hairline bg-surface-2/70 px-3 py-2.5"
+          style={{ marginLeft: `${i * 16}px`, opacity: 1 - i * 0.16 }}
+        >
+          <span
+            className={`flex h-[18px] shrink-0 items-center rounded px-1.5 font-mono text-[9.5px] font-semibold tracking-wide uppercase ${
+              r.kind === 'PR' ? 'bg-accent/20 text-accent-hover' : 'bg-surface-3 text-ink-subtle'
+            }`}
+          >
+            {r.kind}
+          </span>
+          <span className="truncate text-[12.5px] text-ink-muted">{r.text}</span>
+          <span className="ml-auto shrink-0 font-mono text-[10px] text-ink-tertiary">{r.meta}</span>
+        </div>
+      ))}
     </div>
   );
 }
