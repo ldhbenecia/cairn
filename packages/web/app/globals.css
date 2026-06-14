@@ -128,10 +128,8 @@ body::after {
   box-shadow: 0 0 0 1px color-mix(in srgb, #ffffff 6%, transparent) inset;
 }
 
-/* 캡처의 윈도우 바깥 검정 여백을 살짝 확대해 프레임 밖으로 크롭 */
+/* 스크린샷은 이미 투명 마진 trim + 둥근 모서리 마스크로 정리됨 — 확대 크롭 불필요 */
 .screenshot-frame > img {
   display: block;
   width: 100%;
-  transform: scale(1.035);
-  transform-origin: center;
 }
