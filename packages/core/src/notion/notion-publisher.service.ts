@@ -276,7 +276,29 @@ export class NotionPublisherService {
 function formatSourceCounts(input: PublishWorklogInput): string {
   const gh = input.github?.prs.length ?? 0;
   const git = input.localGit?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
-  return `gh:${gh} / git:${git}`;
+  const hrs = formatHourHistogram(input);
+  return `gh:${gh} / git:${git}${hrs ? ` / ${hrs}` : ''}`;
+}
+
+// 그날 활동(커밋)의 시간대 분포 — 데스크톱 대시보드의 "시간대별 작업" 차트용.
+// 머신 로컬 시간 기준(getHours) — KST 단정 금지(timezone 룰). "hrs:c0,..,c23" 또는 활동 없으면 null.
+function formatHourHistogram(input: PublishWorklogInput): string | null {
+  const hours = new Array<number>(24).fill(0);
+  let any = false;
+  const bump = (iso: string): void => {
+    const h = new Date(iso).getHours();
+    if (h >= 0 && h < 24) {
+      hours[h]! += 1;
+      any = true;
+    }
+  };
+  for (const repo of input.localGit?.repos ?? []) {
+    for (const c of repo.commits) bump(c.authoredAt);
+  }
+  for (const pr of input.github?.prs ?? []) {
+    for (const c of pr.commitsOnDate) bump(c.authoredAt);
+  }
+  return any ? `hrs:${hours.join(',')}` : null;
 }
 
 function buildSummaryBlocks(

@@ -17,10 +17,20 @@ function parseCounts(sourceCounts: string | null): { pr: number; commit: number 
 type DayActivity = { date: string; pr: number; commit: number; total: number };
 type MonthBucket = { month: string; pr: number; commit: number; activeDays: number };
 
+// "... / hrs:c0,..,c23" → 24칸 시간 히스토그램(없으면 null). 발행기가 채움(머신 로컬 시간).
+function parseHours(sourceCounts: string | null): number[] | null {
+  if (!sourceCounts) return null;
+  const m = /hrs:([\d,]+)/.exec(sourceCounts);
+  if (!m) return null;
+  const arr = m[1]!.split(',').map(Number);
+  return arr.length === 24 && arr.every(Number.isFinite) ? arr : null;
+}
+
 type Agg = {
   byDate: Map<string, DayActivity>;
   months: MonthBucket[];
   weekday: number[]; // 일~토 7칸: 총 활동량
+  hours: number[]; // 0~23시 24칸: 커밋 시간대 분포
   total: { pr: number; commit: number; activeDays: number };
   streak: { current: number; longest: number };
 };
@@ -36,10 +46,13 @@ function aggregate(pages: RecentPage[]): Agg {
   const byDate = new Map<string, DayActivity>();
   const byMonth = new Map<string, { pr: number; commit: number; days: Set<string> }>();
   const weekday = [0, 0, 0, 0, 0, 0, 0];
+  const hours = new Array<number>(24).fill(0);
 
   for (const p of pages) {
     if (p.category !== 'daily' || !p.date) continue;
     const { pr, commit } = parseCounts(p.sourceCounts);
+    const hrs = parseHours(p.sourceCounts);
+    if (hrs) for (let i = 0; i < 24; i++) hours[i]! += hrs[i]!;
     const total = pr + commit;
     const prev = byDate.get(p.date);
     byDate.set(p.date, {
@@ -74,7 +87,7 @@ function aggregate(pages: RecentPage[]): Agg {
     { pr: 0, commit: 0, activeDays: 0 },
   );
 
-  return { byDate, months, weekday, total, streak: computeStreak(byDate) };
+  return { byDate, months, weekday, hours, total, streak: computeStreak(byDate) };
 }
 
 // 활동 있는 날의 연속(현재/최장). 현재 streak 은 오늘 또는 어제부터 거슬러 셈.
@@ -180,9 +193,15 @@ export function Dashboard({
                 <WeekdayChart weekday={data.weekday} t={t} />
               </div>
 
+              {data.hours.some((h) => h > 0) && (
+                <div className="dash-rise" style={{ animationDelay: '220ms' }}>
+                  <TimeOfDayChart hours={data.hours} t={t} />
+                </div>
+              )}
+
               <p
                 className="dash-rise text-[11px] text-ink-tertiary"
-                style={{ animationDelay: '220ms' }}
+                style={{ animationDelay: '280ms' }}
               >
                 {t('stats.note')}
               </p>
@@ -436,6 +455,44 @@ function MonthlyChart({ months, t }: { months: MonthBucket[]; t: T }) {
           );
         })}
       </svg>
+    </div>
+  );
+}
+
+// 시간대별 작업 분포 — 새벽/오전/오후/밤 중 언제 주로 일하는지 (커밋 시각 기준, 머신 로컬)
+const TOD_PERIODS: { key: I18nKey; from: number; to: number }[] = [
+  { key: 'stats.tod.dawn', from: 0, to: 5 },
+  { key: 'stats.tod.morning', from: 6, to: 11 },
+  { key: 'stats.tod.afternoon', from: 12, to: 17 },
+  { key: 'stats.tod.evening', from: 18, to: 23 },
+];
+
+function TimeOfDayChart({ hours, t }: { hours: number[]; t: T }) {
+  const buckets = TOD_PERIODS.map((p) => {
+    let sum = 0;
+    for (let h = p.from; h <= p.to; h++) sum += hours[h] ?? 0;
+    return sum;
+  });
+  const max = Math.max(1, ...buckets);
+  return (
+    <div className="rounded-lg border border-hairline bg-surface-1 p-4">
+      <span className="text-[13px] font-medium text-ink-muted">{t('stats.timeOfDay')}</span>
+      <div className="mt-3 flex flex-col gap-1.5">
+        {TOD_PERIODS.map((p, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="w-12 shrink-0 text-[11px] text-ink-tertiary">{t(p.key)}</span>
+            <div className="h-3 flex-1 overflow-hidden rounded-sm bg-surface-2">
+              <div
+                className="bar-h h-full rounded-sm bg-accent"
+                style={{ width: `${(buckets[i]! / max) * 100}%`, animationDelay: `${i * 50}ms` }}
+              />
+            </div>
+            <span className="w-8 shrink-0 text-right font-mono text-[11px] text-ink-tertiary">
+              {buckets[i]}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
