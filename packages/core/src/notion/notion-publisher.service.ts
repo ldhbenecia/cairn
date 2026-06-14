@@ -280,25 +280,28 @@ function formatSourceCounts(input: PublishWorklogInput): string {
   return `gh:${gh} / git:${git}${hrs ? ` / ${hrs}` : ''}`;
 }
 
-// 그날 활동(커밋)의 시간대 분포 — 데스크톱 대시보드의 "시간대별 작업" 차트용.
-// 머신 로컬 시간 기준(getHours) — KST 단정 금지(timezone 룰). "hrs:c0,..,c23" 또는 활동 없으면 null.
-function formatHourHistogram(input: PublishWorklogInput): string | null {
+// 커밋 시각(ISO) 들의 24칸 시간 히스토그램. 머신 로컬 시간 기준(getHours) — KST 단정 금지(timezone 룰).
+export function hourHistogram(isoTimestamps: readonly string[]): number[] {
   const hours = new Array<number>(24).fill(0);
-  let any = false;
-  const bump = (iso: string): void => {
+  for (const iso of isoTimestamps) {
     const h = new Date(iso).getHours();
-    if (h >= 0 && h < 24) {
-      hours[h]! += 1;
-      any = true;
-    }
-  };
+    if (h >= 0 && h < 24) hours[h]! += 1;
+  }
+  return hours;
+}
+
+// 그날 활동(커밋)의 시간대 분포 — 데스크톱 대시보드의 "시간대별 작업" 차트용.
+// "hrs:c0,..,c23" 또는 활동 없으면 null.
+function formatHourHistogram(input: PublishWorklogInput): string | null {
+  const stamps: string[] = [];
   for (const repo of input.localGit?.repos ?? []) {
-    for (const c of repo.commits) bump(c.authoredAt);
+    for (const c of repo.commits) stamps.push(c.authoredAt);
   }
   for (const pr of input.github?.prs ?? []) {
-    for (const c of pr.commitsOnDate) bump(c.authoredAt);
+    for (const c of pr.commitsOnDate) stamps.push(c.authoredAt);
   }
-  return any ? `hrs:${hours.join(',')}` : null;
+  if (stamps.length === 0) return null;
+  return `hrs:${hourHistogram(stamps).join(',')}`;
 }
 
 function buildSummaryBlocks(
