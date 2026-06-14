@@ -102,6 +102,22 @@ export async function Landing({ lang }: { lang: Lang }) {
             <BentoTile n="03" title={c.how.steps[2]!.t} desc={c.how.steps[2]!.d} className="h-full" />
           </Reveal>
         </div>
+
+        {/* 발행 진행 UI 쇼케이스 */}
+        <Reveal delay={0.1} className="relative mx-auto mt-10 max-w-4xl">
+          <div
+            className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-50"
+            style={{
+              background:
+                'radial-gradient(50% 50% at 50% 30%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 70%)',
+              filter: 'blur(40px)',
+            }}
+          />
+          <Screenshot
+            src={`/summarizing_${lang === 'ko' ? 'ko' : 'us'}.png`}
+            alt="cairn publishing a worklog"
+          />
+        </Reveal>
       </section>
 
       {/* WORKLOG OUTPUT — 풀폭 큰 스크린샷 */}
