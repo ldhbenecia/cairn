@@ -77,28 +77,36 @@ export async function Landing({ lang }: { lang: Lang }) {
         <SectionHead eyebrow={c.how.eyebrow} title={c.how.title} lead={c.how.lead} />
         <div className="mt-14 grid gap-3 md:grid-cols-4 md:grid-rows-2">
           {/* big tile — step 01 */}
-          <div className="card-hover relative flex flex-col justify-between overflow-hidden rounded-2xl border border-hairline bg-surface-1 p-8 md:col-span-2 md:row-span-2">
-            <span className="pointer-events-none absolute -top-6 -right-2 font-mono text-[140px] leading-none font-semibold text-ink/[0.03] select-none">
-              01
-            </span>
-            <span className="font-mono text-[13px] font-medium text-accent-hover">01</span>
-            <div className="mt-10">
-              <h3 className="text-[22px] font-semibold tracking-[-0.02em]">{c.how.steps[0]!.t}</h3>
-              <p className="mt-3 max-w-sm text-[14.5px] leading-relaxed text-ink-subtle">
-                {c.how.steps[0]!.d}
-              </p>
+          <Reveal className="md:col-span-2 md:row-span-2">
+            <div className="card-hover relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-hairline bg-surface-1 p-8">
+              <span className="pointer-events-none absolute -top-6 -right-2 font-mono text-[140px] leading-none font-semibold text-ink/[0.03] select-none">
+                01
+              </span>
+              <span className="font-mono text-[13px] font-medium text-accent-hover">01</span>
+              <div className="mt-10">
+                <h3 className="text-[22px] font-semibold tracking-[-0.02em]">{c.how.steps[0]!.t}</h3>
+                <p className="mt-3 max-w-sm text-[14.5px] leading-relaxed text-ink-subtle">
+                  {c.how.steps[0]!.d}
+                </p>
+              </div>
             </div>
-          </div>
+          </Reveal>
           {/* wide tile — step 02 */}
-          <BentoTile n="02" title={c.how.steps[1]!.t} desc={c.how.steps[1]!.d} className="md:col-span-2" />
+          <Reveal className="md:col-span-2" delay={0.06}>
+            <BentoTile n="02" title={c.how.steps[1]!.t} desc={c.how.steps[1]!.d} className="h-full" />
+          </Reveal>
           {/* step 03 */}
-          <BentoTile n="03" title={c.how.steps[2]!.t} desc={c.how.steps[2]!.d} className="md:col-span-1" />
+          <Reveal className="md:col-span-1" delay={0.12}>
+            <BentoTile n="03" title={c.how.steps[2]!.t} desc={c.how.steps[2]!.d} className="h-full" />
+          </Reveal>
           {/* highlight from output ticks */}
-          <div className="card-hover flex flex-col justify-center rounded-2xl border border-hairline bg-surface-1 p-6 md:col-span-1">
-            <span className="text-[13px] leading-relaxed font-medium text-ink-muted">
-              {c.output.ticks[2]}
-            </span>
-          </div>
+          <Reveal className="md:col-span-1" delay={0.18}>
+            <div className="card-hover flex h-full flex-col justify-center rounded-2xl border border-hairline bg-surface-1 p-6">
+              <span className="text-[13px] leading-relaxed font-medium text-ink-muted">
+                {c.output.ticks[2]}
+              </span>
+            </div>
+          </Reveal>
         </div>
       </section>
 
