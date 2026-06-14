@@ -20,6 +20,7 @@ export type Settings = {
   language: Language;
   notifications: boolean;
   telemetry: boolean;
+  installId: string;
   autoPublish: AutoPublish;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
   summaryModel: SummaryModel;
