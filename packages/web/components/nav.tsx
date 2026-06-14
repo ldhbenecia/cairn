@@ -29,21 +29,20 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
           cairn
         </a>
 
-        {/* center nav — 정중앙 고정(좌우 폭과 무관), hover pill */}
-        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-0.5 md:flex">
-          {links.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="rounded-lg px-3 py-1.5 text-[13.5px] whitespace-nowrap text-ink-muted transition-colors hover:bg-surface-2/70 hover:text-ink"
-            >
-              {l.label}
-            </a>
-          ))}
-        </nav>
-
-        {/* right cluster */}
-        <div className="flex shrink-0 items-center gap-2">
+        {/* 내비 + 액션을 오른쪽으로 (가운데 정렬 폐기) */}
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
+          <nav className="hidden items-center gap-0.5 md:flex">
+            {links.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                className="rounded-lg px-3 py-1.5 text-[13.5px] whitespace-nowrap text-ink-muted transition-colors hover:bg-surface-2/70 hover:text-ink"
+              >
+                {l.label}
+              </a>
+            ))}
+          </nav>
+          <span className="mx-0.5 hidden h-4 w-px bg-hairline-strong md:block" />
           <LangSwitcher lang={lang} />
           <a
             href={REPO_URL}

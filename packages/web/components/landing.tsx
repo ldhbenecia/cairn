@@ -76,71 +76,51 @@ export async function Landing({ lang }: { lang: Lang }) {
       <section id="how" className="mx-auto max-w-6xl px-6 py-24">
         <SectionHead eyebrow={c.how.eyebrow} title={c.how.title} lead={c.how.lead} />
         <div className="mt-14 grid gap-3 md:grid-cols-4 md:grid-rows-2">
-          {/* big tile — step 01 */}
+          {/* step 01 — big square */}
           <Reveal className="md:col-span-2 md:row-span-2">
-            <div className="card-hover relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-hairline bg-surface-1 p-8">
-              <span className="pointer-events-none absolute -top-6 -right-2 font-mono text-[140px] leading-none font-semibold text-ink/[0.03] select-none">
-                01
-              </span>
+            <div className="card-hover flex h-full flex-col justify-between rounded-2xl border border-hairline bg-surface-1 p-8">
               <span className="font-mono text-[13px] font-medium text-accent-hover">01</span>
-              <div className="mt-10">
+              <div className="mt-12">
                 <h3 className="text-[22px] font-semibold tracking-[-0.02em]">{c.how.steps[0]!.t}</h3>
-                <p className="mt-3 max-w-sm text-[14.5px] leading-relaxed text-ink-subtle">
+                <p className="mt-3 max-w-md text-[14.5px] leading-relaxed text-ink-subtle">
                   {c.how.steps[0]!.d}
                 </p>
               </div>
             </div>
           </Reveal>
-          {/* wide tile — step 02 */}
+          {/* step 02 — wide */}
           <Reveal className="md:col-span-2" delay={0.06}>
             <BentoTile n="02" title={c.how.steps[1]!.t} desc={c.how.steps[1]!.d} className="h-full" />
           </Reveal>
-          {/* step 03 */}
-          <Reveal className="md:col-span-1" delay={0.12}>
+          {/* step 03 — wide */}
+          <Reveal className="md:col-span-2" delay={0.12}>
             <BentoTile n="03" title={c.how.steps[2]!.t} desc={c.how.steps[2]!.d} className="h-full" />
-          </Reveal>
-          {/* highlight from output ticks */}
-          <Reveal className="md:col-span-1" delay={0.18}>
-            <div className="card-hover flex h-full flex-col justify-center rounded-2xl border border-hairline bg-surface-1 p-6">
-              <span className="text-[13px] leading-relaxed font-medium text-ink-muted">
-                {c.output.ticks[2]}
-              </span>
-            </div>
           </Reveal>
         </div>
       </section>
 
-      {/* WORKLOG OUTPUT */}
+      {/* WORKLOG OUTPUT — 풀폭 큰 스크린샷 */}
       <section id="output" className="border-y border-hairline bg-surface-1/40">
-        <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 lg:grid-cols-2">
-          <Reveal>
-            <p className="mb-3.5 inline-flex items-center gap-2 font-mono text-[12px] tracking-wider text-ink-tertiary uppercase">
-              <span className="size-1 rounded-full bg-accent" />
-              {c.output.eyebrow}
-            </p>
-            <h2 className="text-[clamp(27px,3.6vw,38px)] font-semibold tracking-[-0.025em]">
-              {c.output.title}
-            </h2>
-            <p className="mt-5 text-[15.5px] leading-relaxed text-ink-subtle">{c.output.lead}</p>
-            <ul className="mt-7 grid gap-2.5 sm:grid-cols-2">
-              {c.output.ticks.map((t) => (
-                <li
-                  key={t}
-                  className="flex items-start gap-2.5 rounded-xl border border-hairline bg-surface-1 px-3.5 py-3 text-[13.5px] leading-snug text-ink-muted"
-                >
-                  <Check />
-                  {t}
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-          <Reveal delay={0.1} className="relative">
+        <div className="mx-auto max-w-6xl px-6 py-24">
+          <SectionHead eyebrow={c.output.eyebrow} title={c.output.title} lead={c.output.lead} />
+          <ul className="mx-auto mt-8 flex max-w-3xl flex-wrap justify-center gap-2.5">
+            {c.output.ticks.map((t) => (
+              <li
+                key={t}
+                className="flex items-center gap-2 rounded-full border border-hairline bg-surface-1 px-3.5 py-1.5 text-[13px] text-ink-muted"
+              >
+                <Check />
+                {t}
+              </li>
+            ))}
+          </ul>
+          <Reveal delay={0.08} className="relative mt-14">
             <div
-              className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-60"
+              className="pointer-events-none absolute -inset-x-10 -top-10 bottom-0 -z-10 opacity-60"
               style={{
                 background:
-                  'radial-gradient(60% 60% at 35% 30%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 70%)',
-                filter: 'blur(36px)',
+                  'radial-gradient(50% 50% at 50% 25%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 70%)',
+                filter: 'blur(44px)',
               }}
             />
             <Screenshot src="/worklog.png" alt="a published cairn worklog in Notion" />
