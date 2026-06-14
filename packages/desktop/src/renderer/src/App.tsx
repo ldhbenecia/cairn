@@ -227,7 +227,13 @@ export function App() {
         className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/40 [-webkit-app-region:no-drag]"
       />
       {view === 'stats' ? (
-        <Dashboard recent={recent} />
+        <Dashboard
+          recent={recent}
+          onPickDate={(date) => {
+            const p = recent?.pages.find((x) => x.category === 'daily' && x.date === date);
+            if (p) setSelectedPage(p);
+          }}
+        />
       ) : (
         <WorklogList
           recent={recent}
