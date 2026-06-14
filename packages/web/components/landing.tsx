@@ -15,69 +15,90 @@ export async function Landing({ lang }: { lang: Lang }) {
     <div id="top">
       <Nav stars={stars} lang={lang} />
 
-      {/* HERO */}
-      <section className="relative px-6 pt-24 pb-20 text-center sm:pt-32 sm:pb-28">
-        <div className="reveal mx-auto max-w-3xl">
-          <a
-            href={REPO_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="mb-8 inline-flex items-center gap-2 rounded-full border border-hairline-strong bg-surface-1 py-1.5 pr-3.5 pl-2.5 text-[12.5px] font-medium text-ink-muted transition-colors hover:border-ink-subtle hover:text-ink"
-          >
-            <span className="size-1.5 rounded-full bg-accent" />
-            {c.hero.badge}
-          </a>
-          <h1 className="text-[clamp(40px,7vw,68px)] leading-[1.03] font-semibold tracking-[-0.04em] text-balance">
-            {c.hero.h1a}
-            <br />
-            <span className="text-ink-subtle">{c.hero.h1b}</span>
-          </h1>
-          <p className="mx-auto mt-7 max-w-xl text-[16.5px] leading-relaxed text-ink-subtle text-balance">
-            {c.hero.lead}
-          </p>
-          <div className="mt-9 flex flex-wrap items-center justify-center gap-2.5">
-            <a
-              href={download}
-              className="rounded-lg bg-accent px-5 py-2.5 text-[14.5px] font-semibold text-white transition-colors hover:bg-accent-hover"
-            >
-              {c.hero.download}
-            </a>
+      {/* HERO — 좌측정렬 split (Vercel/Raycast 톤) */}
+      <section className="relative px-6 pt-16 pb-20 sm:pt-24">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-10">
+          <div className="reveal">
             <a
               href={REPO_URL}
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg border border-hairline-strong bg-surface-1 px-5 py-2.5 text-[14.5px] font-semibold text-ink-muted transition-colors hover:border-ink-subtle hover:text-ink"
+              className="mb-7 inline-flex items-center gap-2 rounded-full border border-hairline-strong bg-surface-1 py-1.5 pr-3.5 pl-2.5 text-[12.5px] font-medium text-ink-muted transition-colors hover:border-ink-subtle hover:text-ink"
             >
-              {c.hero.source}
+              <span className="size-1.5 rounded-full bg-accent" />
+              {c.hero.badge}
             </a>
+            <h1 className="text-[clamp(38px,5vw,60px)] leading-[1.05] font-semibold tracking-[-0.04em]">
+              {c.hero.h1a}
+              <br />
+              <span className="text-ink-subtle">{c.hero.h1b}</span>
+            </h1>
+            <p className="mt-6 max-w-lg text-[16.5px] leading-relaxed text-ink-subtle">
+              {c.hero.lead}
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-2.5">
+              <a
+                href={download}
+                className="rounded-lg bg-accent px-5 py-2.5 text-[14.5px] font-semibold text-white transition-colors hover:bg-accent-hover"
+              >
+                {c.hero.download}
+              </a>
+              <a
+                href={REPO_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg border border-hairline-strong bg-surface-1 px-5 py-2.5 text-[14.5px] font-semibold text-ink-muted transition-colors hover:border-ink-subtle hover:text-ink"
+              >
+                {c.hero.source}
+              </a>
+            </div>
+            <p className="mt-5 font-mono text-[12.5px] text-ink-tertiary">
+              {latestTag ? `${latestTag} · ` : ''}
+              {c.hero.sub}
+            </p>
           </div>
-          <p className="mt-5 font-mono text-[12.5px] text-ink-tertiary">
-            {latestTag ? `${latestTag} · ` : ''}
-            {c.hero.sub}
-          </p>
-        </div>
 
-        <div className="reveal mx-auto mt-18 max-w-5xl" style={{ animationDelay: '0.12s' }}>
-          <Screenshot src="/statistics.png" alt="cairn statistics dashboard" priority />
+          <div className="reveal relative" style={{ animationDelay: '0.1s' }}>
+            <div
+              className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-70"
+              style={{
+                background:
+                  'radial-gradient(60% 60% at 70% 30%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 70%)',
+                filter: 'blur(36px)',
+              }}
+            />
+            <Screenshot src="/statistics.png" alt="cairn statistics dashboard" priority />
+          </div>
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
+      {/* HOW IT WORKS — bento */}
       <section id="how" className="mx-auto max-w-6xl px-6 py-24">
         <SectionHead eyebrow={c.how.eyebrow} title={c.how.title} lead={c.how.lead} />
-        <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
-          {c.how.steps.map((s, i) => (
-            <div key={s.t} className="card-hover bg-canvas p-7">
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-[13px] font-medium text-accent-hover">
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <span className="h-px flex-1 bg-hairline" />
-              </div>
-              <h3 className="mt-5 text-[18px] font-semibold tracking-[-0.01em]">{s.t}</h3>
-              <p className="mt-2.5 text-[14px] leading-relaxed text-ink-subtle">{s.d}</p>
+        <div className="mt-14 grid gap-3 md:grid-cols-4 md:grid-rows-2">
+          {/* big tile — step 01 */}
+          <div className="card-hover relative flex flex-col justify-between overflow-hidden rounded-2xl border border-hairline bg-surface-1 p-8 md:col-span-2 md:row-span-2">
+            <span className="pointer-events-none absolute -top-6 -right-2 font-mono text-[140px] leading-none font-semibold text-ink/[0.03] select-none">
+              01
+            </span>
+            <span className="font-mono text-[13px] font-medium text-accent-hover">01</span>
+            <div className="mt-10">
+              <h3 className="text-[22px] font-semibold tracking-[-0.02em]">{c.how.steps[0]!.t}</h3>
+              <p className="mt-3 max-w-sm text-[14.5px] leading-relaxed text-ink-subtle">
+                {c.how.steps[0]!.d}
+              </p>
             </div>
-          ))}
+          </div>
+          {/* wide tile — step 02 */}
+          <BentoTile n="02" title={c.how.steps[1]!.t} desc={c.how.steps[1]!.d} className="md:col-span-2" />
+          {/* step 03 */}
+          <BentoTile n="03" title={c.how.steps[2]!.t} desc={c.how.steps[2]!.d} className="md:col-span-1" />
+          {/* highlight from output ticks */}
+          <div className="card-hover flex flex-col justify-center rounded-2xl border border-hairline bg-surface-1 p-6 md:col-span-1">
+            <span className="text-[13px] leading-relaxed font-medium text-ink-muted">
+              {c.output.ticks[2]}
+            </span>
+          </div>
         </div>
       </section>
 
@@ -219,6 +240,26 @@ export async function Landing({ lang }: { lang: Lang }) {
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function BentoTile({
+  n,
+  title,
+  desc,
+  className = '',
+}: {
+  n: string;
+  title: string;
+  desc: string;
+  className?: string;
+}) {
+  return (
+    <div className={`card-hover rounded-2xl border border-hairline bg-surface-1 p-6 ${className}`}>
+      <span className="font-mono text-[13px] font-medium text-accent-hover">{n}</span>
+      <h3 className="mt-4 text-[17px] font-semibold tracking-[-0.01em]">{title}</h3>
+      <p className="mt-2 text-[13.5px] leading-relaxed text-ink-subtle">{desc}</p>
     </div>
   );
 }
