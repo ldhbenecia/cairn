@@ -1,17 +1,21 @@
 # cairn
 
-> 등산로의 돌탑처럼, 매일 작업 흔적 하나씩 쌓아 길을 남긴다.
+[English](README.md) · [한국어](README.ko.md)
 
-cairn turns your daily dev activity — GitHub PRs/reviews and local Git commits across multiple repos — into a Claude-summarized worklog published to Notion, with automatic weekly and monthly rollups.
+> Like a trail cairn, stack one mark of work each day — and leave a path behind.
+
+cairn turns your daily dev activity — GitHub PRs and local Git commits across multiple repos — into a Claude-summarized worklog published to Notion, with automatic weekly and monthly rollups.
 
 It runs as an **Electron desktop app** on top of a headless engine. Everything stays on your machine: it uses the Claude Agent SDK (no direct Anthropic API calls) and never sends source code or diffs to external services.
 
+![cairn stats dashboard](packages/web/public/statistics_us.png)
+
 ## Highlights
 
-- **Aggregate** — GitHub PRs/reviews + local Git commits across multiple repositories
-- **Summarize** — Claude (Agent SDK) writes a Korean-language worklog
+- **Aggregate** — GitHub PRs (authored + assigned) and local Git commits across multiple repositories and accounts
+- **Summarize** — Claude (Agent SDK) writes the worklog in your language (Korean or English), with the summary model you choose
 - **Publish** — to Notion: daily logs + automatic weekly/monthly rollups
-- **Desktop app** — guided first-run setup, one-click publish, opt-in auto-publish at a time you choose (your local timezone), in-app Notion viewer, dark/light/system themes, ko/en
+- **Desktop app** — guided first-run setup, one-click publish, opt-in auto-publish at a time you choose (your local timezone), in-app Notion viewer, a stats dashboard, dark/light/system themes, ko/en
 - **Local-first & private** — machine-local secrets, no server, no code-body egress (ADR 0003)
 
 ## Requirements
@@ -68,7 +72,8 @@ Modes: `daily`, `weekly`, `monthly`. Manual setup of `.env` + `worklog.config.js
 pnpm monorepo:
 
 - `packages/core` — headless engine (collectors → Claude summarizer → Notion publisher), runnable as a CLI
-- `packages/desktop` — Electron app (setup wizard, manual/auto publishing, in-app log viewer, preferences)
+- `packages/desktop` — Electron app (setup wizard, manual/auto publishing, in-app log viewer, stats dashboard, preferences)
+- `packages/web` — marketing site (Next.js, deployed on Vercel)
 
 ## Documentation
 
