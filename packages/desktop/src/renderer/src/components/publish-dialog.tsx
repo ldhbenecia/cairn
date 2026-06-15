@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { Check, ExternalLink, Loader2, Plus, TriangleAlert, X } from 'lucide-react';
+import { CalendarDays, Check, ExternalLink, Loader2, Plus, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { RunSession } from '../App';
 import type { CoreMode, CoreResult, CoreRunOptions, RunStep, SummaryModel } from '../cairn-api';
@@ -7,6 +7,7 @@ import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { BrandMark } from './brand-mark';
 import { DatePicker } from './date-picker';
+import { Segmented } from './segmented';
 import { Toggle } from './toggle';
 
 type T = (key: I18nKey) => string;
@@ -107,17 +108,20 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
 
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50 [-webkit-app-region:no-drag]" />
-        <Dialog.Content className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-115 max-w-[90vw] flex-col rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]">
-          <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
-            <Dialog.Title className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
+        <Dialog.Content className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-115 max-w-[90vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]">
+          <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
+            <Dialog.Title className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.2px] text-ink">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-accent/12 text-accent-hover">
+                <CalendarDays size={15} strokeWidth={2} />
+              </span>
               {t('publish.title')}
             </Dialog.Title>
-            <Dialog.Close className="flex size-7 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink">
+            <Dialog.Close className="flex size-7 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink">
               <X size={15} strokeWidth={2} />
             </Dialog.Close>
           </div>
 
-          <div className="overflow-y-auto px-5 py-5">
+          <div className="overflow-y-auto px-6 py-5">
             {showProgress && isDone && session?.error ? (
               <ErrorCard message={session.error} t={t} onClose={() => setOpen(false)} />
             ) : showProgress && isDone && session?.result ? (
@@ -139,45 +143,39 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
                   {t('publish.scope')}
                 </p>
-                <div className="mb-4 flex gap-1 rounded-lg bg-surface-2 p-1">
-                  {MODE_OPTIONS.map((o) => (
-                    <button
-                      key={o.mode}
-                      type="button"
-                      onClick={() => setMode(o.mode)}
-                      className={[
-                        'flex-1 rounded-md px-2 py-2 text-[13px] font-medium transition-colors',
-                        mode === o.mode
-                          ? 'bg-accent text-white'
-                          : 'text-ink-subtle hover:text-ink-muted',
-                      ].join(' ')}
-                    >
-                      {t(o.key)}
-                    </button>
-                  ))}
+                <div className="mb-4">
+                  <Segmented
+                    options={MODE_OPTIONS.map((o) => ({ value: o.mode, label: t(o.key) }))}
+                    value={mode}
+                    onChange={setMode}
+                  />
                 </div>
 
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div className="flex flex-col">
-                    <span className="text-[13px] text-ink">{t('publish.date')}</span>
+                <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-hairline bg-surface-2/50 px-3.5 py-3">
+                  <div className="flex min-w-0 flex-col">
+                    <span className="text-[13px] font-medium text-ink">{t('publish.date')}</span>
                     <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
                   </div>
                   <DatePicker value={date} max={todayIso()} disabled={busy} onChange={setDate} />
                 </div>
 
-                <div className="mb-5 flex flex-col gap-3">
-                  <Toggle
-                    checked={mode === 'daily' && isToday && includeBackfill}
-                    onChange={setIncludeBackfill}
-                    disabled={busy || mode !== 'daily' || !isToday}
-                    label={t('publish.backfill')}
-                  />
-                  <Toggle
-                    checked={force}
-                    onChange={setForce}
-                    disabled={busy}
-                    label={t('publish.force')}
-                  />
+                <div className="mb-5 flex flex-col divide-y divide-hairline overflow-hidden rounded-lg border border-hairline">
+                  <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                    <span
+                      className={`text-[13px] ${mode === 'daily' && isToday ? 'text-ink' : 'text-ink-tertiary'}`}
+                    >
+                      {t('publish.backfill')}
+                    </span>
+                    <Toggle
+                      checked={mode === 'daily' && isToday && includeBackfill}
+                      onChange={setIncludeBackfill}
+                      disabled={busy || mode !== 'daily' || !isToday}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                    <span className="text-[13px] text-ink">{t('publish.force')}</span>
+                    <Toggle checked={force} onChange={setForce} disabled={busy} />
+                  </div>
                 </div>
 
                 <button
@@ -195,12 +193,13 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                     });
                   }}
                   className={[
-                    'flex w-full items-center justify-center rounded-md px-3 py-2.5 text-[13px] font-medium transition-colors',
+                    'flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all active:scale-[0.99]',
                     busy
                       ? 'cursor-not-allowed bg-accent-focus text-white/70'
-                      : 'bg-accent text-white hover:bg-accent-hover',
+                      : 'bg-accent text-white shadow-sm shadow-accent/25 hover:bg-accent-hover',
                   ].join(' ')}
                 >
+                  {!busy && <Plus size={15} strokeWidth={2.5} />}
                   {busy ? t('publish.busy') : t('publish.start')}
                 </button>
               </>
