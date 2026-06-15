@@ -5,7 +5,7 @@ import { REPO_URL } from '../lib/github';
 
 const TITLE = 'cairn — your daily dev work, as a Notion worklog';
 const DESC =
-  'cairn collects your GitHub PRs and commits, summarizes them with Claude, and publishes a daily worklog to Notion — raw material for your resume, reviews, and salary talks.';
+  'cairn collects your GitHub PRs and commits, summarizes them with Claude, and publishes a daily worklog to Notion — your work, documented automatically and ready to look back on.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     'Notion',
     'Claude',
     'standup notes',
-    'engineering resume',
+    'work journal',
     'work log automation',
     '개발 일지',
     '자동 작업 일지',

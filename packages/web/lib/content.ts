@@ -7,7 +7,7 @@ export const content = {
       badge: 'Open source · free · runs on your machine',
       h1a: 'Your daily work,',
       h1b: 'stacked into a worklog.',
-      lead: 'Like a trail cairn, it stacks one mark of work each day. cairn collects your GitHub PRs and commits, summarizes them with Claude, and publishes a daily worklog to Notion — the raw material for your resume, reviews, and salary talks.',
+      lead: 'Like a trail cairn, it stacks one mark of work each day. cairn collects your GitHub PRs and commits, summarizes them with Claude, and publishes a daily worklog to Notion — your work, documented automatically and ready to look back on.',
       download: 'Download for macOS',
       source: 'View source',
       sub: 'Apple Silicon · AGPL-3.0',
@@ -34,7 +34,7 @@ export const content = {
     output: {
       eyebrow: 'The output',
       title: 'A worklog that reads itself back',
-      lead: 'Each day lands in Notion as a clean page — a project-level summary, a copy-paste-ready Share section for standups, and a detailed Done list with the numbers. Months of them roll up into the dashboard, and into your resume.',
+      lead: 'Each day lands in Notion as a clean page — a project-level summary, a copy-paste-ready Share section for standups, and a detailed Done list with the numbers. Months of them roll up into the dashboard — a record you can look back on.',
       ticks: [
         'Summary · Share · Done, every day',
         'Numbers preserved — counts, %, before→after',
@@ -83,7 +83,7 @@ export const content = {
       badge: '오픈소스 · 무료 · 내 컴퓨터에서 실행',
       h1a: '매일의 작업을,',
       h1b: '일지로 쌓아 올리다.',
-      lead: '등산로의 돌탑처럼, 매일 작업 흔적을 하나씩 쌓습니다. cairn 은 GitHub PR·커밋을 모아 Claude 로 요약하고, 매일 Notion 일지로 발행합니다 — 이력서·평가·연봉협상에 쓸 원자료입니다.',
+      lead: '등산로의 돌탑처럼, 매일 작업 흔적을 하나씩 쌓습니다. cairn 은 GitHub PR·커밋을 모아 Claude 로 요약하고, 매일 Notion 일지로 발행합니다 — 나중에 돌아볼 작업 기록이 자동으로 쌓입니다.',
       download: 'macOS 다운로드',
       source: '소스 보기',
       sub: 'Apple Silicon · AGPL-3.0',
@@ -110,7 +110,7 @@ export const content = {
     output: {
       eyebrow: '결과물',
       title: '스스로 읽히는 일지',
-      lead: '매일 Notion 에 깔끔한 페이지로 — 프로젝트 단위 요약, 스탠드업에 바로 복붙하는 Share 섹션, 수치가 담긴 상세 Done 목록. 몇 달이 쌓이면 대시보드로, 그리고 이력서로 굴러갑니다.',
+      lead: '매일 Notion 에 깔끔한 페이지로 — 프로젝트 단위 요약, 스탠드업에 바로 복붙하는 Share 섹션, 수치가 담긴 상세 Done 목록. 몇 달이 쌓이면 대시보드로, 돌아볼 기록으로 굴러갑니다.',
       ticks: [
         '매일 Summary · Share · Done',
         '수치 보존 — 건수, %, before→after',
