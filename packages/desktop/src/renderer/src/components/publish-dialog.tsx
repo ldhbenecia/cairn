@@ -46,6 +46,12 @@ const STEP_HINT_KEY: Record<RunStep, I18nKey> = {
 
 const DAILY_BACKFILL_DAYS = 7;
 
+const pad2 = (n: number): string => String(n).padStart(2, '0');
+const todayIso = (): string => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+
 const MODEL_NAME: Record<SummaryModel, string> = {
   default: '',
   sonnet: 'Sonnet',
@@ -57,9 +63,11 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
   const { t, settings } = useSettings();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<CoreMode>('daily');
+  const [date, setDate] = useState<string>(todayIso);
   const [includeBackfill, setIncludeBackfill] = useState(false);
   const [force, setForce] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
+  const isToday = date === todayIso();
 
   // 전역 실행 상태(자동 발행 백필·트레이 포함) — 자기 트리거(runningMode) 만으로는
   // 시작 시 자동 발행이 도는 걸 모른다.
@@ -148,11 +156,26 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                   ))}
                 </div>
 
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-[13px] text-ink">{t('publish.date')}</span>
+                    <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
+                  </div>
+                  <input
+                    type="date"
+                    value={date}
+                    max={todayIso()}
+                    disabled={busy}
+                    onChange={(e) => setDate(e.target.value || todayIso())}
+                    className="rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink focus:border-accent/50 focus:outline-none disabled:opacity-50"
+                  />
+                </div>
+
                 <div className="mb-5 flex flex-col gap-3">
                   <Toggle
-                    checked={mode === 'daily' && includeBackfill}
+                    checked={mode === 'daily' && isToday && includeBackfill}
                     onChange={setIncludeBackfill}
-                    disabled={busy || mode !== 'daily'}
+                    disabled={busy || mode !== 'daily' || !isToday}
                     label={t('publish.backfill')}
                   />
                   <Toggle
@@ -169,8 +192,12 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                   onClick={() => {
                     setShowProgress(true);
                     void onTrigger(mode, {
-                      backfillDays: mode === 'daily' && includeBackfill ? DAILY_BACKFILL_DAYS : 0,
+                      backfillDays:
+                        mode === 'daily' && isToday && includeBackfill ? DAILY_BACKFILL_DAYS : 0,
                       force,
+                      // 오늘이면 date 생략 → 기존 기본 동작(daily=오늘·weekly=지난주·monthly=지난달·백필).
+                      // 과거 날짜를 고르면 그 날짜를 명시 → daily=그날, weekly/monthly=그 날짜가 속한 기간.
+                      ...(isToday ? {} : { date }),
                     });
                   }}
                   className={[

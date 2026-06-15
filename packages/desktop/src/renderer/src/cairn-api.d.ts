@@ -1,6 +1,6 @@
 export type CoreMode = 'daily' | 'weekly' | 'monthly';
 
-export type CoreRunOptions = { backfillDays?: number; force?: boolean };
+export type CoreRunOptions = { backfillDays?: number; force?: boolean; date?: string };
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
 
