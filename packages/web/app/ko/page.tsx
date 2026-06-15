@@ -3,7 +3,7 @@ import { Landing } from '../../components/landing';
 
 const TITLE = 'cairn — 매일의 개발 작업을 Notion 일지로';
 const DESC =
-  'cairn 은 GitHub PR·커밋을 모아 Claude 로 요약하고, 매일 Notion 일지로 발행합니다 — 이력서·평가·연봉협상에 쓸 원자료입니다.';
+  'cairn 은 GitHub PR·커밋을 모아 Claude 로 요약하고, 매일 Notion 일지로 발행합니다 — 나중에 돌아볼 작업 기록입니다.';
 
 export const metadata: Metadata = {
   title: TITLE,
