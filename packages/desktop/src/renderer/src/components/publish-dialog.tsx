@@ -6,6 +6,7 @@ import type { CoreMode, CoreResult, CoreRunOptions, RunStep, SummaryModel } from
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { BrandMark } from './brand-mark';
+import { DatePicker } from './date-picker';
 import { Toggle } from './toggle';
 
 type T = (key: I18nKey) => string;
@@ -161,14 +162,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                     <span className="text-[13px] text-ink">{t('publish.date')}</span>
                     <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
                   </div>
-                  <input
-                    type="date"
-                    value={date}
-                    max={todayIso()}
-                    disabled={busy}
-                    onChange={(e) => setDate(e.target.value || todayIso())}
-                    className="rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink focus:border-accent/50 focus:outline-none disabled:opacity-50"
-                  />
+                  <DatePicker value={date} max={todayIso()} disabled={busy} onChange={setDate} />
                 </div>
 
                 <div className="mb-5 flex flex-col gap-3">
