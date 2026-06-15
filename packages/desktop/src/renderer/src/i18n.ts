@@ -225,6 +225,10 @@ const STRINGS = {
     'prefs.notifications.testDesc': '안 뜨면 macOS 시스템 설정 → 알림에서 cairn 허용 확인',
     'prefs.notifications.testBtn': '테스트 알림 보내기',
     'prefs.notifications.openSettings': 'macOS 알림 설정 열기',
+    'prefs.notifications.sent': '보냈어요',
+    'prefs.notifications.sentHint':
+      '알림을 보냈어요. cairn 이 앞에 떠 있으면 배너 대신 알림 센터에 들어가요 — 안 보이면 macOS 알림 설정에서 cairn 을 허용했는지 확인하세요.',
+    'prefs.notifications.unsupported': '이 기기에서 시스템 알림을 지원하지 않아요.',
     'prefs.autoPublish': '자동 발행',
     'prefs.autoPublish.daily': '일간 자동 발행',
     'prefs.autoPublish.dailyDesc': '매일 정해진 시각에 그날 일지를 발행',
@@ -513,6 +517,10 @@ const STRINGS = {
       'If nothing shows, allow cairn in macOS System Settings → Notifications',
     'prefs.notifications.testBtn': 'Send a test notification',
     'prefs.notifications.openSettings': 'Open macOS notification settings',
+    'prefs.notifications.sent': 'Sent',
+    'prefs.notifications.sentHint':
+      'Notification sent. If cairn is in the foreground it goes to Notification Center instead of a banner — if you see nothing, check that cairn is allowed in macOS notification settings.',
+    'prefs.notifications.unsupported': 'System notifications are not supported on this device.',
     'prefs.autoPublish': 'Auto-publish',
     'prefs.autoPublish.daily': 'Daily auto-publish',
     'prefs.autoPublish.dailyDesc': "Publish each day's worklog at a set time",
