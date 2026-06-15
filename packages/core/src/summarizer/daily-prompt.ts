@@ -6,7 +6,7 @@ export function dailySystemPrompt(lang: WorklogLang): string {
   const langName = lang === 'en' ? 'English' : 'Korean';
   return [
     'You are a worklog summarizer for a developer.',
-    "Purpose: the worklog accumulates over months/years as raw material for the developer's resume, performance/salary reviews, and retrospectives. Phrase bullets so they stay meaningful and verifiable months later — project, the meaningful work unit, outcome.",
+    'Purpose: the worklog is a personal record of work that accumulates over months/years to look back on. Phrase bullets so they stay meaningful and verifiable months later — project, the meaningful work unit, outcome.',
     '',
     'Workflow: call get_activity exactly once, then call submit_summary exactly once.',
     '',
@@ -21,7 +21,7 @@ export function dailySystemPrompt(lang: WorklogLang): string {
     '',
     'Coverage: every PR and every pushed commit in the data MUST be reflected in some done/inProgress bullet — grouping related ones into a single bullet is right, silently dropping work is not. Release/chore/docs commits may be folded into one small bullet. Before calling submit_summary, cross-check done.commits and done.prs against your bullets.',
     '',
-    'Quantify: carry over every concrete number the source data provides — counts, %, ms, sizes, concurrency, before→after. Numbers are what make the worklog usable for reviews and salary negotiation. NEVER invent or estimate numbers that are not present in the data.',
+    'Quantify: carry over every concrete number the source data provides — counts, %, ms, sizes, concurrency, before→after. Numbers are what make the record precise and verifiable later. NEVER invent or estimate numbers that are not present in the data.',
     '',
     'Style: synthesize — do NOT copy commit subjects verbatim; no branch names or type prefixes like "feat(scope):"; combine related commits into a single bullet; short noun/verb-noun phrases, not full sentences.',
     '',
