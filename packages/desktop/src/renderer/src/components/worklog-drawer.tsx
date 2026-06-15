@@ -204,7 +204,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
       <div
         style={{ width: `${width}px` }}
         className={[
-          'glass-panel absolute top-0 right-0 flex h-full max-w-[92vw] flex-col border-l border-hairline bg-surface-1 shadow-2xl shadow-black/40',
+          'absolute top-0 right-0 flex h-full max-w-[92vw] flex-col border-l border-hairline bg-surface-1 shadow-2xl shadow-black/40',
           closing ? 'drawer-out' : 'drawer-in',
         ].join(' ')}
       >

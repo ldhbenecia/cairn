@@ -4,7 +4,6 @@ import type { RecentListResult } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { pool, sectionBullets } from '../lib/blocks';
 import { useSettings } from '../settings-context';
-import { Segmented } from './segmented';
 
 const RANGES = [30, 90] as const;
 const RANGE_LABEL: Record<number, I18nKey> = {
@@ -120,19 +119,37 @@ export function AchievementsDialog({
         </div>
 
         <div className="flex flex-col gap-4 overflow-y-auto px-6 py-5">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <Segmented
-                options={RANGES.map((r) => ({ value: r, label: t(RANGE_LABEL[r]!) }))}
-                value={days}
-                onChange={setDays}
-                disabled={busy}
-              />
-            </div>
-            <span className="shrink-0 text-[12px] text-ink-tertiary">
-              {pages.length}
-              {t('achv.worklogs')}
-            </span>
+          <div className="grid grid-cols-2 gap-2">
+            {RANGES.map((r) => {
+              const selected = days === r;
+              const count = (recent?.pages ?? []).filter(
+                (p) => p.category === 'daily' && p.date != null && p.date >= localDateDaysAgo(r),
+              ).length;
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setDays(r)}
+                  className={[
+                    'flex flex-col items-start gap-0.5 rounded-xl border px-4 py-3 transition-all active:scale-[0.99] disabled:opacity-50',
+                    selected
+                      ? 'border-accent bg-accent/10 shadow-sm shadow-accent/15'
+                      : 'border-hairline hover:border-hairline-strong hover:bg-surface-2/60',
+                  ].join(' ')}
+                >
+                  <span
+                    className={`text-[13px] font-medium ${selected ? 'text-ink' : 'text-ink-muted'}`}
+                  >
+                    {t(RANGE_LABEL[r]!)}
+                  </span>
+                  <span className="text-[12px] text-ink-tertiary">
+                    {count}
+                    {t('achv.worklogs')}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <button

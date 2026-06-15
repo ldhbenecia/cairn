@@ -1,5 +1,17 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { CalendarDays, Check, ExternalLink, Loader2, Plus, TriangleAlert, X } from 'lucide-react';
+import {
+  CalendarClock,
+  CalendarDays,
+  CalendarRange,
+  Check,
+  ExternalLink,
+  type LucideIcon,
+  Loader2,
+  Plus,
+  Send,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { RunSession } from '../App';
 import type { CoreMode, CoreResult, CoreRunOptions, RunStep, SummaryModel } from '../cairn-api';
@@ -7,7 +19,6 @@ import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { BrandMark } from './brand-mark';
 import { DatePicker } from './date-picker';
-import { Segmented } from './segmented';
 import { Toggle } from './toggle';
 
 type T = (key: I18nKey) => string;
@@ -18,10 +29,10 @@ type Props = {
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
 };
 
-const MODE_OPTIONS: { mode: CoreMode; key: I18nKey }[] = [
-  { mode: 'daily', key: 'publish.today' },
-  { mode: 'weekly', key: 'publish.week' },
-  { mode: 'monthly', key: 'publish.month' },
+const MODE_OPTIONS: { mode: CoreMode; key: I18nKey; sub: I18nKey; icon: LucideIcon }[] = [
+  { mode: 'daily', key: 'publish.today', sub: 'publish.scope.daily', icon: CalendarDays },
+  { mode: 'weekly', key: 'publish.week', sub: 'publish.scope.weekly', icon: CalendarRange },
+  { mode: 'monthly', key: 'publish.month', sub: 'publish.scope.monthly', icon: CalendarClock },
 ];
 
 const STEPS: { key: RunStep; labelKey: I18nKey }[] = [
@@ -143,12 +154,43 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
                   {t('publish.scope')}
                 </p>
-                <div className="mb-4">
-                  <Segmented
-                    options={MODE_OPTIONS.map((o) => ({ value: o.mode, label: t(o.key) }))}
-                    value={mode}
-                    onChange={setMode}
-                  />
+                <div className="mb-4 grid grid-cols-3 gap-2">
+                  {MODE_OPTIONS.map((o) => {
+                    const selected = mode === o.mode;
+                    const Icon = o.icon;
+                    return (
+                      <button
+                        key={o.mode}
+                        type="button"
+                        onClick={() => setMode(o.mode)}
+                        className={[
+                          'relative flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3.5 transition-all active:scale-[0.98]',
+                          selected
+                            ? 'border-accent bg-accent/10 shadow-sm shadow-accent/15'
+                            : 'border-hairline hover:border-hairline-strong hover:bg-surface-2/60',
+                        ].join(' ')}
+                      >
+                        {selected && (
+                          <Check
+                            size={13}
+                            strokeWidth={3}
+                            className="absolute top-2 right-2 text-accent"
+                          />
+                        )}
+                        <Icon
+                          size={20}
+                          strokeWidth={1.75}
+                          className={selected ? 'text-accent' : 'text-ink-tertiary'}
+                        />
+                        <span
+                          className={`text-[13px] font-medium ${selected ? 'text-ink' : 'text-ink-muted'}`}
+                        >
+                          {t(o.key)}
+                        </span>
+                        <span className="text-[11px] text-ink-tertiary">{t(o.sub)}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-hairline bg-surface-2/50 px-3.5 py-3">
@@ -199,7 +241,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                       : 'bg-accent text-white shadow-sm shadow-accent/25 hover:bg-accent-hover',
                   ].join(' ')}
                 >
-                  {!busy && <Plus size={15} strokeWidth={2.5} />}
+                  {!busy && <Send size={15} strokeWidth={2.25} />}
                   {busy ? t('publish.busy') : t('publish.start')}
                 </button>
               </>
