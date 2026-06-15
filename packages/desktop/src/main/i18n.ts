@@ -18,6 +18,8 @@ const STRINGS = {
     'notify.autoRunning': '{mode}를 발행하는 중이에요',
     'notify.autoConfirmTitle': 'cairn 자동 발행 대기',
     'notify.autoConfirm': '{mode}를 발행할까요? 클릭해서 확인',
+    'notify.testTitle': 'cairn 알림 테스트',
+    'notify.testBody': '이 알림이 보이면 발행 완료 알림도 정상으로 떠요',
 
     'tray.tooltip': 'cairn — 자동 작업 일지',
     'tray.daily': '오늘 일지 발행',
@@ -44,6 +46,8 @@ const STRINGS = {
     'notify.autoRunning': 'Publishing {mode}…',
     'notify.autoConfirmTitle': 'cairn auto-publish — confirm',
     'notify.autoConfirm': 'Publish {mode}? Click to confirm',
+    'notify.testTitle': 'cairn notification test',
+    'notify.testBody': 'If you can see this, publish notifications work too',
 
     'tray.tooltip': 'cairn — automatic worklog',
     'tray.daily': 'Publish today',
