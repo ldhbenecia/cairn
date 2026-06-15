@@ -1,9 +1,20 @@
+import { Check } from 'lucide-react';
+import { useState } from 'react';
 import { useSettings } from '../../settings-context';
 import { Toggle } from '../toggle';
 import { Field } from './field';
 
 export function NotificationsTab() {
   const { settings, update, t } = useSettings();
+  // 인앱 피드백 — macOS 는 앱이 앞에 있으면 배너를 안 띄워서, 버튼만으론 무반응처럼 보인다.
+  const [sent, setSent] = useState<'ok' | 'unsupported' | null>(null);
+
+  const test = async (): Promise<void> => {
+    const r = await window.cairn.testNotification();
+    setSent(r.supported ? 'ok' : 'unsupported');
+    setTimeout(() => setSent(null), 4000);
+  };
+
   return (
     <div className="divide-y divide-hairline">
       <Field label={t('prefs.notifications')} desc={t('prefs.notifications.desc')}>
@@ -13,10 +24,15 @@ export function NotificationsTab() {
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => void window.cairn.testNotification()}
-            className="rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink transition-colors hover:bg-surface-3"
+            onClick={() => void test()}
+            className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] transition-colors ${
+              sent === 'ok'
+                ? 'border-success/40 bg-success/10 text-success'
+                : 'border-hairline bg-surface-2 text-ink hover:bg-surface-3'
+            }`}
           >
-            {t('prefs.notifications.testBtn')}
+            {sent === 'ok' && <Check size={14} strokeWidth={2.5} />}
+            {sent === 'ok' ? t('prefs.notifications.sent') : t('prefs.notifications.testBtn')}
           </button>
           <button
             type="button"
@@ -31,6 +47,11 @@ export function NotificationsTab() {
           </button>
         </div>
       </Field>
+      {sent && (
+        <p className="pt-3 text-[12px] leading-relaxed text-ink-tertiary">
+          {sent === 'ok' ? t('prefs.notifications.sentHint') : t('prefs.notifications.unsupported')}
+        </p>
+      )}
     </div>
   );
 }
