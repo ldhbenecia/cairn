@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
 import { pickExportFolder, saveMarkdown, savePdf } from './export';
+import { sendTestNotification } from './notifier';
 import {
   busyState,
   isRunning,
@@ -108,6 +109,7 @@ void app.whenReady().then(() => {
     saveMarkdown(defaultName, content),
   );
   ipcMain.handle('cairn:export:pick-folder', () => pickExportFolder());
+  ipcMain.handle('cairn:notify:test', () => sendTestNotification());
   ipcMain.handle('cairn:export:save-pdf', (_e, defaultName: string, html: string) =>
     savePdf(defaultName, html),
   );

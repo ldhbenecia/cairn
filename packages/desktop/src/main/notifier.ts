@@ -53,3 +53,11 @@ export function notifyAutoConfirm(mode: CoreMode): void {
   if (!readSettings().notifications) return;
   notify(mt('notify.autoConfirmTitle'), mt('notify.autoConfirm', { mode: modeLabel(mode) }), mode);
 }
+
+// 테스트 알림 — 사용자가 macOS 알림 권한 프롬프트를 띄우고 표시 여부를 확인하게 한다.
+// 설정 토글과 무관하게 명시적 요청이므로 항상 표시 시도.
+export function sendTestNotification(): { supported: boolean } {
+  if (!Notification.isSupported()) return { supported: false };
+  new Notification({ title: mt('notify.testTitle'), body: mt('notify.testBody') }).show();
+  return { supported: true };
+}

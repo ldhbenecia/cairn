@@ -113,6 +113,8 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:export:save-markdown', defaultName, content) as Promise<SaveResult>,
   pickExportFolder: (): Promise<string | null> =>
     ipcRenderer.invoke('cairn:export:pick-folder') as Promise<string | null>,
+  testNotification: (): Promise<{ supported: boolean }> =>
+    ipcRenderer.invoke('cairn:notify:test') as Promise<{ supported: boolean }>,
   exportPdf: (defaultName: string, html: string): Promise<SaveResult> =>
     ipcRenderer.invoke('cairn:export:save-pdf', defaultName, html) as Promise<SaveResult>,
   repoStars: (): Promise<number | null> =>

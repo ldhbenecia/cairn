@@ -9,6 +9,15 @@ export function NotificationsTab() {
       <Field label={t('prefs.notifications')} desc={t('prefs.notifications.desc')}>
         <Toggle checked={settings.notifications} onChange={(v) => update({ notifications: v })} />
       </Field>
+      <Field label={t('prefs.notifications.test')} desc={t('prefs.notifications.testDesc')}>
+        <button
+          type="button"
+          onClick={() => void window.cairn.testNotification()}
+          className="rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink transition-colors hover:bg-surface-3"
+        >
+          {t('prefs.notifications.testBtn')}
+        </button>
+      </Field>
     </div>
   );
 }
