@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { claudeEnv } from './claude-path';
+import { syncWorklogToFolder } from './export';
 import { sendResultNotification } from './notifier';
 import { readSettings, type Settings } from './settings';
 import { trackPublish } from './telemetry';
@@ -243,6 +244,22 @@ export async function runCore(
       };
       const outcome = result.ok ? (finalNoActivity ? 'no-activity' : 'ok') : 'fail';
       trackPublish(mode, outcome);
+      // 발행 성공 시 로컬 폴더(Obsidian vault 등) 자동 동기화 — 수동·스케줄 양쪽 이 경로를 탄다.
+      if (result.ok && lastPageId && !finalNoActivity) {
+        const pad = (n: number): string => String(n).padStart(2, '0');
+        const d = new Date();
+        const localDate =
+          options.date ?? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const fileBase = mode === 'daily' ? localDate : `${localDate}-${mode}`;
+        void syncWorklogToFolder({
+          pageId: lastPageId,
+          fileBase,
+          title: fileBase,
+          date: localDate,
+        }).catch((err: unknown) => {
+          emit('err', `[export] sync 실패: ${err instanceof Error ? err.message : String(err)}`);
+        });
+      }
       sendResultNotification(mode, result);
       resolvePromise(result);
     });

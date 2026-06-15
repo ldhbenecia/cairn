@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
-import { saveMarkdown } from './export';
+import { pickExportFolder, saveMarkdown } from './export';
 import {
   busyState,
   isRunning,
@@ -107,6 +107,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:export:save-markdown', (_e, defaultName: string, content: string) =>
     saveMarkdown(defaultName, content),
   );
+  ipcMain.handle('cairn:export:pick-folder', () => pickExportFolder());
   ipcMain.handle('cairn:open-external', (_e, url: string) => shell.openExternal(url));
   ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());

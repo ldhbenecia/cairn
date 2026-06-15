@@ -13,6 +13,7 @@ export type AutoPublish = {
   backfillDays: number;
   confirmBeforeRun: boolean;
 };
+export type ExportConfig = { folder: string | null; autoSync: boolean };
 export type Settings = {
   theme: Theme;
   accent: string;
@@ -24,6 +25,7 @@ export type Settings = {
   autoPublish: AutoPublish;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
   summaryModel: SummaryModel;
+  export: ExportConfig;
 };
 
 // 무플래시: 첫 페인트 전에 main 에서 동기로 설정·버전을 받아온다 (sandbox preload 라 fs 불가 → sendSync)
@@ -109,6 +111,8 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:open-external', url) as Promise<void>,
   exportMarkdown: (defaultName: string, content: string): Promise<SaveResult> =>
     ipcRenderer.invoke('cairn:export:save-markdown', defaultName, content) as Promise<SaveResult>,
+  pickExportFolder: (): Promise<string | null> =>
+    ipcRenderer.invoke('cairn:export:pick-folder') as Promise<string | null>,
   repoStars: (): Promise<number | null> =>
     ipcRenderer.invoke('cairn:repo:stars') as Promise<number | null>,
   onRunLine: (cb: (l: RunLine) => void): (() => void) => {
