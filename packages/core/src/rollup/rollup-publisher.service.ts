@@ -282,9 +282,6 @@ function buildRollupBlocks(
     ),
   );
 
-  blocks.push(heading2('Daily pages'));
-  blocks.push(...buildDailyRefBullets(activity));
-
   if (isOperator() && summary.usage) {
     const u = summary.usage;
     const inK = (u.inputTokens / 1000).toFixed(1);
@@ -318,18 +315,7 @@ function buildRollupFallbackBlocks(
     paragraph(
       `gh:${activity.metrics.prCount} / git:${activity.metrics.commitCount} / notion:${activity.metrics.notionPageCount} / dailies:${activity.metrics.dailyCount}`,
     ),
-    heading2('Daily pages'),
-    ...buildDailyRefBullets(activity),
   ];
-}
-
-function buildDailyRefBullets(activity: RollupActivity): unknown[] {
-  if (activity.dailies.length === 0) return [paragraph('—')];
-  return activity.dailies.map((d) => {
-    const counts = `gh:${d.prCount}/git:${d.commitCount}/notion:${d.notionPageCount}`;
-    const link = d.url ? ` → ${d.url}` : '';
-    return bulletItem(`${d.date} (${counts})${link}`);
-  });
 }
 
 function claudeCallout(text: string): unknown {
