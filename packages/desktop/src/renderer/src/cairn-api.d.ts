@@ -133,6 +133,7 @@ declare global {
       openExternal: (url: string) => Promise<void>;
       exportMarkdown: (defaultName: string, content: string) => Promise<SaveResult>;
       pickExportFolder: () => Promise<string | null>;
+      exportPdf: (defaultName: string, html: string) => Promise<SaveResult>;
       repoStars: () => Promise<number | null>;
       onRunLine: (cb: (l: RunLine) => void) => () => void;
       onFocusMode: (cb: (mode: CoreMode) => void) => () => void;

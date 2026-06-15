@@ -68,7 +68,7 @@
 
 - **PR-A (완료)**: 일지 → Markdown 변환(`lib/markdown.ts` — 블록·인라인 전부) + drawer 에서 "MD 복사 / .md 저장"(`saveMarkdown` 다이얼로그). 자체 완결.
 - **PR-B**: 폴더 자동 동기화 = **Obsidian vault 연동**. settings 에 export 폴더 + autoSync 토글, 발행 성공 시 그 폴더에 `YYYY-MM-DD.md` 기록. Obsidian = vault 폴더 가리키면 끝.
-- **PR-C**: **PDF**. main 오프스크린 BrowserWindow 에 일지 HTML 렌더 → `webContents.printToPDF` → 저장. 별도 렌더 파이프라인이라 분리.
+- **PR-C (완료)**: **PDF**. `shared/html.ts` 블록→스타일 HTML → main 오프스크린 BrowserWindow 로드 → `printToPDF` → 저장. drawer 에 "PDF 저장" 버튼.
 
 ## 시퀀싱 / 릴리스
 
