@@ -31,6 +31,9 @@
 | [0020](../docs/decisions/0020-version-bump-criteria.md) | 버전 기준 — patch 기본, 기능 묶음당 minor 1회 (0005 supersede) |
 | [0006](../docs/decisions/0006-github-flow-not-git-flow.md) | GitHub Flow (main 단일 트렁크) |
 | [0007](../docs/decisions/0007-merge-commit-strategy.md) | merge commit 정책 |
+| [0023](../docs/decisions/0023-auto-publish-schedule-semantics.md) | 자동 발행 — 시작 백필은 예약 시각 경과 후에만 |
+| [0024](../docs/decisions/0024-per-account-summary-separation.md) | 계정별(Work/Personal) 요약 분리 — 발행 시 서브헤딩 |
+| [0025](../docs/decisions/0025-local-export-and-obsidian-sync.md) | 로컬 내보내기(MD/PDF) + Obsidian 자동 동기화 |
 
 ## 진행 상황
 
