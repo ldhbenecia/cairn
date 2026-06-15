@@ -1,4 +1,4 @@
-import { dialog } from 'electron';
+import { BrowserWindow, dialog } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -35,6 +35,30 @@ export async function syncWorklogToFolder(opts: {
 export async function pickExportFolder(): Promise<string | null> {
   const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] });
   return r.canceled ? null : (r.filePaths[0] ?? null);
+}
+
+// 렌더러가 만든 HTML 문서를 오프스크린 창에 싣고 printToPDF 로 PDF 저장.
+export async function savePdf(defaultName: string, html: string): Promise<SaveResult> {
+  const r = await dialog.showSaveDialog({
+    defaultPath: join(homedir(), 'Documents', defaultName),
+    filters: [{ name: 'PDF', extensions: ['pdf'] }],
+  });
+  if (r.canceled || !r.filePath) return { saved: false };
+
+  const win = new BrowserWindow({ show: false, webPreferences: { javascript: false } });
+  try {
+    await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+    const pdf = await win.webContents.printToPDF({
+      printBackground: true,
+      margins: { marginType: 'custom', top: 0, bottom: 0, left: 0, right: 0 },
+    });
+    await writeFile(r.filePath, pdf);
+    return { saved: true, path: r.filePath };
+  } catch (e) {
+    return { saved: false, error: e instanceof Error ? e.message : String(e) };
+  } finally {
+    win.destroy();
+  }
 }
 
 // 일지 Markdown 을 저장 다이얼로그로 파일에 쓴다. 파일명 기본값은 일지 날짜/제목 기반.

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import hljs from 'highlight.js/lib/common';
-import { Check, Copy, ExternalLink, FileDown, Loader2, X } from 'lucide-react';
+import { Check, Copy, ExternalLink, FileDown, FileText, Loader2, X } from 'lucide-react';
 import type { PageContent, RecentPage, RichSpan, SimpleBlock } from '../cairn-api';
 import { sectionBullets } from '../lib/blocks';
 import { blocksToMarkdown } from '../lib/markdown';
+import { blocksToHtml } from '../../../shared/html';
 import { useSettings } from '../settings-context';
 import 'highlight.js/styles/github-dark.css';
 
@@ -54,6 +55,16 @@ export function WorklogDrawer({ page, onClose }: Props) {
   function saveMarkdown() {
     if (!markdown) return;
     void window.cairn.exportMarkdown(`${page.date ?? 'cairn-worklog'}.md`, markdown);
+  }
+
+  function savePdf() {
+    if (!content || content.blocks.length === 0) return;
+    const html = blocksToHtml(content.blocks, {
+      title: page.title,
+      date: page.date,
+      workspace: page.workspaceLabel,
+    });
+    void window.cairn.exportPdf(`${page.date ?? 'cairn-worklog'}.pdf`, html);
   }
   const [width, setWidth] = useState<number>(() => {
     const s = Number(localStorage.getItem('cairn:drawerWidth'));
@@ -181,6 +192,14 @@ export function WorklogDrawer({ page, onClose }: Props) {
                 className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink [-webkit-app-region:no-drag]"
               >
                 <FileDown size={15} strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                onClick={savePdf}
+                title={t('drawer.savePdf')}
+                className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink [-webkit-app-region:no-drag]"
+              >
+                <FileText size={15} strokeWidth={2} />
               </button>
             </>
           )}
