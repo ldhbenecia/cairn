@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
+import { saveMarkdown } from './export';
 import {
   busyState,
   isRunning,
@@ -103,6 +104,9 @@ void app.whenReady().then(() => {
   );
   ipcMain.handle('cairn:running', () => isRunning());
   ipcMain.handle('cairn:busy-state', () => busyState());
+  ipcMain.handle('cairn:export:save-markdown', (_e, defaultName: string, content: string) =>
+    saveMarkdown(defaultName, content),
+  );
   ipcMain.handle('cairn:open-external', (_e, url: string) => shell.openExternal(url));
   ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());

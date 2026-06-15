@@ -62,17 +62,20 @@
 - frontmatter(date/source counts) + Summary/Share/Done 구조 그대로. Obsidian 호환 위해 wikilink 옵션.
 - 설정에서 export 폴더 지정 + on/off. 미지정이면 비활성.
 
-### 열린 질문 (사용자 확인 필요)
+### 확정 범위 (2026-06-15 — MD/PDF/Obsidian 멀티 포맷)
 
-- 범위: (a) "이 일지 .md 로 내보내기" 단발 버튼 / (b) 발행 시 폴더에 자동 동기화 / (c) Notion 대체(폴더만). → 우선 (a)+(b) 권장.
-- Obsidian "연동"을 vault 폴더 출력으로 충분히 보는지, 아니면 플러그인 수준까지 원하는지.
+사용자: "Notion 은 토큰만 등록하면 자동 발행. 내보내기엔 md 파일·PDF·Obsidian 연동 막 만들면 좋겠음." → 단계 분리:
+
+- **PR-A (완료)**: 일지 → Markdown 변환(`lib/markdown.ts` — 블록·인라인 전부) + drawer 에서 "MD 복사 / .md 저장"(`saveMarkdown` 다이얼로그). 자체 완결.
+- **PR-B**: 폴더 자동 동기화 = **Obsidian vault 연동**. settings 에 export 폴더 + autoSync 토글, 발행 성공 시 그 폴더에 `YYYY-MM-DD.md` 기록. Obsidian = vault 폴더 가리키면 끝.
+- **PR-C**: **PDF**. main 오프스크린 BrowserWindow 에 일지 HTML 렌더 → `webContents.printToPDF` → 저장. 별도 렌더 파이프라인이라 분리.
 
 ## 시퀀싱 / 릴리스
 
-1. ① 버그 (작은~중간 PR) — 즉시.
-2. ② 계정 분리 (core + prompt) — 중간 PR.
-3. ③ Markdown 내보내기 (새 표면) — 큰 PR, 사용자와 범위 확정 후.
-4. 누적분(#136~#145 + 위 3건)을 모아 한 번에 minor 릴리스(v0.23.0 후보) 태깅.
+1. ① 버그 — ✅ #146.
+2. ② 계정 분리 — ✅ #147.
+3. ③ 내보내기 — PR-A(MD, 진행) → PR-B(Obsidian 자동동기화) → PR-C(PDF).
+4. 누적분(#136~#147 + 내보내기)을 모아 한 번에 minor 릴리스(v0.23.0 후보) 태깅.
 
 ## progress 부채
 

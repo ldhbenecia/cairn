@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import hljs from 'highlight.js/lib/common';
-import { Check, Copy, ExternalLink, Loader2, X } from 'lucide-react';
+import { Check, Copy, ExternalLink, FileDown, Loader2, X } from 'lucide-react';
 import type { PageContent, RecentPage, RichSpan, SimpleBlock } from '../cairn-api';
 import { sectionBullets } from '../lib/blocks';
+import { blocksToMarkdown } from '../lib/markdown';
 import { useSettings } from '../settings-context';
 import 'highlight.js/styles/github-dark.css';
 
@@ -19,8 +20,20 @@ export function WorklogDrawer({ page, onClose }: Props) {
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [mdCopied, setMdCopied] = useState(false);
   const [content, setContent] = useState<PageContent | null>(null);
   const shareText = useMemo(() => (content ? extractShareText(content.blocks) : null), [content]);
+  const markdown = useMemo(
+    () =>
+      content && content.blocks.length > 0
+        ? blocksToMarkdown(content.blocks, {
+            title: page.title,
+            date: page.date,
+            workspace: page.workspaceLabel,
+          })
+        : null,
+    [content, page.title, page.date, page.workspaceLabel],
+  );
 
   function copyShare() {
     if (!shareText) return;
@@ -28,6 +41,19 @@ export function WorklogDrawer({ page, onClose }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
+  }
+
+  function copyMarkdown() {
+    if (!markdown) return;
+    void navigator.clipboard.writeText(markdown).then(() => {
+      setMdCopied(true);
+      setTimeout(() => setMdCopied(false), 1500);
+    });
+  }
+
+  function saveMarkdown() {
+    if (!markdown) return;
+    void window.cairn.exportMarkdown(`${page.date ?? 'cairn-worklog'}.md`, markdown);
   }
   const [width, setWidth] = useState<number>(() => {
     const s = Number(localStorage.getItem('cairn:drawerWidth'));
@@ -128,6 +154,35 @@ export function WorklogDrawer({ page, onClose }: Props) {
               {copied ? <Check size={14} strokeWidth={2.5} /> : <Copy size={14} strokeWidth={2} />}
               {copied ? t('drawer.copied') : t('drawer.share')}
             </button>
+          )}
+          {markdown && (
+            <>
+              <button
+                type="button"
+                onClick={copyMarkdown}
+                title={t('drawer.copyMd')}
+                className={`flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium transition-colors [-webkit-app-region:no-drag] ${
+                  mdCopied
+                    ? 'bg-success/15 text-success'
+                    : 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
+                }`}
+              >
+                {mdCopied ? (
+                  <Check size={14} strokeWidth={2.5} />
+                ) : (
+                  <Copy size={14} strokeWidth={2} />
+                )}
+                {mdCopied ? t('drawer.copied') : 'MD'}
+              </button>
+              <button
+                type="button"
+                onClick={saveMarkdown}
+                title={t('drawer.saveMd')}
+                className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink [-webkit-app-region:no-drag]"
+              >
+                <FileDown size={15} strokeWidth={2} />
+              </button>
+            </>
           )}
           {page.url && (
             <button

@@ -43,6 +43,8 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type BusyState = { busy: boolean; mode: CoreMode | null };
 
+export type SaveResult = { saved: boolean; path?: string; error?: string };
+
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 export type LogTailResult = { lines: string[]; path: string | null };
 
@@ -105,6 +107,8 @@ contextBridge.exposeInMainWorld('cairn', {
   },
   openExternal: (url: string): Promise<void> =>
     ipcRenderer.invoke('cairn:open-external', url) as Promise<void>,
+  exportMarkdown: (defaultName: string, content: string): Promise<SaveResult> =>
+    ipcRenderer.invoke('cairn:export:save-markdown', defaultName, content) as Promise<SaveResult>,
   repoStars: (): Promise<number | null> =>
     ipcRenderer.invoke('cairn:repo:stars') as Promise<number | null>,
   onRunLine: (cb: (l: RunLine) => void): (() => void) => {

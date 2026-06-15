@@ -8,6 +8,8 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type BusyState = { busy: boolean; mode: CoreMode | null };
 
+export type SaveResult = { saved: boolean; path?: string; error?: string };
+
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 export type LogTailResult = { lines: string[]; path: string | null };
 
@@ -127,6 +129,7 @@ declare global {
       busyState: () => Promise<BusyState>;
       onBusy: (cb: (s: BusyState) => void) => () => void;
       openExternal: (url: string) => Promise<void>;
+      exportMarkdown: (defaultName: string, content: string) => Promise<SaveResult>;
       repoStars: () => Promise<number | null>;
       onRunLine: (cb: (l: RunLine) => void) => () => void;
       onFocusMode: (cb: (mode: CoreMode) => void) => () => void;
