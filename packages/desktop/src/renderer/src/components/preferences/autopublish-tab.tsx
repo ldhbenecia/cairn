@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useSettings } from '../../settings-context';
 import { Toggle } from '../toggle';
@@ -21,10 +21,12 @@ export function AutoPublishTab() {
 
   const exp = settings.export;
   const setExp = (patch: Partial<typeof exp>): void => update({ export: { ...exp, ...patch } });
+  // 폴더 변경은 autoSync 토글을 건드리지 않는다 (선택은 사용자 몫).
   const pickFolder = async (): Promise<void> => {
     const f = await window.cairn.pickExportFolder();
-    if (f) setExp({ folder: f, autoSync: true });
+    if (f) setExp({ folder: f });
   };
+  const clearFolder = (): void => setExp({ folder: null, autoSync: false });
 
   return (
     <div className="divide-y divide-hairline">
@@ -80,14 +82,26 @@ export function AutoPublishTab() {
       </Field>
 
       <Field label={t('prefs.export.folder')} desc={t('prefs.export.folderDesc')}>
-        <button
-          type="button"
-          onClick={() => void pickFolder()}
-          title={exp.folder ?? undefined}
-          className="max-w-52 truncate rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink hover:bg-surface-3"
-        >
-          {exp.folder ? exp.folder.split('/').pop() : t('prefs.export.pick')}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => void pickFolder()}
+            title={exp.folder ?? undefined}
+            className="max-w-44 truncate rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink transition-colors hover:bg-surface-3"
+          >
+            {exp.folder ? exp.folder.split('/').pop() : t('prefs.export.pick')}
+          </button>
+          {exp.folder && (
+            <button
+              type="button"
+              onClick={clearFolder}
+              title={t('prefs.export.clear')}
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+            >
+              <X size={14} strokeWidth={2} />
+            </button>
+          )}
+        </div>
       </Field>
 
       <Field
