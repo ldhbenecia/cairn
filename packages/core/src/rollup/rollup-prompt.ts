@@ -22,6 +22,8 @@ export function rollupSystemPrompt(lang: WorklogLang, period: 'weekly' | 'monthl
     '- reviewedBullets in older daily summaries are review/support work — exclude them from themes/highlights; only development work belongs in the rollup.',
     '- Empty arrays are OK if material is thin.',
     '',
+    'Multiple accounts: some daily bullets may carry account labels like "[Work]" or "[Personal]". When such labels are present, keep the accounts distinguishable in the rollup — either as separate themes per account or by carrying the label into each item/highlight — so Work and Personal stay separable. When no such labels appear, do not introduce them.',
+    '',
     'Quantify: weave the provided metrics into paragraph, and carry concrete numbers from the daily summaries (counts, %, ms, sizes, before→after) into themes and highlights. NEVER invent or estimate numbers that are not present in the data.',
     '',
     'Style: synthesize across days (do NOT concatenate per-day bullets verbatim); no branch names or commit type prefixes; group by project and meaningful unit, not by date.',
