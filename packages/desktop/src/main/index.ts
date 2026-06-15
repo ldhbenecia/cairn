@@ -2,7 +2,14 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
-import { isRunning, probeClaude, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
+import {
+  busyState,
+  isRunning,
+  probeClaude,
+  runCore,
+  type CoreMode,
+  type CoreRunOptions,
+} from './core-runner';
 import { readConfig, tailLatestLog } from './files';
 import { fetchPageContent, listRecentPages } from './notion-client';
 import {
@@ -95,6 +102,7 @@ void app.whenReady().then(() => {
     runCore(mode, options ?? {}, e.sender),
   );
   ipcMain.handle('cairn:running', () => isRunning());
+  ipcMain.handle('cairn:busy-state', () => busyState());
   ipcMain.handle('cairn:open-external', (_e, url: string) => shell.openExternal(url));
   ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());
