@@ -1,6 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import hljs from 'highlight.js/lib/common';
-import { Check, Copy, ExternalLink, FileDown, FileText, Loader2, X } from 'lucide-react';
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  FileDown,
+  FileText,
+  Loader2,
+  MoreHorizontal,
+  X,
+} from 'lucide-react';
 import type { PageContent, RecentPage, RichSpan, SimpleBlock } from '../cairn-api';
 import { sectionBullets } from '../lib/blocks';
 import { blocksToMarkdown } from '../lib/markdown';
@@ -66,6 +75,66 @@ export function WorklogDrawer({ page, onClose }: Props) {
     });
     void window.cairn.exportPdf(`${page.date ?? 'cairn-worklog'}.pdf`, html);
   }
+
+  // 헤더 액션 오버플로 메뉴 (제목 가림 방지 + 라벨로 기능 명시)
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuClosing, setMenuClosing] = useState(false);
+  const closeMenu = (): void => {
+    setMenuClosing(true);
+    setTimeout(() => {
+      setMenuOpen(false);
+      setMenuClosing(false);
+    }, 130);
+  };
+  useEffect(() => {
+    if (!menuOpen || menuClosing) return;
+    const onDown = (): void => closeMenu();
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [menuOpen, menuClosing]);
+
+  type Act = { key: string; icon: ReactNode; label: string; run: () => void };
+  const actions: Act[] = [
+    shareText && {
+      key: 'share',
+      icon: copied ? <Check size={15} strokeWidth={2.5} /> : <Copy size={15} strokeWidth={2} />,
+      label: copied ? t('drawer.copied') : t('drawer.menuShare'),
+      run: copyShare,
+    },
+    markdown && {
+      key: 'md',
+      icon: mdCopied ? <Check size={15} strokeWidth={2.5} /> : <Copy size={15} strokeWidth={2} />,
+      label: mdCopied ? t('drawer.copied') : t('drawer.menuCopyMd'),
+      run: copyMarkdown,
+    },
+    markdown && {
+      key: 'savemd',
+      icon: <FileDown size={15} strokeWidth={2} />,
+      label: t('drawer.menuSaveMd'),
+      run: () => {
+        saveMarkdown();
+        closeMenu();
+      },
+    },
+    markdown && {
+      key: 'savepdf',
+      icon: <FileText size={15} strokeWidth={2} />,
+      label: t('drawer.menuSavePdf'),
+      run: () => {
+        savePdf();
+        closeMenu();
+      },
+    },
+    page.url && {
+      key: 'notion',
+      icon: <ExternalLink size={15} strokeWidth={2} />,
+      label: t('drawer.menuNotion'),
+      run: () => {
+        void window.cairn.openExternal(page.url);
+        closeMenu();
+      },
+    },
+  ].filter(Boolean) as Act[];
   const [width, setWidth] = useState<number>(() => {
     const s = Number(localStorage.getItem('cairn:drawerWidth'));
     return s >= 360 && s <= 900 ? s : 460;
@@ -151,72 +220,49 @@ export function WorklogDrawer({ page, onClose }: Props) {
               {page.date ?? '—'} · {page.workspaceLabel}
             </p>
           </div>
-          {shareText && (
-            <button
-              type="button"
-              onClick={copyShare}
-              title={t('drawer.copyShare')}
-              className={`flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium transition-colors [-webkit-app-region:no-drag] ${
-                copied
-                  ? 'bg-success/15 text-success'
-                  : 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
-              }`}
+          {actions.length > 0 && (
+            <div
+              className="relative shrink-0 [-webkit-app-region:no-drag]"
+              onMouseDown={(e) => e.stopPropagation()}
             >
-              {copied ? <Check size={14} strokeWidth={2.5} /> : <Copy size={14} strokeWidth={2} />}
-              {copied ? t('drawer.copied') : t('drawer.share')}
-            </button>
-          )}
-          {markdown && (
-            <>
               <button
                 type="button"
-                onClick={copyMarkdown}
-                title={t('drawer.copyMd')}
-                className={`flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium transition-colors [-webkit-app-region:no-drag] ${
-                  mdCopied
-                    ? 'bg-success/15 text-success'
+                onClick={() => (menuOpen ? closeMenu() : setMenuOpen(true))}
+                title={t('drawer.actions')}
+                className={`flex size-7 items-center justify-center rounded-md transition-colors ${
+                  menuOpen
+                    ? 'bg-surface-2 text-ink'
                     : 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
                 }`}
               >
-                {mdCopied ? (
-                  <Check size={14} strokeWidth={2.5} />
-                ) : (
-                  <Copy size={14} strokeWidth={2} />
-                )}
-                {mdCopied ? t('drawer.copied') : 'MD'}
+                <MoreHorizontal size={16} strokeWidth={2} />
               </button>
-              <button
-                type="button"
-                onClick={saveMarkdown}
-                title={t('drawer.saveMd')}
-                className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink [-webkit-app-region:no-drag]"
-              >
-                <FileDown size={15} strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                onClick={savePdf}
-                title={t('drawer.savePdf')}
-                className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink [-webkit-app-region:no-drag]"
-              >
-                <FileText size={15} strokeWidth={2} />
-              </button>
-            </>
-          )}
-          {page.url && (
-            <button
-              type="button"
-              onClick={() => void window.cairn.openExternal(page.url)}
-              title={t('publish.openNotion')}
-              className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink [-webkit-app-region:no-drag]"
-            >
-              <ExternalLink size={15} strokeWidth={2} />
-            </button>
+              {menuOpen && (
+                <div
+                  className={`${menuClosing ? 'popover-out' : 'popover-in'} glass-panel absolute right-0 top-9 z-30 w-48 rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40`}
+                >
+                  {actions.map((a) => (
+                    <button
+                      key={a.key}
+                      type="button"
+                      onClick={a.run}
+                      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+                    >
+                      <span className="flex w-4 shrink-0 justify-center text-ink-subtle">
+                        {a.icon}
+                      </span>
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
           <button
             type="button"
             onClick={requestClose}
-            className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink [-webkit-app-region:no-drag]"
+            title={t('drawer.close')}
+            className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink [-webkit-app-region:no-drag]"
           >
             <X size={15} strokeWidth={2} />
           </button>
@@ -245,6 +291,25 @@ export function WorklogDrawer({ page, onClose }: Props) {
   );
 }
 
+// 평문에 박힌 URL 을 클릭 가능한 링크로 (발행 일지는 plain text 라 링크 annotation 이 없음)
+const URL_SPLIT = /(https?:\/\/[^\s)]+)/g;
+function linkify(text: string): ReactNode[] {
+  return text.split(URL_SPLIT).map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <button
+        key={i}
+        type="button"
+        onClick={() => void window.cairn.openExternal(part)}
+        className="text-accent underline-offset-2 hover:underline"
+      >
+        {part}
+      </button>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+}
+
 function Rich({ spans }: { spans: RichSpan[] }) {
   return (
     <>
@@ -269,7 +334,7 @@ function Rich({ spans }: { spans: RichSpan[] }) {
         }
         return (
           <span key={i} className={cls || undefined}>
-            {s.text}
+            {s.code ? s.text : linkify(s.text)}
           </span>
         );
       })}
