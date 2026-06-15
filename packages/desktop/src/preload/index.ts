@@ -41,6 +41,8 @@ export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | nu
 
 export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
+export type BusyState = { busy: boolean; mode: CoreMode | null };
+
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 export type LogTailResult = { lines: string[]; path: string | null };
 
@@ -95,6 +97,12 @@ contextBridge.exposeInMainWorld('cairn', {
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
   running: (): Promise<boolean> => ipcRenderer.invoke('cairn:running') as Promise<boolean>,
+  busyState: (): Promise<BusyState> => ipcRenderer.invoke('cairn:busy-state') as Promise<BusyState>,
+  onBusy: (cb: (s: BusyState) => void): (() => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, payload: BusyState): void => cb(payload);
+    ipcRenderer.on('cairn:busy', listener);
+    return () => ipcRenderer.off('cairn:busy', listener);
+  },
   openExternal: (url: string): Promise<void> =>
     ipcRenderer.invoke('cairn:open-external', url) as Promise<void>,
   repoStars: (): Promise<number | null> =>

@@ -61,8 +61,16 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
   const [force, setForce] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
 
+  // 전역 실행 상태(자동 발행 백필·트레이 포함) — 자기 트리거(runningMode) 만으로는
+  // 시작 시 자동 발행이 도는 걸 모른다.
+  const [externalBusy, setExternalBusy] = useState(false);
+  useEffect(() => {
+    void window.cairn.busyState().then((s) => setExternalBusy(s.busy));
+    return window.cairn.onBusy((s) => setExternalBusy(s.busy));
+  }, []);
+
   const session = sessions[mode];
-  const busy = runningMode !== null;
+  const busy = runningMode !== null || externalBusy;
   const isRunning = session?.state === 'running';
   const isDone = session?.state === 'done';
 

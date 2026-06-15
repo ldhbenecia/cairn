@@ -141,6 +141,8 @@ const STRINGS = {
     'publish.force': '이미 발행됐어도 덮어쓰기',
     'publish.start': '발행 시작',
     'publish.busy': '다른 작업 실행 중',
+    'publish.busyMsg':
+      '이미 발행 작업이 진행 중이에요. 자동 발행이 돌고 있을 수 있어요 — 끝나면 목록이 자동으로 갱신됩니다. 잠시 후 다시 시도하세요.',
     'publish.step.collect': '활동 수집',
     'publish.step.summarize': 'AI 요약',
     'publish.step.publish': '노션 발행',
@@ -403,6 +405,8 @@ const STRINGS = {
     'publish.force': 'Overwrite even if already published',
     'publish.start': 'Publish',
     'publish.busy': 'Another task running',
+    'publish.busyMsg':
+      'A publish is already running — an automatic publish may be in progress. The list refreshes itself once it finishes. Please try again in a moment.',
     'publish.step.collect': 'Collect',
     'publish.step.summarize': 'Summarize',
     'publish.step.publish': 'Publish',

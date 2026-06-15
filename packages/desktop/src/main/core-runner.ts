@@ -1,4 +1,4 @@
-import { app, type WebContents } from 'electron';
+import { app, BrowserWindow, type WebContents } from 'electron';
 import { fork, type ChildProcess } from 'node:child_process';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -100,9 +100,23 @@ function promptEnv(prompts: Settings['prompts']): Record<string, string> {
 }
 
 let running: ChildProcess | null = null;
+let runningMode: CoreMode | null = null;
 
 export function isRunning(): boolean {
   return running !== null;
+}
+
+// 실행 중 작업을 모든 창에 알린다 — 렌더러가 발행 버튼을 잠그고 "발행 중" 을 보여줄 수 있게.
+// 자동 발행(시작 백필·스케줄)·트레이·수동 발행 어느 경로든 동일하게 잡힌다.
+function broadcastBusy(): void {
+  const payload = { busy: running !== null, mode: runningMode };
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send('cairn:busy', payload);
+  }
+}
+
+export function busyState(): { busy: boolean; mode: CoreMode | null } {
+  return { busy: running !== null, mode: runningMode };
 }
 
 // Claude 연결 확인 — core 를 --probe-claude 로 fork, stdout 의 CLAUDE_OK 확인 (가벼운 query 1회)
@@ -132,7 +146,8 @@ export async function runCore(
   options: CoreRunOptions = {},
   sender?: WebContents,
 ): Promise<CoreResult> {
-  if (running) throw new Error('이미 다른 작업이 실행 중입니다');
+  // 코드화된 에러 — 렌더러가 i18n 으로 친화 문구 매핑. (영어 사용자에게 한국어 새는 것 방지)
+  if (running) throw new Error(`busy:${runningMode ?? mode}`);
 
   const emit = (level: 'info' | 'err' | 'meta', line: string): void => {
     const clean = stripAnsi(line);
@@ -172,6 +187,8 @@ export async function runCore(
     },
   });
   running = child;
+  runningMode = mode;
+  broadcastBusy();
   emit('meta', `[fork] pid=${child.pid ?? '?'}`);
 
   const stderrLines: string[] = [];
@@ -202,6 +219,8 @@ export async function runCore(
   return new Promise<CoreResult>((resolvePromise) => {
     child.on('close', (exitCode) => {
       running = null;
+      runningMode = null;
+      broadcastBusy();
       const tailSource = stderrLines.length > 0 ? stderrLines : stdoutLines;
       const tail = tailSource.slice(-STDERR_TAIL_LINES).join('\n');
       const urlMatches = stdoutAll.match(NOTION_URL_REGEX) ?? [];
@@ -229,6 +248,8 @@ export async function runCore(
     });
     child.on('error', (err) => {
       running = null;
+      runningMode = null;
+      broadcastBusy();
       emit('err', `[error] ${err.message}`);
       resolvePromise({
         ok: false,

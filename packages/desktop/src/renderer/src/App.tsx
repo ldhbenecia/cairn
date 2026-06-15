@@ -2,10 +2,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import type {
+  BusyState,
   CoreMode,
   CoreResult,
   CoreRunOptions,
@@ -14,6 +16,7 @@ import type {
   RunLine,
   RunStep,
 } from './cairn-api';
+import { useSettings } from './settings-context';
 import { Dashboard } from './components/dashboard';
 import { Onboarding } from './components/onboarding';
 import { PreferencesDialog } from './components/preferences-dialog';
@@ -60,7 +63,11 @@ export function App() {
   });
   const [sessions, setSessions] = useState<Record<CoreMode, RunSession | null>>(EMPTY_SESSIONS);
   const [runningMode, setRunningMode] = useState<CoreMode | null>(null);
+  const [busy, setBusy] = useState<BusyState>({ busy: false, mode: null });
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
   const [recent, setRecent] = useState<RecentListResult | null>(null);
+  const { t } = useSettings();
 
   const loadRecent = useCallback(async () => {
     const r = await window.cairn.listRecent();
@@ -127,6 +134,13 @@ export function App() {
     return off;
   }, []);
 
+  // 실행 중 작업(자동 발행 백필 포함) 인지 → 발행 버튼 잠금·"발행 중" 표시.
+  useEffect(() => {
+    void window.cairn.busyState().then(setBusy);
+    const off = window.cairn.onBusy(setBusy);
+    return off;
+  }, []);
+
   useEffect(() => {
     const off = window.cairn.onFocusMode((focused) => {
       setView('worklogs');
@@ -152,6 +166,22 @@ export function App() {
 
   const trigger = useCallback(
     async (mode: CoreMode, options?: CoreRunOptions) => {
+      // 이미 다른 작업(수동·자동 발행·트레이)이 도는 중이면 친화 안내 후 중단.
+      const active = busyRef.current;
+      if (active.busy) {
+        setSessions((prev) => ({
+          ...prev,
+          [mode]: {
+            state: 'done',
+            step: 'boot',
+            lines: [],
+            startedAt: Date.now(),
+            endedAt: Date.now(),
+            error: t('publish.busyMsg'),
+          },
+        }));
+        return;
+      }
       setRunningMode(mode);
       setSessions((prev) => ({
         ...prev,
@@ -168,7 +198,9 @@ export function App() {
         });
         void loadRecent();
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
+        const raw = err instanceof Error ? err.message : String(err);
+        // 메인이 던진 'busy:<mode>' 코드 → i18n 친화 문구. 그 외엔 원문 노출.
+        const message = /(^|:\s?(Error:\s?)?)busy:/.test(raw) ? t('publish.busyMsg') : raw;
         setSessions((prev) => {
           const current = prev[mode] ?? {
             state: 'running',
@@ -185,7 +217,7 @@ export function App() {
         setRunningMode(null);
       }
     },
-    [loadRecent],
+    [loadRecent, t],
   );
 
   const counts = useMemo<FilterCounts>(() => {

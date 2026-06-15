@@ -6,6 +6,8 @@ export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | nu
 
 export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
+export type BusyState = { busy: boolean; mode: CoreMode | null };
+
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 export type LogTailResult = { lines: string[]; path: string | null };
 
@@ -122,6 +124,8 @@ declare global {
       };
       run: (mode: CoreMode, options?: CoreRunOptions) => Promise<CoreResult>;
       running: () => Promise<boolean>;
+      busyState: () => Promise<BusyState>;
+      onBusy: (cb: (s: BusyState) => void) => () => void;
       openExternal: (url: string) => Promise<void>;
       repoStars: () => Promise<number | null>;
       onRunLine: (cb: (l: RunLine) => void) => () => void;
