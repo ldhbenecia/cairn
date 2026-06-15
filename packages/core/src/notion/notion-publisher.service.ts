@@ -326,7 +326,7 @@ function buildSummaryBlocks(
   }
 
   blocks.push(heading2('Done'));
-  blocks.push(...bulletsOrEmpty(summary.doneBullets));
+  blocks.push(...buildDoneBlocks(summary.doneBullets));
 
   // 리뷰 활동은 더 이상 수집하지 않음 — 비어있으면 섹션 자체를 생략
   if (summary.reviewedBullets.length > 0) {
@@ -334,11 +334,16 @@ function buildSummaryBlocks(
     blocks.push(...bulletsOrEmpty(summary.reviewedBullets));
   }
 
-  blocks.push(heading2('In Progress'));
-  blocks.push(...bulletsOrEmpty(summary.inProgressBullets));
+  // 비어있으면 '—' placeholder 대신 섹션 자체를 생략 (Share·Reviewed 와 동일)
+  if (summary.inProgressBullets.length > 0) {
+    blocks.push(heading2('In Progress'));
+    blocks.push(...summary.inProgressBullets.map((t) => bulletItem(t)));
+  }
 
-  blocks.push(heading2('Notes'));
-  blocks.push(...bulletsOrEmpty(summary.notesBullets));
+  if (summary.notesBullets.length > 0) {
+    blocks.push(heading2('Notes'));
+    blocks.push(...summary.notesBullets.map((t) => bulletItem(t)));
+  }
 
   if (isOperator() && summary.usage) {
     const u = summary.usage;
@@ -435,6 +440,46 @@ function heading2(text: string): unknown {
       rich_text: [{ type: 'text', text: { content: text } }],
     },
   };
+}
+
+function heading3(text: string): unknown {
+  return {
+    object: 'block',
+    type: 'heading_3',
+    heading_3: {
+      rich_text: [{ type: 'text', text: { content: text } }],
+    },
+  };
+}
+
+// Done bullet 의 [Account] 접두(예: "[Work] …")를 파싱해 계정별 ### 서브헤딩으로 그룹화.
+// 접두가 하나도 없으면(단일 계정) 기존 flat bullet. 인라인 접두보다 가독성↑ (ADR 0024).
+export function buildDoneBlocks(bullets: readonly string[]): unknown[] {
+  if (bullets.length === 0) return [paragraph('—')];
+  const ACCT = /^\[([^\]]+)\]\s*/;
+  const order: string[] = [];
+  const groups = new Map<string, string[]>();
+  const ungrouped: string[] = [];
+  for (const b of bullets) {
+    const m = ACCT.exec(b);
+    if (!m) {
+      ungrouped.push(b);
+      continue;
+    }
+    const acct = m[1]!;
+    if (!groups.has(acct)) {
+      groups.set(acct, []);
+      order.push(acct);
+    }
+    groups.get(acct)!.push(b.slice(m[0].length));
+  }
+  if (groups.size === 0) return bullets.map((t) => bulletItem(t));
+  const out: unknown[] = ungrouped.map((b) => bulletItem(b));
+  for (const acct of order) {
+    out.push(heading3(acct));
+    for (const text of groups.get(acct)!) out.push(bulletItem(text));
+  }
+  return out;
 }
 
 function paragraph(text: string): unknown {
