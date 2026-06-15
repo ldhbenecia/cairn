@@ -45,14 +45,17 @@ type Props = {
   onChange: (iso: string) => void;
 };
 
-// 앱 톤에 맞춘 커스텀 캘린더 — 네이티브 date input 대체. 팝오버는 body 로 portal +
-// 고정 위치라 모달 안에 갇히거나 버튼을 가리지 않는다(아래 공간 없으면 위로 flip).
+// 앱 톤에 맞춘 커스텀 캘린더 — 네이티브 date input 대체. body portal + 고정 위치(모달에 안 갇힘).
+// pointer-events-auto: Radix 모달이 body 에 none 을 걸어도 캘린더 클릭이 먹게.
 export function DatePicker({ value, max, disabled, onChange }: Props) {
   const { t, settings } = useSettings();
+  const en = settings.language === 'en';
   const sel = parseIso(value);
+  const maxD = parseIso(max);
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [view, setView] = useState({ y: sel.y, m: sel.m });
+  const [picking, setPicking] = useState<'day' | 'month'>('day');
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
@@ -77,6 +80,7 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
 
   const openPicker = (): void => {
     setView({ y: sel.y, m: sel.m });
+    setPicking('day');
     const r = triggerRef.current?.getBoundingClientRect();
     if (r) {
       let top = r.bottom + 6;
@@ -87,11 +91,9 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
     setOpen(true);
   };
 
-  const maxD = parseIso(max);
   const maxMonthIndex = maxD.y * 12 + maxD.m;
   const viewMonthIndex = view.y * 12 + view.m;
-  const monthLabel =
-    settings.language === 'en' ? `${MONTHS_EN[view.m]} ${view.y}` : `${view.y}년 ${view.m + 1}월`;
+  const monthLabel = en ? `${MONTHS_EN[view.m]} ${view.y}` : `${view.y}년 ${view.m + 1}월`;
 
   const firstDow = new Date(view.y, view.m, 1).getDay();
   const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
@@ -107,10 +109,12 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
     });
   };
 
-  const display =
-    settings.language === 'en'
-      ? `${MONTHS_EN[sel.m]} ${sel.d}, ${sel.y}`
-      : `${sel.y}. ${pad2(sel.m + 1)}. ${pad2(sel.d)}`;
+  const display = en
+    ? `${MONTHS_EN[sel.m]} ${sel.d}, ${sel.y}`
+    : `${sel.y}. ${pad2(sel.m + 1)}. ${pad2(sel.d)}`;
+
+  const navBtn =
+    'flex size-6 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent';
 
   return (
     <>
@@ -129,64 +133,120 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
           <div
             ref={popRef}
             style={{ position: 'fixed', top: pos.top, left: pos.left, width: POP_W }}
-            className={`${closing ? 'popover-out' : 'popover-in'} glass-panel z-[60] rounded-lg border border-hairline bg-surface-1 p-2.5 shadow-xl shadow-black/40`}
+            className={`${closing ? 'popover-out' : 'popover-in'} glass-panel pointer-events-auto z-[60] rounded-lg border border-hairline bg-surface-1 p-2.5 shadow-xl shadow-black/40`}
           >
-            <div className="mb-2 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => shiftMonth(-1)}
-                className="flex size-6 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
-              >
-                <ChevronLeft size={15} strokeWidth={2} />
-              </button>
-              <span className="text-[13px] font-medium text-ink">{monthLabel}</span>
-              <button
-                type="button"
-                disabled={viewMonthIndex >= maxMonthIndex}
-                onClick={() => shiftMonth(1)}
-                className="flex size-6 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent"
-              >
-                <ChevronRight size={15} strokeWidth={2} />
-              </button>
-            </div>
-
-            <div className="mb-1 grid grid-cols-7 gap-0.5">
-              {DOW_KEYS.map((k) => (
-                <span key={k} className="py-1 text-center text-[11px] text-ink-tertiary">
-                  {t(k)}
-                </span>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-0.5">
-              {cells.map((day, i) => {
-                if (day === null) return <span key={`e${i}`} />;
-                const iso = toIso(view.y, view.m, day);
-                const isSelected = iso === value;
-                const isFuture = iso > max;
-                return (
-                  <button
-                    key={iso}
-                    type="button"
-                    disabled={isFuture}
-                    onClick={() => {
-                      onChange(iso);
-                      close();
-                    }}
-                    className={[
-                      'flex h-7 items-center justify-center rounded-md text-[12px] transition-colors',
-                      isSelected
-                        ? 'bg-accent font-medium text-white'
-                        : isFuture
-                          ? 'cursor-not-allowed text-ink-tertiary/40'
-                          : 'text-ink-muted hover:bg-surface-2 hover:text-ink',
-                    ].join(' ')}
-                  >
-                    {day}
+            {picking === 'day' ? (
+              <>
+                <div className="mb-2 flex items-center justify-between">
+                  <button type="button" onClick={() => shiftMonth(-1)} className={navBtn}>
+                    <ChevronLeft size={15} strokeWidth={2} />
                   </button>
-                );
-              })}
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => setPicking('month')}
+                    className="rounded-md px-2 py-1 text-[13px] font-medium text-ink transition-colors hover:bg-surface-2"
+                  >
+                    {monthLabel}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={viewMonthIndex >= maxMonthIndex}
+                    onClick={() => shiftMonth(1)}
+                    className={navBtn}
+                  >
+                    <ChevronRight size={15} strokeWidth={2} />
+                  </button>
+                </div>
+
+                <div className="mb-1 grid grid-cols-7 gap-0.5">
+                  {DOW_KEYS.map((k) => (
+                    <span key={k} className="py-1 text-center text-[11px] text-ink-tertiary">
+                      {t(k)}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-0.5">
+                  {cells.map((day, i) => {
+                    if (day === null) return <span key={`e${i}`} />;
+                    const iso = toIso(view.y, view.m, day);
+                    const isSelected = iso === value;
+                    const isFuture = iso > max;
+                    return (
+                      <button
+                        key={iso}
+                        type="button"
+                        disabled={isFuture}
+                        onClick={() => {
+                          onChange(iso);
+                          close();
+                        }}
+                        className={[
+                          'flex h-7 items-center justify-center rounded-md text-[12px] transition-colors',
+                          isSelected
+                            ? 'bg-accent font-medium text-white'
+                            : isFuture
+                              ? 'cursor-not-allowed text-ink-tertiary/40'
+                              : 'text-ink-muted hover:bg-surface-2 hover:text-ink',
+                        ].join(' ')}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setView((v) => ({ ...v, y: v.y - 1 }))}
+                    className={navBtn}
+                  >
+                    <ChevronLeft size={15} strokeWidth={2} />
+                  </button>
+                  <span className="text-[13px] font-medium text-ink">
+                    {en ? view.y : `${view.y}년`}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={view.y >= maxD.y}
+                    onClick={() => setView((v) => ({ ...v, y: v.y + 1 }))}
+                    className={navBtn}
+                  >
+                    <ChevronRight size={15} strokeWidth={2} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-1">
+                  {MONTHS_EN.map((mEn, mi) => {
+                    const future = view.y * 12 + mi > maxMonthIndex;
+                    const isCur = view.y === sel.y && mi === sel.m;
+                    return (
+                      <button
+                        key={mi}
+                        type="button"
+                        disabled={future}
+                        onClick={() => {
+                          setView((v) => ({ ...v, m: mi }));
+                          setPicking('day');
+                        }}
+                        className={[
+                          'rounded-md py-2 text-[12px] transition-colors',
+                          isCur
+                            ? 'bg-accent font-medium text-white'
+                            : future
+                              ? 'cursor-not-allowed text-ink-tertiary/40'
+                              : 'text-ink-muted hover:bg-surface-2 hover:text-ink',
+                        ].join(' ')}
+                      >
+                        {en ? mEn : `${mi + 1}월`}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>,
           document.body,
         )}
