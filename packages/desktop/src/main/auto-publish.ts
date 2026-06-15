@@ -32,6 +32,17 @@ function localYesterdayIso(): string {
 
 const anyAutoOn = (cfg: AutoPublish): boolean => cfg.daily || cfg.weekly || cfg.monthly;
 
+// 시작 시 catch-up 판단용 — 오늘 예약 시각(로컬)이 이미 지났는지.
+// 지나기 전(예: 19시 예약인데 18:21 에 앱 켬)엔 발행하지 않고 타이머에 맡긴다.
+export function isScheduledTimeReached(now: Date, time: string): boolean {
+  const [hStr, mStr] = time.split(':');
+  const h = Number.parseInt(hStr ?? '', 10);
+  const m = Number.parseInt(mStr ?? '', 10);
+  const sh = Number.isFinite(h) ? h : 19;
+  const sm = Number.isFinite(m) ? m : 0;
+  return now.getHours() * 60 + now.getMinutes() >= sh * 60 + sm;
+}
+
 // 오늘 발화해야 할 모드들 (각 토글 + 요일/날짜). 롤업은 "완료된 기간"을 정리하므로
 // 어제(이미 끝난 날)를 anchor 로 — 월요일 weekly=지난주, 1일 monthly=지난달.
 function dueRuns(cfg: AutoPublish): { mode: CoreMode; options: CoreRunOptions }[] {
@@ -47,8 +58,13 @@ function dueRuns(cfg: AutoPublish): { mode: CoreMode; options: CoreRunOptions }[
   return runs;
 }
 
-async function runAutoPublish(): Promise<void> {
+async function runAutoPublish(trigger: 'startup' | 'scheduled'): Promise<void> {
   const cfg = readSettings().autoPublish;
+
+  // 시작 시 백필은 "예약 시각이 이미 지난" 경우에만 — 안 그러면 앱을 켜는 순간
+  // 예약 시각과 무관하게 오늘치가 발행돼 버린다. 예약 전이면 타이머가 처리.
+  if (trigger === 'startup' && !isScheduledTimeReached(new Date(), cfg.time)) return;
+
   const runs = dueRuns(cfg);
   if (runs.length === 0) return;
 
@@ -79,13 +95,13 @@ function scheduleDaily(): void {
   const cfg = readSettings().autoPublish;
   if (!anyAutoOn(cfg)) return;
   dailyTimer = setTimeout(() => {
-    void runAutoPublish();
+    void runAutoPublish('scheduled');
     scheduleDaily();
   }, msUntilLocalTime(cfg.time));
 }
 
 export function initAutoPublish(): void {
-  void runAutoPublish(); // 실행 시 밀린 날짜 백필
+  void runAutoPublish('startup'); // 예약 시각이 이미 지났을 때만 밀린 발행 catch-up
   scheduleDaily();
 }
 
