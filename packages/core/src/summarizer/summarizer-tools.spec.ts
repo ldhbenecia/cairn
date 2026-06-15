@@ -107,6 +107,8 @@ describe('buildActivityPayload', () => {
     const payload = buildActivityPayload(input);
 
     expect(payload.date).toBe('2026-05-09');
+    // 활동에 나타난 계정 라벨(중복 제거·정렬) — done(personal,work) + open(personal)
+    expect(payload.accounts).toEqual(['personal', 'work']);
     // assigned PR(team-api#24)도 내 작업으로 done 에 포함
     expect(payload.done.prs).toHaveLength(2);
     expect(payload.done.prs.map((p) => p.kind)).toEqual(['pr_merged', 'pr_merged']);
@@ -161,6 +163,7 @@ describe('buildActivityPayload', () => {
       localGit: null,
     };
     const payload = buildActivityPayload(input);
+    expect(payload.accounts).toEqual([]);
     expect(payload.done.prs).toEqual([]);
     expect(payload.done.commits).toEqual([]);
     expect(payload.inProgress.prs).toEqual([]);
