@@ -94,6 +94,7 @@ export type AutoPublish = {
   backfillDays: number;
   confirmBeforeRun: boolean;
 };
+export type ExportConfig = { folder: string | null; autoSync: boolean };
 export type Settings = {
   theme: Theme;
   accent: string;
@@ -105,6 +106,7 @@ export type Settings = {
   autoPublish: AutoPublish;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
   summaryModel: SummaryModel;
+  export: ExportConfig;
 };
 
 declare global {
@@ -130,6 +132,7 @@ declare global {
       onBusy: (cb: (s: BusyState) => void) => () => void;
       openExternal: (url: string) => Promise<void>;
       exportMarkdown: (defaultName: string, content: string) => Promise<SaveResult>;
+      pickExportFolder: () => Promise<string | null>;
       repoStars: () => Promise<number | null>;
       onRunLine: (cb: (l: RunLine) => void) => () => void;
       onFocusMode: (cb: (mode: CoreMode) => void) => () => void;

@@ -16,6 +16,13 @@ export type AutoPublish = {
   confirmBeforeRun: boolean; // true 면 자동 실행 대신 알림으로 확인
 };
 
+// 로컬 Markdown 내보내기 — folder 지정 시 발행 성공마다 그 폴더에 일지를 .md 로 기록.
+// folder 를 Obsidian vault 로 가리키면 곧 Obsidian 연동.
+export type ExportConfig = {
+  folder: string | null;
+  autoSync: boolean;
+};
+
 export type Settings = {
   theme: Theme;
   accent: string;
@@ -27,6 +34,7 @@ export type Settings = {
   autoPublish: AutoPublish;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
   summaryModel: SummaryModel;
+  export: ExportConfig;
 };
 
 const DEFAULTS: Settings = {
@@ -47,6 +55,7 @@ const DEFAULTS: Settings = {
   },
   prompts: { daily: null, weekly: null, monthly: null },
   summaryModel: 'sonnet',
+  export: { folder: null, autoSync: false },
 };
 
 // 사용자 환경설정은 머신 로컬 ~/.cairn/settings.json (worklog.config.json = 엔진 데이터 config 와 분리)
@@ -79,6 +88,7 @@ export function readSettings(): Settings {
         confirmBeforeRun: ap.confirmBeforeRun,
       },
       prompts: { ...DEFAULTS.prompts, ...(parsed.prompts ?? {}) },
+      export: { ...DEFAULTS.export, ...(parsed.export ?? {}) },
     };
   } catch {
     return DEFAULTS;
@@ -92,6 +102,7 @@ export function writeSettings(patch: Partial<Settings>): Settings {
     ...patch,
     autoPublish: { ...prev.autoPublish, ...(patch.autoPublish ?? {}) },
     prompts: { ...prev.prompts, ...(patch.prompts ?? {}) },
+    export: { ...prev.export, ...(patch.export ?? {}) },
   };
   mkdirSync(dirname(SETTINGS_PATH), { recursive: true });
   writeFileSync(SETTINGS_PATH, `${JSON.stringify(next, null, 2)}\n`);

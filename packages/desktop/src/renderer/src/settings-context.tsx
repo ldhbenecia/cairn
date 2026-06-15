@@ -107,6 +107,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       ...patch,
       autoPublish: { ...prev.autoPublish, ...(patch.autoPublish ?? {}) },
       prompts: { ...prev.prompts, ...(patch.prompts ?? {}) },
+      export: { ...prev.export, ...(patch.export ?? {}) },
     }));
     void window.cairn.setSettings(patch);
   }, []);
