@@ -10,13 +10,26 @@ export function NotificationsTab() {
         <Toggle checked={settings.notifications} onChange={(v) => update({ notifications: v })} />
       </Field>
       <Field label={t('prefs.notifications.test')} desc={t('prefs.notifications.testDesc')}>
-        <button
-          type="button"
-          onClick={() => void window.cairn.testNotification()}
-          className="rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink transition-colors hover:bg-surface-3"
-        >
-          {t('prefs.notifications.testBtn')}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => void window.cairn.testNotification()}
+            className="rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink transition-colors hover:bg-surface-3"
+          >
+            {t('prefs.notifications.testBtn')}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              void window.cairn.openExternal(
+                'x-apple.systempreferences:com.apple.Notifications-Settings.extension',
+              )
+            }
+            className="rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
+          >
+            {t('prefs.notifications.openSettings')}
+          </button>
+        </div>
       </Field>
     </div>
   );

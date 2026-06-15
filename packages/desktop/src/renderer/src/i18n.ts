@@ -222,6 +222,7 @@ const STRINGS = {
     'prefs.notifications.test': '알림 테스트',
     'prefs.notifications.testDesc': '안 뜨면 macOS 시스템 설정 → 알림에서 cairn 허용 확인',
     'prefs.notifications.testBtn': '테스트 알림 보내기',
+    'prefs.notifications.openSettings': 'macOS 알림 설정 열기',
     'prefs.autoPublish': '자동 발행',
     'prefs.autoPublish.daily': '일간 자동 발행',
     'prefs.autoPublish.dailyDesc': '매일 정해진 시각에 그날 일지를 발행',
@@ -507,6 +508,7 @@ const STRINGS = {
     'prefs.notifications.testDesc':
       'If nothing shows, allow cairn in macOS System Settings → Notifications',
     'prefs.notifications.testBtn': 'Send a test notification',
+    'prefs.notifications.openSettings': 'Open macOS notification settings',
     'prefs.autoPublish': 'Auto-publish',
     'prefs.autoPublish.daily': 'Daily auto-publish',
     'prefs.autoPublish.dailyDesc': "Publish each day's worklog at a set time",
