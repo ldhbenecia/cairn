@@ -122,8 +122,6 @@ export function isForbiddenSubject(subject: string): boolean {
   }
 }
 
-// 한 commit 이 여러 branch 에 포함될 때 작업 브랜치(feature/* 등) 우선 선택.
-// 트렁크 / 통합 브랜치는 후순위로 밀고, 트렁크밖에 없으면 그제서야 노출.
 function pickBranch(branches: readonly string[]): string | null {
   if (branches.length === 0) return null;
   const named = branches.filter((b) => !b.startsWith('('));

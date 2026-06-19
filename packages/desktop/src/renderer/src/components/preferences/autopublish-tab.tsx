@@ -4,7 +4,7 @@ import { useSettings } from '../../settings-context';
 import { Toggle } from '../toggle';
 import { Field } from './field';
 
-const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => i * 30); // 분 단위, 30분 간격
+const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => i * 30);
 const BACKFILL_DAYS = [0, 1, 2, 3, 5, 7, 10, 14, 30];
 const pad2 = (n: number): string => String(n).padStart(2, '0');
 const fmtTime = (mins: number): string => `${pad2(Math.floor(mins / 60))}:${pad2(mins % 60)}`;
@@ -21,7 +21,6 @@ export function AutoPublishTab() {
 
   const exp = settings.export;
   const setExp = (patch: Partial<typeof exp>): void => update({ export: { ...exp, ...patch } });
-  // 폴더 변경은 autoSync 토글을 건드리지 않는다 (선택은 사용자 몫).
   const pickFolder = async (): Promise<void> => {
     const f = await window.cairn.pickExportFolder();
     if (f) setExp({ folder: f });

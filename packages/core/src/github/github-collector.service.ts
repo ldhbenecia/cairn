@@ -59,6 +59,7 @@ export class GithubCollectorService {
         rangeStart: window.startIso,
         rangeEnd: window.endIso,
         prs: [],
+        accountLabels: [],
       };
     }
 
@@ -98,6 +99,7 @@ export class GithubCollectorService {
       rangeStart: window.startIso,
       rangeEnd: window.endIso,
       prs,
+      accountLabels: accounts.map((a) => a.label),
       ...(accountErrors.length > 0 ? { accountErrors } : {}),
     };
   }
@@ -118,8 +120,6 @@ export class GithubCollectorService {
     const involved = await this.client.searchPrs(token, `involves:@me updated:${widenedRange}`);
     const myLogin = await loginPromise;
 
-    // 내 개발 작업만 수집 — authored(작성) 또는 assigned(할당) PR.
-    // 리뷰/코멘트 활동은 일지 요약 대상이 아니므로 검색·조회하지 않는다 (속도 + 노이즈 제거).
     const buckets = new Map<string, PrBucket>();
     for (const item of involved) {
       const isAuthored = item.author === myLogin;
@@ -142,8 +142,6 @@ export class GithubCollectorService {
       buckets.set(key, bucket);
     }
 
-    // Phase 1: day-relevance 판정. created/merged date 로 관련성이 확정된 PR 은 commits 조회를
-    // 생략하고, 나머지는 그날 내 커밋이 있는지로 판정한다.
     // GitHub API secondary rate limit 회피를 위해 token 당 동시 호출 5 개로 제한.
     const phase1 = await withConcurrency([...buckets.values()], 5, async (bucket) => {
       const { item, categories } = bucket;

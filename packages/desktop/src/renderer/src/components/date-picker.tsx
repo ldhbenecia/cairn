@@ -40,13 +40,12 @@ const POP_H = 322;
 
 type Props = {
   value: string; // YYYY-MM-DD
-  max: string; // 선택 가능 상한 (이 날짜 이후 비활성)
+  max: string; // 선택 상한 (이 날짜 이후 비활성)
   disabled?: boolean;
   onChange: (iso: string) => void;
 };
 
-// 앱 톤에 맞춘 커스텀 캘린더 — 네이티브 date input 대체. body portal + 고정 위치(모달에 안 갇힘).
-// pointer-events-auto: Radix 모달이 body 에 none 을 걸어도 캘린더 클릭이 먹게.
+// body portal + 고정 위치(모달에 안 갇힘). pointer-events-auto: Radix 가 body 에 none 을 걸어도 클릭이 먹게.
 export function DatePicker({ value, max, disabled, onChange }: Props) {
   const { t, settings } = useSettings();
   const en = settings.language === 'en';

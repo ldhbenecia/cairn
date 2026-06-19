@@ -67,12 +67,6 @@ export class NotionPublisherService {
     }
   }
 
-  /**
-   * 수집·요약 전에 미리 확인해서 어차피 skip 될 경우 빠르게 단락(short-circuit)한다.
-   * - 발행 대상(worklog.pageId / token) 없음 → no-target
-   * - 이미 발행됨(force X) / final 보호 → skipped
-   * - 그 외(신규 발행해야 함 / dataSourceId 미생성 / 확인 실패) → null (정상 진행)
-   */
   async precheckDaily(date: string, force: boolean): Promise<PublishWorklogResult | null> {
     const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
     if (!target) return { kind: 'no-target' };
@@ -275,7 +269,10 @@ export class NotionPublisherService {
 
 function formatSourceCounts(input: PublishWorklogInput): string {
   const gh = input.github?.prs.length ?? 0;
-  const git = input.localGit?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
+  const githubCommits =
+    input.github?.prs.reduce((acc, pr) => acc + pr.commitsOnDate.length, 0) ?? 0;
+  const localCommits = input.localGit?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
+  const git = githubCommits + localCommits;
   const hrs = formatHourHistogram(input);
   return `gh:${gh} / git:${git}${hrs ? ` / ${hrs}` : ''}`;
 }
@@ -290,8 +287,6 @@ export function hourHistogram(isoTimestamps: readonly string[]): number[] {
   return hours;
 }
 
-// 그날 활동(커밋)의 시간대 분포 — 데스크톱 대시보드의 "시간대별 작업" 차트용.
-// "hrs:c0,..,c23" 또는 활동 없으면 null.
 function formatHourHistogram(input: PublishWorklogInput): string | null {
   const stamps: string[] = [];
   for (const repo of input.localGit?.repos ?? []) {
@@ -319,22 +314,19 @@ function buildSummaryBlocks(
   blocks.push(heading2('Summary'));
   blocks.push(paragraph(summary.paragraph));
 
-  // 보고/스탠드업에 바로 복붙하는 한 줄 bullet 모음 (없으면 생략)
   if (summary.shareBullets.length > 0) {
     blocks.push(heading2('Share'));
     blocks.push(...bulletsOrEmpty(summary.shareBullets));
   }
 
   blocks.push(heading2('Done'));
-  blocks.push(...buildDoneBlocks(summary.doneBullets));
+  blocks.push(...buildDoneBlocks(summary.doneBullets, input.github?.accountLabels ?? []));
 
-  // 리뷰 활동은 더 이상 수집하지 않음 — 비어있으면 섹션 자체를 생략
   if (summary.reviewedBullets.length > 0) {
     blocks.push(heading2('Reviewed'));
     blocks.push(...bulletsOrEmpty(summary.reviewedBullets));
   }
 
-  // 비어있으면 '—' placeholder 대신 섹션 자체를 생략 (Share·Reviewed 와 동일)
   if (summary.inProgressBullets.length > 0) {
     blocks.push(heading2('In Progress'));
     blocks.push(...summary.inProgressBullets.map((t) => bulletItem(t)));
@@ -452,10 +444,10 @@ function heading3(text: string): unknown {
   };
 }
 
-// Done bullet 의 [Account] 접두(예: "[Work] …")를 파싱해 계정별 ### 서브헤딩으로 그룹화.
-// 접두가 하나도 없으면(단일 계정) 기존 flat bullet. 인라인 접두보다 가독성↑ (ADR 0024).
-export function buildDoneBlocks(bullets: readonly string[]): unknown[] {
-  if (bullets.length === 0) return [paragraph('—')];
+export function buildDoneBlocks(
+  bullets: readonly string[],
+  accountLabels: readonly string[] = [],
+): unknown[] {
   const ACCT = /^\[([^\]]+)\]\s*/;
   const order: string[] = [];
   const groups = new Map<string, string[]>();
@@ -473,6 +465,27 @@ export function buildDoneBlocks(bullets: readonly string[]): unknown[] {
     }
     groups.get(acct)!.push(b.slice(m[0].length));
   }
+
+  if (accountLabels.length >= 2) {
+    const out: unknown[] = ungrouped.map((b) => bulletItem(b));
+    const shown = new Set<string>();
+    for (const acct of accountLabels) {
+      shown.add(acct);
+      out.push(heading3(acct));
+      const items = groups.get(acct) ?? [];
+      if (items.length === 0) out.push(paragraph('None'));
+      else for (const text of items) out.push(bulletItem(text));
+    }
+    // 모델이 설정 목록에 없는 라벨로 붙인 경우(예외)도 살린다.
+    for (const acct of order) {
+      if (shown.has(acct)) continue;
+      out.push(heading3(acct));
+      for (const text of groups.get(acct)!) out.push(bulletItem(text));
+    }
+    return out;
+  }
+
+  if (bullets.length === 0) return [paragraph('—')];
   if (groups.size === 0) return bullets.map((t) => bulletItem(t));
   const out: unknown[] = ungrouped.map((b) => bulletItem(b));
   for (const acct of order) {

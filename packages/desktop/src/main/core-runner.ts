@@ -91,7 +91,6 @@ function stepRank(step: RunStep): number {
   return STEP_ORDER.indexOf(step);
 }
 
-// 설정의 커스텀 프롬프트 → core 가 읽는 CAIRN_PROMPT_* env (빈 값은 전달하지 않음)
 function promptEnv(prompts: Settings['prompts']): Record<string, string> {
   const env: Record<string, string> = {};
   if (prompts.daily?.trim()) env.CAIRN_PROMPT_DAILY = prompts.daily;
@@ -107,8 +106,6 @@ export function isRunning(): boolean {
   return running !== null;
 }
 
-// 실행 중 작업을 모든 창에 알린다 — 렌더러가 발행 버튼을 잠그고 "발행 중" 을 보여줄 수 있게.
-// 자동 발행(시작 백필·스케줄)·트레이·수동 발행 어느 경로든 동일하게 잡힌다.
 function broadcastBusy(): void {
   const payload = { busy: running !== null, mode: runningMode };
   for (const win of BrowserWindow.getAllWindows()) {
@@ -120,15 +117,12 @@ export function busyState(): { busy: boolean; mode: CoreMode | null } {
   return { busy: running !== null, mode: runningMode };
 }
 
-// 실행 완료를 모든 창에 알린다 — 자동 발행(렌더러가 트리거 안 한 실행)도 렌더러가 완료 처리·
-// 목록 갱신을 할 수 있게. (수동 trigger 의 IPC resolve 와 별개로 통일된 완료 신호)
 function broadcastRunDone(mode: CoreMode, result: CoreResult): void {
   for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.send('cairn:run-done', { mode, result });
   }
 }
 
-// Claude 연결 확인 — core 를 --probe-claude 로 fork, stdout 의 CLAUDE_OK 확인 (가벼운 query 1회)
 export async function probeClaude(): Promise<{ ok: boolean }> {
   return new Promise((resolvePromise) => {
     const child = fork(CORE_ENTRY, ['--probe-claude'], {
@@ -155,7 +149,7 @@ export async function runCore(
   options: CoreRunOptions = {},
   sender?: WebContents,
 ): Promise<CoreResult> {
-  // 코드화된 에러 — 렌더러가 i18n 으로 친화 문구 매핑. (영어 사용자에게 한국어 새는 것 방지)
+  // 코드화된 에러 — 렌더러가 i18n 으로 매핑 (영어 사용자에게 한국어 새는 것 방지)
   if (running) throw new Error(`busy:${runningMode ?? mode}`);
 
   const emit = (level: 'info' | 'err' | 'meta', line: string): void => {
@@ -252,7 +246,6 @@ export async function runCore(
       };
       const outcome = result.ok ? (finalNoActivity ? 'no-activity' : 'ok') : 'fail';
       trackPublish(mode, outcome);
-      // 발행 성공 시 로컬 폴더(Obsidian vault 등) 자동 동기화 — 수동·스케줄 양쪽 이 경로를 탄다.
       if (result.ok && lastPageId && !finalNoActivity) {
         const pad = (n: number): string => String(n).padStart(2, '0');
         const d = new Date();

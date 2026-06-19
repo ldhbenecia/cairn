@@ -6,7 +6,7 @@ import { useSettings } from '../settings-context';
 
 type T = (key: I18nKey) => string;
 
-// "gh:3 / git:5" → { pr: 3, commit: 5 }. listRecentPages 가 채우는 Source counts 문자열.
+// "gh:3 / git:5" → { pr: 3, commit: 5 }.
 function parseCounts(sourceCounts: string | null): { pr: number; commit: number } {
   if (!sourceCounts) return { pr: 0, commit: 0 };
   const pr = /gh\s*:\s*(\d+)/i.exec(sourceCounts);
@@ -17,7 +17,7 @@ function parseCounts(sourceCounts: string | null): { pr: number; commit: number 
 type DayActivity = { date: string; pr: number; commit: number; total: number };
 type MonthBucket = { month: string; pr: number; commit: number; activeDays: number };
 
-// "... / hrs:c0,..,c23" → 24칸 시간 히스토그램(없으면 null). 발행기가 채움(머신 로컬 시간).
+// "hrs:c0,..,c23" → 24칸 시간 히스토그램 (머신 로컬 시간 기준, 없으면 null).
 function parseHours(sourceCounts: string | null): number[] | null {
   if (!sourceCounts) return null;
   const m = /hrs:([\d,]+)/.exec(sourceCounts);
@@ -29,8 +29,8 @@ function parseHours(sourceCounts: string | null): number[] | null {
 type Agg = {
   byDate: Map<string, DayActivity>;
   months: MonthBucket[];
-  weekday: number[]; // 일~토 7칸: 총 활동량
-  hours: number[]; // 0~23시 24칸: 커밋 시간대 분포
+  weekday: number[];
+  hours: number[];
   total: { pr: number; commit: number; activeDays: number };
   streak: { current: number; longest: number };
 };
@@ -90,7 +90,6 @@ function aggregate(pages: RecentPage[]): Agg {
   return { byDate, months, weekday, hours, total, streak: computeStreak(byDate) };
 }
 
-// 활동 있는 날의 연속(현재/최장). 현재 streak 은 오늘 또는 어제부터 거슬러 셈.
 function computeStreak(byDate: Map<string, DayActivity>): { current: number; longest: number } {
   const active = new Set([...byDate.values()].filter((d) => d.total > 0).map((d) => d.date));
   if (active.size === 0) return { current: 0, longest: 0 };
@@ -119,8 +118,8 @@ function computeStreak(byDate: Map<string, DayActivity>): { current: number; lon
   return { current, longest };
 }
 
-const HEATMAP_WEEKS = 53; // GitHub 잔디처럼 1년치
-const CELL = 12; // 셀 한 변(px) — 작고 촘촘하게
+const HEATMAP_WEEKS = 53;
+const CELL = 12;
 const CELL_GAP = 3;
 
 export function Dashboard({
@@ -249,7 +248,6 @@ function StatCard({
   );
 }
 
-// GitHub 잔디 스타일 — 최근 HEATMAP_WEEKS 주, 날짜별 활동량을 accent 농도로.
 function Heatmap({
   byDate,
   t,
@@ -262,7 +260,6 @@ function Heatmap({
   const weeks = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    // 이번 주 토요일까지 채운 뒤 HEATMAP_WEEKS 주 전 일요일부터 시작
     const end = new Date(today);
     end.setDate(end.getDate() + (6 - end.getDay()));
     const start = new Date(end);
@@ -301,9 +298,7 @@ function Heatmap({
     'var(--color-accent)',
   ];
 
-  // 마우스 올린 셀의 날짜·활동량을 셀 위에 떠 있는 커스텀 툴팁으로.
-  // 좌표는 컨테이너 기준 상대값(absolute) — fixed 는 transform 가진 상위(.dash-rise)에서
-  // viewport 가 아닌 그 요소 기준이 돼 위치가 틀어지고 스크롤바가 생긴다.
+  // 툴팁 좌표는 absolute(컨테이너 기준) — transform 가진 상위(.dash-rise) 때문에 fixed 면 위치가 틀어진다.
   const wrapRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<{ label: string; x: number; y: number } | null>(null);
 
@@ -321,7 +316,6 @@ function Heatmap({
       </div>
       <div className="overflow-x-auto pb-1">
         <div className="flex gap-1.5">
-          {/* 요일 라벨 — 월·수·금만 (GitHub 스타일) */}
           <div className="flex shrink-0 flex-col" style={{ gap: CELL_GAP }}>
             {['', t('stats.dow.mon'), '', t('stats.dow.wed'), '', t('stats.dow.fri'), ''].map(
               (d, i) => (
@@ -335,7 +329,6 @@ function Heatmap({
               ),
             )}
           </div>
-          {/* 잔디 — 고정 작은 셀로 촘촘하게 */}
           <div className="flex" style={{ gap: CELL_GAP }}>
             {weeks.cols.map((col, ci) => (
               <div key={ci} className="flex flex-col" style={{ gap: CELL_GAP }}>
@@ -384,7 +377,6 @@ function Heatmap({
   );
 }
 
-// 월별 PR·커밋 그룹 막대 — 외부 차트 라이브러리 없이 SVG. 최근 12개월.
 function MonthlyChart({ months, t }: { months: MonthBucket[]; t: T }) {
   const W = 560;
   const H = 200;
@@ -470,7 +462,7 @@ function MonthlyChart({ months, t }: { months: MonthBucket[]; t: T }) {
   );
 }
 
-// 시간대별 작업 분포 — 새벽/오전/오후/밤 중 언제 주로 일하는지 (커밋 시각 기준, 머신 로컬)
+// 커밋 시각 기준, 머신 로컬 시간대.
 const TOD_PERIODS: { key: I18nKey; from: number; to: number }[] = [
   { key: 'stats.tod.dawn', from: 0, to: 5 },
   { key: 'stats.tod.morning', from: 6, to: 11 },
@@ -508,7 +500,6 @@ function TimeOfDayChart({ hours, t }: { hours: number[]; t: T }) {
   );
 }
 
-// 요일별 활동량 — 어느 요일에 가장 활발한지
 function WeekdayChart({ weekday, t }: { weekday: number[]; t: T }) {
   const max = Math.max(1, ...weekday);
   const labels = [

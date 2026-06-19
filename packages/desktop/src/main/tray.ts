@@ -30,7 +30,6 @@ export function setupTray(window: BrowserWindow, onQuit: () => void): void {
   tray.on('click', () => showWindow(window));
 }
 
-// 언어 변경 시 트레이 툴팁·메뉴를 즉시 다시 적용 (index.ts settings:set 에서 호출)
 export function reconfigureTray(): void {
   if (tray && trayWindow && trayOnQuit) applyTrayLabels(trayWindow, trayOnQuit);
 }

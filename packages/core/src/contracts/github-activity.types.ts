@@ -38,5 +38,6 @@ export interface GithubActivity {
   rangeStart: string;
   rangeEnd: string;
   prs: readonly GithubPrSummary[];
+  accountLabels: readonly string[];
   accountErrors?: readonly GithubAccountActivityError[];
 }

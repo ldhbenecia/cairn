@@ -4,20 +4,18 @@ import { dirname, join } from 'node:path';
 
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
-// 요약 모델 — 'default' 는 Claude 로그인 기본 모델, 나머지는 해당 모델로 override
+// 'default' 는 Claude 로그인 기본 모델
 export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
 
 export type AutoPublish = {
-  daily: boolean; // 매일 일지 (opt-in)
-  weekly: boolean; // 월요일에 지난주 정리 (opt-in)
-  monthly: boolean; // 매월 1일에 지난달 정리 (opt-in)
-  time: string; // "HH:mm" 발화 시각 (공유)
-  backfillDays: number; // daily 백필 일수
-  confirmBeforeRun: boolean; // true 면 자동 실행 대신 알림으로 확인
+  daily: boolean;
+  weekly: boolean;
+  monthly: boolean;
+  time: string; // "HH:mm" 발화 시각
+  backfillDays: number;
+  confirmBeforeRun: boolean;
 };
 
-// 로컬 Markdown 내보내기 — folder 지정 시 발행 성공마다 그 폴더에 일지를 .md 로 기록.
-// folder 를 Obsidian vault 로 가리키면 곧 Obsidian 연동.
 export type ExportConfig = {
   folder: string | null;
   autoSync: boolean;
@@ -58,7 +56,6 @@ const DEFAULTS: Settings = {
   export: { folder: null, autoSync: false },
 };
 
-// 사용자 환경설정은 머신 로컬 ~/.cairn/settings.json (worklog.config.json = 엔진 데이터 config 와 분리)
 const SETTINGS_PATH = join(homedir(), '.cairn', 'settings.json');
 
 export function readSettings(): Settings {

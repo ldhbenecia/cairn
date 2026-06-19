@@ -12,8 +12,6 @@ export interface SaveResult {
   error?: string;
 }
 
-// 발행 시 자동 동기화 — export.autoSync + folder 설정 시 발행된 일지를 그 폴더에 .md 로 쓴다.
-// folder 가 Obsidian vault 면 곧 Obsidian 연동. 실패는 발행을 막지 않는다(fire-and-forget).
 export async function syncWorklogToFolder(opts: {
   pageId: string;
   fileBase: string;
@@ -37,7 +35,6 @@ export async function pickExportFolder(): Promise<string | null> {
   return r.canceled ? null : (r.filePaths[0] ?? null);
 }
 
-// 렌더러가 만든 HTML 문서를 오프스크린 창에 싣고 printToPDF 로 PDF 저장.
 export async function savePdf(defaultName: string, html: string): Promise<SaveResult> {
   const r = await dialog.showSaveDialog({
     defaultPath: join(homedir(), 'Documents', defaultName),
@@ -61,7 +58,6 @@ export async function savePdf(defaultName: string, html: string): Promise<SaveRe
   }
 }
 
-// 일지 Markdown 을 저장 다이얼로그로 파일에 쓴다. 파일명 기본값은 일지 날짜/제목 기반.
 export async function saveMarkdown(defaultName: string, content: string): Promise<SaveResult> {
   const r = await dialog.showSaveDialog({
     defaultPath: join(homedir(), 'Documents', defaultName),

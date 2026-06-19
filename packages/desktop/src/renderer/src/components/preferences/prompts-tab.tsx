@@ -6,7 +6,6 @@ import { useSettings } from '../../settings-context';
 const PROMPT_MAX_CHARS = 4000;
 const PROMPT_MODES = ['daily', 'weekly', 'monthly'] as const;
 
-// 속도 → 품질 순. sonnet 이 기본(권장).
 const MODELS: { id: SummaryModel; name: string; hint: I18nKey; desc: I18nKey }[] = [
   {
     id: 'haiku',
@@ -99,7 +98,7 @@ export function PromptsTab() {
   );
 }
 
-// 저장은 blur 시점 — 키 입력마다 settings.json 을 다시 쓰지 않기 위해
+// 저장은 blur 시점 (키 입력마다 settings.json 을 쓰지 않게).
 function PromptField({
   label,
   placeholder,

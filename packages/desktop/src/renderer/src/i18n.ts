@@ -1,6 +1,6 @@
 import type { Language } from './cairn-api';
 
-// 경량 i18n — 2개 언어뿐이라 dict + t(). 키 누락 시 ko fallback.
+// 키 누락 시 ko fallback.
 const STRINGS = {
   ko: {
     'brand.worklog': 'Worklog',

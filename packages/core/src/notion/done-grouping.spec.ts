@@ -37,4 +37,18 @@ describe('buildDoneBlocks', () => {
   it('renders a placeholder when empty', () => {
     expect(buildDoneBlocks([]).map(typeOf)).toEqual(['paragraph']);
   });
+
+  it('with 2+ configured accounts, shows every account heading and None for empty ones', () => {
+    const blocks = buildDoneBlocks(['[Work] team-api — fix'], ['Work', 'Personal']);
+    expect(blocks.map(typeOf)).toEqual([
+      'heading_3',
+      'bulleted_list_item',
+      'heading_3',
+      'paragraph',
+    ]);
+    expect(textOf(blocks[0])).toBe('Work');
+    expect(textOf(blocks[1])).toBe('team-api — fix');
+    expect(textOf(blocks[2])).toBe('Personal');
+    expect(textOf(blocks[3])).toBe('None');
+  });
 });
