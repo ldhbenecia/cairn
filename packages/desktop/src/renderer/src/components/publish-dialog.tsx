@@ -335,6 +335,8 @@ function Progress({
   const lines = session?.lines ?? [];
   const counts = useMemo(() => collectedCounts(lines), [lines]);
   const backfill = useMemo(() => backfillProgress(lines), [lines]);
+  // 백필은 트리거 시점부터 배치 모드 — 로그(N/M) 도착 전에도 선형 스텝 대신 일자별 UI.
+  const isBatch = session?.batch === true || backfill !== null;
   const hintIdx = step === 'summarize' ? Math.floor(elapsed / 8) % SUMMARIZE_HINTS.length : 0;
   const hint =
     step === 'collect'
@@ -346,26 +348,34 @@ function Progress({
   const fillPct = Math.max(0, Math.min(100, ((currentRank - STEP_RANK.collect) / 2) * 100));
   return (
     <div className="flex flex-col gap-5 py-1">
-      {backfill ? (
-        // 백필은 날짜별로 수집·요약·발행이 동시에 도므로 단일 선형 스텝 대신 N/M 진행을 메인으로.
+      {isBatch ? (
+        // 백필은 날짜별로 수집·요약·발행이 동시에 도므로 단일 선형 스텝 대신 일자별 진행을 메인으로.
         <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-2/50 px-4 py-3.5">
           <div className="flex items-baseline justify-between">
             <span className="text-[13px] font-medium text-ink-muted">
               {t('publish.backfill.publishing')}
             </span>
-            <span className="font-mono text-[18px] font-semibold tracking-[-0.5px] text-ink">
-              {backfill.done}/{backfill.total}
-              <span className="ml-0.5 text-[12px] font-normal text-ink-tertiary">
-                {t('publish.backfill.daysSuffix')}
+            {backfill && (
+              <span className="font-mono text-[18px] font-semibold tracking-[-0.5px] text-ink">
+                {backfill.done}/{backfill.total}
+                <span className="ml-0.5 text-[12px] font-normal text-ink-tertiary">
+                  {t('publish.backfill.daysSuffix')}
+                </span>
               </span>
-            </span>
+            )}
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
-            <div
-              className="h-full rounded-full bg-accent transition-all duration-500 ease-out"
-              style={{ width: `${(backfill.done / backfill.total) * 100}%` }}
-            />
-          </div>
+          {backfill ? (
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+              <div
+                className="h-full rounded-full bg-accent transition-all duration-500 ease-out"
+                style={{ width: `${(backfill.done / backfill.total) * 100}%` }}
+              />
+            </div>
+          ) : (
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+              <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
+            </div>
+          )}
           <span className="text-[11px] leading-relaxed text-ink-tertiary">
             {t('publish.backfill.concurrent')}
           </span>
@@ -412,14 +422,14 @@ function Progress({
         </div>
       )}
 
-      {step === 'summarize' && !backfill && (
+      {step === 'summarize' && !isBatch && (
         <div className="flex justify-center py-1.5">
           <BrandMark size={28} className="cairn-breathe text-accent" />
         </div>
       )}
 
-      {/* 백필일 땐 일자별 바와 겹치지 않게 indeterminate 바 숨김 */}
-      {!backfill && (
+      {/* 배치(백필)일 땐 일자별 바와 겹치지 않게 indeterminate 바 숨김 */}
+      {!isBatch && (
         <div className="h-1 overflow-hidden rounded-full bg-surface-2">
           <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
         </div>
@@ -434,7 +444,7 @@ function Progress({
         </span>
       </div>
 
-      {!backfill && currentRank >= STEP_RANK.summarize && counts.pr !== null && counts.commit !== null && (
+      {!isBatch && currentRank >= STEP_RANK.summarize && counts.pr !== null && counts.commit !== null && (
         <div className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
           <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
             PR {counts.pr}

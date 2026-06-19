@@ -39,6 +39,8 @@ export type RunSession = {
   error?: string;
   startedAt: number;
   endedAt?: number;
+  // 백필(여러 날짜)이면 트리거 시점부터 true — 진행 UI 를 일자별 배치 모드로 보이게.
+  batch?: boolean;
 };
 
 const TAIL_MAX = 200;
@@ -219,9 +221,10 @@ export function App() {
         return;
       }
       setRunningMode(mode);
+      const batch = (options?.backfillDays ?? 0) > 0;
       setSessions((prev) => ({
         ...prev,
-        [mode]: { state: 'running', step: 'boot', lines: [], startedAt: Date.now() },
+        [mode]: { state: 'running', step: 'boot', lines: [], startedAt: Date.now(), batch },
       }));
       try {
         // 완료 처리는 onRunDone 브로드캐스트가 담당.
