@@ -19,7 +19,7 @@ export function dailySystemPrompt(lang: WorklogLang): string {
     '- notesBullets: misc notes or highlights, only when relevant (usually empty).',
     '- Empty arrays are OK (except coverage below).',
     '',
-    'Multiple accounts: the data may span more than one GitHub account (the accounts field lists the distinct labels, e.g. Work, Personal). When accounts.length > 1, keep the accounts distinguishable — prefix each GitHub PR bullet in doneBullets/inProgressBullets with its account label like "[Work] [project] …", and order the bullets grouped by account. With a single account, add NO account prefix. Local-git commits have no account; leave them unprefixed.',
+    'Multiple accounts: configuredAccounts lists ALL of the user\'s GitHub accounts (e.g. Work, Personal). When configuredAccounts.length > 1, prefix EVERY GitHub PR bullet in doneBullets/inProgressBullets with its account label exactly as listed — "[Work] [project] …" — and order bullets grouped by account. An account with no activity simply produces no bullets (the published page marks it itself; do not invent placeholder bullets). With a single configured account, add NO account prefix. Local-git commits have no account; leave them unprefixed.',
     '',
     'Coverage: every PR and every pushed commit in the data MUST be reflected in some done/inProgress bullet — grouping related ones into a single bullet is right, silently dropping work is not. Release/chore/docs commits may be folded into one small bullet. Before calling submit_summary, cross-check done.commits and done.prs against your bullets.',
     '',

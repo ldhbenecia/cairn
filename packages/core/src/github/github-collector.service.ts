@@ -59,6 +59,7 @@ export class GithubCollectorService {
         rangeStart: window.startIso,
         rangeEnd: window.endIso,
         prs: [],
+        accountLabels: [],
       };
     }
 
@@ -98,6 +99,7 @@ export class GithubCollectorService {
       rangeStart: window.startIso,
       rangeEnd: window.endIso,
       prs,
+      accountLabels: accounts.map((a) => a.label),
       ...(accountErrors.length > 0 ? { accountErrors } : {}),
     };
   }

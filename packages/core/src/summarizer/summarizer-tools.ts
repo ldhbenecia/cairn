@@ -84,8 +84,10 @@ interface SourceErrorsView {
 
 export interface ActivityPayload {
   date: string;
-  // 활동에 나타난 GitHub 계정 라벨(중복 제거·정렬). 2개 이상이면 프롬프트가 계정별 구분을 지시.
+  // 활동에 나타난 GitHub 계정 라벨(중복 제거·정렬).
   accounts: string[];
+  // 설정된 GitHub 계정 전체(활동 유무 무관). 2개 이상이면 계정별 구분 + 빈 계정 표시.
+  configuredAccounts: string[];
   done: { prs: DonePrItem[]; commits: DoneCommitItem[] };
   inProgress: { prs: OpenPrItem[]; commits: UnpushedCommitItem[] };
   sourceErrors: SourceErrorsView;
@@ -98,6 +100,7 @@ export function buildActivityPayload(input: SummarizerInput): ActivityPayload {
   return {
     date: input.date,
     accounts,
+    configuredAccounts: [...(input.github?.accountLabels ?? [])],
     done: {
       prs: donePrs,
       commits: computeDoneCommits(input),

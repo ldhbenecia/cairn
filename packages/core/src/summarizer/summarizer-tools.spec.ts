@@ -8,6 +8,7 @@ const githubActivity: GithubActivity = {
   date: '2026-05-09',
   rangeStart: '2026-05-08T15:00:00Z',
   rangeEnd: '2026-05-09T14:59:59Z',
+  accountLabels: ['work', 'personal'],
   prs: [
     {
       account: 'personal',
@@ -109,6 +110,8 @@ describe('buildActivityPayload', () => {
     expect(payload.date).toBe('2026-05-09');
     // 활동에 나타난 계정 라벨(중복 제거·정렬) — done(personal,work) + open(personal)
     expect(payload.accounts).toEqual(['personal', 'work']);
+    // 설정된 계정 전체(config 순서) — 활동 유무 무관
+    expect(payload.configuredAccounts).toEqual(['work', 'personal']);
     // assigned PR(team-api#24)도 내 작업으로 done 에 포함
     expect(payload.done.prs).toHaveLength(2);
     expect(payload.done.prs.map((p) => p.kind)).toEqual(['pr_merged', 'pr_merged']);
@@ -164,6 +167,7 @@ describe('buildActivityPayload', () => {
     };
     const payload = buildActivityPayload(input);
     expect(payload.accounts).toEqual([]);
+    expect(payload.configuredAccounts).toEqual([]);
     expect(payload.done.prs).toEqual([]);
     expect(payload.done.commits).toEqual([]);
     expect(payload.inProgress.prs).toEqual([]);

@@ -38,5 +38,7 @@ export interface GithubActivity {
   rangeStart: string;
   rangeEnd: string;
   prs: readonly GithubPrSummary[];
+  // 설정된 GitHub 계정 라벨 전체(활동 유무 무관). 2개 이상이면 발행 시 계정별 ### 서브헤딩.
+  accountLabels: readonly string[];
   accountErrors?: readonly GithubAccountActivityError[];
 }

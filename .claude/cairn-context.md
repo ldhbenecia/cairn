@@ -34,6 +34,7 @@
 | [0023](../docs/decisions/0023-auto-publish-schedule-semantics.md) | 자동 발행 — 시작 백필은 예약 시각 경과 후에만 |
 | [0024](../docs/decisions/0024-per-account-summary-separation.md) | 계정별(Work/Personal) 요약 분리 — 발행 시 서브헤딩 |
 | [0025](../docs/decisions/0025-local-export-and-obsidian-sync.md) | 로컬 내보내기(MD/PDF) + Obsidian 자동 동기화 |
+| [0026](../docs/decisions/0026-always-show-configured-accounts.md) | Done — 설정 계정 항상 표시(빈 계정 None) + 그날 총 커밋 합산 (0024 확장) |
 
 ## 진행 상황
 

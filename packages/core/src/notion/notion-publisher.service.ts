@@ -326,7 +326,7 @@ function buildSummaryBlocks(
   }
 
   blocks.push(heading2('Done'));
-  blocks.push(...buildDoneBlocks(summary.doneBullets));
+  blocks.push(...buildDoneBlocks(summary.doneBullets, input.github?.accountLabels ?? []));
 
   // 리뷰 활동은 더 이상 수집하지 않음 — 비어있으면 섹션 자체를 생략
   if (summary.reviewedBullets.length > 0) {
@@ -452,10 +452,13 @@ function heading3(text: string): unknown {
   };
 }
 
-// Done bullet 의 [Account] 접두(예: "[Work] …")를 파싱해 계정별 ### 서브헤딩으로 그룹화.
-// 접두가 하나도 없으면(단일 계정) 기존 flat bullet. 인라인 접두보다 가독성↑ (ADR 0024).
-export function buildDoneBlocks(bullets: readonly string[]): unknown[] {
-  if (bullets.length === 0) return [paragraph('—')];
+// Done bullet 의 [Account] 접두(예: "[Work] …")를 파싱해 계정별 ### 서브헤딩으로 그룹화. (ADR 0024)
+// 설정 계정(accountLabels)이 2개 이상이면 활동 유무와 무관하게 **모든 계정**을 ### 로 내고,
+// 작업 없는 계정은 'None'. 1개 이하면 기존 동작(접두 있으면 그룹, 없으면 flat).
+export function buildDoneBlocks(
+  bullets: readonly string[],
+  accountLabels: readonly string[] = [],
+): unknown[] {
   const ACCT = /^\[([^\]]+)\]\s*/;
   const order: string[] = [];
   const groups = new Map<string, string[]>();
@@ -473,6 +476,28 @@ export function buildDoneBlocks(bullets: readonly string[]): unknown[] {
     }
     groups.get(acct)!.push(b.slice(m[0].length));
   }
+
+  // 설정 계정 2개 이상 → 모든 계정 항상 표시(빈 계정 None).
+  if (accountLabels.length >= 2) {
+    const out: unknown[] = ungrouped.map((b) => bulletItem(b));
+    const shown = new Set<string>();
+    for (const acct of accountLabels) {
+      shown.add(acct);
+      out.push(heading3(acct));
+      const items = groups.get(acct) ?? [];
+      if (items.length === 0) out.push(paragraph('None'));
+      else for (const text of items) out.push(bulletItem(text));
+    }
+    // 모델이 설정 목록에 없는 라벨로 붙인 경우(예외)도 살린다.
+    for (const acct of order) {
+      if (shown.has(acct)) continue;
+      out.push(heading3(acct));
+      for (const text of groups.get(acct)!) out.push(bulletItem(text));
+    }
+    return out;
+  }
+
+  if (bullets.length === 0) return [paragraph('—')];
   if (groups.size === 0) return bullets.map((t) => bulletItem(t));
   const out: unknown[] = ungrouped.map((b) => bulletItem(b));
   for (const acct of order) {
