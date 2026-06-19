@@ -275,7 +275,10 @@ export class NotionPublisherService {
 
 function formatSourceCounts(input: PublishWorklogInput): string {
   const gh = input.github?.prs.length ?? 0;
-  const git = input.localGit?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
+  const githubCommits =
+    input.github?.prs.reduce((acc, pr) => acc + pr.commitsOnDate.length, 0) ?? 0;
+  const localCommits = input.localGit?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
+  const git = githubCommits + localCommits;
   const hrs = formatHourHistogram(input);
   return `gh:${gh} / git:${git}${hrs ? ` / ${hrs}` : ''}`;
 }
