@@ -119,7 +119,10 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
 
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50 [-webkit-app-region:no-drag]" />
-        <Dialog.Content className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-115 max-w-[90vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]">
+        <Dialog.Content
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-115 max-w-[90vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]"
+        >
           <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
             <Dialog.Title className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.2px] text-ink">
               <span className="flex size-7 items-center justify-center rounded-lg bg-accent/12 text-accent-hover">

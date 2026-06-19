@@ -97,7 +97,9 @@ export function AchievementsDialog({
     >
       <div
         onMouseDown={(e) => e.stopPropagation()}
-        className="glass-panel flex max-h-[80vh] w-[640px] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50"
+        className={`glass-panel flex max-h-[80vh] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          markdown !== null ? 'w-[640px]' : 'w-[420px]'
+        }`}
       >
         <div className="flex items-start justify-between border-b border-hairline px-6 py-4">
           <div className="flex min-w-0 items-center gap-2.5">
@@ -166,40 +168,47 @@ export function AchievementsDialog({
             {busy && progress ? `${progress.done} / ${progress.total}` : t('achv.compile')}
           </button>
 
-          {markdown !== null &&
-            (markdown === '' ? (
-              <p className="rounded-md border border-hairline bg-surface-1 py-8 text-center text-[12px] text-ink-tertiary">
-                {t('achv.empty')}
-              </p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-ink-tertiary">{t('achv.preview')}</span>
-                  <button
-                    type="button"
-                    onClick={copy}
-                    className={`flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium transition-colors ${
-                      copied
-                        ? 'bg-success/15 text-success'
-                        : 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
-                    }`}
-                  >
-                    {copied ? (
-                      <Check size={14} strokeWidth={2.5} />
-                    ) : (
-                      <Copy size={14} strokeWidth={2} />
-                    )}
-                    {copied ? t('drawer.copied') : t('achv.copy')}
-                  </button>
+          {/* 모으기 전엔 0fr 로 접혀 작은 모달 → 결과 나오면 1fr 로 쭈욱 펼쳐짐 */}
+          <div
+            className="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{ gridTemplateRows: markdown !== null ? '1fr' : '0fr' }}
+          >
+            <div className="min-h-0 overflow-hidden">
+              {markdown === '' ? (
+                <p className="rounded-md border border-hairline py-8 text-center text-[12px] text-ink-tertiary">
+                  {t('achv.empty')}
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-ink-tertiary">{t('achv.preview')}</span>
+                    <button
+                      type="button"
+                      onClick={copy}
+                      className={`flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium transition-colors ${
+                        copied
+                          ? 'bg-success/15 text-success'
+                          : 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
+                      }`}
+                    >
+                      {copied ? (
+                        <Check size={14} strokeWidth={2.5} />
+                      ) : (
+                        <Copy size={14} strokeWidth={2} />
+                      )}
+                      {copied ? t('drawer.copied') : t('achv.copy')}
+                    </button>
+                  </div>
+                  <textarea
+                    readOnly
+                    value={markdown ?? ''}
+                    rows={14}
+                    className="w-full resize-none rounded-md border border-hairline bg-surface-2 px-3 py-2.5 font-mono text-[12px] leading-relaxed text-ink-muted focus:outline-none"
+                  />
                 </div>
-                <textarea
-                  readOnly
-                  value={markdown}
-                  rows={14}
-                  className="w-full resize-none rounded-md border border-hairline bg-surface-2 px-3 py-2.5 font-mono text-[12px] leading-relaxed text-ink-muted focus:outline-none"
-                />
-              </div>
-            ))}
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
