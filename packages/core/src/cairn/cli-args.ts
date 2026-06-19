@@ -95,9 +95,8 @@ function parseSources(raw: string[]): RunOptions['sources'] {
 function parseBackfillDays(raw: string | undefined): number {
   if (raw === undefined) return 7;
   const n = Number(raw);
-  // CLI 가드 상한(366). 데스크톱 무료 UI 는 7일 고정 — 긴 범위는 추후 유료 UI 게이팅(plan 2026-06-19).
-  if (!Number.isInteger(n) || n < 0 || n > 366) {
-    throw new Error(`--backfill-days must be an integer 0-366 (got: ${raw})`);
+  if (!Number.isInteger(n) || n < 0 || n > 60) {
+    throw new Error(`--backfill-days must be an integer 0-60 (got: ${raw})`);
   }
   return n;
 }
