@@ -279,15 +279,21 @@ function collectedCounts(lines: RunSession['lines']): { pr: number | null; commi
 }
 
 // 엔진의 "backfill progress" 로그에서 done/total 추출.
+// pino-pretty 는 msg 줄과 done/total 필드 줄이 분리되므로, "backfill progress" 헤더 이후
+// 다음 로그 엔트리(`[HH:MM:SS …]` 헤더) 전까지를 한 블록으로 보고 필드를 모은다. JSON 단일 라인도 처리.
 function backfillProgress(lines: RunSession['lines']): { done: number; total: number } | null {
   let done = 0;
   let total = 0;
+  let inBlock = false;
   for (const l of lines) {
-    if (!l.line.includes('backfill progress')) continue;
-    const md = /done["':\s]+(\d+)/.exec(l.line);
-    const mt = /total["':\s]+(\d+)/.exec(l.line);
+    const text = l.line;
+    if (/^\[\d{2}:\d{2}:\d{2}/.test(text)) inBlock = /backfill progress/.test(text);
+    else if (text.includes('backfill progress')) inBlock = true;
+    if (!inBlock) continue;
+    const md = /done["':\s]+(\d+)/.exec(text);
+    const mt = /total["':\s]+(\d+)/.exec(text);
     if (md) done = Math.max(done, Number(md[1]));
-    if (mt) total = Number(mt[1]);
+    if (mt) total = Math.max(total, Number(mt[1]));
   }
   return total > 1 ? { done, total } : null;
 }
