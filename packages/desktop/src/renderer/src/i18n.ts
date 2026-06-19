@@ -173,6 +173,7 @@ const STRINGS = {
     'publish.hint.publish': '노션에 발행하는 중',
     'publish.result.done': '발행 완료',
     'publish.result.cancelled': '발행 취소됨',
+    'publish.result.summaryFailed': '요약 생성 실패 — Claude 세션·쿼터 확인 후 다시 발행하세요',
     'publish.result.noActivity': '활동 없음 — 발행 안 함',
     'publish.result.skipped': '이미 발행됨 — skip',
     'publish.result.noTarget': '발행 대상 없음 — Preferences 에서 설정 확인',
@@ -478,6 +479,8 @@ const STRINGS = {
     'publish.hint.publish': 'Publishing to Notion',
     'publish.result.done': 'Published',
     'publish.result.cancelled': 'Publish cancelled',
+    'publish.result.summaryFailed':
+      'Summary generation failed — check your Claude session/quota and publish again',
     'publish.result.noActivity': 'No activity — nothing published',
     'publish.result.skipped': 'Already published — skipped',
     'publish.result.noTarget': 'No publish target — check Preferences',

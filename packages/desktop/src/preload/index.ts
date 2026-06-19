@@ -77,6 +77,7 @@ export type CoreResult = {
   publishPageId: string | null;
   noActivity: boolean;
   cancelled: boolean;
+  summaryFailed: boolean;
   stderrTail: string;
 };
 

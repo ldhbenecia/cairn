@@ -551,6 +551,13 @@ function Result({
   let body: React.ReactNode;
   if (result.cancelled) {
     body = <p className="text-ink-muted">{t('publish.result.cancelled')}</p>;
+  } else if (result.summaryFailed) {
+    body = (
+      <p className="flex items-center gap-2 text-[15px] text-[#f87171]">
+        <TriangleAlert size={18} strokeWidth={2.25} />
+        {t('publish.result.summaryFailed')}
+      </p>
+    );
   } else if (!result.ok) {
     body = (
       <p className="text-[#f87171]">

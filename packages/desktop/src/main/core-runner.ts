@@ -32,6 +32,7 @@ export type CoreResult = {
   publishPageId: string | null;
   noActivity: boolean;
   cancelled: boolean;
+  summaryFailed: boolean;
   stderrTail: string;
 };
 
@@ -46,6 +47,7 @@ const LOGS_DIR = join(homedir(), '.cairn', 'logs');
 const STDERR_TAIL_LINES = 20;
 const NOTION_URL_REGEX = /https:\/\/www\.notion\.so\/\S+/g;
 const NO_ACTIVITY_REGEX = /no activity collected/i;
+const SUMMARY_FAILED_REGEX = /summary generation failed|요약 생성 실패/;
 const PUBLISH_KIND_REGEX = /"kind"\s*:\s*"(created|recreated|skipped|no-target)"/g;
 const PAGE_ID_REGEX = /"pageId"\s*:\s*"([0-9a-f-]{32,36})"/g;
 // eslint-disable-next-line no-control-regex
@@ -278,6 +280,7 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
         publishPageId: lastPageId,
         noActivity: finalNoActivity,
         cancelled,
+        summaryFailed: SUMMARY_FAILED_REGEX.test(stdoutAll),
         stderrTail: tail,
       };
       const outcome = result.ok ? (finalNoActivity ? 'no-activity' : 'ok') : 'fail';
@@ -316,6 +319,7 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
         publishPageId: null,
         noActivity: false,
         cancelled: false,
+        summaryFailed: false,
         stderrTail: err.message,
       };
       broadcastRunDone(mode, failResult);
