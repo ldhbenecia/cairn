@@ -86,7 +86,11 @@ export interface ActivityPayload {
   date: string;
   accounts: string[];
   configuredAccounts: string[];
-  dayTotals: { prCount: number; commitCount: number };
+  dayTotals: {
+    prCount: number;
+    commitCount: number;
+    byAccount: Record<string, { prCount: number; commitCount: number }>;
+  };
   done: { prs: DonePrItem[]; commits: DoneCommitItem[] };
   inProgress: { prs: OpenPrItem[]; commits: UnpushedCommitItem[] };
   sourceErrors: SourceErrorsView;

@@ -3,9 +3,12 @@ import type { GithubActivity } from '../contracts/github-activity.types.js';
 import type { LocalGitActivity } from '../contracts/local-git-activity.types.js';
 import { computeDayTotals } from './day-totals.js';
 
-const gh = (prShas: string[][]): GithubActivity =>
+const gh = (prShas: string[][], accounts?: string[]): GithubActivity =>
   ({
-    prs: prShas.map((shas) => ({ commitsOnDate: shas.map((s) => ({ shortSha: s })) })),
+    prs: prShas.map((shas, i) => ({
+      account: accounts?.[i] ?? 'Personal',
+      commitsOnDate: shas.map((s) => ({ shortSha: s })),
+    })),
   }) as unknown as GithubActivity;
 
 const local = (repoShas: string[][]): LocalGitActivity =>
@@ -30,6 +33,15 @@ describe('computeDayTotals', () => {
   });
 
   it('빈 입력', () => {
-    expect(computeDayTotals(null, null)).toEqual({ prCount: 0, commitCount: 0 });
+    expect(computeDayTotals(null, null)).toEqual({ prCount: 0, commitCount: 0, byAccount: {} });
+  });
+
+  it('byAccount — 계정별 PR 수 + 그 계정 커밋 distinct', () => {
+    const github = gh([['a', 'b'], ['c'], ['d']], ['Work', 'Work', 'Personal']);
+    const { byAccount } = computeDayTotals(github, null);
+    expect(byAccount).toEqual({
+      Work: { prCount: 2, commitCount: 3 },
+      Personal: { prCount: 1, commitCount: 1 },
+    });
   });
 });
