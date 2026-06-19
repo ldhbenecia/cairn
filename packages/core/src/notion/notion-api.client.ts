@@ -37,8 +37,6 @@ interface SearchPageItem {
 @Injectable()
 export class NotionApiClient {
   private readonly clients = new Map<string, Client>();
-  // 기존 DB 에 'Activity hours' 속성을 한 번만 추가하도록 dataSource 단위로 기억.
-  private readonly ensuredHoursSchema = new Set<string>();
   private static readonly REQUEST_TIMEOUT_MS = 30_000;
 
   constructor(
@@ -87,8 +85,6 @@ export class NotionApiClient {
               ],
             },
           },
-          'Source counts': { rich_text: {} },
-          'Activity hours': { rich_text: {} },
           Status: {
             select: {
               options: [
@@ -140,51 +136,19 @@ export class NotionApiClient {
     return { pageId: first.id, status };
   }
 
-  // 'Activity hours' 속성이 데이터소스 스키마에 없으면 추가. 실패해도 발행은 계속(graceful).
-  private async ensureActivityHoursProperty(token: string, dataSourceId: string): Promise<boolean> {
-    if (this.ensuredHoursSchema.has(dataSourceId)) return true;
-    try {
-      const client = this.getClient(token);
-      await client.dataSources.update({
-        data_source_id: dataSourceId,
-        properties: { 'Activity hours': { rich_text: {} } },
-      });
-      this.ensuredHoursSchema.add(dataSourceId);
-      return true;
-    } catch (err) {
-      this.logger.warn(
-        { dataSourceId, err: String(err) },
-        "ensure 'Activity hours' property failed — skipping hours, publish continues",
-      );
-      return false;
-    }
-  }
-
   async createWorklogPage(
     input: CreateWorklogPageInput,
   ): Promise<{ id: string; url: string | null }> {
     const client = this.getClient(input.token);
     const tags = input.tags ?? ['auto', 'daily'];
-    const properties: Record<string, unknown> = {
-      Title: { title: [{ type: 'text', text: { content: input.title } }] },
-      Date: { date: { start: input.date } },
-      Tags: { multi_select: tags.map((t) => ({ name: t })) },
-      'Source counts': {
-        rich_text: [{ type: 'text', text: { content: input.sourceCounts } }],
-      },
-      Status: { select: { name: 'draft' } },
-    };
-    if (
-      input.activityHours &&
-      (await this.ensureActivityHoursProperty(input.token, input.dataSourceId))
-    ) {
-      properties['Activity hours'] = {
-        rich_text: [{ type: 'text', text: { content: input.activityHours } }],
-      };
-    }
     const res = await client.pages.create({
       parent: { type: 'data_source_id', data_source_id: input.dataSourceId },
-      properties: properties as never,
+      properties: {
+        Title: { title: [{ type: 'text', text: { content: input.title } }] },
+        Date: { date: { start: input.date } },
+        Tags: { multi_select: tags.map((t) => ({ name: t })) },
+        Status: { select: { name: 'draft' } },
+      },
       ...(input.children ? { children: input.children as never } : {}),
     });
     const url = 'url' in res && typeof res.url === 'string' ? res.url : null;
@@ -227,9 +191,7 @@ export class NotionApiClient {
         const date = dateProp?.date?.start ?? null;
         if (!date) continue;
         const url = 'url' in item && typeof item.url === 'string' ? item.url : null;
-        const sourceCounts = extractSourceCounts(props);
-        const activityHours = extractRichTextProp(props, 'Activity hours');
-        out.push({ pageId: item.id, url, date, sourceCounts, activityHours });
+        out.push({ pageId: item.id, url, date });
       }
       cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
     } while (cursor);
@@ -321,23 +283,6 @@ function extractTitle(page: SearchPageItem): string {
     }
   }
   return '(untitled)';
-}
-
-interface RichTextItem {
-  plain_text?: string;
-}
-
-function extractSourceCounts(props: Record<string, unknown>): string {
-  return extractRichTextProp(props, 'Source counts');
-}
-
-function extractRichTextProp(props: Record<string, unknown>, key: string): string {
-  const p = props[key] as { rich_text?: RichTextItem[] } | undefined;
-  if (!p?.rich_text) return '';
-  return p.rich_text
-    .map((rt) => rt.plain_text ?? '')
-    .join('')
-    .trim();
 }
 
 function plainTextFromRichText(rt: unknown): string {

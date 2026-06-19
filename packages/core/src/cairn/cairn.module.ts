@@ -5,6 +5,7 @@ import { NotificationModule } from '../notification/notification.module.js';
 import { NotionModule } from '../notion/notion.module.js';
 import { RollupModule } from '../rollup/rollup.module.js';
 import { SummarizerModule } from '../summarizer/summarizer.module.js';
+import { WorklogStatsModule } from '../worklog-stats/worklog-stats.module.js';
 import { OrchestratorService } from './orchestrator.service.js';
 
 @Module({
@@ -15,6 +16,7 @@ import { OrchestratorService } from './orchestrator.service.js';
     SummarizerModule,
     NotificationModule,
     RollupModule,
+    WorklogStatsModule,
   ],
   providers: [OrchestratorService],
   exports: [OrchestratorService],

@@ -36,8 +36,6 @@ export interface CreateWorklogPageInput {
   dataSourceId: string;
   date: string;
   title: string;
-  sourceCounts: string;
-  activityHours?: string | null;
   tags?: readonly string[];
   children?: readonly unknown[];
 }
@@ -51,8 +49,6 @@ export interface WorklogPageInRange {
   pageId: string;
   url: string | null;
   date: string;
-  sourceCounts: string;
-  activityHours: string;
 }
 
 export type ExtractedBlock =

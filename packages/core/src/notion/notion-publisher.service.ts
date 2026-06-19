@@ -232,8 +232,6 @@ export class NotionPublisherService {
     token: string,
     dataSourceId: string,
   ): Promise<{ id: string; url: string | null }> {
-    const sourceCounts = formatSourceCounts(input);
-    const activityHours = formatActivityHours(input);
     const children = input.summary
       ? buildSummaryBlocks(input.summary, input)
       : buildFallbackBlocks(input);
@@ -250,8 +248,6 @@ export class NotionPublisherService {
       dataSourceId,
       date: input.date,
       title: `${input.date} ${input.lang === 'en' ? 'Worklog' : '작업 일지'}`,
-      sourceCounts,
-      activityHours,
       tags: ['auto', 'daily'],
       children,
     });
@@ -260,7 +256,6 @@ export class NotionPublisherService {
         date: input.date,
         pageId: created.id,
         url: created.url,
-        sourceCounts,
         hasSummary: !!input.summary,
       },
       'worklog page created',
@@ -269,16 +264,8 @@ export class NotionPublisherService {
   }
 }
 
-function formatSourceCounts(input: PublishWorklogInput): string {
-  const gh = input.github?.prs.length ?? 0;
-  const githubCommits =
-    input.github?.prs.reduce((acc, pr) => acc + pr.commitsOnDate.length, 0) ?? 0;
-  const localCommits = input.localGit?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
-  const git = githubCommits + localCommits;
-  return `gh:${gh} / git:${git}`;
-}
-
 // 커밋 시각(ISO) 들의 24칸 시간 히스토그램. 머신 로컬 시간 기준(getHours) — KST 단정 금지(timezone 룰).
+// 통계는 노션이 아닌 로컬에 저장(orchestrator) — 이 함수는 그 집계에 쓰인다.
 export function hourHistogram(isoTimestamps: readonly string[]): number[] {
   const hours = new Array<number>(24).fill(0);
   for (const iso of isoTimestamps) {
@@ -286,19 +273,6 @@ export function hourHistogram(isoTimestamps: readonly string[]): number[] {
     if (h >= 0 && h < 24) hours[h]! += 1;
   }
   return hours;
-}
-
-// 대시보드 시간대 차트용 24칸 히스토그램. Source counts 가 아닌 별도 'Activity hours' 속성에 저장.
-function formatActivityHours(input: PublishWorklogInput): string | null {
-  const stamps: string[] = [];
-  for (const repo of input.localGit?.repos ?? []) {
-    for (const c of repo.commits) stamps.push(c.authoredAt);
-  }
-  for (const pr of input.github?.prs ?? []) {
-    for (const c of pr.commitsOnDate) stamps.push(c.authoredAt);
-  }
-  if (stamps.length === 0) return null;
-  return hourHistogram(stamps).join(',');
 }
 
 function buildSummaryBlocks(

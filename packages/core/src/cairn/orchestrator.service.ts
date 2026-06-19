@@ -6,6 +6,7 @@ import { GithubCollectorService } from '../github/github-collector.service.js';
 import { LocalGitCollectorService } from '../local-git/local-git-collector.service.js';
 import { NotificationService } from '../notification/notification.service.js';
 import {
+  hourHistogram,
   NotionPublisherService,
   type PublishWorklogResult,
 } from '../notion/notion-publisher.service.js';
@@ -17,6 +18,7 @@ import {
 import { RollupSummarizerService } from '../rollup/rollup-summarizer.service.js';
 import { periodRange } from '../rollup/period-range.js';
 import { DailySummarizerService } from '../summarizer/daily-summarizer.service.js';
+import { WorklogStatsService } from '../worklog-stats/worklog-stats.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
 
 const BACKFILL_CONCURRENCY = 2;
@@ -32,6 +34,7 @@ export class OrchestratorService {
     private readonly rollupCollector: RollupCollectorService,
     private readonly rollupSummarizer: RollupSummarizerService,
     private readonly rollupPublisher: RollupPublisherService,
+    private readonly stats: WorklogStatsService,
     @InjectPinoLogger(OrchestratorService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -208,6 +211,25 @@ export class OrchestratorService {
       lang: options.lang,
     });
     const publishMs = Date.now() - publishStart;
+
+    // 통계는 노션이 아닌 로컬에 기록(진실 소스). pr=GitHub PR 수, commit=그날 총 커밋(GitHub+로컬),
+    // hours=커밋 시각 24칸 히스토그램(머신 로컬 TZ).
+    if (result.kind === 'created' || result.kind === 'recreated') {
+      const githubCommits =
+        githubActivity?.prs.reduce((acc, pr) => acc + pr.commitsOnDate.length, 0) ?? 0;
+      const stamps: string[] = [];
+      for (const repo of localGitActivity?.repos ?? []) {
+        for (const c of repo.commits) stamps.push(c.authoredAt);
+      }
+      for (const pr of githubActivity?.prs ?? []) {
+        for (const c of pr.commitsOnDate) stamps.push(c.authoredAt);
+      }
+      this.stats.record('daily', date, {
+        pr: prCount,
+        commit: githubCommits + commitCount,
+        hours: hourHistogram(stamps),
+      });
+    }
 
     this.logger.info(
       {
