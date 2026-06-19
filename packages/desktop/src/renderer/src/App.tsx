@@ -184,23 +184,39 @@ export function App() {
     void window.cairn.runSnapshot().then((s) => {
       if (s.busy && s.mode) {
         setRunningMode(s.mode);
-        setSessions((prev) => ({
-          ...prev,
-          [s.mode!]: {
-            state: 'running',
-            step: s.step,
-            lines: [],
-            startedAt: s.startedAt,
-            batch: s.progress !== null,
-            progress: s.progress ?? undefined,
-          },
-        }));
+        // 마운트 중 트리거/브로드캐스트가 이미 세션을 만들었으면 덮지 않는다(스냅샷이 라이브를 지우는 레이스 방지).
+        setSessions((prev) =>
+          prev[s.mode!]
+            ? prev
+            : {
+                ...prev,
+                [s.mode!]: {
+                  state: 'running',
+                  step: s.step,
+                  lines: [],
+                  startedAt: s.startedAt,
+                  batch: s.progress !== null,
+                  progress: s.progress ?? undefined,
+                },
+              },
+        );
       } else if (s.lastResult) {
         const { mode, result, endedAt } = s.lastResult;
-        setSessions((prev) => ({
-          ...prev,
-          [mode]: { state: 'done', step: 'done', lines: [], startedAt: endedAt, result, endedAt },
-        }));
+        setSessions((prev) =>
+          prev[mode]
+            ? prev
+            : {
+                ...prev,
+                [mode]: {
+                  state: 'done',
+                  step: 'done',
+                  lines: [],
+                  startedAt: endedAt,
+                  result,
+                  endedAt,
+                },
+              },
+        );
       }
     });
   }, []);

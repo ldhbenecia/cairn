@@ -11,11 +11,16 @@ function buildTrayIcon(): Electron.NativeImage {
 }
 
 function triggerCore(mode: CoreMode): void {
-  void runCore(mode, {}).then((result) => {
-    if (!result.ok) {
-      console.error(`[cairn] ${mode} failed:\n${result.stderrTail}`);
-    }
-  });
+  // busy 면 runCore 가 'busy:<mode>' 로 reject — 트레이 트리거에서 uncaught rejection 안 나게 catch.
+  void runCore(mode, {})
+    .then((result) => {
+      if (!result.ok) {
+        console.error(`[cairn] ${mode} failed:\n${result.stderrTail}`);
+      }
+    })
+    .catch((err: unknown) => {
+      console.error(`[cairn] ${mode} not started:`, err instanceof Error ? err.message : err);
+    });
 }
 
 let tray: Tray | null = null;
