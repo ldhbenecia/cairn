@@ -202,6 +202,16 @@ export class OrchestratorService {
     );
     const summarizeMs = Date.now() - summarizeStart;
 
+    // 요약 실패(Claude 세션 만료·쿼터 소진·중단 등)면 발행하지 않는다. 빈 fallback 페이지를
+    // '성공'으로 만들어 가짜 발행이 남던 문제 방지 — 발행 전에 던져 기존 페이지도 안 건드림.
+    if (!summary) {
+      this.logger.warn({ date }, 'daily: summary generation failed — aborting publish');
+      throw CairnError.from(
+        new Error('요약 생성 실패 — Claude 세션/쿼터를 확인한 뒤 다시 발행하세요'),
+        'summarizer',
+      );
+    }
+
     const publishStart = Date.now();
     const result = await this.notionPublisher.publish({
       date,
