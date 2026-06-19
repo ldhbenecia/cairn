@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { withConcurrency } from '../common/concurrency.js';
+import { computeDayTotals } from '../common/day-totals.js';
 import { CairnError } from '../common/error.js';
 import { GithubCollectorService } from '../github/github-collector.service.js';
 import { LocalGitCollectorService } from '../local-git/local-git-collector.service.js';
@@ -179,8 +180,8 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
-    const prCount = githubActivity?.prs.length ?? 0;
-    const commitCount = localGitActivity?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
+    // 발행 모달·요약·통계가 같은 정의를 쓰도록 한 곳에서 산정(commit=distinct, pr=그날 전체 PR).
+    const { prCount, commitCount } = computeDayTotals(githubActivity, localGitActivity);
 
     if (prCount + commitCount === 0) {
       this.logger.info({ date }, 'daily: no activity collected — skipping summarizer + publisher');
@@ -212,21 +213,30 @@ export class OrchestratorService {
     });
     const publishMs = Date.now() - publishStart;
 
-    // 통계는 노션이 아닌 로컬에 기록(진실 소스). pr=GitHub PR 수, commit=그날 총 커밋(GitHub+로컬),
-    // hours=커밋 시각 24칸 히스토그램(머신 로컬 TZ).
+    // 통계는 노션이 아닌 로컬에 기록(진실 소스). pr·commit 은 위 distinct 총량과 동일,
+    // hours=커밋 시각 24칸 히스토그램(머신 로컬 TZ, SHA 중복 제거).
     if (result.kind === 'created' || result.kind === 'recreated') {
-      const githubCommits =
-        githubActivity?.prs.reduce((acc, pr) => acc + pr.commitsOnDate.length, 0) ?? 0;
+      const seen = new Set<string>();
       const stamps: string[] = [];
       for (const repo of localGitActivity?.repos ?? []) {
-        for (const c of repo.commits) stamps.push(c.authoredAt);
+        for (const c of repo.commits) {
+          if (!seen.has(c.shortSha)) {
+            seen.add(c.shortSha);
+            stamps.push(c.authoredAt);
+          }
+        }
       }
       for (const pr of githubActivity?.prs ?? []) {
-        for (const c of pr.commitsOnDate) stamps.push(c.authoredAt);
+        for (const c of pr.commitsOnDate) {
+          if (!seen.has(c.shortSha)) {
+            seen.add(c.shortSha);
+            stamps.push(c.authoredAt);
+          }
+        }
       }
       this.stats.record('daily', date, {
         pr: prCount,
-        commit: githubCommits + commitCount,
+        commit: commitCount,
         hours: hourHistogram(stamps),
       });
     }

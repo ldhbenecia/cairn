@@ -1,5 +1,6 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+import { computeDayTotals } from '../common/day-totals.js';
 import { assertNoForbiddenPayload, sanitizeCairnError } from '../common/sanitize.js';
 import type {
   GithubActivity,
@@ -85,6 +86,7 @@ export interface ActivityPayload {
   date: string;
   accounts: string[];
   configuredAccounts: string[];
+  dayTotals: { prCount: number; commitCount: number };
   done: { prs: DonePrItem[]; commits: DoneCommitItem[] };
   inProgress: { prs: OpenPrItem[]; commits: UnpushedCommitItem[] };
   sourceErrors: SourceErrorsView;
@@ -98,6 +100,7 @@ export function buildActivityPayload(input: SummarizerInput): ActivityPayload {
     date: input.date,
     accounts,
     configuredAccounts: [...(input.github?.accountLabels ?? [])],
+    dayTotals: computeDayTotals(input.github, input.localGit),
     done: {
       prs: donePrs,
       commits: computeDoneCommits(input),
