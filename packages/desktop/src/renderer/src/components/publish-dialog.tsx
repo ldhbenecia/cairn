@@ -356,15 +356,39 @@ function Progress({
               {t('publish.backfill.publishing')}
             </span>
             {backfill && (
-              <span className="font-mono text-[18px] font-semibold tracking-[-0.5px] text-ink">
-                {backfill.done}/{backfill.total}
+              <span className="font-mono text-[19px] font-semibold tracking-[-0.5px] text-ink">
+                <span key={backfill.done} className="batch-count text-accent">
+                  {backfill.done}
+                </span>
+                <span className="text-ink-tertiary">/{backfill.total}</span>
                 <span className="ml-0.5 text-[12px] font-normal text-ink-tertiary">
                   {t('publish.backfill.daysSuffix')}
                 </span>
               </span>
             )}
           </div>
-          {backfill ? (
+          {backfill && backfill.total <= 31 ? (
+            // 일자별 칸 — 완료(팝-인) / 동시 처리 중(펄스) / 대기. concurrency=4 만큼 active 표시.
+            <div className="flex flex-wrap gap-1">
+              {Array.from({ length: backfill.total }).map((_, i) => {
+                const done = i < backfill.done;
+                const active = !done && i < backfill.done + 4;
+                return (
+                  <span
+                    key={i}
+                    className={[
+                      'h-2.5 min-w-[8px] flex-1 rounded-full transition-colors duration-300',
+                      done
+                        ? 'batch-pop bg-accent'
+                        : active
+                          ? 'batch-pulse bg-accent/40'
+                          : 'bg-surface-2',
+                    ].join(' ')}
+                  />
+                );
+              })}
+            </div>
+          ) : backfill ? (
             <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
               <div
                 className="h-full rounded-full bg-accent transition-all duration-500 ease-out"

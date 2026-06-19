@@ -427,3 +427,44 @@ button {
 .area-fade {
   animation: dash-rise 0.9s ease-out 0.3s both;
 }
+
+/* 백필 배치 — 일자 셀: 완료 팝-인 / 동시 처리 중 펄스 / 카운트 증가 */
+@keyframes batch-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.batch-pop {
+  animation: batch-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes batch-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+.batch-pulse {
+  animation: batch-pulse 1.4s ease-in-out infinite;
+}
+@keyframes batch-count {
+  from {
+    transform: translateY(-35%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.batch-count {
+  display: inline-block;
+  animation: batch-count 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
