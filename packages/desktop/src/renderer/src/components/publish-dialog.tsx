@@ -337,60 +337,69 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
   const fillPct = Math.max(0, Math.min(100, ((currentRank - STEP_RANK.collect) / 2) * 100));
   return (
     <div className="flex flex-col gap-5 py-1">
-      <div className="relative flex items-start justify-between px-3">
-        <div className="absolute top-[11px] right-3 left-3 h-0.5 rounded-full bg-hairline" />
-        <div
-          className="absolute top-[11px] left-3 h-0.5 rounded-full bg-accent transition-[width] duration-500 ease-out"
-          style={{ width: `calc((100% - 1.5rem) * ${fillPct / 100})` }}
-        />
-        {STEPS.map((s) => {
-          const rank = STEP_RANK[s.key];
-          const status = rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
-          return (
-            <div key={s.key} className="relative z-10 flex flex-col items-center gap-1.5">
-              <div
-                className={[
-                  'flex size-[22px] items-center justify-center rounded-full border-2 transition-all duration-300',
-                  status === 'done'
-                    ? 'border-accent bg-accent text-white'
-                    : status === 'active'
-                      ? 'border-accent bg-surface-1 text-accent'
-                      : 'border-hairline-strong bg-surface-1 text-ink-tertiary',
-                ].join(' ')}
-              >
-                {status === 'done' ? (
-                  <Check size={12} strokeWidth={3} />
-                ) : status === 'active' ? (
-                  <Loader2 size={12} strokeWidth={2.5} className="animate-spin" />
-                ) : (
-                  <span className="size-1.5 rounded-full bg-current opacity-50" />
-                )}
-              </div>
-              <span
-                className={`text-[11px] transition-colors ${status === 'pending' ? 'text-ink-tertiary' : 'text-ink-muted'}`}
-              >
-                {t(s.labelKey)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {backfill && (
-        <div className="flex flex-col gap-2 rounded-lg border border-hairline bg-surface-2/50 px-3 py-2.5">
-          <div className="flex items-center justify-between text-[12.5px]">
-            <span className="font-medium text-ink-muted">{t('publish.backfill.publishing')}</span>
-            <span className="font-mono text-ink">
+      {backfill ? (
+        // 백필은 날짜별로 수집·요약·발행이 동시에 도므로 단일 선형 스텝 대신 N/M 진행을 메인으로.
+        <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-2/50 px-4 py-3.5">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[13px] font-medium text-ink-muted">
+              {t('publish.backfill.publishing')}
+            </span>
+            <span className="font-mono text-[18px] font-semibold tracking-[-0.5px] text-ink">
               {backfill.done}/{backfill.total}
-              {t('publish.backfill.daysSuffix')}
+              <span className="ml-0.5 text-[12px] font-normal text-ink-tertiary">
+                {t('publish.backfill.daysSuffix')}
+              </span>
             </span>
           </div>
-          <div className="h-1 overflow-hidden rounded-full bg-surface-2">
+          <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
             <div
-              className="h-full rounded-full bg-accent transition-all"
+              className="h-full rounded-full bg-accent transition-all duration-500 ease-out"
               style={{ width: `${(backfill.done / backfill.total) * 100}%` }}
             />
           </div>
+          <span className="text-[11px] leading-relaxed text-ink-tertiary">
+            {t('publish.backfill.concurrent')}
+          </span>
+        </div>
+      ) : (
+        <div className="relative flex items-start justify-between px-3">
+          <div className="absolute top-[11px] right-3 left-3 h-0.5 rounded-full bg-hairline" />
+          <div
+            className="absolute top-[11px] left-3 h-0.5 rounded-full bg-accent transition-[width] duration-500 ease-out"
+            style={{ width: `calc((100% - 1.5rem) * ${fillPct / 100})` }}
+          />
+          {STEPS.map((s) => {
+            const rank = STEP_RANK[s.key];
+            const status =
+              rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
+            return (
+              <div key={s.key} className="relative z-10 flex flex-col items-center gap-1.5">
+                <div
+                  className={[
+                    'flex size-[22px] items-center justify-center rounded-full border-2 transition-all duration-300',
+                    status === 'done'
+                      ? 'border-accent bg-accent text-white'
+                      : status === 'active'
+                        ? 'border-accent bg-surface-1 text-accent'
+                        : 'border-hairline-strong bg-surface-1 text-ink-tertiary',
+                  ].join(' ')}
+                >
+                  {status === 'done' ? (
+                    <Check size={12} strokeWidth={3} />
+                  ) : status === 'active' ? (
+                    <Loader2 size={12} strokeWidth={2.5} className="animate-spin" />
+                  ) : (
+                    <span className="size-1.5 rounded-full bg-current opacity-50" />
+                  )}
+                </div>
+                <span
+                  className={`text-[11px] transition-colors ${status === 'pending' ? 'text-ink-tertiary' : 'text-ink-muted'}`}
+                >
+                  {t(s.labelKey)}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -416,7 +425,7 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
         </span>
       </div>
 
-      {currentRank >= STEP_RANK.summarize && counts.pr !== null && counts.commit !== null && (
+      {!backfill && currentRank >= STEP_RANK.summarize && counts.pr !== null && counts.commit !== null && (
         <div className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
           <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
             PR {counts.pr}
