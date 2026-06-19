@@ -3,6 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type { WorklogLang } from '../cairn/run-options.js';
 import { CLAUDE_ICON_URL } from '../common/branding.js';
 import { isOperator } from '../common/operator.js';
+import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type { GithubActivity } from '../contracts/github-activity.types.js';
 import type { LocalGitActivity } from '../contracts/local-git-activity.types.js';
 import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
@@ -143,22 +144,23 @@ export class NotionPublisherService {
         );
         return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
       }
-      const archiveStartedAt = Date.now();
-      await this.client.archivePage(token, existing.pageId);
-      this.logger.info(
-        {
-          date: input.date,
-          archivedPageId: existing.pageId,
-          elapsedMs: Date.now() - archiveStartedAt,
-        },
-        '--force: archived existing draft, recreating',
-      );
+      // 새 페이지를 먼저 만들고 그다음 기존 것을 archive — create 실패 시 기존 일지가 보존되도록
+      // (이전엔 archive 먼저라 create 가 실패하면 그 날 일지가 소실됐다). archive 가 실패하면
+      // 중복 페이지가 잠깐 남지만 데이터 손실은 없다(다음 force 가 최신 것을 잡도록 정렬 보강).
       const createStartedAt = Date.now();
       const created = await this.createPage(input, token, dataSourceId);
       this.logger.info(
         { date: input.date, elapsedMs: Date.now() - createStartedAt },
         'notion publish recreate done',
       );
+      try {
+        await this.client.archivePage(token, existing.pageId);
+      } catch (err) {
+        this.logger.warn(
+          { date: input.date, oldPageId: existing.pageId, err: String(err) },
+          '--force: 새 페이지 생성 후 기존 페이지 archive 실패 — 중복 남을 수 있음(데이터 손실 없음)',
+        );
+      }
       this.logger.info(
         { date: input.date, totalElapsedMs: Date.now() - startedAt },
         'notion publish done',
@@ -342,7 +344,15 @@ function buildFallbackBlocks(input: PublishWorklogInput): readonly unknown[] {
 }
 
 function buildRawDumpToggle(input: PublishWorklogInput): unknown {
-  const rawDump = JSON.stringify({ github: input.github, localGit: input.localGit }, null, 2);
+  // operator 전용 디버그 덤프도 egress 검사(fail-closed): 금지 패턴(절대경로·토큰·diff 등 —
+  // 예: CairnError.message 의 git 에러 경로)이 있으면 통째로 redact 후 발행 계속.
+  let rawDump: string;
+  try {
+    assertNoForbiddenPayload({ github: input.github, localGit: input.localGit }, 'notion.rawDump');
+    rawDump = JSON.stringify({ github: input.github, localGit: input.localGit }, null, 2);
+  } catch {
+    rawDump = '[redacted] raw dump contained forbidden content (path/token/diff)';
+  }
   const chunks = chunkRawDump(rawDump);
   return {
     object: 'block',

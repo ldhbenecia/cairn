@@ -126,6 +126,8 @@ export class NotionApiClient {
     const res = await client.dataSources.query({
       data_source_id: dataSourceId,
       filter: { property: 'Date', date: { equals: isoDate } },
+      // 중복 페이지가 있을 때(예: force 중 archive 실패) 항상 최신 것을 잡도록 created_time desc.
+      sorts: [{ timestamp: 'created_time', direction: 'descending' }],
       page_size: 1,
     });
     const first = res.results[0];
