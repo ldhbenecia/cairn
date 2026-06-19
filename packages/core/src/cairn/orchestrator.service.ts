@@ -22,7 +22,7 @@ import { DailySummarizerService } from '../summarizer/daily-summarizer.service.j
 import { WorklogStatsService } from '../worklog-stats/worklog-stats.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
 
-const BACKFILL_CONCURRENCY = 2;
+const BACKFILL_CONCURRENCY = 4;
 
 @Injectable()
 export class OrchestratorService {
