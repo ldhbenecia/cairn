@@ -9,6 +9,7 @@ import {
   isRunning,
   probeClaude,
   runCore,
+  runSnapshot,
   type CoreMode,
   type CoreRunOptions,
 } from './core-runner';
@@ -98,11 +99,12 @@ void app.whenReady().then(() => {
     }
   }
 
-  ipcMain.handle('cairn:run', (e, mode: CoreMode, options?: CoreRunOptions) =>
-    runCore(mode, options ?? {}, e.sender),
+  ipcMain.handle('cairn:run', (_e, mode: CoreMode, options?: CoreRunOptions) =>
+    runCore(mode, options ?? {}),
   );
   ipcMain.handle('cairn:running', () => isRunning());
   ipcMain.handle('cairn:busy-state', () => busyState());
+  ipcMain.handle('cairn:run-snapshot', () => runSnapshot());
   ipcMain.handle('cairn:export:save-markdown', (_e, defaultName: string, content: string) =>
     saveMarkdown(defaultName, content),
   );

@@ -160,6 +160,25 @@ export function App() {
     return off;
   }, []);
 
+  // 발행 도중 리로드 대비 — 메인의 run 스냅샷으로 세션 복원(멈춤 방지).
+  useEffect(() => {
+    void window.cairn.runSnapshot().then((s) => {
+      if (s.busy && s.mode) {
+        setRunningMode(s.mode);
+        setSessions((prev) => ({
+          ...prev,
+          [s.mode!]: { state: 'running', step: s.step, lines: [], startedAt: s.startedAt },
+        }));
+      } else if (s.lastResult) {
+        const { mode, result, endedAt } = s.lastResult;
+        setSessions((prev) => ({
+          ...prev,
+          [mode]: { state: 'done', step: 'done', lines: [], startedAt: endedAt, result, endedAt },
+        }));
+      }
+    });
+  }, []);
+
   useEffect(() => {
     const off = window.cairn.onFocusMode((focused) => {
       setView('worklogs');

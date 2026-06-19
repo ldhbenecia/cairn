@@ -45,6 +45,14 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type BusyState = { busy: boolean; mode: CoreMode | null };
 
+export type RunSnapshot = {
+  busy: boolean;
+  mode: CoreMode | null;
+  step: RunStep;
+  startedAt: number;
+  lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null;
+};
+
 export type SaveResult = { saved: boolean; path?: string; error?: string };
 
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
@@ -102,6 +110,8 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
   running: (): Promise<boolean> => ipcRenderer.invoke('cairn:running') as Promise<boolean>,
   busyState: (): Promise<BusyState> => ipcRenderer.invoke('cairn:busy-state') as Promise<BusyState>,
+  runSnapshot: (): Promise<RunSnapshot> =>
+    ipcRenderer.invoke('cairn:run-snapshot') as Promise<RunSnapshot>,
   onBusy: (cb: (s: BusyState) => void): (() => void) => {
     const listener = (_e: Electron.IpcRendererEvent, payload: BusyState): void => cb(payload);
     ipcRenderer.on('cairn:busy', listener);

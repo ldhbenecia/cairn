@@ -10,8 +10,8 @@ function buildTrayIcon(): Electron.NativeImage {
   return img;
 }
 
-function triggerCore(window: BrowserWindow, mode: CoreMode): void {
-  void runCore(mode, {}, window.webContents).then((result) => {
+function triggerCore(mode: CoreMode): void {
+  void runCore(mode, {}).then((result) => {
     if (!result.ok) {
       console.error(`[cairn] ${mode} failed:\n${result.stderrTail}`);
     }
@@ -47,17 +47,17 @@ function buildMenu(window: BrowserWindow, onQuit: () => void): Menu {
     {
       label: mt('tray.daily'),
       accelerator: 'CommandOrControl+1',
-      click: () => triggerCore(window, 'daily'),
+      click: () => triggerCore('daily'),
     },
     {
       label: mt('tray.weekly'),
       accelerator: 'CommandOrControl+2',
-      click: () => triggerCore(window, 'weekly'),
+      click: () => triggerCore('weekly'),
     },
     {
       label: mt('tray.monthly'),
       accelerator: 'CommandOrControl+3',
-      click: () => triggerCore(window, 'monthly'),
+      click: () => triggerCore('monthly'),
     },
     { type: 'separator' },
     {

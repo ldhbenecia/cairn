@@ -1,4 +1,4 @@
-import { app, BrowserWindow, type WebContents } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { fork, type ChildProcess } from 'node:child_process';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -101,26 +101,50 @@ function promptEnv(prompts: Settings['prompts']): Record<string, string> {
 
 let running: ChildProcess | null = null;
 let runningMode: CoreMode | null = null;
+// 리로드/재부착 대비 — 진행 중 run 의 시작 시각·단계, 직전 완료 결과를 메인이 보관.
+let runStartedAt = 0;
+let runStep: RunStep = 'boot';
+let lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null = null;
 
 export function isRunning(): boolean {
   return running !== null;
 }
 
-function broadcastBusy(): void {
-  const payload = { busy: running !== null, mode: runningMode };
+function broadcast(channel: string, payload: unknown): void {
   for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('cairn:busy', payload);
+    win.webContents.send(channel, payload);
   }
+}
+
+function broadcastBusy(): void {
+  broadcast('cairn:busy', { busy: running !== null, mode: runningMode });
 }
 
 export function busyState(): { busy: boolean; mode: CoreMode | null } {
   return { busy: running !== null, mode: runningMode };
 }
 
+export type RunSnapshot = {
+  busy: boolean;
+  mode: CoreMode | null;
+  step: RunStep;
+  startedAt: number;
+  lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null;
+};
+
+export function runSnapshot(): RunSnapshot {
+  return {
+    busy: running !== null,
+    mode: runningMode,
+    step: runStep,
+    startedAt: runStartedAt,
+    lastResult,
+  };
+}
+
 function broadcastRunDone(mode: CoreMode, result: CoreResult): void {
-  for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('cairn:run-done', { mode, result });
-  }
+  lastResult = { mode, result, endedAt: Date.now() };
+  broadcast('cairn:run-done', { mode, result });
 }
 
 export async function probeClaude(): Promise<{ ok: boolean }> {
@@ -144,27 +168,26 @@ export async function probeClaude(): Promise<{ ok: boolean }> {
   });
 }
 
-export async function runCore(
-  mode: CoreMode,
-  options: CoreRunOptions = {},
-  sender?: WebContents,
-): Promise<CoreResult> {
+export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Promise<CoreResult> {
   // 코드화된 에러 — 렌더러가 i18n 으로 매핑 (영어 사용자에게 한국어 새는 것 방지)
   if (running) throw new Error(`busy:${runningMode ?? mode}`);
 
+  // 전체 윈도우로 브로드캐스트 — 발행 도중 리로드해도 새 webContents 가 진행을 이어받게.
   const emit = (level: 'info' | 'err' | 'meta', line: string): void => {
     const clean = stripAnsi(line);
     appendRunLog(mode, level, clean);
-    sender?.send('cairn:run-line', { mode, level, line: clean });
+    broadcast('cairn:run-line', { mode, level, line: clean });
   };
 
-  let currentStep: RunStep = 'boot';
+  runStartedAt = Date.now();
+  runStep = 'boot';
+  lastResult = null;
   const emitStep = (step: RunStep): void => {
-    if (stepRank(step) <= stepRank(currentStep)) return;
-    currentStep = step;
-    sender?.send('cairn:run-step', { mode, step });
+    if (stepRank(step) <= stepRank(runStep)) return;
+    runStep = step;
+    broadcast('cairn:run-step', { mode, step });
   };
-  sender?.send('cairn:run-step', { mode, step: currentStep });
+  broadcast('cairn:run-step', { mode, step: runStep });
 
   const settings = readSettings();
   const args = [`--mode=${mode}`];

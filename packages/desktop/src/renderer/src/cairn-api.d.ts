@@ -8,6 +8,14 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type BusyState = { busy: boolean; mode: CoreMode | null };
 
+export type RunSnapshot = {
+  busy: boolean;
+  mode: CoreMode | null;
+  step: RunStep;
+  startedAt: number;
+  lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null;
+};
+
 export type SaveResult = { saved: boolean; path?: string; error?: string };
 
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
@@ -130,6 +138,7 @@ declare global {
       run: (mode: CoreMode, options?: CoreRunOptions) => Promise<CoreResult>;
       running: () => Promise<boolean>;
       busyState: () => Promise<BusyState>;
+      runSnapshot: () => Promise<RunSnapshot>;
       onBusy: (cb: (s: BusyState) => void) => () => void;
       openExternal: (url: string) => Promise<void>;
       exportMarkdown: (defaultName: string, content: string) => Promise<SaveResult>;
