@@ -72,6 +72,13 @@
   outline: 2px solid color-mix(in srgb, var(--color-accent) 60%, transparent);
   outline-offset: 1px;
 }
+/* 다이얼로그·드로어 컨테이너는 포커스 트랩으로 포커스를 받지만 링은 불필요(키 입력 시 보라 테두리 방지) */
+.dialog-content:focus-visible,
+.dialog-content:focus,
+[role='dialog']:focus-visible,
+[role='dialog']:focus {
+  outline: none;
+}
 
 html,
 body,
