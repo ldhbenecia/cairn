@@ -412,3 +412,18 @@ button {
   transform-origin: left;
   animation: bar-grow-h 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* 누적 곡선 — pathLength=1 정규화한 라인 드로우 + 영역 페이드 */
+@keyframes line-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.line-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: line-draw 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+}
+.area-fade {
+  animation: dash-rise 0.9s ease-out 0.3s both;
+}
