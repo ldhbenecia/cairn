@@ -59,6 +59,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50" />
         <Dialog.Content
+          onOpenAutoFocus={(e) => e.preventDefault()}
           style={{ width: 920, height: 600, maxWidth: '92vw', maxHeight: '86vh' }}
           className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 focus:outline-none"
         >

@@ -97,53 +97,68 @@ export function AchievementsDialog({
     >
       <div
         onMouseDown={(e) => e.stopPropagation()}
-        className="glass-panel flex max-h-[80vh] w-[640px] max-w-[92vw] flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50"
+        className={`glass-panel flex max-h-[80vh] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          markdown !== null ? 'w-[640px]' : 'w-[420px]'
+        }`}
       >
-        <div className="flex items-start justify-between border-b border-hairline px-5 py-4">
-          <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-[15px] font-semibold text-ink">
-              <Sparkles size={15} strokeWidth={2} className="text-accent-hover" />
-              {t('achv.title')}
-            </p>
-            <p className="mt-0.5 text-[12px] text-ink-tertiary">{t('achv.subtitle')}</p>
+        <div className="flex items-start justify-between border-b border-hairline px-6 py-4">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-accent/12 text-accent-hover">
+              <Sparkles size={15} strokeWidth={2} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[15px] font-semibold text-ink">{t('achv.title')}</p>
+              <p className="mt-0.5 text-[12px] text-ink-tertiary">{t('achv.subtitle')}</p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink"
+            className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
           >
             <X size={15} strokeWidth={2} />
           </button>
         </div>
 
-        <div className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
-          <div className="flex items-center gap-2">
-            {RANGES.map((r) => (
-              <button
-                key={r}
-                type="button"
-                disabled={busy}
-                onClick={() => setDays(r)}
-                className={`rounded-md border px-3 py-1.5 text-[12.5px] font-medium transition-colors disabled:opacity-50 ${
-                  days === r
-                    ? 'border-accent/60 bg-accent/15 text-ink'
-                    : 'border-hairline text-ink-muted hover:bg-surface-2'
-                }`}
-              >
-                {t(RANGE_LABEL[r]!)}
-              </button>
-            ))}
-            <span className="ml-auto text-[12px] text-ink-tertiary">
-              {pages.length}
-              {t('achv.worklogs')}
-            </span>
+        <div className="flex flex-col gap-4 overflow-y-auto px-6 py-5">
+          <div className="grid grid-cols-2 gap-2">
+            {RANGES.map((r) => {
+              const selected = days === r;
+              const count = (recent?.pages ?? []).filter(
+                (p) => p.category === 'daily' && p.date != null && p.date >= localDateDaysAgo(r),
+              ).length;
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setDays(r)}
+                  className={[
+                    'flex flex-col items-start gap-0.5 rounded-xl border px-4 py-3 transition-all active:scale-[0.99] disabled:opacity-50',
+                    selected
+                      ? 'border-accent bg-accent/10 shadow-sm shadow-accent/15'
+                      : 'border-hairline hover:border-hairline-strong hover:bg-surface-2/60',
+                  ].join(' ')}
+                >
+                  <span
+                    className={`text-[13px] font-medium ${selected ? 'text-ink' : 'text-ink-muted'}`}
+                  >
+                    {t(RANGE_LABEL[r]!)}
+                  </span>
+                  <span className="text-[12px] text-ink-tertiary">
+                    {count}
+                    {t('achv.worklogs')}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <button
             type="button"
             disabled={busy || pages.length === 0}
             onClick={() => void compile()}
-            className="flex items-center justify-center gap-2 rounded-md bg-accent px-3 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2.5 text-[13px] font-semibold text-white shadow-sm shadow-accent/25 transition-all hover:bg-accent-hover active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
           >
             {busy ? (
               <Loader2 size={14} strokeWidth={2} className="animate-spin" />
@@ -153,40 +168,47 @@ export function AchievementsDialog({
             {busy && progress ? `${progress.done} / ${progress.total}` : t('achv.compile')}
           </button>
 
-          {markdown !== null &&
-            (markdown === '' ? (
-              <p className="rounded-md border border-hairline bg-surface-1 py-8 text-center text-[12px] text-ink-tertiary">
-                {t('achv.empty')}
-              </p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-ink-tertiary">{t('achv.preview')}</span>
-                  <button
-                    type="button"
-                    onClick={copy}
-                    className={`flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium transition-colors ${
-                      copied
-                        ? 'bg-success/15 text-success'
-                        : 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
-                    }`}
-                  >
-                    {copied ? (
-                      <Check size={14} strokeWidth={2.5} />
-                    ) : (
-                      <Copy size={14} strokeWidth={2} />
-                    )}
-                    {copied ? t('drawer.copied') : t('achv.copy')}
-                  </button>
+          {/* 모으기 전엔 0fr 로 접혀 작은 모달 → 결과 나오면 1fr 로 쭈욱 펼쳐짐 */}
+          <div
+            className="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{ gridTemplateRows: markdown !== null ? '1fr' : '0fr' }}
+          >
+            <div className="min-h-0 overflow-hidden">
+              {markdown === '' ? (
+                <p className="rounded-md border border-hairline py-8 text-center text-[12px] text-ink-tertiary">
+                  {t('achv.empty')}
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-ink-tertiary">{t('achv.preview')}</span>
+                    <button
+                      type="button"
+                      onClick={copy}
+                      className={`flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium transition-colors ${
+                        copied
+                          ? 'bg-success/15 text-success'
+                          : 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
+                      }`}
+                    >
+                      {copied ? (
+                        <Check size={14} strokeWidth={2.5} />
+                      ) : (
+                        <Copy size={14} strokeWidth={2} />
+                      )}
+                      {copied ? t('drawer.copied') : t('achv.copy')}
+                    </button>
+                  </div>
+                  <textarea
+                    readOnly
+                    value={markdown ?? ''}
+                    rows={14}
+                    className="w-full resize-none rounded-md border border-hairline bg-surface-2 px-3 py-2.5 font-mono text-[12px] leading-relaxed text-ink-muted focus:outline-none"
+                  />
                 </div>
-                <textarea
-                  readOnly
-                  value={markdown}
-                  rows={14}
-                  className="w-full resize-none rounded-md border border-hairline bg-surface-2 px-3 py-2.5 font-mono text-[12px] leading-relaxed text-ink-muted focus:outline-none"
-                />
-              </div>
-            ))}
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

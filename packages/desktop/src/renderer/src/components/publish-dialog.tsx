@@ -1,5 +1,17 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { Check, ExternalLink, Loader2, Plus, TriangleAlert, X } from 'lucide-react';
+import {
+  CalendarClock,
+  CalendarDays,
+  CalendarRange,
+  Check,
+  ExternalLink,
+  type LucideIcon,
+  Loader2,
+  Plus,
+  Send,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { RunSession } from '../App';
 import type { CoreMode, CoreResult, CoreRunOptions, RunStep, SummaryModel } from '../cairn-api';
@@ -17,10 +29,10 @@ type Props = {
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
 };
 
-const MODE_OPTIONS: { mode: CoreMode; key: I18nKey }[] = [
-  { mode: 'daily', key: 'publish.today' },
-  { mode: 'weekly', key: 'publish.week' },
-  { mode: 'monthly', key: 'publish.month' },
+const MODE_OPTIONS: { mode: CoreMode; key: I18nKey; sub: I18nKey; icon: LucideIcon }[] = [
+  { mode: 'daily', key: 'publish.today', sub: 'publish.scope.daily', icon: CalendarDays },
+  { mode: 'weekly', key: 'publish.week', sub: 'publish.scope.weekly', icon: CalendarRange },
+  { mode: 'monthly', key: 'publish.month', sub: 'publish.scope.monthly', icon: CalendarClock },
 ];
 
 const STEPS: { key: RunStep; labelKey: I18nKey }[] = [
@@ -107,17 +119,23 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
 
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50 [-webkit-app-region:no-drag]" />
-        <Dialog.Content className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-115 max-w-[90vw] flex-col rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]">
-          <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
-            <Dialog.Title className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
+        <Dialog.Content
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-115 max-w-[90vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]"
+        >
+          <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
+            <Dialog.Title className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.2px] text-ink">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-accent/12 text-accent-hover">
+                <CalendarDays size={15} strokeWidth={2} />
+              </span>
               {t('publish.title')}
             </Dialog.Title>
-            <Dialog.Close className="flex size-7 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink">
+            <Dialog.Close className="flex size-7 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink">
               <X size={15} strokeWidth={2} />
             </Dialog.Close>
           </div>
 
-          <div className="overflow-y-auto px-5 py-5">
+          <div className="overflow-y-auto px-6 py-5">
             {showProgress && isDone && session?.error ? (
               <ErrorCard message={session.error} t={t} onClose={() => setOpen(false)} />
             ) : showProgress && isDone && session?.result ? (
@@ -139,45 +157,70 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
                   {t('publish.scope')}
                 </p>
-                <div className="mb-4 flex gap-1 rounded-lg bg-surface-2 p-1">
-                  {MODE_OPTIONS.map((o) => (
-                    <button
-                      key={o.mode}
-                      type="button"
-                      onClick={() => setMode(o.mode)}
-                      className={[
-                        'flex-1 rounded-md px-2 py-2 text-[13px] font-medium transition-colors',
-                        mode === o.mode
-                          ? 'bg-accent text-white'
-                          : 'text-ink-subtle hover:text-ink-muted',
-                      ].join(' ')}
-                    >
-                      {t(o.key)}
-                    </button>
-                  ))}
+                <div className="mb-4 grid grid-cols-3 gap-2">
+                  {MODE_OPTIONS.map((o) => {
+                    const selected = mode === o.mode;
+                    const Icon = o.icon;
+                    return (
+                      <button
+                        key={o.mode}
+                        type="button"
+                        onClick={() => setMode(o.mode)}
+                        className={[
+                          'relative flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3.5 transition-all active:scale-[0.98]',
+                          selected
+                            ? 'border-accent bg-accent/10 shadow-sm shadow-accent/15'
+                            : 'border-hairline hover:border-hairline-strong hover:bg-surface-2/60',
+                        ].join(' ')}
+                      >
+                        {selected && (
+                          <Check
+                            size={13}
+                            strokeWidth={3}
+                            className="absolute top-2 right-2 text-accent"
+                          />
+                        )}
+                        <Icon
+                          size={20}
+                          strokeWidth={1.75}
+                          className={selected ? 'text-accent' : 'text-ink-tertiary'}
+                        />
+                        <span
+                          className={`text-[13px] font-medium ${selected ? 'text-ink' : 'text-ink-muted'}`}
+                        >
+                          {t(o.key)}
+                        </span>
+                        <span className="text-[11px] text-ink-tertiary">{t(o.sub)}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div className="flex flex-col">
-                    <span className="text-[13px] text-ink">{t('publish.date')}</span>
+                <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-hairline bg-surface-2/50 px-3.5 py-3">
+                  <div className="flex min-w-0 flex-col">
+                    <span className="text-[13px] font-medium text-ink">{t('publish.date')}</span>
                     <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
                   </div>
                   <DatePicker value={date} max={todayIso()} disabled={busy} onChange={setDate} />
                 </div>
 
-                <div className="mb-5 flex flex-col gap-3">
-                  <Toggle
-                    checked={mode === 'daily' && isToday && includeBackfill}
-                    onChange={setIncludeBackfill}
-                    disabled={busy || mode !== 'daily' || !isToday}
-                    label={t('publish.backfill')}
-                  />
-                  <Toggle
-                    checked={force}
-                    onChange={setForce}
-                    disabled={busy}
-                    label={t('publish.force')}
-                  />
+                <div className="mb-5 flex flex-col divide-y divide-hairline overflow-hidden rounded-lg border border-hairline">
+                  <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                    <span
+                      className={`text-[13px] ${mode === 'daily' && isToday ? 'text-ink' : 'text-ink-tertiary'}`}
+                    >
+                      {t('publish.backfill')}
+                    </span>
+                    <Toggle
+                      checked={mode === 'daily' && isToday && includeBackfill}
+                      onChange={setIncludeBackfill}
+                      disabled={busy || mode !== 'daily' || !isToday}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                    <span className="text-[13px] text-ink">{t('publish.force')}</span>
+                    <Toggle checked={force} onChange={setForce} disabled={busy} />
+                  </div>
                 </div>
 
                 <button
@@ -195,12 +238,13 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                     });
                   }}
                   className={[
-                    'flex w-full items-center justify-center rounded-md px-3 py-2.5 text-[13px] font-medium transition-colors',
+                    'flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all active:scale-[0.99]',
                     busy
                       ? 'cursor-not-allowed bg-accent-focus text-white/70'
-                      : 'bg-accent text-white hover:bg-accent-hover',
+                      : 'bg-accent text-white shadow-sm shadow-accent/25 hover:bg-accent-hover',
                   ].join(' ')}
                 >
+                  {!busy && <Send size={15} strokeWidth={2.25} />}
                   {busy ? t('publish.busy') : t('publish.start')}
                 </button>
               </>
@@ -287,34 +331,44 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
         ? t(SUMMARIZE_HINTS[hintIdx]!)
         : t(STEP_HINT_KEY[step]);
 
+  const fillPct = Math.max(0, Math.min(100, ((currentRank - STEP_RANK.collect) / 2) * 100));
   return (
     <div className="flex flex-col gap-5 py-1">
-      <div className="flex items-center gap-1.5">
-        {STEPS.map((s, i) => {
+      <div className="relative flex items-start justify-between px-3">
+        {/* 스텝을 잇는 라인 — 진행에 따라 accent 로 부드럽게 채워짐(딱딱 X) */}
+        <div className="absolute top-[11px] right-3 left-3 h-0.5 rounded-full bg-hairline" />
+        <div
+          className="absolute top-[11px] left-3 h-0.5 rounded-full bg-accent transition-[width] duration-500 ease-out"
+          style={{ width: `calc((100% - 1.5rem) * ${fillPct / 100})` }}
+        />
+        {STEPS.map((s) => {
           const rank = STEP_RANK[s.key];
           const status = rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
           return (
-            <div key={s.key} className="flex items-center gap-1.5">
+            <div key={s.key} className="relative z-10 flex flex-col items-center gap-1.5">
               <div
                 className={[
-                  'flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] transition-colors',
+                  'flex size-[22px] items-center justify-center rounded-full border-2 transition-all duration-300',
                   status === 'done'
-                    ? 'border-hairline bg-surface-2 text-ink-muted'
+                    ? 'border-accent bg-accent text-white'
                     : status === 'active'
-                      ? 'border-accent/50 bg-accent/15 text-ink'
-                      : 'border-hairline bg-surface-2 text-ink-tertiary',
+                      ? 'border-accent bg-surface-1 text-accent'
+                      : 'border-hairline-strong bg-surface-1 text-ink-tertiary',
                 ].join(' ')}
               >
                 {status === 'done' ? (
-                  <Check size={12} strokeWidth={2.5} className="text-success" />
+                  <Check size={12} strokeWidth={3} />
                 ) : status === 'active' ? (
-                  <Loader2 size={12} strokeWidth={2} className="animate-spin text-accent" />
+                  <Loader2 size={12} strokeWidth={2.5} className="animate-spin" />
                 ) : (
-                  <span className="size-1.5 rounded-full bg-current opacity-40" />
+                  <span className="size-1.5 rounded-full bg-current opacity-50" />
                 )}
-                {t(s.labelKey)}
               </div>
-              {i < STEPS.length - 1 && <div className="h-px w-2 bg-hairline" />}
+              <span
+                className={`text-[11px] transition-colors ${status === 'pending' ? 'text-ink-tertiary' : 'text-ink-muted'}`}
+              >
+                {t(s.labelKey)}
+              </span>
             </div>
           );
         })}
@@ -344,9 +398,12 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
         </div>
       )}
 
-      <div className="h-1 overflow-hidden rounded-full bg-surface-2">
-        <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
-      </div>
+      {/* 백필일 땐 일자별(확정) 바만 — indeterminate 바와 2개 겹치지 않게 */}
+      {!backfill && (
+        <div className="h-1 overflow-hidden rounded-full bg-surface-2">
+          <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-3 text-[13px]">
         <span key={hint} className="hint-fade min-w-0 truncate text-ink-muted">

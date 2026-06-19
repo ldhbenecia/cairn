@@ -120,6 +120,14 @@ export function busyState(): { busy: boolean; mode: CoreMode | null } {
   return { busy: running !== null, mode: runningMode };
 }
 
+// 실행 완료를 모든 창에 알린다 — 자동 발행(렌더러가 트리거 안 한 실행)도 렌더러가 완료 처리·
+// 목록 갱신을 할 수 있게. (수동 trigger 의 IPC resolve 와 별개로 통일된 완료 신호)
+function broadcastRunDone(mode: CoreMode, result: CoreResult): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send('cairn:run-done', { mode, result });
+  }
+}
+
 // Claude 연결 확인 — core 를 --probe-claude 로 fork, stdout 의 CLAUDE_OK 확인 (가벼운 query 1회)
 export async function probeClaude(): Promise<{ ok: boolean }> {
   return new Promise((resolvePromise) => {
@@ -261,6 +269,7 @@ export async function runCore(
         });
       }
       sendResultNotification(mode, result);
+      broadcastRunDone(mode, result);
       resolvePromise(result);
     });
     child.on('error', (err) => {
@@ -268,7 +277,7 @@ export async function runCore(
       runningMode = null;
       broadcastBusy();
       emit('err', `[error] ${err.message}`);
-      resolvePromise({
+      const failResult: CoreResult = {
         ok: false,
         exitCode: null,
         notionUrl: null,
@@ -276,7 +285,9 @@ export async function runCore(
         publishPageId: null,
         noActivity: false,
         stderrTail: err.message,
-      });
+      };
+      broadcastRunDone(mode, failResult);
+      resolvePromise(failResult);
     });
   });
 }
