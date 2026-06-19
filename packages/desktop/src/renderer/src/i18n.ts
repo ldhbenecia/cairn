@@ -172,6 +172,7 @@ const STRINGS = {
     'publish.collected.commits': '커밋',
     'publish.hint.publish': '노션에 발행하는 중',
     'publish.result.done': '발행 완료',
+    'publish.result.cancelled': '발행 취소됨',
     'publish.result.noActivity': '활동 없음 — 발행 안 함',
     'publish.result.skipped': '이미 발행됨 — skip',
     'publish.result.noTarget': '발행 대상 없음 — Preferences 에서 설정 확인',
@@ -214,6 +215,8 @@ const STRINGS = {
     'achv.copy': '복사',
     'achv.empty': '이 기간엔 Done 항목이 없어요',
     'publish.close': '닫기',
+    'publish.cancel': '발행 취소',
+    'publish.cancelling': '취소하는 중…',
 
     'prefs.title': 'Preferences',
     'prefs.appearance': '화면',
@@ -474,6 +477,7 @@ const STRINGS = {
     'publish.collected.commits': 'commits',
     'publish.hint.publish': 'Publishing to Notion',
     'publish.result.done': 'Published',
+    'publish.result.cancelled': 'Publish cancelled',
     'publish.result.noActivity': 'No activity — nothing published',
     'publish.result.skipped': 'Already published — skipped',
     'publish.result.noTarget': 'No publish target — check Preferences',
@@ -516,6 +520,8 @@ const STRINGS = {
     'achv.copy': 'Copy',
     'achv.empty': 'No Done items in this range',
     'publish.close': 'Close',
+    'publish.cancel': 'Cancel publish',
+    'publish.cancelling': 'Cancelling…',
 
     'prefs.title': 'Preferences',
     'prefs.appearance': 'Appearance',

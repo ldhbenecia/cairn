@@ -6,6 +6,7 @@ import { pickExportFolder, saveMarkdown, savePdf } from './export';
 import { sendTestNotification } from './notifier';
 import {
   busyState,
+  cancelRun,
   isRunning,
   probeClaude,
   runCore,
@@ -103,6 +104,7 @@ void app.whenReady().then(() => {
     runCore(mode, options ?? {}),
   );
   ipcMain.handle('cairn:running', () => isRunning());
+  ipcMain.handle('cairn:run-cancel', () => cancelRun());
   ipcMain.handle('cairn:busy-state', () => busyState());
   ipcMain.handle('cairn:run-snapshot', () => runSnapshot());
   ipcMain.handle('cairn:export:save-markdown', (_e, defaultName: string, content: string) =>

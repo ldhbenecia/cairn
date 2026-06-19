@@ -31,6 +31,7 @@ export type CoreResult = {
   publishKind: PublishKind;
   publishPageId: string | null;
   noActivity: boolean;
+  cancelled: boolean;
   stderrTail: string;
 };
 
@@ -101,6 +102,14 @@ function promptEnv(prompts: Settings['prompts']): Record<string, string> {
 
 let running: ChildProcess | null = null;
 let runningMode: CoreMode | null = null;
+let cancelRequested = false;
+
+export function cancelRun(): boolean {
+  if (!running) return false;
+  cancelRequested = true;
+  running.kill('SIGTERM');
+  return true;
+}
 // 리로드/재부착 대비 — 진행 중 run 의 시작 시각·단계, 직전 완료 결과를 메인이 보관.
 let runStartedAt = 0;
 let runStep: RunStep = 'boot';
@@ -182,6 +191,7 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
   runStartedAt = Date.now();
   runStep = 'boot';
   lastResult = null;
+  cancelRequested = false;
   const emitStep = (step: RunStep): void => {
     if (stepRank(step) <= stepRank(runStep)) return;
     runStep = step;
@@ -256,7 +266,9 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
       const pageIdMatches = [...stdoutAll.matchAll(PAGE_ID_REGEX)];
       const lastPageId = pageIdMatches.at(-1)?.[1] ?? null;
       const finalNoActivity = noActivity && !lastKind && !lastUrl && !lastPageId;
-      emit('meta', `[exit] code=${exitCode ?? 'null'}`);
+      const cancelled = cancelRequested;
+      cancelRequested = false;
+      emit('meta', `[exit] code=${exitCode ?? 'null'}${cancelled ? ' (cancelled)' : ''}`);
       if (exitCode === 0) emitStep('done');
       const result: CoreResult = {
         ok: exitCode === 0,
@@ -265,11 +277,14 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
         publishKind: lastKind,
         publishPageId: lastPageId,
         noActivity: finalNoActivity,
+        cancelled,
         stderrTail: tail,
       };
       const outcome = result.ok ? (finalNoActivity ? 'no-activity' : 'ok') : 'fail';
       trackPublish(mode, outcome);
-      if (result.ok && lastPageId && !finalNoActivity) {
+      // 취소 시에는 완료 알림을 띄우지 않는다.
+      if (!cancelled) sendResultNotification(mode, result);
+      if (!cancelled && result.ok && lastPageId && !finalNoActivity) {
         const pad = (n: number): string => String(n).padStart(2, '0');
         const d = new Date();
         const localDate =
@@ -284,7 +299,6 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
           emit('err', `[export] sync 실패: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
-      sendResultNotification(mode, result);
       broadcastRunDone(mode, result);
       resolvePromise(result);
     });
@@ -292,6 +306,7 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
       running = null;
       runningMode = null;
       broadcastBusy();
+      cancelRequested = false;
       emit('err', `[error] ${err.message}`);
       const failResult: CoreResult = {
         ok: false,
@@ -300,6 +315,7 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
         publishKind: null,
         publishPageId: null,
         noActivity: false,
+        cancelled: false,
         stderrTail: err.message,
       };
       broadcastRunDone(mode, failResult);

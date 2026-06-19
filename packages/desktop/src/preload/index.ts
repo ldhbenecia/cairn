@@ -76,6 +76,7 @@ export type CoreResult = {
   publishKind: PublishKind;
   publishPageId: string | null;
   noActivity: boolean;
+  cancelled: boolean;
   stderrTail: string;
 };
 
@@ -108,6 +109,7 @@ contextBridge.exposeInMainWorld('cairn', {
   },
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
+  cancelRun: (): Promise<boolean> => ipcRenderer.invoke('cairn:run-cancel') as Promise<boolean>,
   running: (): Promise<boolean> => ipcRenderer.invoke('cairn:running') as Promise<boolean>,
   busyState: (): Promise<BusyState> => ipcRenderer.invoke('cairn:busy-state') as Promise<BusyState>,
   runSnapshot: (): Promise<RunSnapshot> =>

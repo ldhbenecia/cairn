@@ -150,7 +150,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                 onClose={() => setOpen(false)}
               />
             ) : showProgress && (isRunning || busy) ? (
-              <Progress session={session} t={t} />
+              <Progress session={session} t={t} onCancel={() => void window.cairn.cancelRun()} />
             ) : (
               <>
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
@@ -306,7 +306,16 @@ const SUMMARIZE_HINTS: I18nKey[] = [
   'publish.hint.summarize.polish',
 ];
 
-function Progress({ session, t }: { session: RunSession | null; t: T }) {
+function Progress({
+  session,
+  t,
+  onCancel,
+}: {
+  session: RunSession | null;
+  t: T;
+  onCancel: () => void;
+}) {
+  const [cancelling, setCancelling] = useState(false);
   const step = session?.step ?? 'boot';
   const currentRank = STEP_RANK[step];
   const running = session?.state === 'running';
@@ -436,6 +445,20 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
           <span>{t('publish.collected')}</span>
         </div>
       )}
+
+      <div className="flex justify-center pt-1">
+        <button
+          type="button"
+          disabled={cancelling}
+          onClick={() => {
+            setCancelling(true);
+            onCancel();
+          }}
+          className="rounded-md px-3 py-1.5 text-[12px] text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+        >
+          {cancelling ? t('publish.cancelling') : t('publish.cancel')}
+        </button>
+      </div>
     </div>
   );
 }
@@ -492,7 +515,9 @@ function Result({
     result.publishKind !== 'skipped' &&
     !result.noActivity;
   let body: React.ReactNode;
-  if (!result.ok) {
+  if (result.cancelled) {
+    body = <p className="text-ink-muted">{t('publish.result.cancelled')}</p>;
+  } else if (!result.ok) {
     body = (
       <p className="text-[#f87171]">
         {t('publish.result.fail')} (exit {result.exitCode ?? 'unknown'})

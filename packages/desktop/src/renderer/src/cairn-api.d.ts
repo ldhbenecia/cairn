@@ -65,6 +65,7 @@ export type CoreResult = {
   publishKind: PublishKind;
   publishPageId: string | null;
   noActivity: boolean;
+  cancelled: boolean;
   stderrTail: string;
 };
 
@@ -140,6 +141,7 @@ declare global {
       running: () => Promise<boolean>;
       busyState: () => Promise<BusyState>;
       runSnapshot: () => Promise<RunSnapshot>;
+      cancelRun: () => Promise<boolean>;
       onBusy: (cb: (s: BusyState) => void) => () => void;
       openExternal: (url: string) => Promise<void>;
       exportMarkdown: (defaultName: string, content: string) => Promise<SaveResult>;
