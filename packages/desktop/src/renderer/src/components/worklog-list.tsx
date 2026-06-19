@@ -361,9 +361,7 @@ function PageRow({
   selected: boolean;
 }) {
   const counts =
-    page.pr !== null || page.commit !== null
-      ? { gh: page.pr ?? 0, git: page.commit ?? 0 }
-      : null;
+    page.pr !== null || page.commit !== null ? { gh: page.pr ?? 0, git: page.commit ?? 0 } : null;
   const ref = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: 'nearest' });

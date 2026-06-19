@@ -449,17 +449,20 @@ function Progress({
         </span>
       </div>
 
-      {!isBatch && currentRank >= STEP_RANK.summarize && counts.pr !== null && counts.commit !== null && (
-        <div className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
-          <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
-            PR {counts.pr}
-          </span>
-          <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
-            {t('publish.collected.commits')} {counts.commit}
-          </span>
-          <span>{t('publish.collected')}</span>
-        </div>
-      )}
+      {!isBatch &&
+        currentRank >= STEP_RANK.summarize &&
+        counts.pr !== null &&
+        counts.commit !== null && (
+          <div className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
+            <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
+              PR {counts.pr}
+            </span>
+            <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
+              {t('publish.collected.commits')} {counts.commit}
+            </span>
+            <span>{t('publish.collected')}</span>
+          </div>
+        )}
 
       <div className="flex justify-center pt-1">
         <button
