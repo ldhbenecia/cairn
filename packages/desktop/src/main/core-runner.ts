@@ -302,6 +302,8 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
       running = null;
       runningMode = null;
       broadcastBusy();
+      // run 종료 — 누적 진행 상태 비움(완료 후엔 lastResult 가 스냅샷을 대신함)
+      resetBackfillTracking();
       const tailSource = stderrLines.length > 0 ? stderrLines : stdoutLines;
       const tail = tailSource.slice(-STDERR_TAIL_LINES).join('\n');
       const urlMatches = stdoutAll.match(NOTION_URL_REGEX) ?? [];
@@ -353,6 +355,7 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
       runningMode = null;
       broadcastBusy();
       cancelRequested = false;
+      resetBackfillTracking();
       emit('err', `[error] ${err.message}`);
       const failResult: CoreResult = {
         ok: false,
