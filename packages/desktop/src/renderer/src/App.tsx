@@ -134,6 +134,28 @@ export function App() {
     return off;
   }, []);
 
+  // 실행 완료 — 자동 발행 등 렌더러가 직접 트리거 안 한 실행도 여기서 done 처리 + 목록 갱신.
+  // (수동 발행은 trigger 의 IPC resolve 와 함께 이 신호도 받지만 멱등)
+  useEffect(() => {
+    const off = window.cairn.onRunDone(({ mode, result }) => {
+      setSessions((prev) => {
+        const current = prev[mode] ?? {
+          state: 'running' as const,
+          step: 'done' as const,
+          lines: [],
+          startedAt: Date.now(),
+        };
+        return {
+          ...prev,
+          [mode]: { ...current, state: 'done', step: 'done', result, endedAt: Date.now() },
+        };
+      });
+      setRunningMode((rm) => (rm === mode ? null : rm));
+      void loadRecent();
+    });
+    return off;
+  }, [loadRecent]);
+
   // 실행 중 작업(자동 발행 백필 포함) 인지 → 발행 버튼 잠금·"발행 중" 표시.
   useEffect(() => {
     void window.cairn.busyState().then(setBusy);
@@ -188,15 +210,8 @@ export function App() {
         [mode]: { state: 'running', step: 'boot', lines: [], startedAt: Date.now() },
       }));
       try {
-        const result = await window.cairn.run(mode, options);
-        setSessions((prev) => {
-          const current = prev[mode] ?? { state: 'running', step: 'done', lines: [] };
-          return {
-            ...prev,
-            [mode]: { ...current, state: 'done', step: 'done', result, endedAt: Date.now() },
-          };
-        });
-        void loadRecent();
+        // 완료 처리(done·result·목록 갱신)는 onRunDone 브로드캐스트가 담당 — 수동·자동 통일.
+        await window.cairn.run(mode, options);
       } catch (err) {
         const raw = err instanceof Error ? err.message : String(err);
         // 메인이 던진 'busy:<mode>' 코드 → i18n 친화 문구. 그 외엔 원문 노출.
@@ -217,7 +232,7 @@ export function App() {
         setRunningMode(null);
       }
     },
-    [loadRecent, t],
+    [t],
   );
 
   const counts = useMemo<FilterCounts>(() => {

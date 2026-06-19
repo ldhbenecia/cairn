@@ -137,6 +137,14 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.on('cairn:run-step', listener);
     return () => ipcRenderer.off('cairn:run-step', listener);
   },
+  onRunDone: (cb: (payload: { mode: CoreMode; result: CoreResult }) => void): (() => void) => {
+    const listener = (
+      _e: Electron.IpcRendererEvent,
+      payload: { mode: CoreMode; result: CoreResult },
+    ): void => cb(payload);
+    ipcRenderer.on('cairn:run-done', listener);
+    return () => ipcRenderer.off('cairn:run-done', listener);
+  },
   readConfig: (): Promise<ConfigResult> =>
     ipcRenderer.invoke('cairn:config:read') as Promise<ConfigResult>,
   tailLogs: (): Promise<LogTailResult> =>

@@ -139,6 +139,7 @@ declare global {
       onRunLine: (cb: (l: RunLine) => void) => () => void;
       onFocusMode: (cb: (mode: CoreMode) => void) => () => void;
       onRunStep: (cb: (p: { mode: CoreMode; step: RunStep }) => void) => () => void;
+      onRunDone: (cb: (p: { mode: CoreMode; result: CoreResult }) => void) => () => void;
       readConfig: () => Promise<ConfigResult>;
       tailLogs: () => Promise<LogTailResult>;
       listRecent: () => Promise<RecentListResult>;

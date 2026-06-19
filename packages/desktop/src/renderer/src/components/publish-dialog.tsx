@@ -388,9 +388,12 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
         </div>
       )}
 
-      <div className="h-1 overflow-hidden rounded-full bg-surface-2">
-        <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
-      </div>
+      {/* 백필일 땐 일자별(확정) 바만 — indeterminate 바와 2개 겹치지 않게 */}
+      {!backfill && (
+        <div className="h-1 overflow-hidden rounded-full bg-surface-2">
+          <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-3 text-[13px]">
         <span key={hint} className="hint-fade min-w-0 truncate text-ink-muted">
