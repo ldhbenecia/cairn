@@ -58,28 +58,41 @@ export class GithubApiClient {
   }
 
   async searchPrs(token: string, query: string): Promise<SearchPrItem[]> {
-    const { data } = await this.getOctokit(token).rest.search.issuesAndPullRequests({
-      q: `is:pr ${query}`,
-      per_page: 100,
-    });
-    return data.items.map((item) => {
-      const [owner, repo] = parseRepoFromUrl(item.repository_url);
-      return {
-        owner,
-        repo,
-        number: item.number,
-        title: item.title,
-        body: typeof item.body === 'string' ? item.body : null,
-        state: normalizeState(item.state),
-        mergedAt: item.pull_request?.merged_at ?? null,
-        author: item.user?.login ?? 'unknown',
-        assignees: (item.assignees ?? []).flatMap((a) => (a?.login ? [a.login] : [])),
-        labels: item.labels.flatMap((l) => (typeof l === 'string' ? [l] : l.name ? [l.name] : [])),
-        htmlUrl: item.html_url,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-      };
-    });
+    const octokit = this.getOctokit(token);
+    const out: SearchPrItem[] = [];
+    // 페이징 필수: 백필은 넓은 updated 범위라 첫 100건만 받으면 오래된 PR(2월 작성→3월 머지 등
+    // updated_at 이 밀린 케이스)이 잘려 누락된다. updated desc 로 결정적, GitHub 상한(1000)까지.
+    for (let page = 1; page <= 10; page += 1) {
+      const { data } = await octokit.rest.search.issuesAndPullRequests({
+        q: `is:pr ${query}`,
+        per_page: 100,
+        page,
+        sort: 'updated',
+        order: 'desc',
+      });
+      for (const item of data.items) {
+        const [owner, repo] = parseRepoFromUrl(item.repository_url);
+        out.push({
+          owner,
+          repo,
+          number: item.number,
+          title: item.title,
+          body: typeof item.body === 'string' ? item.body : null,
+          state: normalizeState(item.state),
+          mergedAt: item.pull_request?.merged_at ?? null,
+          author: item.user?.login ?? 'unknown',
+          assignees: (item.assignees ?? []).flatMap((a) => (a?.login ? [a.login] : [])),
+          labels: item.labels.flatMap((l) =>
+            typeof l === 'string' ? [l] : l.name ? [l.name] : [],
+          ),
+          htmlUrl: item.html_url,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+        });
+      }
+      if (data.items.length < 100) break;
+    }
+    return out;
   }
 
   async listPrCommitsInRange(
