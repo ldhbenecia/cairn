@@ -8,11 +8,14 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type BusyState = { busy: boolean; mode: CoreMode | null };
 
+export type RunProgress = { total: number; done: number; active: number };
+
 export type RunSnapshot = {
   busy: boolean;
   mode: CoreMode | null;
   step: RunStep;
   startedAt: number;
+  progress: RunProgress | null;
   lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null;
 };
 
@@ -153,6 +156,7 @@ declare global {
       onRunLine: (cb: (l: RunLine) => void) => () => void;
       onFocusMode: (cb: (mode: CoreMode) => void) => () => void;
       onRunStep: (cb: (p: { mode: CoreMode; step: RunStep }) => void) => () => void;
+      onRunProgress: (cb: (p: { mode: CoreMode } & RunProgress) => void) => () => void;
       onRunDone: (cb: (p: { mode: CoreMode; result: CoreResult }) => void) => () => void;
       readConfig: () => Promise<ConfigResult>;
       tailLogs: () => Promise<LogTailResult>;

@@ -45,11 +45,14 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type BusyState = { busy: boolean; mode: CoreMode | null };
 
+export type RunProgress = { total: number; done: number; active: number };
+
 export type RunSnapshot = {
   busy: boolean;
   mode: CoreMode | null;
   step: RunStep;
   startedAt: number;
+  progress: RunProgress | null;
   lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null;
 };
 
@@ -141,6 +144,14 @@ contextBridge.exposeInMainWorld('cairn', {
     const listener = (_e: Electron.IpcRendererEvent, mode: CoreMode): void => cb(mode);
     ipcRenderer.on('cairn:focus-mode', listener);
     return () => ipcRenderer.off('cairn:focus-mode', listener);
+  },
+  onRunProgress: (cb: (payload: { mode: CoreMode } & RunProgress) => void): (() => void) => {
+    const listener = (
+      _e: Electron.IpcRendererEvent,
+      payload: { mode: CoreMode } & RunProgress,
+    ): void => cb(payload);
+    ipcRenderer.on('cairn:run-progress', listener);
+    return () => ipcRenderer.off('cairn:run-progress', listener);
   },
   onRunStep: (cb: (payload: { mode: CoreMode; step: RunStep }) => void): (() => void) => {
     const listener = (

@@ -117,6 +117,45 @@ let runStartedAt = 0;
 let runStep: RunStep = 'boot';
 let lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null = null;
 
+// 백필 배치 진행 — 전체 stdout 스트림 기준 누적(렌더러 200줄 tail 제한에 영향받지 않게).
+export type RunProgress = { total: number; done: number; active: number };
+let runProgress: RunProgress | null = null;
+let bfTotal = 0;
+let bfDone = 0;
+let bfStarted = 0;
+let bfInStat = false;
+let bfLastKey = '';
+
+function resetBackfillTracking(): void {
+  runProgress = null;
+  bfTotal = 0;
+  bfDone = 0;
+  bfStarted = 0;
+  bfInStat = false;
+  bfLastKey = '';
+}
+
+// pino-pretty 멀티라인 대응: 헤더(`[HH:MM:SS]`) 기준 블록으로 total/done 누적, date start 수로 동시 처리 산정.
+function trackBackfill(line: string, mode: CoreMode): void {
+  if (line.includes('backfill date start')) bfStarted += 1;
+  const isHeader = /^\[\d{2}:\d{2}:\d{2}/.test(line) || /"msg"\s*:/.test(line);
+  if (isHeader) bfInStat = /backfill batch start|backfill progress/.test(line);
+  else if (/backfill batch start|backfill progress/.test(line)) bfInStat = true;
+  if (bfInStat) {
+    const mt = /total["':\s]+(\d+)/.exec(line);
+    const md = /done["':\s]+(\d+)/.exec(line);
+    if (mt) bfTotal = Math.max(bfTotal, Number(mt[1]));
+    if (md) bfDone = Math.max(bfDone, Number(md[1]));
+  }
+  if (bfTotal <= 1) return;
+  const active = Math.max(0, Math.min(bfTotal - bfDone, bfStarted - bfDone));
+  const key = `${bfDone}/${bfTotal}/${active}`;
+  if (key === bfLastKey) return;
+  bfLastKey = key;
+  runProgress = { total: bfTotal, done: bfDone, active };
+  broadcast('cairn:run-progress', { mode, ...runProgress });
+}
+
 export function isRunning(): boolean {
   return running !== null;
 }
@@ -140,6 +179,7 @@ export type RunSnapshot = {
   mode: CoreMode | null;
   step: RunStep;
   startedAt: number;
+  progress: RunProgress | null;
   lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null;
 };
 
@@ -149,6 +189,7 @@ export function runSnapshot(): RunSnapshot {
     mode: runningMode,
     step: runStep,
     startedAt: runStartedAt,
+    progress: runProgress,
     lastResult,
   };
 }
@@ -194,6 +235,7 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
   runStep = 'boot';
   lastResult = null;
   cancelRequested = false;
+  resetBackfillTracking();
   const emitStep = (step: RunStep): void => {
     if (stepRank(step) <= stepRank(runStep)) return;
     runStep = step;
@@ -242,6 +284,7 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
       if (line.length === 0) continue;
       stdoutLines.push(line);
       emit('info', line);
+      trackBackfill(line, mode);
       const step = detectStep(line);
       if (step) emitStep(step);
     }

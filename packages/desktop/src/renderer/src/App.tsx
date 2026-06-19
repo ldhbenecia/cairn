@@ -41,6 +41,8 @@ export type RunSession = {
   endedAt?: number;
   // 백필(여러 날짜)이면 트리거 시점부터 true — 진행 UI 를 일자별 배치 모드로 보이게.
   batch?: boolean;
+  // 배치 진행(메인이 stdout 누적 → 브로드캐스트). 로그 tail 제한과 무관하게 안정적.
+  progress?: { total: number; done: number; active: number };
 };
 
 const TAIL_MAX = 200;
@@ -137,6 +139,21 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const off = window.cairn.onRunProgress(({ mode, total, done, active }) => {
+      setSessions((prev) => {
+        const current = prev[mode] ?? {
+          state: 'running' as const,
+          step: 'boot' as const,
+          lines: [],
+          startedAt: Date.now(),
+        };
+        return { ...prev, [mode]: { ...current, batch: true, progress: { total, done, active } } };
+      });
+    });
+    return off;
+  }, []);
+
+  useEffect(() => {
     const off = window.cairn.onRunDone(({ mode, result }) => {
       setSessions((prev) => {
         const current = prev[mode] ?? {
@@ -169,7 +186,14 @@ export function App() {
         setRunningMode(s.mode);
         setSessions((prev) => ({
           ...prev,
-          [s.mode!]: { state: 'running', step: s.step, lines: [], startedAt: s.startedAt },
+          [s.mode!]: {
+            state: 'running',
+            step: s.step,
+            lines: [],
+            startedAt: s.startedAt,
+            batch: s.progress !== null,
+            progress: s.progress ?? undefined,
+          },
         }));
       } else if (s.lastResult) {
         const { mode, result, endedAt } = s.lastResult;
