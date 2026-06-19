@@ -23,6 +23,7 @@ export type RecentPage = {
   status: string | null;
   category: RecentCategory;
   sourceCounts: string | null;
+  activityHours: string | null;
   workspaceLabel: string;
 };
 

@@ -233,6 +233,7 @@ export class NotionPublisherService {
     dataSourceId: string,
   ): Promise<{ id: string; url: string | null }> {
     const sourceCounts = formatSourceCounts(input);
+    const activityHours = formatActivityHours(input);
     const children = input.summary
       ? buildSummaryBlocks(input.summary, input)
       : buildFallbackBlocks(input);
@@ -250,6 +251,7 @@ export class NotionPublisherService {
       date: input.date,
       title: `${input.date} ${input.lang === 'en' ? 'Worklog' : '작업 일지'}`,
       sourceCounts,
+      activityHours,
       tags: ['auto', 'daily'],
       children,
     });
@@ -273,8 +275,7 @@ function formatSourceCounts(input: PublishWorklogInput): string {
     input.github?.prs.reduce((acc, pr) => acc + pr.commitsOnDate.length, 0) ?? 0;
   const localCommits = input.localGit?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
   const git = githubCommits + localCommits;
-  const hrs = formatHourHistogram(input);
-  return `gh:${gh} / git:${git}${hrs ? ` / ${hrs}` : ''}`;
+  return `gh:${gh} / git:${git}`;
 }
 
 // 커밋 시각(ISO) 들의 24칸 시간 히스토그램. 머신 로컬 시간 기준(getHours) — KST 단정 금지(timezone 룰).
@@ -287,7 +288,8 @@ export function hourHistogram(isoTimestamps: readonly string[]): number[] {
   return hours;
 }
 
-function formatHourHistogram(input: PublishWorklogInput): string | null {
+// 대시보드 시간대 차트용 24칸 히스토그램. Source counts 가 아닌 별도 'Activity hours' 속성에 저장.
+function formatActivityHours(input: PublishWorklogInput): string | null {
   const stamps: string[] = [];
   for (const repo of input.localGit?.repos ?? []) {
     for (const c of repo.commits) stamps.push(c.authoredAt);
@@ -296,7 +298,7 @@ function formatHourHistogram(input: PublishWorklogInput): string | null {
     for (const c of pr.commitsOnDate) stamps.push(c.authoredAt);
   }
   if (stamps.length === 0) return null;
-  return `hrs:${hourHistogram(stamps).join(',')}`;
+  return hourHistogram(stamps).join(',');
 }
 
 function buildSummaryBlocks(

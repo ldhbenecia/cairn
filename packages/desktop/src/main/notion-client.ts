@@ -48,6 +48,7 @@ export type RecentPage = {
   status: string | null;
   category: RecentCategory;
   sourceCounts: string | null;
+  activityHours: string | null;
   workspaceLabel: string;
 };
 
@@ -190,6 +191,7 @@ async function listDailyPages(
         status: readSelect(props, 'Status'),
         category: 'daily' as const,
         sourceCounts: readRichText(props, 'Source counts'),
+        activityHours: readRichText(props, 'Activity hours'),
         workspaceLabel,
       },
     ];
@@ -220,6 +222,7 @@ async function listRollupPages(
         category:
           readSelect(props, 'Period') === 'monthly' ? ('monthly' as const) : ('weekly' as const),
         sourceCounts: readRichText(props, 'Source counts'),
+        activityHours: readRichText(props, 'Activity hours'),
         workspaceLabel,
       },
     ];
