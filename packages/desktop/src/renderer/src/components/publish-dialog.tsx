@@ -331,34 +331,44 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
         ? t(SUMMARIZE_HINTS[hintIdx]!)
         : t(STEP_HINT_KEY[step]);
 
+  const fillPct = Math.max(0, Math.min(100, ((currentRank - STEP_RANK.collect) / 2) * 100));
   return (
     <div className="flex flex-col gap-5 py-1">
-      <div className="flex items-center gap-1.5">
-        {STEPS.map((s, i) => {
+      <div className="relative flex items-start justify-between px-3">
+        {/* 스텝을 잇는 라인 — 진행에 따라 accent 로 부드럽게 채워짐(딱딱 X) */}
+        <div className="absolute top-[11px] right-3 left-3 h-0.5 rounded-full bg-hairline" />
+        <div
+          className="absolute top-[11px] left-3 h-0.5 rounded-full bg-accent transition-[width] duration-500 ease-out"
+          style={{ width: `calc((100% - 1.5rem) * ${fillPct / 100})` }}
+        />
+        {STEPS.map((s) => {
           const rank = STEP_RANK[s.key];
           const status = rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
           return (
-            <div key={s.key} className="flex items-center gap-1.5">
+            <div key={s.key} className="relative z-10 flex flex-col items-center gap-1.5">
               <div
                 className={[
-                  'flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] transition-colors',
+                  'flex size-[22px] items-center justify-center rounded-full border-2 transition-all duration-300',
                   status === 'done'
-                    ? 'border-hairline bg-surface-2 text-ink-muted'
+                    ? 'border-accent bg-accent text-white'
                     : status === 'active'
-                      ? 'border-accent/50 bg-accent/15 text-ink'
-                      : 'border-hairline bg-surface-2 text-ink-tertiary',
+                      ? 'border-accent bg-surface-1 text-accent'
+                      : 'border-hairline-strong bg-surface-1 text-ink-tertiary',
                 ].join(' ')}
               >
                 {status === 'done' ? (
-                  <Check size={12} strokeWidth={2.5} className="text-success" />
+                  <Check size={12} strokeWidth={3} />
                 ) : status === 'active' ? (
-                  <Loader2 size={12} strokeWidth={2} className="animate-spin text-accent" />
+                  <Loader2 size={12} strokeWidth={2.5} className="animate-spin" />
                 ) : (
-                  <span className="size-1.5 rounded-full bg-current opacity-40" />
+                  <span className="size-1.5 rounded-full bg-current opacity-50" />
                 )}
-                {t(s.labelKey)}
               </div>
-              {i < STEPS.length - 1 && <div className="h-px w-2 bg-hairline" />}
+              <span
+                className={`text-[11px] transition-colors ${status === 'pending' ? 'text-ink-tertiary' : 'text-ink-muted'}`}
+              >
+                {t(s.labelKey)}
+              </span>
             </div>
           );
         })}
