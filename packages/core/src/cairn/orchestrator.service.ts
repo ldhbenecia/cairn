@@ -99,10 +99,14 @@ export class OrchestratorService {
 
     let backfillDone = 0;
     const backfillTotal = missingDates.length;
+    // 데스크톱 배치 진행 UI 가 시작 즉시 총개수를 알도록(완료 로그 전부터 칸 렌더링).
+    this.logger.info({ total: backfillTotal }, 'daily: backfill batch start');
     const results = await withConcurrency<
       string,
       { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' }
     >(missingDates, BACKFILL_CONCURRENCY, async (date) => {
+      // 날짜별 "시작" — 요약 중(완료 전)에도 동시 처리 중인 칸을 펄스로 보여주기 위함.
+      this.logger.info({ date }, 'daily: backfill date start');
       let result: { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' };
       try {
         const outcome = await this.runDailyForDate(date, options, {
