@@ -278,24 +278,32 @@ function collectedCounts(lines: RunSession['lines']): { pr: number | null; commi
   return { pr, commit };
 }
 
-// 엔진의 "backfill progress" 로그에서 done/total 추출.
-// pino-pretty 는 msg 줄과 done/total 필드 줄이 분리되므로, "backfill progress" 헤더 이후
-// 다음 로그 엔트리(`[HH:MM:SS …]` 헤더) 전까지를 한 블록으로 보고 필드를 모은다. JSON 단일 라인도 처리.
-function backfillProgress(lines: RunSession['lines']): { done: number; total: number } | null {
+// 엔진 백필 로그에서 total / done / active(동시 처리 중) 추출.
+// - total: 'backfill batch start' 가 시작 즉시 찍어줌(완료 전부터 칸 렌더). 'backfill progress' 에도 있음.
+// - done: 'backfill progress'(날짜 완료마다) 의 done 최댓값.
+// - active: 'backfill date start' 로그 수 − done = 시작했지만 미완료(동시 처리 중) 칸 수.
+// pino-pretty 는 msg 와 필드가 다른 줄이라 헤더(`[HH:MM:SS]`) 기준 블록으로 필드 누적(JSON 단일 라인도 처리).
+function backfillProgress(
+  lines: RunSession['lines'],
+): { done: number; total: number; active: number } | null {
   let done = 0;
   let total = 0;
-  let inBlock = false;
+  let started = 0;
+  let inStatBlock = false;
   for (const l of lines) {
     const text = l.line;
-    if (/^\[\d{2}:\d{2}:\d{2}/.test(text)) inBlock = /backfill progress/.test(text);
-    else if (text.includes('backfill progress')) inBlock = true;
-    if (!inBlock) continue;
+    if (text.includes('backfill date start')) started += 1;
+    const isHeader = /^\[\d{2}:\d{2}:\d{2}/.test(text) || /"msg"\s*:/.test(text);
+    if (isHeader) inStatBlock = /backfill batch start|backfill progress/.test(text);
+    else if (/backfill batch start|backfill progress/.test(text)) inStatBlock = true;
+    if (!inStatBlock) continue;
     const md = /done["':\s]+(\d+)/.exec(text);
     const mt = /total["':\s]+(\d+)/.exec(text);
     if (md) done = Math.max(done, Number(md[1]));
     if (mt) total = Math.max(total, Number(mt[1]));
   }
-  return total > 1 ? { done, total } : null;
+  if (total <= 1) return null;
+  return { done, total, active: Math.max(0, Math.min(total - done, started - done)) };
 }
 
 const SUMMARIZE_HINTS: I18nKey[] = [
@@ -372,7 +380,7 @@ function Progress({
             <div className="flex flex-wrap gap-1">
               {Array.from({ length: backfill.total }).map((_, i) => {
                 const done = i < backfill.done;
-                const active = !done && i < backfill.done + 4;
+                const active = !done && i < backfill.done + backfill.active;
                 return (
                   <span
                     key={i}
