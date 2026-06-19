@@ -38,8 +38,6 @@ export interface SearchPrItem {
 @Injectable()
 export class GithubApiClient {
   private readonly octokits = new Map<string, CairnOctokit>();
-  // 프로세스 수명 캐시 — 백필이 같은 run 안에서 날짜마다 동일 조회를 반복하는 것을 막는다.
-  // 실패한 Promise 는 캐시에서 제거해 다음 호출이 재시도하게 한다.
   private readonly loginCache = new Map<string, Promise<string>>();
   private readonly prCommitsCache = new Map<string, Promise<RawPrCommit[]>>();
 

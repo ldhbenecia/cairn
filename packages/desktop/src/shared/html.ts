@@ -1,7 +1,6 @@
 import type { MdBlock, MdSpan } from './markdown';
 
-// 일지 블록 → 자체 스타일 HTML 문서. main 이 오프스크린 창에 로드해 printToPDF 로 PDF 화.
-// data: URL 로 싣기 때문에 CSS 는 인라인으로 자기완결.
+// data: URL 로 싣기 때문에 CSS 는 인라인으로 자기완결이어야 한다.
 
 function escapeHtml(s: string): string {
   return s
@@ -53,7 +52,6 @@ function blockToHtml(b: MdBlock): string {
   }
 }
 
-// 인접한 list item 들을 <ul> 로 묶는다.
 function wrapBlocks(blocks: MdBlock[]): string {
   const out: string[] = [];
   let listBuf: string[] = [];

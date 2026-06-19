@@ -1,6 +1,3 @@
-// 사용자 커스텀 프롬프트 — 데스크톱 설정(prompts)이 CAIRN_PROMPT_{DAILY,WEEKLY,MONTHLY} env 로 전달됨.
-// 전체 교체가 아니라 기본 시스템 프롬프트 뒤에 부가 — 도구 워크플로·출력 스키마 계약은 사용자가 못 깨게 보호.
-
 export type PromptMode = 'daily' | 'weekly' | 'monthly';
 
 const MAX_CUSTOM_PROMPT_CHARS = 4000;

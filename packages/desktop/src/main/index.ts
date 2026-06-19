@@ -35,10 +35,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let allowQuit = false;
 
-// 미서명 앱이라 Electron 이 safeStorage(쿠키 암호화 등) 초기화 때 OS 키체인을 건드리면 암호
-// 프롬프트가 매번 뜬다. password-store=basic 은 Linux 전용이라 macOS 엔 안 먹음 → use-mock-keychain
-// 으로 Chromium 이 실제 키체인 대신 in-memory mock 을 쓰게 한다. cairn 은 토큰을 .env 평문 저장이고
-// safeStorage·웹 쿠키를 안 써서 부작용 없음(근본 해결은 코드 서명).
+// 미서명 앱이라 safeStorage 가 OS 키체인을 건드리면 암호 프롬프트가 매번 뜬다 → mock keychain 사용.
+// cairn 은 토큰을 .env 평문 저장이라 부작용 없음. password-store=basic 은 Linux 전용.
 app.commandLine.appendSwitch('use-mock-keychain');
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('password-store', 'basic');
@@ -96,7 +94,7 @@ void app.whenReady().then(() => {
     try {
       app.dock?.setIcon(join(__dirname, '../../resources/icon.png'));
     } catch {
-      // 무시 — dev 편의 기능
+      // dev 편의 기능
     }
   }
 
@@ -159,7 +157,6 @@ void app.whenReady().then(() => {
     app.quit();
   });
 
-  // 자동 발행 — 실행 시 백필 + 매일 로컬 시각 발화 (opt-in, ADR 0015)
   initAutoPublish();
   initTelemetry();
   trackAppLaunched();

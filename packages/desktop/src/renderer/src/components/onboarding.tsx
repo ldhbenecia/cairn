@@ -11,7 +11,7 @@ type Status = 'idle' | 'testing' | 'ok' | 'err';
 
 type TokenKind = 'notion' | 'github';
 
-// 토큰 prefix 로 "다른 서비스 토큰을 잘못 붙여넣음"을 즉시 감지 (알 수 없는 형식은 침묵)
+// 토큰 prefix 로 다른 서비스 토큰을 잘못 붙여넣은 경우를 감지 (알 수 없는 형식은 침묵).
 function tokenMismatchKey(kind: TokenKind, token: string): I18nKey | null {
   const t = token.trim();
   if (!t) return null;
@@ -170,7 +170,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     setClaudeStatus(r.ok ? 'ok' : 'err');
   }
 
-  // Claude 단계 진입 시 자동 연결 확인 — 버튼 누르기 전에 결과가 먼저 와 있게
+  // Claude 단계 진입 시 자동 연결 확인.
   useEffect(() => {
     if (step === 'claude' && claudeStatus === 'idle') void testClaude();
   }, [step]);
@@ -556,7 +556,7 @@ function LabelToken({
 }) {
   const { t } = useSettings();
   const mismatchKey = tokenMismatchKey(kind, token);
-  // 붙여넣기/입력 후 자동 검증 — 테스트 버튼을 누를 필요 없게 (디바운스 800ms)
+  // 입력 후 자동 검증 (디바운스 800ms).
   const onTestRef = useRef(onTest);
   onTestRef.current = onTest;
   const first = useRef(true);

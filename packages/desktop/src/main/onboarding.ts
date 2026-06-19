@@ -73,7 +73,6 @@ export async function searchNotionPages(token: string, query?: string): Promise<
   return pages;
 }
 
-// 페이지 하위의 child database 목록 (기존 cairn DB 를 골라 연결 — 이름 아닌 id 로 추적)
 export async function listNotionDatabases(token: string, pageId: string): Promise<NotionDb[]> {
   const notion = new Client({ auth: token });
   const children = await notion.blocks.children.list({ block_id: pageId, page_size: 100 });
@@ -113,7 +112,7 @@ export async function probeGithub(token: string): Promise<GithubProbe> {
   }
 }
 
-// .env 라인 보존 병합 — 기존 주석/순서 유지, 키 있으면 교체, 없으면 끝에 추가
+// 기존 .env 의 주석/순서를 유지한 채 키만 교체·추가.
 function writeEnvMerged(patch: Record<string, string>): void {
   let lines: string[];
   try {
@@ -145,7 +144,7 @@ type ExistingWs = {
 
 export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; error?: string } {
   try {
-    // 기존 config 먼저 읽기 — 같은 부모 페이지면 자동 생성된 DB id 보존(재실행 시 DB 연결 유지)
+    // 재실행 시 자동 생성된 DB id 보존을 위해 기존 config 를 먼저 읽는다.
     let existing: Record<string, unknown> = {};
     try {
       existing = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as Record<string, unknown>;
@@ -159,7 +158,7 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
       const tokenEnv = envKey('NOTION_TOKEN', w.label);
       env[tokenEnv] = w.token;
       const prev = prevWorkspaces.find((p) => p.worklog?.pageId === w.pageId);
-      // 우선순위: 사용자가 고른 기존 DB > 기존 config 보존 > (없으면 pageId 만 → 첫 발행 시 자동 생성)
+      // 우선순위: 사용자가 고른 기존 DB > 기존 config 보존 > pageId 만(첫 발행 시 자동 생성)
       const worklog: { pageId: string; databaseId?: string; dataSourceId?: string } = {
         pageId: w.pageId,
       };

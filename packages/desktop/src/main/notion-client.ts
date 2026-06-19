@@ -316,7 +316,6 @@ async function fetchBlocks(notion: Client, blockId: string, depth: number): Prom
   return out;
 }
 
-// 인앱 뷰어용 — 페이지 블록을 서식·중첩 포함해 반환 (워크스페이스 라벨로 토큰 선택)
 export async function fetchPageContent(
   pageId: string,
   workspaceLabel: string,

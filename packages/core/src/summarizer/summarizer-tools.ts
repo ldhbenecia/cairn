@@ -17,7 +17,6 @@ export interface SummarizerInput {
 
 export const submitSummarySchema = z.object({
   paragraph: z.string().min(1).max(2000),
-  // 보고/스탠드업에 바로 복붙할 수 있는 한 줄 bullet 모음
   shareBullets: z.array(z.string().min(1).max(200)).max(10).default([]),
   doneBullets: z.array(z.string().min(1).max(300)).max(20),
   // 리뷰 활동은 수집·요약하지 않음 — 과거 페이지 호환을 위해 필드만 유지 (생략 시 빈 배열)
@@ -84,9 +83,7 @@ interface SourceErrorsView {
 
 export interface ActivityPayload {
   date: string;
-  // 활동에 나타난 GitHub 계정 라벨(중복 제거·정렬).
   accounts: string[];
-  // 설정된 GitHub 계정 전체(활동 유무 무관). 2개 이상이면 계정별 구분 + 빈 계정 표시.
   configuredAccounts: string[];
   done: { prs: DonePrItem[]; commits: DoneCommitItem[] };
   inProgress: { prs: OpenPrItem[]; commits: UnpushedCommitItem[] };

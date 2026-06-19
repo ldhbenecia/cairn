@@ -38,8 +38,7 @@ function searchDirs(): string[] {
   return cachedDirs;
 }
 
-// VS Code/Cursor 등 IDE 의 Claude Code 확장이 동봉한 claude 바이너리.
-// 확장만 쓰는 사용자는 PATH 에 claude 가 없으므로 확장 디렉토리를 직접 뒤진다.
+// 확장만 쓰는 사용자는 PATH 에 claude 가 없으므로 IDE 확장 디렉토리를 직접 뒤진다.
 function ideExtensionClaude(): string | null {
   const exe = process.platform === 'win32' ? 'claude.exe' : 'claude';
   const roots = ['.vscode/extensions', '.vscode-insiders/extensions', '.cursor/extensions'].map(
@@ -62,7 +61,6 @@ function ideExtensionClaude(): string | null {
   return found.sort().at(-1) ?? null;
 }
 
-// 로컬에 설치된 claude 실행파일. CAIRN_CLAUDE_PATH override → PATH/brew/npm → IDE 확장. 없으면 null.
 export function resolveClaudePath(): string | null {
   if (cachedClaude !== undefined) return cachedClaude;
   const configured = process.env.CAIRN_CLAUDE_PATH;

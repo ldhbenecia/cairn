@@ -1,5 +1,4 @@
-// 일지 페이지 블록 → Markdown 변환. renderer(drawer 복사·저장)와 main(발행 시 자동 동기화)
-// 양쪽에서 쓰므로 cairn-api 의존 없이 구조적(structural) 타입만 둔다. Obsidian·일반 .md 호환.
+// renderer·main 양쪽에서 쓰므로 cairn-api 의존 없이 구조적 타입만 둔다.
 
 export interface MdSpan {
   text: string;
@@ -82,7 +81,6 @@ function blockToMarkdown(b: MdBlock, depth: number): string[] {
   return lines;
 }
 
-// 제목 + 메타(date·workspace) frontmatter + 본문. Obsidian frontmatter 호환.
 export function blocksToMarkdown(
   blocks: MdBlock[],
   meta: { title: string; date: string | null; workspace: string },

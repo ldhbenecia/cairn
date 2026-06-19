@@ -38,10 +38,6 @@ export class RollupPublisherService {
     private readonly logger: PinoLogger,
   ) {}
 
-  /**
-   * 수집·요약 전에 미리 확인해서 어차피 skip 될 경우 빠르게 단락한다.
-   * range 는 periodRange 로 계산하므로 collect 없이 존재 확인 가능.
-   */
   async precheck(
     period: 'weekly' | 'monthly',
     kstDate: string,

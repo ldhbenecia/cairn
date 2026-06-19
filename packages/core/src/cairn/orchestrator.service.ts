@@ -111,7 +111,6 @@ export class OrchestratorService {
         this.logger.error({ date, error }, 'daily: backfill date failed — continuing batch');
         result = { date, kind: 'failed' };
       }
-      // 데스크톱 발행 화면이 "N/M 일 발행 완료" 를 보여줄 수 있게 진행 로그 (동시성이라 완료 카운트 기준)
       backfillDone += 1;
       this.logger.info(
         { date, done: backfillDone, total: backfillTotal },
@@ -136,7 +135,6 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
-    // 수집·요약 전에 미리 확인 — 이미 발행됨 / final 보호 / 발행 대상 없음이면 바로 단락
     if (!options.dryRun && !options.force && opts.precheck !== false) {
       const pre = await this.notionPublisher.precheckDaily(date, options.force);
       if (pre) {
@@ -296,7 +294,6 @@ export class OrchestratorService {
   }
 
   private async runRollup(period: 'weekly' | 'monthly', options: RunOptions): Promise<void> {
-    // 수집·요약 전에 미리 확인 — 이미 발행됨 / final 보호 / 발행 대상 없음이면 바로 단락
     if (!options.dryRun && !options.force) {
       const pre = await this.rollupPublisher.precheck(period, options.date, options.force);
       if (pre) {

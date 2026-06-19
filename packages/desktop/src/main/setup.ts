@@ -41,7 +41,6 @@ type ConfigShape = {
   notionWorkspaces?: { tokenEnv?: string; worklog?: { pageId?: string } }[];
 };
 
-// 셋업 완료 = worklog.pageId 가 있는 notionWorkspace 가 1개 이상 + 그 토큰이 .env 에 존재
 export function isSetupComplete(): boolean {
   let config: ConfigShape;
   try {

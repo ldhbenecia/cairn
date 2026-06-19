@@ -67,12 +67,6 @@ export class NotionPublisherService {
     }
   }
 
-  /**
-   * 수집·요약 전에 미리 확인해서 어차피 skip 될 경우 빠르게 단락(short-circuit)한다.
-   * - 발행 대상(worklog.pageId / token) 없음 → no-target
-   * - 이미 발행됨(force X) / final 보호 → skipped
-   * - 그 외(신규 발행해야 함 / dataSourceId 미생성 / 확인 실패) → null (정상 진행)
-   */
   async precheckDaily(date: string, force: boolean): Promise<PublishWorklogResult | null> {
     const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
     if (!target) return { kind: 'no-target' };
@@ -293,8 +287,6 @@ export function hourHistogram(isoTimestamps: readonly string[]): number[] {
   return hours;
 }
 
-// 그날 활동(커밋)의 시간대 분포 — 데스크톱 대시보드의 "시간대별 작업" 차트용.
-// "hrs:c0,..,c23" 또는 활동 없으면 null.
 function formatHourHistogram(input: PublishWorklogInput): string | null {
   const stamps: string[] = [];
   for (const repo of input.localGit?.repos ?? []) {
@@ -322,7 +314,6 @@ function buildSummaryBlocks(
   blocks.push(heading2('Summary'));
   blocks.push(paragraph(summary.paragraph));
 
-  // 보고/스탠드업에 바로 복붙하는 한 줄 bullet 모음 (없으면 생략)
   if (summary.shareBullets.length > 0) {
     blocks.push(heading2('Share'));
     blocks.push(...bulletsOrEmpty(summary.shareBullets));
@@ -331,13 +322,11 @@ function buildSummaryBlocks(
   blocks.push(heading2('Done'));
   blocks.push(...buildDoneBlocks(summary.doneBullets, input.github?.accountLabels ?? []));
 
-  // 리뷰 활동은 더 이상 수집하지 않음 — 비어있으면 섹션 자체를 생략
   if (summary.reviewedBullets.length > 0) {
     blocks.push(heading2('Reviewed'));
     blocks.push(...bulletsOrEmpty(summary.reviewedBullets));
   }
 
-  // 비어있으면 '—' placeholder 대신 섹션 자체를 생략 (Share·Reviewed 와 동일)
   if (summary.inProgressBullets.length > 0) {
     blocks.push(heading2('In Progress'));
     blocks.push(...summary.inProgressBullets.map((t) => bulletItem(t)));
@@ -455,9 +444,6 @@ function heading3(text: string): unknown {
   };
 }
 
-// Done bullet 의 [Account] 접두(예: "[Work] …")를 파싱해 계정별 ### 서브헤딩으로 그룹화. (ADR 0024)
-// 설정 계정(accountLabels)이 2개 이상이면 활동 유무와 무관하게 **모든 계정**을 ### 로 내고,
-// 작업 없는 계정은 'None'. 1개 이하면 기존 동작(접두 있으면 그룹, 없으면 flat).
 export function buildDoneBlocks(
   bullets: readonly string[],
   accountLabels: readonly string[] = [],
@@ -480,7 +466,6 @@ export function buildDoneBlocks(
     groups.get(acct)!.push(b.slice(m[0].length));
   }
 
-  // 설정 계정 2개 이상 → 모든 계정 항상 표시(빈 계정 None).
   if (accountLabels.length >= 2) {
     const out: unknown[] = ungrouped.map((b) => bulletItem(b));
     const shown = new Set<string>();

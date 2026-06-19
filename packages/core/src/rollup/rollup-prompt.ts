@@ -1,7 +1,5 @@
 import type { WorklogLang } from '../cairn/run-options.js';
 
-// 롤업 요약 시스템 프롬프트 — weekly 는 운영 다이제스트, monthly 는 성과 중심 기간 정리.
-// 사용자 커스텀 지시는 common/custom-prompt.ts 로 부가된다.
 export function rollupSystemPrompt(lang: WorklogLang, period: 'weekly' | 'monthly'): string {
   const langName = lang === 'en' ? 'English' : 'Korean';
   const periodFocus =

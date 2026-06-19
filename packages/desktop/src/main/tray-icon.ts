@@ -1,4 +1,4 @@
-// 트레이(메뉴바) 아이콘 — logo 글리프 bbox 크롭(여백80) + 명도반전 알파 template PNG. base64 인라인.
+// 트레이 아이콘 — base64 인라인 template PNG (명도반전 알파).
 export const TRAY_ICON_1X =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAABEUlEQVR42uXVP0tCURiAcUOkISJBEIdAlBTb2hxyiLaanOwLhDT0CfwIDg6CIOjiaGtDKM5Sc0sSiroa6GKS9u858AZyuVw85+piL/wW4T6cc+7l6PH8lwkgjQKaiJiGQsighGd84wcLnOvG1Ioq6EjEzo1u9AifDkGlaLL1ikNQHUMDXt3oIT4k8Io75HCJM7RxYHlmZ5VwHKfYt/zul2gMCVyjhjr2TL8Kr2x/iNHSsXQR1I3dymruUbY565GsXnvG8p1WbaJTJE23r8JPEl+OvsiLNJ43zCQ2QF5e6q7b+6CPdzziAT204HMbPsHEcgzH67rFUrLqv3B0nVfkBeabCKu5wpebe9dpsghv73/XL15nWZiW2Km7AAAAAElFTkSuQmCC';
 export const TRAY_ICON_2X =

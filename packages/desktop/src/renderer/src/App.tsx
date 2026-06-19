@@ -134,8 +134,6 @@ export function App() {
     return off;
   }, []);
 
-  // 실행 완료 — 자동 발행 등 렌더러가 직접 트리거 안 한 실행도 여기서 done 처리 + 목록 갱신.
-  // (수동 발행은 trigger 의 IPC resolve 와 함께 이 신호도 받지만 멱등)
   useEffect(() => {
     const off = window.cairn.onRunDone(({ mode, result }) => {
       setSessions((prev) => {
@@ -156,7 +154,6 @@ export function App() {
     return off;
   }, [loadRecent]);
 
-  // 실행 중 작업(자동 발행 백필 포함) 인지 → 발행 버튼 잠금·"발행 중" 표시.
   useEffect(() => {
     void window.cairn.busyState().then(setBusy);
     const off = window.cairn.onBusy(setBusy);
@@ -171,7 +168,6 @@ export function App() {
     return off;
   }, []);
 
-  // Cmd+, — Preferences / Cmd+K — 커맨드 팔레트
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === ',') {
@@ -188,7 +184,6 @@ export function App() {
 
   const trigger = useCallback(
     async (mode: CoreMode, options?: CoreRunOptions) => {
-      // 이미 다른 작업(수동·자동 발행·트레이)이 도는 중이면 친화 안내 후 중단.
       const active = busyRef.current;
       if (active.busy) {
         setSessions((prev) => ({
@@ -210,11 +205,11 @@ export function App() {
         [mode]: { state: 'running', step: 'boot', lines: [], startedAt: Date.now() },
       }));
       try {
-        // 완료 처리(done·result·목록 갱신)는 onRunDone 브로드캐스트가 담당 — 수동·자동 통일.
+        // 완료 처리는 onRunDone 브로드캐스트가 담당.
         await window.cairn.run(mode, options);
       } catch (err) {
         const raw = err instanceof Error ? err.message : String(err);
-        // 메인이 던진 'busy:<mode>' 코드 → i18n 친화 문구. 그 외엔 원문 노출.
+        // 메인이 던진 'busy:<mode>' 코드 → i18n 친화 문구.
         const message = /(^|:\s?(Error:\s?)?)busy:/.test(raw) ? t('publish.busyMsg') : raw;
         setSessions((prev) => {
           const current = prev[mode] ?? {

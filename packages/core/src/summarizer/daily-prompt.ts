@@ -1,7 +1,5 @@
 import type { WorklogLang } from '../cairn/run-options.js';
 
-// 일지 요약 시스템 프롬프트 — 내 개발 작업(authored/assigned PR + 커밋) 중심,
-// 수치 보존·상세 bullet. 사용자 커스텀 지시는 common/custom-prompt.ts 로 부가된다.
 export function dailySystemPrompt(lang: WorklogLang): string {
   const langName = lang === 'en' ? 'English' : 'Korean';
   return [

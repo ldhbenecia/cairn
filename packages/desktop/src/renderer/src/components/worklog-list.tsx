@@ -73,7 +73,7 @@ export function WorklogList({
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(0);
-  const [sel, setSel] = useState(-1); // 키보드 내비게이션 선택 인덱스
+  const [sel, setSel] = useState(-1);
 
   const pages = recent?.pages ?? [];
 
@@ -100,7 +100,6 @@ export function WorklogList({
   const current = Math.min(page, pageCount - 1);
   const visible = filtered.slice(current * PER_PAGE, current * PER_PAGE + PER_PAGE);
 
-  // 화면에 실제로 그려지는 행들(그룹/페이지 반영) — 키보드 내비 대상
   const navItems = useMemo(
     () => (groups ? groups.filter((g) => !collapsed.has(g.key)).flatMap((g) => g.rows) : visible),
     [groups, collapsed, visible],
@@ -110,7 +109,7 @@ export function WorklogList({
   useEffect(() => setSel(-1), [filter, query, desc, groupBy, current]);
 
   useEffect(() => {
-    if (drawerOpen) return; // 드로어 열렸을 땐 리스트 내비 비활성
+    if (drawerOpen) return;
     const onKey = (e: KeyboardEvent): void => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'ArrowDown') {
@@ -313,7 +312,6 @@ export function WorklogList({
   );
 }
 
-// 칩 색은 테마별로 다르게 — styles.css 의 .chip-* (다크 기본 + 라이트 대비 보정)
 const CATEGORY_STYLE: Record<RecentCategory, string> = {
   daily: 'chip-daily',
   weekly: 'chip-weekly',
@@ -351,7 +349,7 @@ function groupRows(rows: RecentPage[], groupBy: GroupBy, t: T): Group[] | null {
   return keys.map((k) => ({ key: k, label: labelOf(k), rows: map.get(k) as RecentPage[] }));
 }
 
-// "gh:6 / git:43 / notion:0"(과거 포맷) → { gh, git }. notion 은 무시.
+// "gh:6 / git:43 / notion:0"(과거 포맷) → { gh, git }.
 function parseSourceCounts(s: string): { gh: number; git: number } | null {
   const gh = Number(/gh:(\d+)/.exec(s)?.[1]);
   const git = Number(/git:(\d+)/.exec(s)?.[1]);

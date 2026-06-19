@@ -19,7 +19,6 @@ import 'highlight.js/styles/github-dark.css';
 
 type Props = { page: RecentPage; onClose: () => void };
 
-// 'Share' 헤딩 아래 bullet 들을 스탠드업 복붙용 plain text 로 (없으면 null)
 function extractShareText(blocks: SimpleBlock[]): string | null {
   const lines = sectionBullets(blocks, 'share');
   return lines.length > 0 ? lines.map((l) => `- ${l}`).join('\n') : null;
@@ -76,7 +75,6 @@ export function WorklogDrawer({ page, onClose }: Props) {
     void window.cairn.exportPdf(`${page.date ?? 'cairn-worklog'}.pdf`, html);
   }
 
-  // 헤더 액션 오버플로 메뉴 (제목 가림 방지 + 라벨로 기능 명시)
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuClosing, setMenuClosing] = useState(false);
   const closeMenu = (): void => {
@@ -198,7 +196,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
           shown && !closing ? 'opacity-100' : 'opacity-0',
         ].join(' ')}
       />
-      {/* 상단 strip — traffic light 높이만큼 창 드래그 가능 (백드롭보다 위, 패널보다 아래) */}
+      {/* traffic light 높이만큼 창 드래그 가능한 strip */}
       <div className="absolute inset-x-0 top-0 h-10 [-webkit-app-region:drag]" />
 
       <div
@@ -208,7 +206,6 @@ export function WorklogDrawer({ page, onClose }: Props) {
           closing ? 'drawer-out' : 'drawer-in',
         ].join(' ')}
       >
-        {/* 좌측 엣지 리사이즈 핸들 */}
         <div
           onMouseDown={startResize}
           className="absolute top-0 left-0 z-10 h-full w-1 cursor-col-resize hover:bg-accent/40 [-webkit-app-region:no-drag]"
@@ -291,7 +288,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
   );
 }
 
-// 평문에 박힌 URL 을 클릭 가능한 링크로 (발행 일지는 plain text 라 링크 annotation 이 없음)
+// 발행 일지는 plain text 라 링크 annotation 이 없어, 평문 URL 을 직접 링크로 만든다.
 const URL_SPLIT = /(https?:\/\/[^\s)]+)/g;
 function linkify(text: string): ReactNode[] {
   return text.split(URL_SPLIT).map((part, i) =>

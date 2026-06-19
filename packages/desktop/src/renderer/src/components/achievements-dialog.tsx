@@ -168,7 +168,6 @@ export function AchievementsDialog({
             {busy && progress ? `${progress.done} / ${progress.total}` : t('achv.compile')}
           </button>
 
-          {/* 모으기 전엔 0fr 로 접혀 작은 모달 → 결과 나오면 1fr 로 쭈욱 펼쳐짐 */}
           <div
             className="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
             style={{ gridTemplateRows: markdown !== null ? '1fr' : '0fr' }}
