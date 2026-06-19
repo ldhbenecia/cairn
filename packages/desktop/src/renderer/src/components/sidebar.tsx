@@ -58,7 +58,14 @@ export function Sidebar({
       </div>
 
       <div className="flex flex-1 flex-col gap-0.5 px-4">
-        <div className="px-2 pb-1.5 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
+        <FilterItem
+          icon={ChartColumn}
+          label={t('nav.stats')}
+          active={!preferencesActive && view === 'stats'}
+          onClick={onOpenStats}
+        />
+
+        <div className="px-2 pb-1.5 pt-5 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
           {t('brand.worklog')}
         </div>
         {FILTERS.map((f) => (
@@ -71,16 +78,6 @@ export function Sidebar({
             onClick={() => onFilterChange(f.key)}
           />
         ))}
-
-        <div className="px-2 pb-1.5 pt-5 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
-          {t('nav.insights')}
-        </div>
-        <FilterItem
-          icon={ChartColumn}
-          label={t('nav.stats')}
-          active={!preferencesActive && view === 'stats'}
-          onClick={onOpenStats}
-        />
       </div>
 
       <div className="px-4 pb-4">
