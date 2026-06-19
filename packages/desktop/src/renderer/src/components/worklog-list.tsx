@@ -349,14 +349,6 @@ function groupRows(rows: RecentPage[], groupBy: GroupBy, t: T): Group[] | null {
   return keys.map((k) => ({ key: k, label: labelOf(k), rows: map.get(k) as RecentPage[] }));
 }
 
-// "gh:6 / git:43 / notion:0"(과거 포맷) → { gh, git }.
-function parseSourceCounts(s: string): { gh: number; git: number } | null {
-  const gh = Number(/gh:(\d+)/.exec(s)?.[1]);
-  const git = Number(/git:(\d+)/.exec(s)?.[1]);
-  if (!Number.isFinite(gh) && !Number.isFinite(git)) return null;
-  return { gh: Number.isFinite(gh) ? gh : 0, git: Number.isFinite(git) ? git : 0 };
-}
-
 function PageRow({
   page,
   t,
@@ -368,7 +360,10 @@ function PageRow({
   onOpen: (p: RecentPage) => void;
   selected: boolean;
 }) {
-  const counts = page.sourceCounts ? parseSourceCounts(page.sourceCounts) : null;
+  const counts =
+    page.pr !== null || page.commit !== null
+      ? { gh: page.pr ?? 0, git: page.commit ?? 0 }
+      : null;
   const ref = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: 'nearest' });

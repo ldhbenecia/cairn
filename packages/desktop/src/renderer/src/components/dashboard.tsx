@@ -17,25 +17,8 @@ import { useSettings } from '../settings-context';
 
 type T = (key: I18nKey) => string;
 
-// "gh:3 / git:5" → { pr: 3, commit: 5 }.
-function parseCounts(sourceCounts: string | null): { pr: number; commit: number } {
-  if (!sourceCounts) return { pr: 0, commit: 0 };
-  const pr = /gh\s*:\s*(\d+)/i.exec(sourceCounts);
-  const commit = /git\s*:\s*(\d+)/i.exec(sourceCounts);
-  return { pr: pr ? Number(pr[1]) : 0, commit: commit ? Number(commit[1]) : 0 };
-}
-
 type DayActivity = { date: string; pr: number; commit: number; total: number };
 type MonthBucket = { month: string; pr: number; commit: number; activeDays: number };
-
-// 24칸 시간 히스토그램 (머신 로컬 시간 기준). 신규는 'Activity hours' 속성(24칸 csv),
-// 레거시 페이지는 Source counts 의 hrs: 접두에서 폴백.
-function parseHours(activityHours: string | null, sourceCounts: string | null): number[] | null {
-  const raw = activityHours ?? (sourceCounts ? (/hrs:([\d,]+)/.exec(sourceCounts)?.[1] ?? null) : null);
-  if (!raw) return null;
-  const arr = raw.split(',').map(Number);
-  return arr.length === 24 && arr.every(Number.isFinite) ? arr : null;
-}
 
 type Agg = {
   byDate: Map<string, DayActivity>;
@@ -61,9 +44,10 @@ function aggregate(pages: RecentPage[]): Agg {
 
   for (const p of pages) {
     if (p.category !== 'daily' || !p.date) continue;
-    const { pr, commit } = parseCounts(p.sourceCounts);
-    const hrs = parseHours(p.activityHours, p.sourceCounts);
-    if (hrs) for (let i = 0; i < 24; i++) hours[i]! += hrs[i]!;
+    const pr = p.pr ?? 0;
+    const commit = p.commit ?? 0;
+    const hrs = p.hours;
+    if (hrs && hrs.length === 24) for (let i = 0; i < 24; i++) hours[i]! += hrs[i]!;
     const total = pr + commit;
     const prev = byDate.get(p.date);
     byDate.set(p.date, {

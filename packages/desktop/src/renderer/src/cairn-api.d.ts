@@ -30,8 +30,9 @@ export type RecentPage = {
   date: string | null;
   status: string | null;
   category: RecentCategory;
-  sourceCounts: string | null;
-  activityHours: string | null;
+  pr: number | null;
+  commit: number | null;
+  hours: number[] | null;
   workspaceLabel: string;
 };
 
