@@ -83,6 +83,8 @@ export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
 export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
 
+export type SupabaseConfig = { url: string; key: string };
+
 export type NotionProbe = { ok: boolean; persons: { id: string; name: string }[]; error?: string };
 export type NotionPage = { id: string; title: string };
 export type NotionDb = { databaseId: string; dataSourceId: string; title: string };
@@ -131,6 +133,8 @@ declare global {
       isPackaged: boolean;
       initialSettings: Settings;
       initialSetupComplete: boolean;
+      supabase: SupabaseConfig | null;
+      onDeepLink: (cb: (url: string) => void) => () => void;
       setSettings: (patch: Partial<Settings>) => Promise<Settings>;
       onboarding: {
         probeNotion: (token: string) => Promise<NotionProbe>;
