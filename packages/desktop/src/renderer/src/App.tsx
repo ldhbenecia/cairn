@@ -198,7 +198,7 @@ export function App() {
     void window.cairn.runSnapshot().then((s) => {
       if (s.busy && s.mode) {
         setRunningMode(s.mode);
-        // 마운트 중 트리거/브로드캐스트가 이미 세션을 만들었으면 덮지 않는다(스냅샷이 라이브를 지우는 레이스 방지).
+        // 마운트 중 트리거/브로드캐스트가 이미 세션을 만들었으면 덮지 않는다(스냅샷이 라이브를 지우는 레이스 방지)
         setSessions((prev) =>
           prev[s.mode!]
             ? prev

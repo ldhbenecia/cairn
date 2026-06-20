@@ -20,7 +20,7 @@ export class WorklogStatsService {
       mkdirSync(STATS_DIR, { recursive: true });
       writeFileSync(STATS_PATH, JSON.stringify(all), 'utf8');
     } catch {
-      // 통계 기록 실패가 발행을 막지 않는다(best-effort).
+      // 통계 기록 실패가 발행을 막지 않음(best-effort)
     }
   }
 

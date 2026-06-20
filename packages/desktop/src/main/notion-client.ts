@@ -70,7 +70,7 @@ const MAX_RECENT_PAGES = 800;
 
 type NotionPageItem = { id: string; url?: string; properties: Record<string, unknown> };
 
-// 단일 쿼리는 100건 상한이라 cursor 로 끝까지(상한 내) 페이징. 일간이 100 넘으면 오래된 게 잘리던 문제 해결.
+// 단일 쿼리는 100건 상한이라 cursor 로 끝까지(상한 내) 페이징. 일간이 100 넘으면 오래된 게 잘리던 문제 해결
 async function queryAllResults(
   notion: Client,
   params: { data_source_id: string; sorts: Array<{ property: string; direction: 'descending' }> },
@@ -117,7 +117,7 @@ function readDate(props: Record<string, unknown>, key: string): string | null {
   return p?.date?.start ?? null;
 }
 
-// 통계 진실 소스는 노션이 아닌 로컬 파일(core 가 발행 시 기록). key 는 `${category}:${date}`.
+// 통계 진실 소스는 노션이 아닌 로컬 파일(core 가 발행 시 기록). key 는 `${category}:${date}`
 type WorklogStat = { pr: number; commit: number; hours?: number[] };
 const STATS_PATH = join(homedir(), '.cairn', 'worklog-stats.json');
 function readWorklogStats(): Record<string, WorklogStat> {

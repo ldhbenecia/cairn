@@ -98,7 +98,7 @@ export function PromptsTab() {
   );
 }
 
-// 저장은 blur 시점 (키 입력마다 settings.json 을 쓰지 않게).
+// 저장은 blur 시점 (키 입력마다 settings.json 을 쓰지 않게)
 function PromptField({
   label,
   placeholder,

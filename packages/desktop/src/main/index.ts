@@ -40,8 +40,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let allowQuit = false;
 
-// 미서명 앱이라 safeStorage 가 OS 키체인을 건드리면 암호 프롬프트가 매번 뜬다 → mock keychain 사용.
-// cairn 은 토큰을 .env 평문 저장이라 부작용 없음. password-store=basic 은 Linux 전용.
+// 미서명 앱이라 safeStorage 가 OS 키체인을 건드리면 암호 프롬프트가 매번 뜬다 → mock keychain 사용
+// cairn 은 토큰을 .env 평문 저장이라 부작용 없음. password-store=basic 은 Linux 전용
 app.commandLine.appendSwitch('use-mock-keychain');
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('password-store', 'basic');

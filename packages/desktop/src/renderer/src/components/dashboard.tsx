@@ -541,7 +541,7 @@ function Heatmap({
     'var(--color-accent)',
   ];
 
-  // 툴팁 좌표는 absolute(컨테이너 기준) — transform 가진 상위(.dash-rise) 때문에 fixed 면 위치가 틀어진다.
+  // 툴팁 좌표는 absolute(컨테이너 기준) — transform 가진 상위(.dash-rise) 때문에 fixed 면 위치가 틀어진다
   const wrapRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<{ label: string; x: number; y: number } | null>(null);
 
@@ -705,7 +705,7 @@ function MonthlyChart({ months, t }: { months: MonthBucket[]; t: T }) {
   );
 }
 
-// 커밋 시각 기준, 머신 로컬 시간대.
+// 커밋 시각 기준, 머신 로컬 시간대
 const TOD_PERIODS: { key: I18nKey; from: number; to: number }[] = [
   { key: 'stats.tod.dawn', from: 0, to: 5 },
   { key: 'stats.tod.morning', from: 6, to: 11 },

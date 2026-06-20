@@ -9,8 +9,8 @@ export interface AccountTotals {
 export interface DayTotals {
   prCount: number;
   commitCount: number;
-  // GitHub 계정 라벨(Work/Personal 등)별 PR 수 + 그 계정 PR 안 커밋 distinct.
-  // 로컬 커밋은 계정이 없어 전체(commitCount)에만 반영되고 byAccount 엔 들어가지 않는다.
+  // GitHub 계정 라벨(Work/Personal 등)별 PR 수 + 그 계정 PR 안 커밋 distinct
+  // 로컬 커밋은 계정이 없어 전체(commitCount)에만 반영, byAccount 미포함
   byAccount: Record<string, AccountTotals>;
 }
 

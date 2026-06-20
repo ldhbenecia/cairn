@@ -4,7 +4,7 @@ import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { cloudToken, WEB_BASE } from './cloud-auth';
 
-// core WorklogStatsService 와 같은 파일·포맷(`${category}:${date}` → 집계 수치). ADR 0027/0029.
+// core WorklogStatsService 와 같은 파일·포맷(`${category}:${date}` → 집계 수치). ADR 0027/0029
 const STATS_PATH = join(homedir(), '.cairn', 'worklog-stats.json');
 const CATEGORIES = new Set(['daily', 'weekly', 'monthly']);
 const BATCH = 1000;
@@ -33,8 +33,8 @@ function writeLocal(f: StatsFile): void {
   writeFileSync(STATS_PATH, JSON.stringify(f), 'utf8');
 }
 
-// updatedAt 없으면 worklog 날짜를 보수적 기준으로(같은 날 충돌 first-wins).
-// 날짜는 로컬 경계 기준이라 로컬 자정으로 파싱(UTC 단정 금지 — 타임존 규칙).
+// updatedAt 없으면 worklog 날짜를 보수적 기준으로(같은 날 충돌 first-wins)
+// 날짜는 로컬 경계 기준이라 로컬 자정으로 파싱(UTC 단정 금지 — 타임존 규칙)
 function tsOf(s: Stat, date: string): number {
   if (s.updatedAt) return Date.parse(s.updatedAt);
   const [y, m, d] = date.split('-').map(Number);
@@ -64,7 +64,7 @@ export async function syncStats(): Promise<void> {
 
     let changed = false;
     for (const r of stats) {
-      // 우리 API 가 검증해 저장한 데이터지만, 로컬 파일 오염 방지로 한 번 더 가드.
+      // 우리 API 가 검증해 저장한 데이터지만, 로컬 파일 오염 방지로 한 번 더 가드
       if (!r || !CATEGORIES.has(r.category) || !DATE_RE.test(r.date)) continue;
       const key = `${r.category}:${r.date}`;
       const cur = local[key];

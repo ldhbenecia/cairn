@@ -50,7 +50,7 @@ export function startCloudSignIn(): void {
   const current = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     const ott = url.searchParams.get('token');
-    // favicon 등 토큰 없는 부가 요청은 무시 — 세션을 닫지 않는다.
+    // favicon 등 토큰 없는 부가 요청은 무시 — 세션 닫지 않음
     if (!ott) {
       res.writeHead(204);
       res.end();

@@ -82,7 +82,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
   const [showProgress, setShowProgress] = useState(false);
   const isToday = date === todayIso();
 
-  // runningMode 만으론 시작 시 자동 발행이 도는 걸 모르므로 전역 busy 를 따로 본다.
+  // runningMode 만으론 시작 시 자동 발행이 도는 걸 모르므로 전역 busy 를 따로 확인
   const [externalBusy, setExternalBusy] = useState(false);
   useEffect(() => {
     void window.cairn.busyState().then((s) => setExternalBusy(s.busy));
@@ -253,7 +253,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
   );
 }
 
-// raw 로그는 UI 에 노출하지 않고, 수집 중인 소스 판단에만 내부 사용.
+// raw 로그는 UI 에 노출하지 않고, 수집 중인 소스 판단에만 내부 사용
 function collectHintKey(lines: RunSession['lines']): I18nKey {
   for (let i = lines.length - 1; i >= 0; i--) {
     const t = lines[i]?.line.toLowerCase();
