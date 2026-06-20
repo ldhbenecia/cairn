@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type { WorklogLang } from '../cairn/run-options.js';
-import { CLAUDE_ICON_URL } from '../common/branding.js';
 import { isOperator } from '../common/operator.js';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type { GithubActivity } from '../contracts/github-activity.types.js';
@@ -11,6 +10,16 @@ import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
 import { NotionApiClient } from './notion-api.client.js';
+import {
+  bulletItem,
+  bulletsOrEmpty,
+  callout,
+  claudeCallout,
+  codeBlock,
+  heading2,
+  heading3,
+  paragraph,
+} from './notion-blocks.js';
 
 const WORKLOG_DB_TITLE = 'Daily Worklog (cairn)';
 const RAW_DUMP_CHUNK_SIZE = 1900;
@@ -388,48 +397,6 @@ function chunkRawDump(rawDump: string): string[] {
   return chunks.length > 0 ? chunks : ['{}'];
 }
 
-function claudeCallout(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'callout',
-    callout: {
-      icon: { type: 'external', external: { url: CLAUDE_ICON_URL } },
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function callout(emoji: string, text: string): unknown {
-  return {
-    object: 'block',
-    type: 'callout',
-    callout: {
-      icon: { type: 'emoji', emoji },
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function heading2(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'heading_2',
-    heading_2: {
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function heading3(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'heading_3',
-    heading_3: {
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
 export function buildDoneBlocks(
   bullets: readonly string[],
   accountLabels: readonly string[] = [],
@@ -479,40 +446,4 @@ export function buildDoneBlocks(
     for (const text of groups.get(acct)!) out.push(bulletItem(text));
   }
   return out;
-}
-
-function paragraph(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'paragraph',
-    paragraph: {
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function codeBlock(language: string, content: string): unknown {
-  return {
-    object: 'block',
-    type: 'code',
-    code: {
-      language,
-      rich_text: [{ type: 'text', text: { content } }],
-    },
-  };
-}
-
-function bulletItem(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'bulleted_list_item',
-    bulleted_list_item: {
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function bulletsOrEmpty(items: readonly string[]): unknown[] {
-  if (items.length === 0) return [paragraph('—')];
-  return items.map((t) => bulletItem(t));
 }
