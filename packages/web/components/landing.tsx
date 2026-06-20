@@ -76,7 +76,7 @@ export async function Landing({ lang }: { lang: Lang }) {
             />
             <HeroVideo
               src="/intro.mp4"
-              poster={`/statistics_${lang === 'ko' ? 'ko' : 'us'}.png`}
+              poster={`/statistic_${lang === 'ko' ? 'ko' : 'us'}.png`}
               alt={lang === 'ko' ? 'cairn 데모 영상' : 'cairn demo'}
               expandLabel={c.hero.expand}
             />

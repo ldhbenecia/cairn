@@ -94,7 +94,7 @@ Project context:
 - The core CLI must not send source code bodies, diffs, patches, hunks, absolute
   paths, tokens, emails, or other sensitive identifiers to external APIs.
 
-Before starting non-trivial work:
+Before starting non-trivial work (these `docs/` dirs are local-only / gitignored — present on the maintainer's machine, not the public repo):
 
 1. Check `docs/progress/README.md` for current stage/status.
 2. Skim the most recent relevant entry in `docs/progress/`.
