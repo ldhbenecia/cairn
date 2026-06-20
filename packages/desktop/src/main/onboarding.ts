@@ -1,9 +1,12 @@
 import { Client } from '@notionhq/client';
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { promisify } from 'node:util';
 import { findInPath, searchPathEnv } from './claude-path';
 import { CONFIG_PATH, ENV_PATH } from './setup';
+
+const execFileAsync = promisify(execFile);
 
 export type NotionProbe = {
   ok: boolean;
@@ -104,25 +107,32 @@ export async function listNotionDatabases(token: string, pageId: string): Promis
 export type GhCliToken = { ok: boolean; token?: string; login?: string; error?: string };
 
 // 설치된 gh CLI 의 인증을 재사용 — 수동 PAT 생성 없이 토큰 가져오기(Claude Code 재사용과 같은 패턴).
-export function githubTokenFromGhCli(): GhCliToken {
+// async execFile 로 메인 스레드 블로킹 회피(gh 호출이 합산 최대 13초 걸릴 수 있음).
+export async function githubTokenFromGhCli(): Promise<GhCliToken> {
   const exe = process.platform === 'win32' ? 'gh.exe' : 'gh';
   const gh = findInPath(exe);
   if (!gh) return { ok: false, error: 'gh-not-found' };
   const env = { ...process.env, PATH: searchPathEnv() };
   let token: string;
   try {
-    token = execFileSync(gh, ['auth', 'token'], { encoding: 'utf8', timeout: 5000, env }).trim();
+    const { stdout } = await execFileAsync(gh, ['auth', 'token'], {
+      encoding: 'utf8',
+      timeout: 5000,
+      env,
+    });
+    token = stdout.trim();
   } catch {
     return { ok: false, error: 'gh-not-authed' };
   }
   if (!token) return { ok: false, error: 'gh-not-authed' };
   let login: string | undefined;
   try {
-    login = execFileSync(gh, ['api', 'user', '--jq', '.login'], {
+    const { stdout } = await execFileAsync(gh, ['api', 'user', '--jq', '.login'], {
       encoding: 'utf8',
       timeout: 8000,
       env,
-    }).trim();
+    });
+    login = stdout.trim();
   } catch {
     // 토큰은 받았으니 login 못 가져와도 진행(probe 단계에서 검증).
   }

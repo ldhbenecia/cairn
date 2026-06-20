@@ -135,21 +135,25 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   async function importFromGh() {
     setGhImporting(true);
     setGhMsg(null);
-    const r = await window.cairn.onboarding.githubFromGhCli();
-    if (!r.ok || !r.token) {
-      setGhMsg(r.error === 'gh-not-found' ? 'onb.github.ghNotFound' : 'onb.github.ghNotAuthed');
+    try {
+      const r = await window.cairn.onboarding.githubFromGhCli();
+      if (!r.ok || !r.token) {
+        setGhMsg(r.error === 'gh-not-found' ? 'onb.github.ghNotFound' : 'onb.github.ghNotAuthed');
+        return;
+      }
+      const empty = github.findIndex((e) => !e.token.trim());
+      const target = empty >= 0 ? empty : 0;
+      patchGithub(target, { token: r.token, status: 'testing', error: undefined });
+      const probe = await window.cairn.onboarding.probeGithub(r.token);
+      patchGithub(
+        target,
+        probe.ok ? { status: 'ok', login: probe.login } : { status: 'err', error: probe.error },
+      );
+    } catch {
+      setGhMsg('onb.github.ghNotAuthed');
+    } finally {
       setGhImporting(false);
-      return;
     }
-    const empty = github.findIndex((e) => !e.token.trim());
-    const target = empty >= 0 ? empty : 0;
-    patchGithub(target, { token: r.token, status: 'testing', error: undefined });
-    const probe = await window.cairn.onboarding.probeGithub(r.token);
-    patchGithub(
-      target,
-      probe.ok ? { status: 'ok', login: probe.login } : { status: 'err', error: probe.error },
-    );
-    setGhImporting(false);
   }
 
   const notionValid = notion.some((e) => e.status === 'ok' && e.pageId && e.personId);
