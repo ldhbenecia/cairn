@@ -133,7 +133,7 @@ describe('buildActivityPayload', () => {
   });
 
   it('final payload assertion is a backstop — catches a forbidden subject', () => {
-    // collector 가 drop 못 한 경우라도 최종 payload 검사가 잡아 발행을 막는다 (fail-closed).
+    // collector 가 drop 못 한 경우라도 최종 payload 검사가 잡아 발행 차단 (fail-closed)
     const tainted: LocalGitActivity = {
       ...localGitActivity,
       repos: [

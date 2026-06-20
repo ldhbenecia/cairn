@@ -106,8 +106,8 @@ export async function listNotionDatabases(token: string, pageId: string): Promis
 
 export type GhCliToken = { ok: boolean; token?: string; login?: string; error?: string };
 
-// 설치된 gh CLI 의 인증을 재사용 — 수동 PAT 생성 없이 토큰 가져오기(Claude Code 재사용과 같은 패턴).
-// async execFile 로 메인 스레드 블로킹 회피(gh 호출이 합산 최대 13초 걸릴 수 있음).
+// 설치된 gh CLI 의 인증을 재사용 — 수동 PAT 생성 없이 토큰 가져오기(Claude Code 재사용과 같은 패턴)
+// async execFile 로 메인 스레드 블로킹 회피(gh 호출이 합산 최대 13초 걸릴 수 있음)
 export async function githubTokenFromGhCli(): Promise<GhCliToken> {
   const exe = process.platform === 'win32' ? 'gh.exe' : 'gh';
   const gh = findInPath(exe);
@@ -134,7 +134,7 @@ export async function githubTokenFromGhCli(): Promise<GhCliToken> {
     });
     login = stdout.trim();
   } catch {
-    // 토큰은 받았으니 login 못 가져와도 진행(probe 단계에서 검증).
+    // 토큰은 받았으니 login 못 가져와도 진행(probe 단계에서 검증)
   }
   return { ok: true, token, login: login || undefined };
 }
@@ -152,7 +152,7 @@ export async function probeGithub(token: string): Promise<GithubProbe> {
   }
 }
 
-// 기존 .env 의 주석/순서를 유지한 채 키만 교체·추가.
+// 기존 .env 의 주석/순서를 유지한 채 키만 교체·추가
 function writeEnvMerged(patch: Record<string, string>): void {
   let lines: string[];
   try {
@@ -184,7 +184,7 @@ type ExistingWs = {
 
 export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; error?: string } {
   try {
-    // 재실행 시 자동 생성된 DB id 보존을 위해 기존 config 를 먼저 읽는다.
+    // 재실행 시 자동 생성된 DB id 보존을 위해 기존 config 를 먼저 읽음
     let existing: Record<string, unknown> = {};
     try {
       existing = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as Record<string, unknown>;

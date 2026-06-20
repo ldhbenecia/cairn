@@ -38,7 +38,7 @@ function searchDirs(): string[] {
   return cachedDirs;
 }
 
-// 확장만 쓰는 사용자는 PATH 에 claude 가 없으므로 IDE 확장 디렉토리를 직접 뒤진다.
+// 확장만 쓰는 사용자는 PATH 에 claude 가 없으므로 IDE 확장 디렉토리를 직접 뒤진다
 function ideExtensionClaude(): string | null {
   const exe = process.platform === 'win32' ? 'claude.exe' : 'claude';
   const roots = ['.vscode/extensions', '.vscode-insiders/extensions', '.cursor/extensions'].map(
@@ -87,7 +87,7 @@ export function claudeEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
-// GUI 앱은 PATH 가 제한적이라 로그인 셸 PATH + 공통 경로에서 바이너리를 찾는다(gh 등 재사용용).
+// GUI 앱은 PATH 가 제한적이라 로그인 셸 PATH + 공통 경로에서 바이너리를 찾는다(gh 등 재사용용)
 export function findInPath(exe: string): string | null {
   for (const d of searchDirs()) {
     const p = join(d, exe);
@@ -96,7 +96,7 @@ export function findInPath(exe: string): string | null {
   return null;
 }
 
-// gh 등 실행 시 GUI 의 빈약한 PATH 대신 확장된 PATH 를 쓰도록.
+// gh 등 실행 시 GUI 의 빈약한 PATH 대신 확장된 PATH 를 쓰도록
 export function searchPathEnv(): string {
   return searchDirs().join(delimiter);
 }

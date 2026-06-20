@@ -61,7 +61,7 @@ export class GithubApiClient {
     const octokit = this.getOctokit(token);
     const out: SearchPrItem[] = [];
     // 페이징 필수: 백필은 넓은 updated 범위라 첫 100건만 받으면 오래된 PR(2월 작성→3월 머지 등
-    // updated_at 이 밀린 케이스)이 잘려 누락된다. updated desc 로 결정적, GitHub 상한(1000)까지.
+    // updated_at 밀린 케이스)이 잘려 누락 — updated desc 로 결정적, GitHub 상한(1000)까지
     for (let page = 1; page <= 10; page += 1) {
       const { data } = await octokit.rest.search.issuesAndPullRequests({
         q: `is:pr ${query}`,

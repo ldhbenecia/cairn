@@ -15,7 +15,7 @@ function focusModeInApp(mode: CoreMode): void {
 }
 
 function notify(title: string, body: string, mode: CoreMode): void {
-  // 앱이 포커스 상태면 macOS 가 배너를 억제하므로, dock 바운스로 완료를 확실히 알린다.
+  // 앱이 포커스 상태면 macOS 가 배너를 억제하므로, dock 바운스로 완료를 확실히 알린다
   app.dock?.bounce('informational');
   if (!Notification.isSupported()) return;
   const noti = new Notification({ title, body });
@@ -56,7 +56,7 @@ export function notifyAutoConfirm(mode: CoreMode): void {
   notify(mt('notify.autoConfirmTitle'), mt('notify.autoConfirm', { mode: modeLabel(mode) }), mode);
 }
 
-// 명시적 요청이므로 설정 토글과 무관하게 항상 표시 시도 (권한 프롬프트 유도 포함).
+// 명시적 요청이므로 설정 토글과 무관하게 항상 표시 시도 (권한 프롬프트 유도 포함)
 export function sendTestNotification(): { supported: boolean } {
   if (!Notification.isSupported()) return { supported: false };
   new Notification({ title: mt('notify.testTitle'), body: mt('notify.testBody') }).show();

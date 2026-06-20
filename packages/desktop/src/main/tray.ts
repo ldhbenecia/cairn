@@ -11,7 +11,7 @@ function buildTrayIcon(): Electron.NativeImage {
 }
 
 function triggerCore(mode: CoreMode): void {
-  // busy 면 runCore 가 'busy:<mode>' 로 reject — 트레이 트리거에서 uncaught rejection 안 나게 catch.
+  // busy 면 runCore 가 'busy:<mode>' 로 reject — 트레이 트리거에서 uncaught rejection 안 나게 catch
   void runCore(mode, {})
     .then((result) => {
       if (!result.ok) {

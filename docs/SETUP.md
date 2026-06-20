@@ -4,9 +4,11 @@ Step-by-step instructions to install and run cairn on a new macOS machine. cairn
 
 > **한국어 가이드**: [SETUP.ko.md](SETUP.ko.md)
 
+> **Most people should use the desktop app instead.** The [cairn desktop app](../README.md) has a guided first-run wizard that connects Notion + GitHub (reusing your `gh` CLI login when present), writes `.env` + `worklog.config.json` for you, and owns auto-publish scheduling. This guide is the **manual / headless / CLI-only** path — for a server with no GUI, or for automating with `launchd`. Cross-device stats sync is a desktop-app feature (sign in with Google in the app) and is not part of this CLI flow.
+
 ## 1. Prerequisites
 
-- **macOS** (launchd is required for the daily/weekly/monthly schedule)
+- **macOS** — required only for the headless `launchd` schedule (§9); the desktop app handles scheduling itself
 - **Node 24 LTS** — see [.nvmrc](../.nvmrc). Install via `nvm`, `volta`, or `homebrew`.
 - **pnpm 10+** — `npm install -g pnpm`
 - **Claude Pro or Max subscription** — cairn calls the Claude Agent SDK and inherits your Claude Code OAuth credentials. No separate Anthropic API key is required when you are signed in to Claude Code locally.
@@ -93,6 +95,12 @@ cp .env.example .env
 ```
 
 ```env
+MACHINE_NAME=personal-mac
+NODE_ENV=development
+LOG_LEVEL=info
+# MACHINE_NAME labels this machine; NODE_ENV=production enables native notifications
+# (the launchd plists set it); LOG_LEVEL is the pino level. All have sane defaults.
+
 ANTHROPIC_OAUTH_TOKEN=
 # Optional. Leave empty when running under Claude Code (inherits OAuth).
 
@@ -101,7 +109,11 @@ GITHUB_TOKEN_WORK=github_pat_...
 # Add GITHUB_TOKEN_<LABEL> for each githubAccounts[].tokenEnv you reference.
 
 NOTION_TOKEN_PERSONAL=ntn_...
+NOTION_TOKEN_WORK=ntn_...
 # Add NOTION_TOKEN_<LABEL> for each notionWorkspaces[].tokenEnv you reference.
+
+CAIRN_CONFIG_PATH=
+# Optional. Overrides the worklog.config.json path (defaults to ./worklog.config.json).
 ```
 
 `.env` is gitignored. Keep it that way.
@@ -178,6 +190,8 @@ node packages/core/dist/main.js --mode=monthly --date=$(date +%F)
 The rollup DB is auto-created on the first such run. Weekly title format: `2026-W19 주간 정리`. Monthly: `2026-05 월간 정리`.
 
 ## 9. Schedule with launchd
+
+> **Desktop-app users can skip this section.** Auto-publish is owned by the desktop app at a time you choose in your local timezone (ADR 0015); `launchd` is the deprecated headless / CLI-only scheduler, kept for GUI-less setups.
 
 Register all three jobs (daily, weekly, monthly) in one shot:
 

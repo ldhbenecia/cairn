@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import type { Settings, Theme } from './cairn-api';
 import { translate, type I18nKey } from './i18n';
 
-// per-element 트랜지션의 잔상을 피하려고 View Transitions API 로 화면 전체를 한 번에 크로스페이드.
+// per-element 트랜지션의 잔상을 피하려고 View Transitions API 로 화면 전체를 한 번에 크로스페이드
 type ViewTransitionDoc = Document & { startViewTransition?: (cb: () => void) => unknown };
 
 let themeMounted = false;
@@ -25,7 +25,7 @@ export function applyTheme(theme: Theme): void {
         ? 'light'
         : 'dark'
       : theme;
-  // 첫 마운트는 즉시(초기 로드 깜빡임 방지), 이후 전환만 크로스페이드.
+  // 첫 마운트는 즉시(초기 로드 깜빡임 방지), 이후 전환만 크로스페이드
   runWithCrossfade(
     () => document.documentElement.setAttribute('data-theme', resolved),
     !themeMounted,
@@ -33,7 +33,7 @@ export function applyTheme(theme: Theme): void {
   themeMounted = true;
 }
 
-// indigo = 기본값 (스타일시트의 테마별 accent 를 그대로 쓰고 override 안 함).
+// indigo = 기본값 (스타일시트의 테마별 accent 를 그대로 쓰고 override 안 함)
 export const ACCENTS = [
   { id: 'indigo', color: '#5b61e6', hover: '#757bf0', focus: '#474dcc' },
   { id: 'blue', color: '#3b82f6', hover: '#5b9bff', focus: '#2861c8' },
@@ -85,7 +85,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     applyAccent(settings.accent);
   }, [settings.accent]);
 
-  // in-app CSS 전용. 창 vibrancy 는 토글 시 깜빡여서 폐기 (2026-06-13).
+  // in-app CSS 전용. 창 vibrancy 는 토글 시 깜빡여서 폐기 (2026-06-13)
   useEffect(() => {
     applyGlass(settings.liquidGlass);
   }, [settings.liquidGlass]);
