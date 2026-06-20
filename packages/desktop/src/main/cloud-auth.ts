@@ -91,9 +91,8 @@ async function completeSignIn(ott: string): Promise<void> {
     writeFileSync(
       AUTH_PATH,
       `${JSON.stringify({ token, user: { name: u.name ?? u.email, email: u.email, image: u.image ?? null } }, null, 2)}\n`,
-      { mode: 0o600 },
     );
-    chmodSync(AUTH_PATH, 0o600); // 기존 파일이면 mode 옵션이 무시되므로 명시 강제 — bearer 토큰 보호
+    chmodSync(AUTH_PATH, 0o600); // bearer 토큰 보호
     broadcastAuth();
     const win = BrowserWindow.getAllWindows()[0];
     win?.show();
