@@ -86,3 +86,17 @@ export function claudeEnv(): NodeJS.ProcessEnv {
   if (claude) env.CAIRN_CLAUDE_PATH = claude;
   return env;
 }
+
+// GUI 앱은 PATH 가 제한적이라 로그인 셸 PATH + 공통 경로에서 바이너리를 찾는다(gh 등 재사용용).
+export function findInPath(exe: string): string | null {
+  for (const d of searchDirs()) {
+    const p = join(d, exe);
+    if (existsSync(p)) return p;
+  }
+  return null;
+}
+
+// gh 등 실행 시 GUI 의 빈약한 PATH 대신 확장된 PATH 를 쓰도록.
+export function searchPathEnv(): string {
+  return searchDirs().join(delimiter);
+}

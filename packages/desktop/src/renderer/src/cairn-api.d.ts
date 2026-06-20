@@ -137,6 +137,12 @@ declare global {
         searchNotion: (token: string, query?: string) => Promise<NotionPage[]>;
         listDatabases: (token: string, pageId: string) => Promise<NotionDb[]>;
         probeGithub: (token: string) => Promise<GithubProbe>;
+        githubFromGhCli: () => Promise<{
+          ok: boolean;
+          token?: string;
+          login?: string;
+          error?: string;
+        }>;
         probeClaude: () => Promise<{ ok: boolean }>;
         finish: (payload: OnboardingPayload) => Promise<{ ok: boolean; error?: string }>;
         pickFolder: () => Promise<string | null>;
