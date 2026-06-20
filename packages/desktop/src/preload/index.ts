@@ -106,6 +106,13 @@ contextBridge.exposeInMainWorld('cairn', {
       ipcRenderer.invoke('cairn:onboarding:list-databases', token, pageId) as Promise<unknown>,
     probeGithub: (token: string) =>
       ipcRenderer.invoke('cairn:onboarding:probe-github', token) as Promise<unknown>,
+    githubFromGhCli: () =>
+      ipcRenderer.invoke('cairn:onboarding:github-from-gh') as Promise<{
+        ok: boolean;
+        token?: string;
+        login?: string;
+        error?: string;
+      }>,
     probeClaude: () => ipcRenderer.invoke('cairn:onboarding:probe-claude') as Promise<unknown>,
     finish: (payload: unknown) =>
       ipcRenderer.invoke('cairn:onboarding:finish', payload) as Promise<unknown>,

@@ -18,6 +18,7 @@ import { readConfig, tailLatestLog } from './files';
 import { fetchPageContent, listRecentPages } from './notion-client';
 import {
   finishOnboarding,
+  githubTokenFromGhCli,
   listNotionDatabases,
   probeGithub,
   probeNotion,
@@ -146,6 +147,7 @@ void app.whenReady().then(() => {
     listNotionDatabases(token, pageId),
   );
   ipcMain.handle('cairn:onboarding:probe-github', (_e, token: string) => probeGithub(token));
+  ipcMain.handle('cairn:onboarding:github-from-gh', () => githubTokenFromGhCli());
   ipcMain.handle('cairn:onboarding:probe-claude', () => probeClaude());
   ipcMain.handle('cairn:onboarding:finish', (_e, payload: OnboardingPayload) =>
     finishOnboarding(payload),
