@@ -20,7 +20,14 @@ async function getUserId(req: NextRequest): Promise<string | null> {
   return session?.user.id ?? null;
 }
 
-// 화이트리스트 검증 — 집계 수치만. 코드/경로/토큰 등은 스키마에 자리조차 없음(ADR 0003/0028).
+// 달력상 실재하는 날짜인지(2026-13-45 같은 형식만 맞는 값 차단)
+function isValidDate(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+// 화이트리스트 검증 — 집계 수치만, 코드/경로/토큰은 스키마에 자리조차 없음(ADR 0003/0029)
 function parseRows(input: unknown): StatRow[] | null {
   if (!input || typeof input !== 'object' || !Array.isArray((input as { stats?: unknown }).stats)) {
     return null;
@@ -30,11 +37,12 @@ function parseRows(input: unknown): StatRow[] | null {
     if (!r || typeof r !== 'object') return null;
     const o = r as Record<string, unknown>;
     if (typeof o.category !== 'string' || !CATEGORIES.has(o.category)) return null;
-    if (typeof o.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(o.date)) return null;
+    if (typeof o.date !== 'string' || !isValidDate(o.date)) return null;
     if (!Number.isInteger(o.pr) || (o.pr as number) < 0) return null;
     if (!Number.isInteger(o.commitCount) || (o.commitCount as number) < 0) return null;
-    if (!Array.isArray(o.hours) || o.hours.some((h) => !Number.isInteger(h) || (h as number) < 0))
-      return null;
+    // 시간대 히스토그램은 24칸 고정 — 길이 상한으로 메모리 폭주 차단
+    if (!Array.isArray(o.hours) || o.hours.length > 24) return null;
+    if (o.hours.some((h) => !Number.isInteger(h) || (h as number) < 0)) return null;
     if (typeof o.updatedAt !== 'string' || Number.isNaN(Date.parse(o.updatedAt))) return null;
     rows.push({
       category: o.category,
@@ -70,7 +78,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (!rows) return NextResponse.json({ error: 'bad-request' }, { status: 400 });
   if (rows.length === 0) return NextResponse.json({ upserted: 0 });
 
-  // LWW: 들어온 updated_at 이 더 최신일 때만 덮어쓴다.
+  // LWW — 들어온 updated_at 이 더 최신일 때만 덮어씀
   await db
     .insert(worklogStats)
     .values(
