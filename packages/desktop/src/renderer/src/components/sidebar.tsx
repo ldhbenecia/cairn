@@ -4,12 +4,15 @@ import {
   CalendarRange,
   ChartColumn,
   LayoutList,
+  LogIn,
+  LogOut,
   Settings2,
   type LucideIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
+import { useCloudAuth } from '../use-cloud-auth';
 import { BrandMark } from './brand-mark';
 
 export type WorklogFilter = 'all' | 'daily' | 'weekly' | 'monthly';
@@ -80,7 +83,8 @@ export function Sidebar({
         ))}
       </div>
 
-      <div className="px-4 pb-4">
+      <div className="flex flex-col gap-0.5 px-4 pb-4">
+        <AccountChip />
         <FilterItem
           icon={Settings2}
           label={t('nav.preferences')}
@@ -89,6 +93,87 @@ export function Sidebar({
         />
       </div>
     </nav>
+  );
+}
+
+function AccountChip() {
+  const { t } = useSettings();
+  const { signedIn, user } = useCloudAuth();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent): void => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open]);
+
+  if (!signedIn || !user) {
+    return (
+      <button
+        type="button"
+        onClick={() => void window.cairn.cloud.signIn()}
+        className="flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-[13px] font-medium text-ink-subtle transition-colors hover:bg-surface-2/60 hover:text-ink-muted [-webkit-app-region:no-drag]"
+      >
+        <LogIn size={15} strokeWidth={1.75} />
+        <span className="flex-1">{t('account.signIn')}</span>
+      </button>
+    );
+  }
+
+  return (
+    <div ref={ref} className="relative [-webkit-app-region:no-drag]">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={[
+          'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors',
+          open ? 'bg-surface-2' : 'hover:bg-surface-2/60',
+        ].join(' ')}
+      >
+        <Avatar user={user} />
+        <span className="flex-1 truncate text-[13px] font-medium text-ink">{user.name}</span>
+      </button>
+      {open && (
+        <div className="absolute bottom-full left-0 z-20 mb-1 w-full overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40">
+          <p className="truncate px-2.5 py-1.5 text-[11px] text-ink-tertiary">{user.email}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              void window.cairn.cloud.signOut();
+            }}
+            className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            <LogOut size={14} strokeWidth={1.75} />
+            {t('account.signOut')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Avatar({ user }: { user: { name: string; image: string | null } }) {
+  const [broken, setBroken] = useState(false);
+  if (user.image && !broken) {
+    return (
+      <img
+        src={user.image}
+        alt=""
+        referrerPolicy="no-referrer"
+        onError={() => setBroken(true)}
+        className="size-6 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+  return (
+    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-semibold text-white">
+      {user.name.charAt(0).toUpperCase()}
+    </span>
   );
 }
 

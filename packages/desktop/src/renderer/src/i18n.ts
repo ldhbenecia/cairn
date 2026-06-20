@@ -11,6 +11,8 @@ const STRINGS = {
     'nav.insights': '인사이트',
     'nav.stats': '통계',
     'nav.preferences': 'Preferences',
+    'account.signIn': '로그인',
+    'account.signOut': '로그아웃',
 
     'stats.title': '통계',
     'stats.subtitle': '발행된 일지에서 집계한 내 작업 추이',
@@ -325,6 +327,8 @@ const STRINGS = {
     'nav.insights': 'Insights',
     'nav.stats': 'Stats',
     'nav.preferences': 'Preferences',
+    'account.signIn': 'Sign in',
+    'account.signOut': 'Sign out',
 
     'stats.title': 'Stats',
     'stats.subtitle': 'Your work trends from published worklogs',
