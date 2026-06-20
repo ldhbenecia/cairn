@@ -60,6 +60,8 @@ export async function POST(req: NextRequest): Promise<Response> {
   const rows = parseRows(await req.json().catch(() => null));
   if (!rows) return NextResponse.json({ error: 'bad-request' }, { status: 400 });
   if (rows.length === 0) return NextResponse.json({ upserted: 0 });
+  // 일/주/월 집계라 한 번에 수천 개를 넘을 이유가 없음 — 메모리·파라미터 폭주 방어.
+  if (rows.length > 1000) return NextResponse.json({ error: 'payload-too-large' }, { status: 413 });
 
   // LWW: 들어온 updated_at 이 더 최신일 때만 덮어쓴다.
   await db
