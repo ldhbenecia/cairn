@@ -95,7 +95,8 @@ function computeStreak(byDate: Map<string, DayActivity>): { current: number; lon
   let prev: Date | null = null;
   for (const ds of sorted) {
     const d = new Date(`${ds}T00:00:00`);
-    if (prev && (d.getTime() - prev.getTime()) / 86400000 === 1) run += 1;
+    // Math.round — DST 전환일은 로컬 자정 간격이 23/25h 라 정수 나눗셈만으론 1 이 안 됨
+    if (prev && Math.round((d.getTime() - prev.getTime()) / 86400000) === 1) run += 1;
     else run = 1;
     longest = Math.max(longest, run);
     prev = d;
