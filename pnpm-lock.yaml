@@ -69,8 +69,8 @@ importers:
         specifier: ^11.1.27
         version: 11.1.27(@nestjs/common@11.1.24(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@notionhq/client':
-        specifier: ^5.20.0
-        version: 5.20.0
+        specifier: ^5.22.0
+        version: 5.22.0
       '@octokit/core':
         specifier: ^7.0.6
         version: 7.0.6
@@ -118,8 +118,8 @@ importers:
   packages/desktop:
     dependencies:
       '@notionhq/client':
-        specifier: ^5.20.0
-        version: 5.20.0
+        specifier: ^5.22.0
+        version: 5.22.0
       electron-updater:
         specifier: ^6.8.9
         version: 6.8.9
@@ -1403,8 +1403,8 @@ packages:
     resolution: {integrity: sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==}
     engines: {node: '>= 20.19.0'}
 
-  '@notionhq/client@5.20.0':
-    resolution: {integrity: sha512-MS0DFSfHPLZ0wi+e9mOP16gCCYbWAkaiMuu/rVK9KxDlKac4oAgHReOfTglcd77g/nlg78snp+KB7fNWP75bEw==}
+  '@notionhq/client@5.22.0':
+    resolution: {integrity: sha512-lZ3JGBCd6O6MNHWn/58QcUqX1FgmlcODcx/EaUEEpuxLXF5tSi+v29Vzoz8mZ6JgDWDn5pMzzjB69QevYjQQZA==}
     engines: {node: '>=18'}
 
   '@npmcli/fs@2.1.2':
@@ -6072,7 +6072,7 @@ snapshots:
 
   '@noble/hashes@2.2.0': {}
 
-  '@notionhq/client@5.20.0': {}
+  '@notionhq/client@5.22.0': {}
 
   '@npmcli/fs@2.1.2':
     dependencies:

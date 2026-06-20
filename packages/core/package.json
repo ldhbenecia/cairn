@@ -23,7 +23,7 @@
     "@nestjs/common": "^11.1.24",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.27",
-    "@notionhq/client": "^5.20.0",
+    "@notionhq/client": "^5.22.0",
     "@octokit/core": "^7.0.6",
     "@octokit/plugin-rest-endpoint-methods": "^17.0.0",
     "@octokit/plugin-retry": "^8.1.0",
