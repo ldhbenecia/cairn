@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@notionhq/client": "^5.20.0",
+    "@supabase/supabase-js": "^2.108.2",
     "electron-updater": "^6.8.3",
     "posthog-node": "^5.36.3"
   },

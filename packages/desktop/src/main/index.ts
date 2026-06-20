@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSupabaseConfig } from './supabase';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
 import { pickExportFolder, saveMarkdown, savePdf } from './export';
 import { sendTestNotification } from './notifier';
@@ -37,6 +38,30 @@ declare const __WORKSPACE_VERSION__: string;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let allowQuit = false;
+let pendingDeepLink: string | null = null;
+
+if (process.defaultApp && process.argv.length >= 2) {
+  app.setAsDefaultProtocolClient('cairn', process.execPath, [resolve(process.argv[1]!)]);
+} else {
+  app.setAsDefaultProtocolClient('cairn');
+}
+
+function dispatchDeepLink(url: string): void {
+  const win = BrowserWindow.getAllWindows()[0];
+  if (win && !win.webContents.isLoading()) {
+    win.webContents.send('cairn:deep-link', url);
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  } else {
+    pendingDeepLink = url;
+  }
+}
+
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  dispatchDeepLink(url);
+});
 
 // 미서명 앱이라 safeStorage 가 OS 키체인을 건드리면 암호 프롬프트가 매번 뜬다 → mock keychain 사용.
 // cairn 은 토큰을 .env 평문 저장이라 부작용 없음. password-store=basic 은 Linux 전용.
@@ -48,13 +73,18 @@ if (process.platform === 'linux') {
 if (!app.requestSingleInstanceLock()) {
   app.exit(0);
 }
-app.on('second-instance', () => {
+app.on('second-instance', (_e, argv) => {
+  const url = argv.find((a) => a.startsWith('cairn://'));
+  if (url) dispatchDeepLink(url);
   const win = BrowserWindow.getAllWindows()[0];
   if (!win) return;
   if (win.isMinimized()) win.restore();
   win.show();
   win.focus();
 });
+
+const initialDeepLink = process.argv.find((a) => a.startsWith('cairn://'));
+if (initialDeepLink) pendingDeepLink = initialDeepLink;
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -76,6 +106,13 @@ function createWindow(): BrowserWindow {
   });
 
   win.on('ready-to-show', () => win.show());
+
+  win.webContents.on('did-finish-load', () => {
+    if (pendingDeepLink) {
+      win.webContents.send('cairn:deep-link', pendingDeepLink);
+      pendingDeepLink = null;
+    }
+  });
 
   win.on('close', (e) => {
     if (allowQuit || !app.isPackaged) return;
@@ -130,6 +167,7 @@ void app.whenReady().then(() => {
       settings: readSettings(),
       version: __WORKSPACE_VERSION__,
       setupComplete: isSetupComplete(),
+      supabase: readSupabaseConfig(),
     };
   });
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {

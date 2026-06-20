@@ -29,10 +29,13 @@ export type Settings = {
 };
 
 // 무플래시: 첫 페인트 전 동기로 설정을 받는다 (sandbox preload 라 fs 불가 → sendSync).
+export type SupabaseConfig = { url: string; key: string };
+
 const boot = ipcRenderer.sendSync('cairn:bootstrap-sync') as {
   settings: Settings;
   version: string;
   setupComplete: boolean;
+  supabase: SupabaseConfig | null;
 };
 
 export type CoreMode = 'daily' | 'weekly' | 'monthly';
@@ -95,6 +98,12 @@ contextBridge.exposeInMainWorld('cairn', {
   isPackaged: IS_PACKAGED,
   initialSettings: boot.settings,
   initialSetupComplete: boot.setupComplete,
+  supabase: boot.supabase,
+  onDeepLink: (cb: (url: string) => void): (() => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, url: string): void => cb(url);
+    ipcRenderer.on('cairn:deep-link', listener);
+    return () => ipcRenderer.off('cairn:deep-link', listener);
+  },
   setSettings: (patch: Partial<Settings>): Promise<Settings> =>
     ipcRenderer.invoke('cairn:settings:set', patch) as Promise<Settings>,
   onboarding: {
