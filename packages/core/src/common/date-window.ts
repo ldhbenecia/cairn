@@ -43,7 +43,6 @@ function trimMillis(d: Date): string {
   return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
-// 사용자 로컬 기준 오늘 "YYYY-MM-DD"
 export function todayLocalIsoDate(): string {
   const now = new Date();
   const y = now.getFullYear();

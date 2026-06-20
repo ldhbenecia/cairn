@@ -267,7 +267,6 @@ export class NotionPublisherService {
 }
 
 // 커밋 시각(ISO) 들의 24칸 시간 히스토그램. 머신 로컬 시간 기준(getHours) — KST 단정 금지(timezone 룰).
-// 통계는 노션이 아닌 로컬에 저장(orchestrator) — 이 함수는 그 집계에 쓰인다.
 export function hourHistogram(isoTimestamps: readonly string[]): number[] {
   const hours = new Array<number>(24).fill(0);
   for (const iso of isoTimestamps) {
