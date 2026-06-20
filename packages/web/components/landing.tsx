@@ -71,7 +71,7 @@ export async function Landing({ lang }: { lang: Lang }) {
             <HeroVideo
               src="/intro.mp4"
               poster={`/statistics_${lang === 'ko' ? 'ko' : 'us'}.png`}
-              alt="cairn demo"
+              alt={lang === 'ko' ? 'cairn 데모 영상' : 'cairn demo'}
             />
           </div>
         </div>
