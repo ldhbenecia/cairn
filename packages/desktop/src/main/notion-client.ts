@@ -64,9 +64,32 @@ type ParsedConfig = {
   notionWorkspaces: NotionWorkspaceConfig[];
 };
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 100; // Notion 쿼리 1회 최대
+const MAX_QUERY_PAGES = 6; // 데이터소스당 최대 600건까지 페이징(백필로 일간이 100 초과 — 히트맵 53주 필요)
+const MAX_RECENT_PAGES = 800; // 전체(일간+롤업) 반환 상한
 
 type NotionPageItem = { id: string; url?: string; properties: Record<string, unknown> };
+
+// 단일 쿼리는 100건 상한이라 cursor 로 끝까지(상한 내) 페이징. 일간이 100 넘으면 오래된 게 잘리던 문제 해결.
+async function queryAllResults(
+  notion: Client,
+  params: { data_source_id: string; sorts: Array<{ property: string; direction: 'descending' }> },
+): Promise<unknown[]> {
+  const items: unknown[] = [];
+  let cursor: string | undefined;
+  for (let p = 0; p < MAX_QUERY_PAGES; p += 1) {
+    const res = await notion.dataSources.query({
+      data_source_id: params.data_source_id,
+      sorts: params.sorts,
+      page_size: PAGE_SIZE,
+      start_cursor: cursor,
+    });
+    items.push(...res.results);
+    if (!res.has_more || !res.next_cursor) break;
+    cursor = res.next_cursor;
+  }
+  return items;
+}
 
 const notionClients = new Map<string, Client>();
 
@@ -121,7 +144,7 @@ export async function listRecentPages(): Promise<{
   const warnings = results.flatMap((r) => r.warnings);
 
   allPages.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
-  return { pages: allPages.slice(0, PAGE_SIZE), warnings };
+  return { pages: allPages.slice(0, MAX_RECENT_PAGES), warnings };
 }
 
 async function listWorkspacePages(
@@ -180,21 +203,20 @@ async function listDailyPages(
   dataSourceId: string,
   workspaceLabel: string,
 ): Promise<RecentPage[]> {
-  const res = await notion.dataSources.query({
+  const results = await queryAllResults(notion, {
     data_source_id: dataSourceId,
-    page_size: PAGE_SIZE,
     sorts: [{ property: 'Date', direction: 'descending' }],
   });
 
   const stats = readWorklogStats();
-  return res.results.flatMap((item) => {
-    if (!('properties' in item)) return [];
-    const { properties: props, url } = item as NotionPageItem;
+  return results.flatMap((item) => {
+    if (typeof item !== 'object' || item === null || !('properties' in item)) return [];
+    const { id, properties: props, url } = item as NotionPageItem;
     const date = readDate(props, 'Date');
     const stat = date ? stats[`daily:${date}`] : undefined;
     return [
       {
-        pageId: item.id,
+        pageId: id,
         url: url ?? '',
         title: readTitle(props),
         date,
@@ -214,18 +236,17 @@ async function listRollupPages(
   dataSourceId: string,
   workspaceLabel: string,
 ): Promise<RecentPage[]> {
-  const res = await notion.dataSources.query({
+  const results = await queryAllResults(notion, {
     data_source_id: dataSourceId,
-    page_size: PAGE_SIZE,
     sorts: [{ property: 'Range end', direction: 'descending' }],
   });
 
-  return res.results.flatMap((item) => {
-    if (!('properties' in item)) return [];
-    const { properties: props, url } = item as NotionPageItem;
+  return results.flatMap((item) => {
+    if (typeof item !== 'object' || item === null || !('properties' in item)) return [];
+    const { id, properties: props, url } = item as NotionPageItem;
     return [
       {
-        pageId: item.id,
+        pageId: id,
         url: url ?? '',
         title: readTitle(props),
         date: readDate(props, 'Range end') ?? readDate(props, 'Range start'),
