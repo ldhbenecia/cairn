@@ -53,11 +53,8 @@ export function Sidebar({
   return (
     <nav style={{ width }} className="flex shrink-0 flex-col border-r border-hairline bg-surface-1">
       <div className="h-20 [-webkit-app-region:drag]" />
-      <div className="flex items-center gap-2.5 px-5 pb-6 [-webkit-app-region:drag]">
-        <span className="flex size-6 items-center justify-center rounded-md bg-accent text-white">
-          <BrandMark size={15} />
-        </span>
-        <span className="text-[15px] font-semibold tracking-[-0.2px] text-ink">cairn</span>
+      <div className="px-4 pb-5 [-webkit-app-region:drag]">
+        <AccountTop onOpenPreferences={onOpenPreferences} />
       </div>
 
       <div className="flex flex-1 flex-col gap-0.5 px-4">
@@ -83,8 +80,7 @@ export function Sidebar({
         ))}
       </div>
 
-      <div className="flex flex-col gap-0.5 px-4 pb-4">
-        <AccountChip />
+      <div className="px-4 pb-4">
         <FilterItem
           icon={Settings2}
           label={t('nav.preferences')}
@@ -96,7 +92,7 @@ export function Sidebar({
   );
 }
 
-function AccountChip() {
+function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
   const { t } = useSettings();
   const { signedIn, user } = useCloudAuth();
   const [open, setOpen] = useState(false);
@@ -113,14 +109,20 @@ function AccountChip() {
 
   if (!signedIn || !user) {
     return (
-      <button
-        type="button"
-        onClick={() => void window.cairn.cloud.signIn()}
-        className="flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-[13px] font-medium text-ink-subtle transition-colors hover:bg-surface-2/60 hover:text-ink-muted [-webkit-app-region:no-drag]"
-      >
-        <LogIn size={15} strokeWidth={1.75} />
-        <span className="flex-1">{t('account.signIn')}</span>
-      </button>
+      <div className="flex items-center gap-2.5 px-1 [-webkit-app-region:no-drag]">
+        <span className="flex size-6 items-center justify-center rounded-md bg-accent text-white">
+          <BrandMark size={15} />
+        </span>
+        <span className="text-[15px] font-semibold tracking-[-0.2px] text-ink">cairn</span>
+        <button
+          type="button"
+          onClick={() => void window.cairn.cloud.signIn()}
+          className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+        >
+          <LogIn size={13} strokeWidth={2} />
+          {t('account.signIn')}
+        </button>
+      </div>
     );
   }
 
@@ -130,16 +132,33 @@ function AccountChip() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={[
-          'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors',
-          open ? 'bg-surface-2' : 'hover:bg-surface-2/60',
+          'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors',
+          open ? 'bg-surface-2' : 'hover:bg-surface-2/70',
         ].join(' ')}
       >
         <Avatar user={user} />
-        <span className="flex-1 truncate text-[13px] font-medium text-ink">{user.name}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13.5px] font-semibold leading-tight text-ink">
+            {user.name}
+          </span>
+          <span className="block truncate text-[11px] leading-tight text-ink-tertiary">
+            {user.email}
+          </span>
+        </span>
       </button>
       {open && (
-        <div className="absolute bottom-full left-0 z-20 mb-1 w-full overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40">
-          <p className="truncate px-2.5 py-1.5 text-[11px] text-ink-tertiary">{user.email}</p>
+        <div className="absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40">
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onOpenPreferences();
+            }}
+            className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            <Settings2 size={14} strokeWidth={1.75} />
+            {t('nav.preferences')}
+          </button>
           <button
             type="button"
             onClick={() => {
