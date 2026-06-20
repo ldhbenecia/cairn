@@ -1,6 +1,7 @@
 import { content, type Lang } from '../lib/content';
 import { getRepoStats, REPO_URL, RELEASES_LATEST } from '../lib/github';
 import { BrandMark } from './brand-mark';
+import { CopyCommand } from './copy-command';
 import { HeroVideo } from './hero-video';
 import { LangSwitcher } from './lang-switcher';
 import { Nav } from './nav';
@@ -9,8 +10,9 @@ import { Screenshot } from './screenshot';
 
 export async function Landing({ lang }: { lang: Lang }) {
   const c = content[lang];
-  const { stars, latestTag, dmgUrl } = await getRepoStats();
-  const download = dmgUrl ?? RELEASES_LATEST;
+  const { stars, latestTag } = await getRepoStats();
+  const download = RELEASES_LATEST;
+  const unblockCmd = 'xattr -d com.apple.quarantine /Applications/Cairn.app';
 
   return (
     <div id="top">
@@ -57,6 +59,10 @@ export async function Landing({ lang }: { lang: Lang }) {
               {latestTag ? `${latestTag} · ` : ''}
               {c.hero.sub}
             </p>
+            <div className="mt-5 max-w-md">
+              <p className="mb-2 text-[12.5px] leading-relaxed text-ink-tertiary">{c.hero.unsigned}</p>
+              <CopyCommand command={unblockCmd} copyLabel={c.hero.copyCmd} />
+            </div>
           </div>
 
           <div className="reveal relative" style={{ animationDelay: '0.1s' }}>
@@ -72,6 +78,7 @@ export async function Landing({ lang }: { lang: Lang }) {
               src="/intro.mp4"
               poster={`/statistics_${lang === 'ko' ? 'ko' : 'us'}.png`}
               alt={lang === 'ko' ? 'cairn 데모 영상' : 'cairn demo'}
+              expandLabel={c.hero.expand}
             />
           </div>
         </div>
@@ -170,6 +177,9 @@ export async function Landing({ lang }: { lang: Lang }) {
             <li>{c.setup.notion.s3}</li>
           </SetupCard>
           <SetupCard tag="GitHub" title={c.setup.github.title}>
+            <li className="marker:text-accent-hover">
+              <span className="text-ink-muted">{c.setup.github.ghAuto}</span>
+            </li>
             <li>
               {c.setup.github.s1pre}
               <SetupLink href="https://github.com/settings/tokens/new?scopes=repo,read:user&description=cairn%20worklog">
@@ -194,7 +204,22 @@ export async function Landing({ lang }: { lang: Lang }) {
             <li>{c.setup.claude.s2}</li>
           </SetupCard>
         </div>
-        <div className="mt-4 flex items-start gap-3 rounded-xl border border-hairline bg-surface-1 px-5 py-4 text-[13.5px] leading-relaxed text-ink-subtle">
+        <Reveal delay={0.08} className="relative mx-auto mt-10 max-w-3xl">
+          <p className="mb-3 text-center text-[13px] text-ink-tertiary">{c.setup.notionVideo}</p>
+          <div className="screenshot-frame overflow-hidden">
+            <video
+              className="block w-full"
+              src="/notion-integration.mp4"
+              poster="/notion-integration-poster.png"
+              controls
+              muted
+              playsInline
+              preload="metadata"
+              aria-label={c.setup.notionVideo}
+            />
+          </div>
+        </Reveal>
+        <div className="mt-8 flex items-start gap-3 rounded-xl border border-hairline bg-surface-1 px-5 py-4 text-[13.5px] leading-relaxed text-ink-subtle">
           <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#d4a574]" />
           <p>
             <strong className="font-medium text-ink-muted">{c.setup.gatekeeperPre}</strong>
@@ -230,6 +255,10 @@ export async function Landing({ lang }: { lang: Lang }) {
             {latestTag ? `${latestTag} · ` : ''}
             {c.hero.sub}
           </p>
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <p className="text-[12.5px] text-ink-tertiary">{c.hero.unsigned}</p>
+            <CopyCommand command={unblockCmd} copyLabel={c.hero.copyCmd} />
+          </div>
         </div>
       </section>
 

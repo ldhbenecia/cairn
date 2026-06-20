@@ -129,7 +129,8 @@ body::after {
 }
 
 /* 스크린샷은 이미 투명 마진 trim + 둥근 모서리 마스크로 정리됨 — 확대 크롭 불필요 */
-.screenshot-frame > img {
+.screenshot-frame > img,
+.screenshot-frame > video {
   display: block;
   width: 100%;
 }
@@ -145,6 +146,7 @@ body::after {
 .lightbox-fade {
   animation: lightbox-in 0.18s ease both;
 }
-.lightbox-fade > img {
+.lightbox-fade > img,
+.lightbox-fade > video {
   animation: lightbox-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

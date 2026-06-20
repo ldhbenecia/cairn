@@ -11,6 +11,9 @@ export const content = {
       download: 'Download for macOS',
       source: 'View source',
       sub: 'Apple Silicon · AGPL-3.0',
+      unsigned: "Unsigned app — if macOS says it's damaged on first launch, run:",
+      copyCmd: 'Copy command',
+      expand: 'Expand',
     },
     how: {
       eyebrow: 'How it works',
@@ -56,6 +59,8 @@ export const content = {
       },
       github: {
         title: 'Where activity is collected',
+        ghAuto:
+          'Easiest: with the GitHub CLI (gh) installed and signed in, cairn imports the token automatically — no PAT needed.',
         s1pre: 'The ',
         s1link: 'classic-token link',
         s1post: ' prefills the recommended scopes.',
@@ -70,6 +75,7 @@ export const content = {
         s1post: ' and log in — cairn inherits that auth, no extra cost.',
         s2: 'Or paste an Anthropic API key. Either works.',
       },
+      notionVideo: 'Notion integration — 30-second walkthrough',
       gatekeeperPre: 'macOS note: ',
       gatekeeper:
         "the app isn't code-signed yet, so the first launch is blocked by Gatekeeper. Right-click the app → Open, or run ",
@@ -87,6 +93,9 @@ export const content = {
       download: 'macOS 다운로드',
       source: '소스 보기',
       sub: 'Apple Silicon · AGPL-3.0',
+      unsigned: '미서명 앱이라 첫 실행 시 "손상됨"이 뜨면 실행:',
+      copyCmd: '명령어 복사',
+      expand: '크게 보기',
     },
     how: {
       eyebrow: '작동 방식',
@@ -132,6 +141,8 @@ export const content = {
       },
       github: {
         title: '활동을 수집할 곳',
+        ghAuto:
+          '가장 쉬움: GitHub CLI(gh)가 설치·로그인돼 있으면 cairn 이 토큰을 자동으로 가져옵니다 — PAT 불필요.',
         s1pre: '',
         s1link: 'Classic 토큰 링크',
         s1post: '가 권장 scope 를 미리 채워줍니다.',
@@ -146,6 +157,7 @@ export const content = {
         s1post: ' 를 설치·로그인하면 — cairn 이 그 인증을 인계받아 추가 과금 없이 동작합니다.',
         s2: '또는 Anthropic API key 를 붙여넣어도 됩니다. 둘 다 됩니다.',
       },
+      notionVideo: 'Notion integration 연결 — 30초 영상 가이드',
       gatekeeperPre: 'macOS 참고: ',
       gatekeeper:
         '아직 코드 서명이 안 돼 있어 첫 실행은 Gatekeeper 에 막힙니다. 앱 우클릭 → 열기, 또는 아래를 한 번 실행하세요 ',
