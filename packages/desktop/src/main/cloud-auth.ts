@@ -1,5 +1,5 @@
 import { BrowserWindow, shell } from 'electron';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { dirname, join } from 'node:path';
 import { CAIRN_ROOT } from './setup';
@@ -35,7 +35,6 @@ function broadcastAuth(): void {
 }
 
 const DONE_HTML = `<!doctype html><meta charset="utf-8"><title>cairn</title><body style="margin:0;display:flex;height:100vh;align-items:center;justify-content:center;background:#0a0a0a;color:#e5e5e5;font-family:system-ui,sans-serif"><div style="text-align:center"><p style="font-size:15px;font-weight:600">로그인 완료</p><p style="font-size:13px;color:#a3a3a3">이제 cairn 앱으로 돌아가세요.</p></div><script>setTimeout(()=>window.close(),1200)</script></body>`;
-const FAIL_HTML = `<!doctype html><meta charset="utf-8"><title>cairn</title><body style="margin:0;display:flex;height:100vh;align-items:center;justify-content:center;background:#0a0a0a;color:#f87171;font-family:system-ui,sans-serif"><p style="font-size:13px">로그인 정보를 받지 못했어요. 다시 시도해 주세요.</p></body>`;
 
 let server: Server | null = null;
 
@@ -48,16 +47,24 @@ function stopServer(): void {
 
 export function startCloudSignIn(): void {
   stopServer();
-  server = createServer((req, res) => {
+  const current = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     const ott = url.searchParams.get('token');
-    res.writeHead(ott ? 200 : 400, { 'content-type': 'text/html; charset=utf-8' });
-    res.end(ott ? DONE_HTML : FAIL_HTML);
-    if (ott) void completeSignIn(ott);
-    stopServer();
+    // favicon 등 토큰 없는 부가 요청은 무시 — 세션을 닫지 않는다.
+    if (!ott) {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    res.end(DONE_HTML);
+    void completeSignIn(ott);
+    current.close();
+    if (server === current) server = null;
   });
-  server.listen(0, '127.0.0.1', () => {
-    const addr = server?.address();
+  server = current;
+  current.listen(0, '127.0.0.1', () => {
+    const addr = current.address();
     const port = addr && typeof addr === 'object' ? addr.port : 0;
     void shell.openExternal(`${WEB_BASE}/desktop-login?port=${port}`);
   });
@@ -84,7 +91,9 @@ async function completeSignIn(ott: string): Promise<void> {
     writeFileSync(
       AUTH_PATH,
       `${JSON.stringify({ token, user: { name: u.name ?? u.email, email: u.email, image: u.image ?? null } }, null, 2)}\n`,
+      { mode: 0o600 },
     );
+    chmodSync(AUTH_PATH, 0o600); // 기존 파일이면 mode 옵션이 무시되므로 명시 강제 — bearer 토큰 보호
     broadcastAuth();
     const win = BrowserWindow.getAllWindows()[0];
     win?.show();
@@ -106,10 +115,6 @@ export async function cloudSignOut(): Promise<void> {
       // 서버 실패해도 로컬 토큰은 지운다
     }
   }
-  try {
-    rmSync(AUTH_PATH);
-  } catch {
-    // 이미 없음
-  }
+  rmSync(AUTH_PATH, { force: true });
   broadcastAuth();
 }
