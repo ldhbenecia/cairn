@@ -18,7 +18,6 @@ export function HeroVideo({
   const [open, setOpen] = useState(false);
   const [reduced, setReduced] = useState(false);
 
-  // prefers-reduced-motion 존중: 모션 최소화 설정이면 인라인 재생을 멈추고 poster 만 보여준다.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;

@@ -19,7 +19,6 @@ export async function Landing({ lang }: { lang: Lang }) {
     <div id="top">
       <Nav stars={stars} lang={lang} />
 
-      {/* HERO — 좌측정렬 split (Vercel/Raycast 톤) */}
       <section className="relative px-6 pt-16 pb-20 sm:pt-24">
         <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-10">
           <div className="reveal">
@@ -85,11 +84,9 @@ export async function Landing({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      {/* HOW IT WORKS — bento */}
       <section id="how" className="mx-auto max-w-6xl px-6 py-24">
         <SectionHead eyebrow={c.how.eyebrow} title={c.how.title} lead={c.how.lead} />
         <div className="mt-14 grid gap-3 md:grid-cols-4 md:grid-rows-2">
-          {/* step 01 — big square */}
           <Reveal className="md:col-span-2 md:row-span-2">
             <div className="card-hover group/c relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-hairline bg-surface-1 p-8">
               <span className="font-mono text-[13px] font-medium text-accent-hover">01</span>
@@ -102,17 +99,14 @@ export async function Landing({ lang }: { lang: Lang }) {
               </div>
             </div>
           </Reveal>
-          {/* step 02 — wide */}
           <Reveal className="md:col-span-2" delay={0.06}>
             <BentoTile n="02" title={c.how.steps[1]!.t} desc={c.how.steps[1]!.d} className="h-full" />
           </Reveal>
-          {/* step 03 — wide */}
           <Reveal className="md:col-span-2" delay={0.12}>
             <BentoTile n="03" title={c.how.steps[2]!.t} desc={c.how.steps[2]!.d} className="h-full" />
           </Reveal>
         </div>
 
-        {/* 발행 진행 UI 쇼케이스 */}
         <Reveal delay={0.1} className="relative mx-auto mt-10 max-w-4xl">
           <div
             className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-50"
@@ -129,7 +123,6 @@ export async function Landing({ lang }: { lang: Lang }) {
         </Reveal>
       </section>
 
-      {/* WORKLOG OUTPUT — 풀폭 큰 스크린샷 */}
       <section id="output" className="border-y border-hairline bg-surface-1/40">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <SectionHead eyebrow={c.output.eyebrow} title={c.output.title} lead={c.output.lead} />
@@ -161,7 +154,6 @@ export async function Landing({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      {/* SETUP */}
       <section id="setup" className="mx-auto max-w-6xl px-6 py-24">
         <SectionHead eyebrow={c.setup.eyebrow} title={c.setup.title} lead={c.setup.lead} />
         <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
@@ -233,7 +225,6 @@ export async function Landing({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      {/* DOWNLOAD CTA */}
       <section className="px-6 pb-24">
         <div className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-hairline bg-surface-1 px-8 py-16 text-center sm:py-20">
           <div
@@ -263,7 +254,6 @@ export async function Landing({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer className="border-t border-hairline">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
           <div className="flex items-center gap-2 text-[14px]">
@@ -305,7 +295,6 @@ export async function Landing({ lang }: { lang: Lang }) {
   );
 }
 
-// Collect 타일 채움 — 여러 소스(PR·커밋)가 쌓이는(cairn 스택) 미니 비주얼
 const COLLECT_ROWS = [
   { kind: 'PR', text: 'feat(api): chunk oversized queries', meta: '#142' },
   { kind: 'commit', text: 'fix: race in publish queue', meta: 'a8bf3c' },

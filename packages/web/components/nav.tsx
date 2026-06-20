@@ -20,7 +20,6 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
   return (
     <header className="sticky top-0 z-50 border-b border-hairline/60 bg-canvas/75 backdrop-blur-xl">
       <div className="relative mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-6">
-        {/* brand */}
         <a
           href={home}
           className="flex shrink-0 items-center gap-2 text-[15px] font-semibold tracking-[-0.01em] whitespace-nowrap"
@@ -29,7 +28,6 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
           cairn
         </a>
 
-        {/* 내비 + 액션을 오른쪽으로 (가운데 정렬 폐기) */}
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
           <nav className="hidden items-center gap-0.5 md:flex">
             {links.map((l) => (

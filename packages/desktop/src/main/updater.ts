@@ -23,9 +23,8 @@ export function initUpdater(): void {
     noti.show();
   });
 
-  autoUpdater.on('error', () => {
-    // 업데이트 확인 실패는 사용자에게 노출하지 않음
-  });
+  // 미서명 빌드라 자동설치 불가 — 업데이트 에러는 사용자가 대응할 수 없어 조용히 무시
+  autoUpdater.on('error', () => {});
 
   void autoUpdater.checkForUpdates();
   setInterval(() => void autoUpdater.checkForUpdates(), CHECK_INTERVAL_MS);

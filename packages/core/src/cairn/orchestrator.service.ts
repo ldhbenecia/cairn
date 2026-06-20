@@ -184,7 +184,6 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
-    // 발행 모달·요약·통계가 같은 정의를 쓰도록 한 곳에서 산정(commit=distinct, pr=그날 전체 PR)
     const { prCount, commitCount } = computeDayTotals(githubActivity, localGitActivity);
 
     if (prCount + commitCount === 0) {

@@ -106,8 +106,7 @@ export async function listNotionDatabases(token: string, pageId: string): Promis
 
 export type GhCliToken = { ok: boolean; token?: string; login?: string; error?: string };
 
-// 설치된 gh CLI 의 인증을 재사용 — 수동 PAT 생성 없이 토큰 가져오기(Claude Code 재사용과 같은 패턴)
-// async execFile 로 메인 스레드 블로킹 회피(gh 호출이 합산 최대 13초 걸릴 수 있음)
+// async execFile 로 메인 스레드 블로킹 회피(gh 호출이 합산 최대 13초 걸릴 수 있음).
 export async function githubTokenFromGhCli(): Promise<GhCliToken> {
   const exe = process.platform === 'win32' ? 'gh.exe' : 'gh';
   const gh = findInPath(exe);
