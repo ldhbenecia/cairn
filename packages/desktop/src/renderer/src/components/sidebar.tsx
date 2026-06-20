@@ -96,16 +96,7 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
   const { t } = useSettings();
   const { signedIn, user } = useCloudAuth();
   const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  const run = (fn: () => Promise<void>): void => {
-    if (busy) return;
-    setBusy(true);
-    void fn()
-      .catch(() => {})
-      .finally(() => setBusy(false));
-  };
 
   useEffect(() => {
     if (!open) return;
@@ -125,9 +116,8 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
         <span className="text-[15px] font-semibold tracking-[-0.2px] text-ink">cairn</span>
         <button
           type="button"
-          disabled={busy}
-          onClick={() => run(() => window.cairn.cloud.signIn())}
-          className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+          onClick={() => void window.cairn.cloud.signIn().catch(() => {})}
+          className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
         >
           <LogIn size={13} strokeWidth={2} />
           {t('account.signIn')}
@@ -153,7 +143,10 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
       </button>
       {open && (
         <div className="popover-in absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40 [transform-origin:top]">
-          <p className="truncate px-2.5 pt-1.5 pb-1 text-[11px] text-ink-tertiary">{user.email}</p>
+          <p className="truncate px-2.5 py-1.5 text-[12px] leading-tight text-ink-tertiary">
+            {user.email}
+          </p>
+          <div className="my-1 h-px bg-hairline" />
           <button
             type="button"
             onClick={() => {
@@ -167,12 +160,11 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
           </button>
           <button
             type="button"
-            disabled={busy}
             onClick={() => {
               setOpen(false);
-              run(() => window.cairn.cloud.signOut());
+              void window.cairn.cloud.signOut().catch(() => {});
             }}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+            className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
           >
             <LogOut size={14} strokeWidth={1.75} />
             {t('account.signOut')}
