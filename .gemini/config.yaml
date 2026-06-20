@@ -1,5 +1,3 @@
-# Gemini Code Assist 설정 — https://developers.google.com/gemini-code-assist/docs/customize-gemini-behavior-github
-# 앱 설치 후 활성화: https://github.com/apps/gemini-code-assist (public 레포 무료)
 have_fun: false
 code_review:
   disable: false
