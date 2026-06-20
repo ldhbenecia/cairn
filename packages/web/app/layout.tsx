@@ -13,7 +13,6 @@ export const metadata: Metadata = {
   title: { default: TITLE, template: '%s · cairn' },
   description: DESC,
   applicationName: 'cairn',
-  verification: { google: 'CIGXyPYQYVp3K2pSgEXyUZmQYski5CeRoUvxfmoT3JE' },
   keywords: [
     'developer worklog',
     'dev journal',
