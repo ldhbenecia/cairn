@@ -61,6 +61,14 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
+      <LegalSection heading="Website analytics">
+        <p>
+          This website uses privacy-friendly, cookieless analytics (Vercel Web Analytics) to count
+          visits and page views. It sets no cookies and does not collect personal information or
+          build cross-site profiles.
+        </p>
+      </LegalSection>
+
       <LegalSection heading="Third-party services you connect">
         <p>
           cairn talks directly to Notion, GitHub, and Anthropic (Claude) using tokens you provide.

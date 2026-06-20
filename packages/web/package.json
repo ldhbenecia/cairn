@@ -13,6 +13,7 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "better-auth": "^1.6.20",
     "drizzle-orm": "^0.45.2",
     "next": "^16.2.9",
