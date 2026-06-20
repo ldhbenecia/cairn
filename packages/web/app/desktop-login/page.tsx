@@ -11,7 +11,11 @@ export default function DesktopLogin() {
   const [port, setPort] = useState<string | null>(null);
 
   useEffect(() => {
-    setPort(new URLSearchParams(window.location.search).get('port'));
+    // port 는 순수 숫자만 허용 — `1@evil.com` 같은 값으로 loopback URL 의 호스트가
+    // 바뀌어 one-time token 이 외부로 새는 오픈 리다이렉트를 차단.
+    const raw = new URLSearchParams(window.location.search).get('port');
+    const ok = raw && /^\d{1,5}$/.test(raw) && Number(raw) >= 1 && Number(raw) <= 65535;
+    setPort(ok ? raw : null);
   }, []);
 
   useEffect(() => {

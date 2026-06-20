@@ -4,13 +4,19 @@ import { bearer, oneTimeToken } from 'better-auth/plugins';
 import { db } from './db';
 import * as schema from './schema';
 
+function required(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`${name} is not set`);
+  return v;
+}
+
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: required('BETTER_AUTH_URL'),
   database: drizzleAdapter(db, { provider: 'pg', schema }),
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      clientId: required('GOOGLE_CLIENT_ID'),
+      clientSecret: required('GOOGLE_CLIENT_SECRET'),
     },
   },
   plugins: [bearer(), oneTimeToken()],
