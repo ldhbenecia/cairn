@@ -13,6 +13,7 @@ export const content = {
       sub: 'Apple Silicon · AGPL-3.0',
       unsigned: "Unsigned app — if macOS says it's damaged on first launch, run:",
       copyCmd: 'Copy command',
+      expand: 'Expand',
     },
     how: {
       eyebrow: 'How it works',
@@ -58,6 +59,8 @@ export const content = {
       },
       github: {
         title: 'Where activity is collected',
+        ghAuto:
+          'Easiest: with the GitHub CLI (gh) installed and signed in, cairn imports the token automatically — no PAT needed.',
         s1pre: 'The ',
         s1link: 'classic-token link',
         s1post: ' prefills the recommended scopes.',
@@ -91,6 +94,7 @@ export const content = {
       sub: 'Apple Silicon · AGPL-3.0',
       unsigned: '미서명 앱이라 첫 실행 시 "손상됨"이 뜨면 실행:',
       copyCmd: '명령어 복사',
+      expand: '크게 보기',
     },
     how: {
       eyebrow: '작동 방식',
@@ -136,6 +140,8 @@ export const content = {
       },
       github: {
         title: '활동을 수집할 곳',
+        ghAuto:
+          '가장 쉬움: GitHub CLI(gh)가 설치·로그인돼 있으면 cairn 이 토큰을 자동으로 가져옵니다 — PAT 불필요.',
         s1pre: '',
         s1link: 'Classic 토큰 링크',
         s1post: '가 권장 scope 를 미리 채워줍니다.',

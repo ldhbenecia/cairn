@@ -78,6 +78,7 @@ export async function Landing({ lang }: { lang: Lang }) {
               src="/intro.mp4"
               poster={`/statistics_${lang === 'ko' ? 'ko' : 'us'}.png`}
               alt={lang === 'ko' ? 'cairn 데모 영상' : 'cairn demo'}
+              expandLabel={c.hero.expand}
             />
           </div>
         </div>
@@ -176,6 +177,9 @@ export async function Landing({ lang }: { lang: Lang }) {
             <li>{c.setup.notion.s3}</li>
           </SetupCard>
           <SetupCard tag="GitHub" title={c.setup.github.title}>
+            <li className="marker:text-accent-hover">
+              <span className="text-ink-muted">{c.setup.github.ghAuto}</span>
+            </li>
             <li>
               {c.setup.github.s1pre}
               <SetupLink href="https://github.com/settings/tokens/new?scopes=repo,read:user&description=cairn%20worklog">
