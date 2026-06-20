@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-export type WorklogStat = { pr: number; commit: number; hours?: number[] };
+export type WorklogStat = { pr: number; commit: number; hours?: number[]; updatedAt?: string };
 export type WorklogStatsFile = Record<string, WorklogStat>;
 
 const STATS_DIR = join(homedir(), '.cairn');
@@ -17,7 +17,7 @@ export class WorklogStatsService {
   record(category: string, date: string, stat: WorklogStat): void {
     try {
       const all = this.readAll();
-      all[`${category}:${date}`] = stat;
+      all[`${category}:${date}`] = { ...stat, updatedAt: new Date().toISOString() };
       mkdirSync(STATS_DIR, { recursive: true });
       writeFileSync(STATS_PATH, JSON.stringify(all), 'utf8');
     } catch {

@@ -154,7 +154,9 @@ declare global {
         state: () => Promise<CloudAuthState>;
         signIn: () => Promise<void>;
         signOut: () => Promise<void>;
+        syncNow: () => Promise<void>;
         onChanged: (cb: (s: CloudAuthState) => void) => () => void;
+        onStatsSynced: (cb: () => void) => () => void;
       };
       run: (mode: CoreMode, options?: CoreRunOptions) => Promise<CoreResult>;
       running: () => Promise<boolean>;

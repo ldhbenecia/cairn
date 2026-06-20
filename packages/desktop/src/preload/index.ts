@@ -125,10 +125,16 @@ contextBridge.exposeInMainWorld('cairn', {
     state: () => ipcRenderer.invoke('cairn:auth:state') as Promise<CloudAuthState>,
     signIn: () => ipcRenderer.invoke('cairn:auth:sign-in') as Promise<void>,
     signOut: () => ipcRenderer.invoke('cairn:auth:sign-out') as Promise<void>,
+    syncNow: () => ipcRenderer.invoke('cairn:sync:now') as Promise<void>,
     onChanged: (cb: (s: CloudAuthState) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, s: CloudAuthState): void => cb(s);
       ipcRenderer.on('cairn:auth:changed', listener);
       return () => ipcRenderer.off('cairn:auth:changed', listener);
+    },
+    onStatsSynced: (cb: () => void): (() => void) => {
+      const listener = (): void => cb();
+      ipcRenderer.on('cairn:stats:synced', listener);
+      return () => ipcRenderer.off('cairn:stats:synced', listener);
     },
   },
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>

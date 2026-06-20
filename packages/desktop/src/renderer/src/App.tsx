@@ -101,6 +101,23 @@ export function App() {
     void loadRecent();
   }, [loadRecent]);
 
+  // 로그인돼 있으면 통계 동기화(앱 시작·로그인 시), 동기화로 로컬이 바뀌면 대시보드 갱신.
+  useEffect(() => {
+    const trySync = (signedIn: boolean): void => {
+      if (signedIn) void window.cairn.cloud.syncNow().catch(() => {});
+    };
+    void window.cairn.cloud
+      .state()
+      .then((s) => trySync(s.signedIn))
+      .catch(() => {});
+    const offChanged = window.cairn.cloud.onChanged((s) => trySync(s.signedIn));
+    const offSynced = window.cairn.cloud.onStatsSynced(() => void loadRecent());
+    return () => {
+      offChanged();
+      offSynced();
+    };
+  }, [loadRecent]);
+
   useEffect(() => {
     const off = window.cairn.onRunLine((l) => {
       setSessions((prev) => {
@@ -169,6 +186,7 @@ export function App() {
       });
       setRunningMode((rm) => (rm === mode ? null : rm));
       void loadRecent();
+      void window.cairn.cloud.syncNow().catch(() => {});
     });
     return off;
   }, [loadRecent]);

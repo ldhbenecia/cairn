@@ -15,6 +15,7 @@ import {
   type CoreRunOptions,
 } from './core-runner';
 import { cloudAuthState, cloudSignOut, startCloudSignIn } from './cloud-auth';
+import { syncStats } from './cloud-sync';
 import { readConfig, tailLatestLog } from './files';
 import { fetchPageContent, listRecentPages } from './notion-client';
 import {
@@ -156,6 +157,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:auth:state', () => cloudAuthState());
   ipcMain.handle('cairn:auth:sign-in', () => startCloudSignIn());
   ipcMain.handle('cairn:auth:sign-out', () => cloudSignOut());
+  ipcMain.handle('cairn:sync:now', () => syncStats());
   ipcMain.handle('cairn:onboarding:pick-folder', async () => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory'] });
     return r.canceled ? null : (r.filePaths[0] ?? null);
