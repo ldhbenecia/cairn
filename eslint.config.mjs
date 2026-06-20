@@ -14,6 +14,7 @@ export default [
       '**/node_modules/**',
       'eslint.config.mjs',
       'commitlint.config.js',
+      '.lintstagedrc.mjs',
       'packages/desktop/scripts/**',
       'packages/web/**',
     ],

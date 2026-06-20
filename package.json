@@ -22,15 +22,6 @@
     "test:watch": "pnpm --filter @cairn/core test:watch",
     "prepare": "husky"
   },
-  "lint-staged": {
-    "*.{ts,js,mjs,cjs}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,yml,yaml}": [
-      "prettier --write"
-    ]
-  },
   "packageManager": "pnpm@10.33.2",
   "pnpm": {
     "onlyBuiltDependencies": [
