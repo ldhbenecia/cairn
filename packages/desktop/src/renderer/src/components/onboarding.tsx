@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { NotionDb, NotionPage } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
+import notionGuidePoster from '../assets/notion-integration-poster.png';
+import notionGuideVideo from '../assets/notion-integration.mp4';
 import { BrandMark } from './brand-mark';
 
 type T = (key: I18nKey) => string;
@@ -247,6 +249,21 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 { label: t('onb.notion.link'), url: 'https://www.notion.so/my-integrations' },
               ]}
             >
+              <figure className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
+                <video
+                  className="block w-full"
+                  src={notionGuideVideo}
+                  poster={notionGuidePoster}
+                  controls
+                  muted
+                  playsInline
+                  preload="metadata"
+                  aria-label={t('onb.notion.videoGuide')}
+                />
+                <figcaption className="border-t border-hairline px-3 py-2 text-[12px] text-ink-tertiary">
+                  {t('onb.notion.videoGuide')}
+                </figcaption>
+              </figure>
               {notion.map((e, i) => (
                 <NotionCard
                   key={i}
