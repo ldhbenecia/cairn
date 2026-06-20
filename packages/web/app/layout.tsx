@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
 import './globals.css';
 import { SITE_URL } from '../lib/site';
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   title: { default: TITLE, template: '%s · cairn' },
   description: DESC,
   applicationName: 'cairn',
-  verification: { google: 'BfclWB7IHeZzOhH9TdVvAQ9JhjRGyB-DUZsfMn8yEEg' },
+  verification: { google: '7QKVPa1UOtavPhxe2_sNZlXN812-43QpFZ6l3ldue40' },
   keywords: [
     'developer worklog',
     'dev journal',
@@ -85,7 +86,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
