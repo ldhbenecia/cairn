@@ -257,7 +257,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   controls
                   muted
                   playsInline
-                  preload="metadata"
+                  preload="auto"
                   aria-label={t('onb.notion.videoGuide')}
                 />
                 <figcaption className="border-t border-hairline px-3 py-2 text-[12px] text-ink-tertiary">
