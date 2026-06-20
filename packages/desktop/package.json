@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@notionhq/client": "^5.20.0",
-    "electron-updater": "^6.8.3",
+    "electron-updater": "^6.8.9",
     "posthog-node": "^5.36.3"
   },
   "devDependencies": {
