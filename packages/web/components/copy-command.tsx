@@ -9,10 +9,14 @@ export function CopyCommand({ command, copyLabel }: { command: string; copyLabel
     <button
       type="button"
       onClick={() => {
-        void navigator.clipboard.writeText(command).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        });
+        if (!navigator.clipboard) return;
+        void navigator.clipboard
+          .writeText(command)
+          .then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          })
+          .catch((err) => console.error('clipboard write failed', err));
       }}
       aria-label={copyLabel}
       className="group inline-flex max-w-full items-center gap-2 rounded-lg border border-hairline bg-surface-1 px-3 py-2 text-left transition-colors hover:border-ink-subtle"

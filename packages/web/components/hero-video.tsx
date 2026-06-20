@@ -16,6 +16,7 @@ export function HeroVideo({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [open, setOpen] = useState(false);
+  const [reduced, setReduced] = useState(false);
 
   // prefers-reduced-motion 존중: 모션 최소화 설정이면 인라인 재생을 멈추고 poster 만 보여준다.
   useEffect(() => {
@@ -23,6 +24,7 @@ export function HeroVideo({
     if (!video) return;
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const apply = (): void => {
+      setReduced(mq.matches);
       if (mq.matches) video.pause();
       else void video.play().catch(() => {});
     };
@@ -37,10 +39,11 @@ export function HeroVideo({
       if (e.key === 'Escape') setOpen(false);
     };
     document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
+      document.body.style.overflow = prevOverflow;
     };
   }, [open]);
 
@@ -90,7 +93,8 @@ export function HeroVideo({
               className="max-h-[92vh] max-w-[94vw] rounded-xl border border-hairline-strong shadow-2xl shadow-black/60"
               src={src}
               poster={poster}
-              autoPlay
+              autoPlay={!reduced}
+              controls={reduced}
               muted
               loop
               playsInline
