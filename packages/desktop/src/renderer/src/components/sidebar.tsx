@@ -147,7 +147,7 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
         </span>
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40">
+        <div className="popover-in absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40 [transform-origin:top]">
           <button
             type="button"
             onClick={() => {
