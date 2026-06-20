@@ -3,7 +3,7 @@ import { defineConfig } from 'drizzle-kit';
 try {
   process.loadEnvFile('.env.local');
 } catch {
-  // .env.local 없으면 환경변수에 의존
+  /* fall back to ambient env */
 }
 
 export default defineConfig({

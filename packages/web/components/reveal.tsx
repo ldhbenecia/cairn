@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-// 스크롤로 뷰포트에 들어오면 페이드업 — Linear/Framer 톤의 진입 모션. delay 로 stagger.
 export function Reveal({
   children,
   delay = 0,
