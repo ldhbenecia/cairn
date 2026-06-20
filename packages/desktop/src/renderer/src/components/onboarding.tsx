@@ -13,7 +13,7 @@ type Status = 'idle' | 'testing' | 'ok' | 'err';
 
 type TokenKind = 'notion' | 'github';
 
-// 토큰 prefix 로 다른 서비스 토큰을 잘못 붙여넣은 경우를 감지 (알 수 없는 형식은 침묵).
+// 토큰 prefix 로 다른 서비스 토큰을 잘못 붙여넣은 경우를 감지 (알 수 없는 형식은 침묵)
 function tokenMismatchKey(kind: TokenKind, token: string): I18nKey | null {
   const t = token.trim();
   if (!t) return null;
@@ -133,7 +133,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     patchGithub(i, r.ok ? { status: 'ok', login: r.login } : { status: 'err', error: r.error });
   }
 
-  // 설치된 gh CLI 인증 재사용 — 수동 PAT 없이 토큰 가져와 첫 빈 계정에 채우고 바로 검증.
+  // 설치된 gh CLI 인증 재사용 — 수동 PAT 없이 토큰 가져와 첫 빈 계정에 채우고 바로 검증
   async function importFromGh() {
     setGhImporting(true);
     setGhMsg(null);
@@ -199,7 +199,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     setClaudeStatus(r.ok ? 'ok' : 'err');
   }
 
-  // Claude 단계 진입 시 자동 연결 확인.
+  // Claude 단계 진입 시 자동 연결 확인
   useEffect(() => {
     if (step === 'claude' && claudeStatus === 'idle') void testClaude();
   }, [step]);
@@ -620,7 +620,7 @@ function LabelToken({
 }) {
   const { t } = useSettings();
   const mismatchKey = tokenMismatchKey(kind, token);
-  // 입력 후 자동 검증 (디바운스 800ms).
+  // 입력 후 자동 검증 (디바운스 800ms)
   const onTestRef = useRef(onTest);
   onTestRef.current = onTest;
   const first = useRef(true);

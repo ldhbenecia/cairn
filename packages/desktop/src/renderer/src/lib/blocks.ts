@@ -6,7 +6,7 @@ export const blockText = (b: SimpleBlock): string =>
     .join('')
     .trim();
 
-// 발행기가 쓰는 섹션 헤딩(Share·Done 등)은 고정 영어라 lowercase 로 비교.
+// 발행기가 쓰는 섹션 헤딩(Share·Done 등)은 고정 영어라 lowercase 로 비교
 export function sectionBullets(blocks: SimpleBlock[], section: string): string[] {
   const target = section.toLowerCase();
   const start = blocks.findIndex(
@@ -25,7 +25,7 @@ export function sectionBullets(blocks: SimpleBlock[], section: string): string[]
   return out;
 }
 
-// Notion API rate limit 회피용 동시성 캡 (진행 콜백 지원).
+// Notion API rate limit 회피용 동시성 캡 (진행 콜백 지원)
 export async function pool<T, R>(
   items: readonly T[],
   limit: number,
