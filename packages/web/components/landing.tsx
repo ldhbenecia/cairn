@@ -265,21 +265,28 @@ export async function Landing({ lang }: { lang: Lang }) {
       {/* FOOTER */}
       <footer className="border-t border-hairline">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
-          <a href="#top" className="flex items-center gap-2 text-[14px] font-semibold">
+          <div className="flex items-center gap-2 text-[14px]">
             <BrandMark size={16} className="text-accent" />
-            cairn
-          </a>
-          <div className="flex items-center gap-6 text-[14px] text-ink-subtle">
+            <span className="font-semibold">cairn</span>
+            <span className="text-ink-tertiary">© {new Date().getFullYear()} Cairn</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13.5px] text-ink-subtle">
             <a href={REPO_URL} target="_blank" rel="noreferrer" className="hover:text-ink">
               GitHub
             </a>
             <a
-              href={`${REPO_URL}/releases`}
+              href={`${REPO_URL}/blob/main/docs/SETUP.md`}
               target="_blank"
               rel="noreferrer"
               className="hover:text-ink"
             >
-              Releases
+              {c.footer.docs}
+            </a>
+            <a href="/privacy" className="hover:text-ink">
+              {c.footer.privacy}
+            </a>
+            <a href="/terms" className="hover:text-ink">
+              {c.footer.terms}
             </a>
             <a
               href={`${REPO_URL}/blob/main/LICENSE`}

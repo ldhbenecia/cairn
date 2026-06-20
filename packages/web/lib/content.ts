@@ -82,6 +82,7 @@ export const content = {
       gatekeeperPost: ' once.',
     },
     cta: { title: 'Start stacking your worklog', button: 'Download for macOS' },
+    footer: { docs: 'Docs', privacy: 'Privacy Policy', terms: 'Terms of Service' },
   },
   ko: {
     nav: { how: '작동 방식', worklog: '일지', setup: '설정' },
@@ -164,5 +165,6 @@ export const content = {
       gatekeeperPost: '.',
     },
     cta: { title: '오늘부터 일지를 쌓아보세요', button: 'macOS 다운로드' },
+    footer: { docs: '문서', privacy: '개인정보 처리방침', terms: '서비스 약관' },
   },
 } satisfies Record<Lang, unknown>;
