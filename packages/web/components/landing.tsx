@@ -1,6 +1,7 @@
 import { content, type Lang } from '../lib/content';
 import { getRepoStats, REPO_URL, RELEASES_LATEST } from '../lib/github';
 import { BrandMark } from './brand-mark';
+import { CopyCommand } from './copy-command';
 import { HeroVideo } from './hero-video';
 import { LangSwitcher } from './lang-switcher';
 import { Nav } from './nav';
@@ -9,8 +10,9 @@ import { Screenshot } from './screenshot';
 
 export async function Landing({ lang }: { lang: Lang }) {
   const c = content[lang];
-  const { stars, latestTag, dmgUrl } = await getRepoStats();
-  const download = dmgUrl ?? RELEASES_LATEST;
+  const { stars, latestTag } = await getRepoStats();
+  const download = RELEASES_LATEST;
+  const unblockCmd = 'xattr -d com.apple.quarantine /Applications/Cairn.app';
 
   return (
     <div id="top">
@@ -57,6 +59,10 @@ export async function Landing({ lang }: { lang: Lang }) {
               {latestTag ? `${latestTag} · ` : ''}
               {c.hero.sub}
             </p>
+            <div className="mt-5 max-w-md">
+              <p className="mb-2 text-[12.5px] leading-relaxed text-ink-tertiary">{c.hero.unsigned}</p>
+              <CopyCommand command={unblockCmd} copyLabel={c.hero.copyCmd} />
+            </div>
           </div>
 
           <div className="reveal relative" style={{ animationDelay: '0.1s' }}>
@@ -230,6 +236,10 @@ export async function Landing({ lang }: { lang: Lang }) {
             {latestTag ? `${latestTag} · ` : ''}
             {c.hero.sub}
           </p>
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <p className="text-[12.5px] text-ink-tertiary">{c.hero.unsigned}</p>
+            <CopyCommand command={unblockCmd} copyLabel={c.hero.copyCmd} />
+          </div>
         </div>
       </section>
 

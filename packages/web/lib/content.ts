@@ -11,6 +11,8 @@ export const content = {
       download: 'Download for macOS',
       source: 'View source',
       sub: 'Apple Silicon · AGPL-3.0',
+      unsigned: "Unsigned app — if macOS says it's damaged on first launch, run:",
+      copyCmd: 'Copy command',
     },
     how: {
       eyebrow: 'How it works',
@@ -87,6 +89,8 @@ export const content = {
       download: 'macOS 다운로드',
       source: '소스 보기',
       sub: 'Apple Silicon · AGPL-3.0',
+      unsigned: '미서명 앱이라 첫 실행 시 "손상됨"이 뜨면 실행:',
+      copyCmd: '명령어 복사',
     },
     how: {
       eyebrow: '작동 방식',
