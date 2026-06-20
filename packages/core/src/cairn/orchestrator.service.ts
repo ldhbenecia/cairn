@@ -99,13 +99,13 @@ export class OrchestratorService {
 
     let backfillDone = 0;
     const backfillTotal = missingDates.length;
-    // 데스크톱 배치 진행 UI 가 시작 즉시 총개수를 알도록(완료 로그 전부터 칸 렌더링).
+    // 데스크톱 배치 진행 UI 가 시작 즉시 총개수를 알도록(완료 로그 전부터 칸 렌더링)
     this.logger.info({ total: backfillTotal }, 'daily: backfill batch start');
     const results = await withConcurrency<
       string,
       { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' }
     >(missingDates, BACKFILL_CONCURRENCY, async (date) => {
-      // 날짜별 "시작" — 요약 중(완료 전)에도 동시 처리 중인 칸을 펄스로 보여주기 위함.
+      // 날짜별 "시작" — 요약 중(완료 전)에도 동시 처리 중인 칸 펄스 표시
       this.logger.info({ date }, 'daily: backfill date start');
       let result: { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' };
       try {
@@ -184,7 +184,6 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
-    // 발행 모달·요약·통계가 같은 정의를 쓰도록 한 곳에서 산정(commit=distinct, pr=그날 전체 PR).
     const { prCount, commitCount } = computeDayTotals(githubActivity, localGitActivity);
 
     if (prCount + commitCount === 0) {
@@ -206,8 +205,8 @@ export class OrchestratorService {
     );
     const summarizeMs = Date.now() - summarizeStart;
 
-    // 요약 실패(Claude 세션 만료·쿼터 소진·중단 등)면 발행하지 않는다. 빈 fallback 페이지를
-    // '성공'으로 만들어 가짜 발행이 남던 문제 방지 — 발행 전에 던져 기존 페이지도 안 건드림.
+    // 요약 실패(Claude 세션 만료·쿼터 소진·중단 등)면 발행 안 함 — 빈 fallback 페이지를
+    // '성공'으로 만들어 가짜 발행이 남던 문제 방지, 발행 전에 던져 기존 페이지도 안 건드림
     if (!summary) {
       this.logger.warn({ date }, 'daily: summary generation failed — aborting publish');
       throw CairnError.from(
@@ -228,7 +227,7 @@ export class OrchestratorService {
     const publishMs = Date.now() - publishStart;
 
     // 통계는 노션이 아닌 로컬에 기록(진실 소스). pr·commit 은 위 distinct 총량과 동일,
-    // hours=커밋 시각 24칸 히스토그램(머신 로컬 TZ, SHA 중복 제거).
+    // hours=커밋 시각 24칸 히스토그램(머신 로컬 TZ, SHA 중복 제거)
     if (result.kind === 'created' || result.kind === 'recreated') {
       const seen = new Set<string>();
       const stamps: string[] = [];

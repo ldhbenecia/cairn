@@ -34,7 +34,7 @@ function ensureEnvLoaded(): void {
       if (!(key in process.env)) process.env[key] = value;
     }
   } catch {
-    // .env 없으면 skip — listRecentPages 가 token 못 찾으면 warning 으로 표시
+    // .env 없으면 skip
   }
 }
 
@@ -66,11 +66,11 @@ type ParsedConfig = {
 
 const PAGE_SIZE = 100; // Notion 쿼리 1회 최대
 const MAX_QUERY_PAGES = 6; // 데이터소스당 최대 600건까지 페이징(백필로 일간이 100 초과 — 히트맵 53주 필요)
-const MAX_RECENT_PAGES = 800; // 전체(일간+롤업) 반환 상한
+const MAX_RECENT_PAGES = 800;
 
 type NotionPageItem = { id: string; url?: string; properties: Record<string, unknown> };
 
-// 단일 쿼리는 100건 상한이라 cursor 로 끝까지(상한 내) 페이징. 일간이 100 넘으면 오래된 게 잘리던 문제 해결.
+// 단일 쿼리는 100건 상한이라 cursor 로 끝까지(상한 내) 페이징. 일간이 100 넘으면 오래된 게 잘리던 문제 해결
 async function queryAllResults(
   notion: Client,
   params: { data_source_id: string; sorts: Array<{ property: string; direction: 'descending' }> },
@@ -117,7 +117,7 @@ function readDate(props: Record<string, unknown>, key: string): string | null {
   return p?.date?.start ?? null;
 }
 
-// 통계 진실 소스는 노션이 아닌 로컬 파일(core 가 발행 시 기록). key 는 `${category}:${date}`.
+// 통계 진실 소스는 노션이 아닌 로컬 파일(core 가 발행 시 기록). key 는 `${category}:${date}`
 type WorklogStat = { pr: number; commit: number; hours?: number[] };
 const STATS_PATH = join(homedir(), '.cairn', 'worklog-stats.json');
 function readWorklogStats(): Record<string, WorklogStat> {

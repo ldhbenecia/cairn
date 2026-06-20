@@ -18,8 +18,8 @@
     "dist": "pnpm --filter @cairn/core build:bundle && electron-vite build && electron-builder"
   },
   "dependencies": {
-    "@notionhq/client": "^5.20.0",
-    "electron-updater": "^6.8.3",
+    "@notionhq/client": "^5.22.0",
+    "electron-updater": "^6.8.9",
     "posthog-node": "^5.36.3"
   },
   "devDependencies": {
@@ -27,7 +27,7 @@
     "@tailwindcss/vite": "^4.0.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^4.7.0",
     "electron": "^42.3.3",
     "electron-builder": "^25.1.8",
     "electron-vite": "^3.0.0",

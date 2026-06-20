@@ -39,13 +39,13 @@ const POP_W = 256;
 const POP_H = 322;
 
 type Props = {
-  value: string; // YYYY-MM-DD
-  max: string; // 선택 상한 (이 날짜 이후 비활성)
+  value: string;
+  max: string;
   disabled?: boolean;
   onChange: (iso: string) => void;
 };
 
-// body portal + 고정 위치(모달에 안 갇힘). pointer-events-auto: Radix 가 body 에 none 을 걸어도 클릭이 먹게.
+// body portal + 고정 위치(모달에 안 갇힘). pointer-events-auto: Radix 가 body 에 none 을 걸어도 클릭이 먹게
 export function DatePicker({ value, max, disabled, onChange }: Props) {
   const { t, settings } = useSettings();
   const en = settings.language === 'en';

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type { WorklogLang } from '../cairn/run-options.js';
-import { CLAUDE_ICON_URL } from '../common/branding.js';
 import { isOperator } from '../common/operator.js';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type { GithubActivity } from '../contracts/github-activity.types.js';
@@ -11,6 +10,16 @@ import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
 import { NotionApiClient } from './notion-api.client.js';
+import {
+  bulletItem,
+  bulletsOrEmpty,
+  callout,
+  claudeCallout,
+  codeBlock,
+  heading2,
+  heading3,
+  paragraph,
+} from './notion-blocks.js';
 
 const WORKLOG_DB_TITLE = 'Daily Worklog (cairn)';
 const RAW_DUMP_CHUNK_SIZE = 1900;
@@ -146,7 +155,7 @@ export class NotionPublisherService {
       }
       // 새 페이지를 먼저 만들고 그다음 기존 것을 archive — create 실패 시 기존 일지가 보존되도록
       // (이전엔 archive 먼저라 create 가 실패하면 그 날 일지가 소실됐다). archive 가 실패하면
-      // 중복 페이지가 잠깐 남지만 데이터 손실은 없다(다음 force 가 최신 것을 잡도록 정렬 보강).
+      // 중복 페이지가 잠깐 남지만 데이터 손실은 없음(다음 force 가 최신 것을 잡도록 정렬 보강)
       const createStartedAt = Date.now();
       const created = await this.createPage(input, token, dataSourceId);
       this.logger.info(
@@ -267,7 +276,6 @@ export class NotionPublisherService {
 }
 
 // 커밋 시각(ISO) 들의 24칸 시간 히스토그램. 머신 로컬 시간 기준(getHours) — KST 단정 금지(timezone 룰).
-// 통계는 노션이 아닌 로컬에 저장(orchestrator) — 이 함수는 그 집계에 쓰인다.
 export function hourHistogram(isoTimestamps: readonly string[]): number[] {
   const hours = new Array<number>(24).fill(0);
   for (const iso of isoTimestamps) {
@@ -344,8 +352,8 @@ function buildFallbackBlocks(input: PublishWorklogInput): readonly unknown[] {
 }
 
 function buildRawDumpToggle(input: PublishWorklogInput): unknown {
-  // operator 전용 디버그 덤프도 egress 검사(fail-closed): 금지 패턴(절대경로·토큰·diff 등 —
-  // 예: CairnError.message 의 git 에러 경로)이 있으면 통째로 redact 후 발행 계속.
+  // operator 전용 디버그 덤프도 egress 검사(fail-closed) — 금지 패턴(절대경로·토큰·diff 등,
+  // 예: CairnError.message 의 git 에러 경로)이 있으면 통째로 redact 후 발행 계속
   let rawDump: string;
   try {
     assertNoForbiddenPayload({ github: input.github, localGit: input.localGit }, 'notion.rawDump');
@@ -388,48 +396,6 @@ function chunkRawDump(rawDump: string): string[] {
   return chunks.length > 0 ? chunks : ['{}'];
 }
 
-function claudeCallout(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'callout',
-    callout: {
-      icon: { type: 'external', external: { url: CLAUDE_ICON_URL } },
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function callout(emoji: string, text: string): unknown {
-  return {
-    object: 'block',
-    type: 'callout',
-    callout: {
-      icon: { type: 'emoji', emoji },
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function heading2(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'heading_2',
-    heading_2: {
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function heading3(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'heading_3',
-    heading_3: {
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
 export function buildDoneBlocks(
   bullets: readonly string[],
   accountLabels: readonly string[] = [],
@@ -462,7 +428,7 @@ export function buildDoneBlocks(
       if (items.length === 0) out.push(paragraph('None'));
       else for (const text of items) out.push(bulletItem(text));
     }
-    // 모델이 설정 목록에 없는 라벨로 붙인 경우(예외)도 살린다.
+    // 모델이 설정 목록에 없는 라벨로 붙인 경우(예외)도 유지
     for (const acct of order) {
       if (shown.has(acct)) continue;
       out.push(heading3(acct));
@@ -479,40 +445,4 @@ export function buildDoneBlocks(
     for (const text of groups.get(acct)!) out.push(bulletItem(text));
   }
   return out;
-}
-
-function paragraph(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'paragraph',
-    paragraph: {
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function codeBlock(language: string, content: string): unknown {
-  return {
-    object: 'block',
-    type: 'code',
-    code: {
-      language,
-      rich_text: [{ type: 'text', text: { content } }],
-    },
-  };
-}
-
-function bulletItem(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'bulleted_list_item',
-    bulleted_list_item: {
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function bulletsOrEmpty(items: readonly string[]): unknown[] {
-  if (items.length === 0) return [paragraph('—')];
-  return items.map((t) => bulletItem(t));
 }

@@ -24,7 +24,7 @@
   },
   "lint-staged": {
     "*.{ts,js,mjs,cjs}": [
-      "eslint --fix",
+      "eslint --fix --no-config-lookup --no-warn-ignored --config eslint.config.mjs",
       "prettier --write"
     ],
     "*.{json,yml,yaml}": [
@@ -51,7 +51,7 @@
     "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^17.5.0",
     "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
+    "lint-staged": "^17.0.7",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.0",

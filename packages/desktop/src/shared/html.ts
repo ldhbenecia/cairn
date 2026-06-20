@@ -1,6 +1,6 @@
 import type { MdBlock, MdSpan } from './markdown';
 
-// data: URL 로 싣기 때문에 CSS 는 인라인으로 자기완결이어야 한다.
+// data: URL 로 싣기 때문에 CSS 는 인라인 자기완결 필요
 
 function escapeHtml(s: string): string {
   return s

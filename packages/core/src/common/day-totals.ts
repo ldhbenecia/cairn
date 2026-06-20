@@ -9,13 +9,12 @@ export interface AccountTotals {
 export interface DayTotals {
   prCount: number;
   commitCount: number;
-  // GitHub 계정 라벨(Work/Personal 등)별 PR 수 + 그 계정 PR 안 커밋 distinct.
-  // 로컬 커밋은 계정이 없어 전체(commitCount)에만 반영되고 byAccount 엔 들어가지 않는다.
+  // GitHub 계정 라벨(Work/Personal 등)별 PR 수 + 그 계정 PR 안 커밋 distinct
+  // 로컬 커밋은 계정이 없어 전체(commitCount)에만 반영, byAccount 미포함
   byAccount: Record<string, AccountTotals>;
 }
 
-// 그날 작업 총량 — 발행 진행 모달·요약문·통계가 같은 정의를 쓰도록 한 곳에서 계산.
-// prCount = 그날 건드린 전체 PR 수, commitCount = 로컬 + GitHub PR 안 내 커밋의 distinct
+// commitCount = 로컬 + GitHub PR 안 내 커밋의 distinct
 // (shortSha 로 중복 제거 — 같은 커밋이 로컬과 PR 양쪽에 잡혀도 한 번만).
 export function computeDayTotals(
   github: GithubActivity | null | undefined,

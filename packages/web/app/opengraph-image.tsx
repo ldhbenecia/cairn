@@ -7,7 +7,6 @@ export const contentType = 'image/png';
 
 const ACCENT = '#5b61e6';
 
-// 정적 마케팅 OG — 다국어 무관하게 영문 워드마크로 통일.
 export default function OpengraphImage() {
   return new ImageResponse(
     (

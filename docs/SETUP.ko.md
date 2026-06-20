@@ -4,9 +4,11 @@
 
 > **English guide**: [SETUP.md](SETUP.md)
 
+> **대부분은 데스크톱 앱을 쓰면 된다.** [cairn 데스크톱 앱](../README.md)은 첫 실행 마법사가 Notion + GitHub 연결(있으면 `gh` CLI 로그인 재사용)하고 `.env` + `worklog.config.json` 을 대신 만들어 주며, 자동 발행 스케줄도 앱이 직접 관리한다. 이 가이드는 **수동 / 헤드리스 / CLI-only** 경로 — GUI 없는 서버나 `launchd` 자동화용. 크로스기기 통계 동기화는 데스크톱 앱 기능(앱에서 구글 로그인)이라 이 CLI 흐름엔 포함되지 않는다.
+
 ## 1. 사전 조건
 
-- **macOS** (launchd 로 daily / weekly / monthly 자동 실행)
+- **macOS** — 헤드리스 `launchd` 스케줄(§9)에만 필요. 데스크톱 앱은 스케줄을 자체 관리
 - **Node 24 LTS** — [.nvmrc](../.nvmrc) 따름. `nvm` / `volta` / `homebrew` 어느 것이든
 - **pnpm 10+** — `npm install -g pnpm`
 - **Claude Pro / Max 구독** — cairn 은 Claude Agent SDK 호출 시 로컬 Claude Code 의 OAuth 자격을 그대로 상속. 별도 Anthropic API 키 불필요 (Claude Code 에 로그인되어 있으면 됨)
@@ -91,6 +93,12 @@ cp .env.example .env
 ```
 
 ```env
+MACHINE_NAME=personal-mac
+NODE_ENV=development
+LOG_LEVEL=info
+# MACHINE_NAME 은 이 머신 라벨, NODE_ENV=production 이면 네이티브 알림 활성화
+# (launchd plist 가 셋팅함), LOG_LEVEL 은 pino 레벨. 셋 다 기본값 있음
+
 ANTHROPIC_OAUTH_TOKEN=
 # 비워둬도 OK — Claude Code 로그인 상태면 OAuth 자동 상속
 
@@ -99,7 +107,11 @@ GITHUB_TOKEN_WORK=github_pat_...
 # githubAccounts[].tokenEnv 가 가리키는 env 이름마다 한 줄씩 (이름 자유)
 
 NOTION_TOKEN_PERSONAL=ntn_...
+NOTION_TOKEN_WORK=ntn_...
 # notionWorkspaces[].tokenEnv 가 가리키는 env 이름마다 한 줄씩
+
+CAIRN_CONFIG_PATH=
+# 선택. worklog.config.json 경로 override (기본값 ./worklog.config.json)
 ```
 
 `.env` 는 gitignore 됨. 그 상태로 유지.
@@ -176,6 +188,8 @@ node packages/core/dist/main.js --mode=monthly --date=$(date +%F)
 첫 실행 시 롤업 DB 자동 생성. weekly 제목: `2026-W19 주간 정리`. monthly: `2026-05 월간 정리`.
 
 ## 9. launchd 등록
+
+> **데스크톱 앱 사용자는 이 섹션 건너뛰어도 됨.** 자동 발행은 데스크톱 앱이 사용자가 정한 로컬 시각에 맡아 처리한다 (ADR 0015). `launchd` 는 GUI 없는 환경용으로 남겨둔 deprecated 헤드리스 / CLI-only 스케줄러.
 
 세 plist (daily / weekly / monthly) 모두 일괄 등록:
 

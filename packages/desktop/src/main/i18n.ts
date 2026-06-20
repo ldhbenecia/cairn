@@ -1,6 +1,6 @@
 import { readSettings, type Language } from './settings';
 
-// main 프로세스는 렌더러 i18n 번들을 못 쓰므로 알림·트레이용 문자열만 둔다. 키 누락 시 ko fallback.
+// main 프로세스는 렌더러 i18n 번들을 못 쓰므로 알림·트레이용 문자열만 둔다. 키 누락 시 ko fallback
 const STRINGS = {
   ko: {
     'mode.daily': '오늘 일지',

@@ -1,11 +1,12 @@
 # @cairn/web
 
-The cairn marketing landing site. **Independent of the desktop app** — it has no version/tag/release of its own and is deployed by Vercel on every `main` push.
+The cairn marketing landing site **and** the cross-device sync backend. **Independent of the desktop app** — it has no version/tag/release of its own and is deployed by Vercel on every `main` push.
 
 ## Stack
 
 - Next.js (App Router) + React + Tailwind v4
 - GitHub star count and the latest release are fetched in a server component with 1-hour ISR (`lib/github.ts`)
+- Cross-device sync backend: Better Auth (Google OAuth) + Drizzle ORM + PostgreSQL (`lib/auth.ts`, `lib/db.ts`, `app/api`)
 
 ## Local
 
@@ -21,7 +22,7 @@ pnpm --filter @cairn/web build   # production build
 3. Install runs from the monorepo root (`pnpm install`); build is `next build`
 4. Deploy. Subsequent pushes to `main` that touch the site redeploy automatically.
 
-> No tokens/secrets needed (public GitHub API only). Add a custom domain in the Vercel dashboard.
+> The landing site itself needs no secrets (public GitHub API only). The **sync backend** requires env vars set in the Vercel dashboard (and `.env.local` for local dev): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Add the custom domain (`cairnlog.cloud`) in the Vercel dashboard.
 
 ## Separation from the app
 

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-// 제품 스크린샷 — 프레임에 담고, 클릭 시 라이트박스로 확대
 export function Screenshot({
   src,
   alt,

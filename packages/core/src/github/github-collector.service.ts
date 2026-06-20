@@ -44,8 +44,8 @@ export class GithubCollectorService {
   async collect(date: string, lookbackDays = 14): Promise<GithubActivity> {
     const window = localDateToUtcWindow(date);
     const range = searchRangeFragment(window);
-    // 오늘 (live daily) 은 PR.updated_at 이 아직 밀리지 않은 시점 → narrow 로 충분.
-    // 과거 (backfill) 만 widening 적용해서 updated_at 이 밀린 케이스 cover.
+    // 오늘 (live daily) 은 PR.updated_at 이 아직 밀리지 않은 시점 → narrow 로 충분
+    // 과거 (backfill) 만 widening 적용해서 updated_at 이 밀린 케이스 cover
     const isBackfill = date < todayLocalIsoDate();
     const effectiveLookback = isBackfill ? lookbackDays : 0;
     const widenedRange =
@@ -142,7 +142,7 @@ export class GithubCollectorService {
       buckets.set(key, bucket);
     }
 
-    // GitHub API secondary rate limit 회피를 위해 token 당 동시 호출 5 개로 제한.
+    // GitHub API secondary rate limit 회피를 위해 token 당 동시 호출 5 개로 제한
     const phase1 = await withConcurrency([...buckets.values()], 5, async (bucket) => {
       const { item, categories } = bucket;
       const skipCommitsOnDate = categories.has('authored_merged') && item.createdAt < sinceIso;

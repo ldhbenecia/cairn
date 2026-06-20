@@ -67,11 +67,16 @@ export async function POST(req: NextRequest): Promise<Response> {
   const uid = await getUserId(req);
   if (!uid) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const rows = parseRows(await req.json().catch(() => null));
+  const body: unknown = await req.json().catch(() => null);
+  // parseRows 가 항목마다 정규식·Date 검증을 하므로, 대용량 배열은 검증 전에 길이로 먼저 차단(DoS 방어)
+  const stats = (body as { stats?: unknown } | null)?.stats;
+  if (!Array.isArray(stats)) return NextResponse.json({ error: 'bad-request' }, { status: 400 });
+  if (stats.length > 1000)
+    return NextResponse.json({ error: 'payload-too-large' }, { status: 413 });
+
+  const rows = parseRows(body);
   if (!rows) return NextResponse.json({ error: 'bad-request' }, { status: 400 });
   if (rows.length === 0) return NextResponse.json({ upserted: 0 });
-  // 일/주/월 집계라 한 번에 수천 개 초과할 이유 없음 — 메모리·파라미터 폭주 방어
-  if (rows.length > 1000) return NextResponse.json({ error: 'payload-too-large' }, { status: 413 });
 
   // LWW — 들어온 updated_at 이 더 최신일 때만 덮어씀
   await db

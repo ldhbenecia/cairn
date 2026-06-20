@@ -112,12 +112,12 @@ export function cancelRun(): boolean {
   running.kill('SIGTERM');
   return true;
 }
-// 리로드/재부착 대비 — 진행 중 run 의 시작 시각·단계, 직전 완료 결과를 메인이 보관.
+// 리로드/재부착 대비 — 진행 중 run 의 시작 시각·단계, 직전 완료 결과를 메인이 보관
 let runStartedAt = 0;
 let runStep: RunStep = 'boot';
 let lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null = null;
 
-// 백필 배치 진행 — 전체 stdout 스트림 기준 누적(렌더러 200줄 tail 제한에 영향받지 않게).
+// 백필 배치 진행 — 전체 stdout 스트림 기준 누적(렌더러 200줄 tail 제한에 영향받지 않게)
 export type RunProgress = { total: number; done: number; active: number };
 let runProgress: RunProgress | null = null;
 let bfTotal = 0;
@@ -135,7 +135,7 @@ function resetBackfillTracking(): void {
   bfLastKey = '';
 }
 
-// pino-pretty 멀티라인 대응: 헤더(`[HH:MM:SS]`) 기준 블록으로 total/done 누적, date start 수로 동시 처리 산정.
+// pino-pretty 멀티라인 대응: 헤더(`[HH:MM:SS]`) 기준 블록으로 total/done 누적, date start 수로 동시 처리 산정
 function trackBackfill(line: string, mode: CoreMode): void {
   if (line.includes('backfill date start')) bfStarted += 1;
   const isHeader = /^\[\d{2}:\d{2}:\d{2}/.test(line) || /"msg"\s*:/.test(line);
@@ -224,7 +224,7 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
   // 코드화된 에러 — 렌더러가 i18n 으로 매핑 (영어 사용자에게 한국어 새는 것 방지)
   if (running) throw new Error(`busy:${runningMode ?? mode}`);
 
-  // 전체 윈도우로 브로드캐스트 — 발행 도중 리로드해도 새 webContents 가 진행을 이어받게.
+  // 전체 윈도우로 브로드캐스트 — 발행 도중 리로드해도 새 webContents 가 진행을 이어받게
   const emit = (level: 'info' | 'err' | 'meta', line: string): void => {
     const clean = stripAnsi(line);
     appendRunLog(mode, level, clean);
@@ -302,7 +302,6 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
       running = null;
       runningMode = null;
       broadcastBusy();
-      // run 종료 — 누적 진행 상태 비움(완료 후엔 lastResult 가 스냅샷을 대신함)
       resetBackfillTracking();
       const tailSource = stderrLines.length > 0 ? stderrLines : stdoutLines;
       const tail = tailSource.slice(-STDERR_TAIL_LINES).join('\n');
@@ -330,7 +329,6 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
       };
       const outcome = result.ok ? (finalNoActivity ? 'no-activity' : 'ok') : 'fail';
       trackPublish(mode, outcome);
-      // 취소 시에는 완료 알림을 띄우지 않는다.
       if (!cancelled) sendResultNotification(mode, result);
       if (!cancelled && result.ok && lastPageId && !finalNoActivity) {
         const pad = (n: number): string => String(n).padStart(2, '0');
@@ -368,7 +366,7 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
         summaryFailed: false,
         stderrTail: err.message,
       };
-      // spawn 실패(ENOENT 등)도 완료 알림을 띄운다 — close 가 안 오는 경로라 누락됐었음.
+      // spawn 실패(ENOENT 등)도 완료 알림을 띄운다 — close 가 안 오는 경로라 누락됐었음
       sendResultNotification(mode, failResult);
       broadcastRunDone(mode, failResult);
       resolvePromise(failResult);
