@@ -288,7 +288,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
   );
 }
 
-// 발행 일지는 plain text 라 링크 annotation 이 없어, 평문 URL 을 직접 링크로 만든다.
+// 발행 일지는 plain text 라 링크 annotation 이 없어, 평문 URL 을 직접 링크화
 const URL_SPLIT = /(https?:\/\/[^\s)]+)/g;
 function linkify(text: string): ReactNode[] {
   return text.split(URL_SPLIT).map((part, i) =>

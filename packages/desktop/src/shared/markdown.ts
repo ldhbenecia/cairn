@@ -1,4 +1,4 @@
-// renderer·main 양쪽에서 쓰므로 cairn-api 의존 없이 구조적 타입만 둔다.
+// renderer·main 양쪽에서 쓰므로 cairn-api 의존 없이 구조적 타입만 둔다
 
 export interface MdSpan {
   text: string;

@@ -82,7 +82,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
   const [showProgress, setShowProgress] = useState(false);
   const isToday = date === todayIso();
 
-  // runningMode 만으론 시작 시 자동 발행이 도는 걸 모르므로 전역 busy 를 따로 본다.
+  // runningMode 만으론 시작 시 자동 발행이 도는 걸 모르므로 전역 busy 를 따로 확인
   const [externalBusy, setExternalBusy] = useState(false);
   useEffect(() => {
     void window.cairn.busyState().then((s) => setExternalBusy(s.busy));
@@ -231,7 +231,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                       backfillDays:
                         mode === 'daily' && isToday && includeBackfill ? DAILY_BACKFILL_DAYS : 0,
                       force,
-                      // 오늘이면 date 생략(엔진 기본 동작), 과거 날짜면 그 날짜를 명시.
+                      // 오늘이면 date 생략(엔진 기본 동작), 과거 날짜면 그 날짜를 명시
                       ...(isToday ? {} : { date }),
                     });
                   }}
@@ -254,7 +254,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
   );
 }
 
-// raw 로그는 UI 에 노출하지 않고, 수집 중인 소스 판단에만 내부 사용.
+// raw 로그는 UI 에 노출하지 않고, 수집 중인 소스 판단에만 내부 사용
 function collectHintKey(lines: RunSession['lines']): I18nKey {
   for (let i = lines.length - 1; i >= 0; i--) {
     const t = lines[i]?.line.toLowerCase();
@@ -265,7 +265,7 @@ function collectHintKey(lines: RunSession['lines']): I18nKey {
   return 'publish.hint.collect';
 }
 
-// 엔진 로그의 prCount/commitCountTotal 추출 (pretty·JSON 양식 모두 매칭).
+// 엔진 로그의 prCount/commitCountTotal 추출 (pretty·JSON 양식 모두 매칭)
 function collectedCounts(lines: RunSession['lines']): { pr: number | null; commit: number | null } {
   let pr: number | null = null;
   let commit: number | null = null;
@@ -314,9 +314,9 @@ function Progress({
   const ss = String(elapsed % 60).padStart(2, '0');
   const lines = session?.lines ?? [];
   const counts = useMemo(() => collectedCounts(lines), [lines]);
-  // 배치 진행은 메인이 누적·브로드캐스트한 값(로그 tail 제한과 무관하게 안정적).
+  // 배치 진행은 메인이 누적·브로드캐스트한 값(로그 tail 제한과 무관하게 안정적)
   const backfill = session?.progress ?? null;
-  // 백필은 트리거 시점부터 배치 모드 — 진행 값(N/M) 도착 전에도 선형 스텝 대신 일자별 UI.
+  // 백필은 트리거 시점부터 배치 모드 — 진행 값(N/M) 도착 전에도 선형 스텝 대신 일자별 UI
   const isBatch = session?.batch === true || backfill !== null;
   const hintIdx = step === 'summarize' ? Math.floor(elapsed / 8) % SUMMARIZE_HINTS.length : 0;
   const hint =
@@ -330,7 +330,7 @@ function Progress({
   return (
     <div className="flex flex-col gap-5 py-1">
       {isBatch ? (
-        // 백필은 날짜별로 수집·요약·발행이 동시에 도므로 단일 선형 스텝 대신 일자별 진행을 메인으로.
+        // 백필은 날짜별로 수집·요약·발행이 동시에 도므로 단일 선형 스텝 대신 일자별 진행을 메인으로
         <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-2/50 px-4 py-3.5">
           <div className="flex items-baseline justify-between">
             <span className="text-[13px] font-medium text-ink-muted">
@@ -349,7 +349,7 @@ function Progress({
             )}
           </div>
           {backfill && backfill.total <= 31 ? (
-            // 일자별 칸 — 완료(팝-인) / 동시 처리 중(펄스) / 대기. concurrency=4 만큼 active 표시.
+            // 일자별 칸 — 완료(팝-인) / 동시 처리 중(펄스) / 대기. concurrency=4 만큼 active 표시
             <div className="flex flex-wrap gap-1">
               {Array.from({ length: backfill.total }).map((_, i) => {
                 const done = i < backfill.done;

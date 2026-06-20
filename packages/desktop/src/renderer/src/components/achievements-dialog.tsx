@@ -11,7 +11,7 @@ const RANGE_LABEL: Record<number, I18nKey> = {
   90: 'achv.range.90',
 };
 
-// N일 전 로컬 날짜(YYYY-MM-DD). 로컬 자정 기준 — KST 단정 금지(timezone 룰).
+// N일 전 로컬 날짜(YYYY-MM-DD). 로컬 자정 기준 — KST 단정 금지(timezone 룰)
 function localDateDaysAgo(days: number): string {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
