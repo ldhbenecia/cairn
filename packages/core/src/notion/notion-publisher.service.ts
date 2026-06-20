@@ -155,7 +155,7 @@ export class NotionPublisherService {
       }
       // 새 페이지를 먼저 만들고 그다음 기존 것을 archive — create 실패 시 기존 일지가 보존되도록
       // (이전엔 archive 먼저라 create 가 실패하면 그 날 일지가 소실됐다). archive 가 실패하면
-      // 중복 페이지가 잠깐 남지만 데이터 손실은 없다(다음 force 가 최신 것을 잡도록 정렬 보강).
+      // 중복 페이지가 잠깐 남지만 데이터 손실은 없음(다음 force 가 최신 것을 잡도록 정렬 보강)
       const createStartedAt = Date.now();
       const created = await this.createPage(input, token, dataSourceId);
       this.logger.info(
@@ -275,8 +275,8 @@ export class NotionPublisherService {
   }
 }
 
-// 커밋 시각(ISO) 들의 24칸 시간 히스토그램. 머신 로컬 시간 기준(getHours) — KST 단정 금지(timezone 룰).
-// 통계는 노션이 아닌 로컬에 저장(orchestrator) — 이 함수는 그 집계에 쓰인다.
+// 커밋 시각(ISO) 24칸 시간 히스토그램 — 머신 로컬 시간(getHours), KST 단정 금지(timezone 룰)
+// 통계는 노션이 아닌 로컬 저장(orchestrator) — 이 함수는 그 집계에 활용
 export function hourHistogram(isoTimestamps: readonly string[]): number[] {
   const hours = new Array<number>(24).fill(0);
   for (const iso of isoTimestamps) {
@@ -353,8 +353,8 @@ function buildFallbackBlocks(input: PublishWorklogInput): readonly unknown[] {
 }
 
 function buildRawDumpToggle(input: PublishWorklogInput): unknown {
-  // operator 전용 디버그 덤프도 egress 검사(fail-closed): 금지 패턴(절대경로·토큰·diff 등 —
-  // 예: CairnError.message 의 git 에러 경로)이 있으면 통째로 redact 후 발행 계속.
+  // operator 전용 디버그 덤프도 egress 검사(fail-closed) — 금지 패턴(절대경로·토큰·diff 등,
+  // 예: CairnError.message 의 git 에러 경로)이 있으면 통째로 redact 후 발행 계속
   let rawDump: string;
   try {
     assertNoForbiddenPayload({ github: input.github, localGit: input.localGit }, 'notion.rawDump');
@@ -429,7 +429,7 @@ export function buildDoneBlocks(
       if (items.length === 0) out.push(paragraph('None'));
       else for (const text of items) out.push(bulletItem(text));
     }
-    // 모델이 설정 목록에 없는 라벨로 붙인 경우(예외)도 살린다.
+    // 모델이 설정 목록에 없는 라벨로 붙인 경우(예외)도 유지
     for (const acct of order) {
       if (shown.has(acct)) continue;
       out.push(heading3(acct));

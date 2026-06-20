@@ -85,7 +85,7 @@ export class RollupCollectorService {
     let prTotal = 0;
     let commitTotal = 0;
 
-    // 통계 진실 소스는 로컬(노션 Source counts 제거됨). 날짜별 daily 통계를 로컬에서 읽는다.
+    // 통계 진실 소스는 로컬(노션 Source counts 제거됨) — 날짜별 daily 통계를 로컬에서 읽음
     const localStats = this.stats.readAll();
     const parsedSummaries = await withConcurrency(pages, 4, async (page) => {
       const stat = localStats[`daily:${page.date}`] ?? { pr: 0, commit: 0 };
