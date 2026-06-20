@@ -33,7 +33,6 @@ export function applyTheme(theme: Theme): void {
   themeMounted = true;
 }
 
-// indigo = 기본값 (스타일시트의 테마별 accent 를 그대로 쓰고 override 안 함).
 export const ACCENTS = [
   { id: 'indigo', color: '#5b61e6', hover: '#757bf0', focus: '#474dcc' },
   { id: 'blue', color: '#3b82f6', hover: '#5b9bff', focus: '#2861c8' },

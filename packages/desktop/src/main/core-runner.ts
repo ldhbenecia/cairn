@@ -302,7 +302,6 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
       running = null;
       runningMode = null;
       broadcastBusy();
-      // run 종료 — 누적 진행 상태 비움(완료 후엔 lastResult 가 스냅샷을 대신함)
       resetBackfillTracking();
       const tailSource = stderrLines.length > 0 ? stderrLines : stdoutLines;
       const tail = tailSource.slice(-STDERR_TAIL_LINES).join('\n');
@@ -330,7 +329,6 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
       };
       const outcome = result.ok ? (finalNoActivity ? 'no-activity' : 'ok') : 'fail';
       trackPublish(mode, outcome);
-      // 취소 시에는 완료 알림을 띄우지 않는다.
       if (!cancelled) sendResultNotification(mode, result);
       if (!cancelled && result.ok && lastPageId && !finalNoActivity) {
         const pad = (n: number): string => String(n).padStart(2, '0');

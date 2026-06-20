@@ -98,7 +98,7 @@ async function completeSignIn(ott: string): Promise<void> {
     win?.show();
     win?.focus();
   } catch {
-    // 실패 시 상태 유지
+    // ignore
   }
 }
 

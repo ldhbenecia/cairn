@@ -34,7 +34,7 @@ function ensureEnvLoaded(): void {
       if (!(key in process.env)) process.env[key] = value;
     }
   } catch {
-    // .env 없으면 skip — listRecentPages 가 token 못 찾으면 warning 으로 표시
+    // .env 없으면 skip
   }
 }
 
@@ -66,7 +66,7 @@ type ParsedConfig = {
 
 const PAGE_SIZE = 100; // Notion 쿼리 1회 최대
 const MAX_QUERY_PAGES = 6; // 데이터소스당 최대 600건까지 페이징(백필로 일간이 100 초과 — 히트맵 53주 필요)
-const MAX_RECENT_PAGES = 800; // 전체(일간+롤업) 반환 상한
+const MAX_RECENT_PAGES = 800;
 
 type NotionPageItem = { id: string; url?: string; properties: Record<string, unknown> };
 

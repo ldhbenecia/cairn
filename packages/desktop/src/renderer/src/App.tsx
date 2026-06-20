@@ -39,9 +39,7 @@ export type RunSession = {
   error?: string;
   startedAt: number;
   endedAt?: number;
-  // 백필(여러 날짜)이면 트리거 시점부터 true — 진행 UI 를 일자별 배치 모드로 보이게.
   batch?: boolean;
-  // 배치 진행(메인이 stdout 누적 → 브로드캐스트). 로그 tail 제한과 무관하게 안정적.
   progress?: { total: number; done: number; active: number };
 };
 
@@ -101,7 +99,6 @@ export function App() {
     void loadRecent();
   }, [loadRecent]);
 
-  // 로그인돼 있으면 통계 동기화(앱 시작·로그인 시), 동기화로 로컬이 바뀌면 대시보드 갱신.
   useEffect(() => {
     const trySync = (signedIn: boolean): void => {
       if (signedIn) void window.cairn.cloud.syncNow().catch(() => {});
@@ -197,7 +194,6 @@ export function App() {
     return off;
   }, []);
 
-  // 발행 도중 리로드 대비 — 메인의 run 스냅샷으로 세션 복원(멈춤 방지).
   useEffect(() => {
     void window.cairn.runSnapshot().then((s) => {
       if (s.busy && s.mode) {
@@ -285,11 +281,9 @@ export function App() {
         [mode]: { state: 'running', step: 'boot', lines: [], startedAt: Date.now(), batch },
       }));
       try {
-        // 완료 처리는 onRunDone 브로드캐스트가 담당.
         await window.cairn.run(mode, options);
       } catch (err) {
         const raw = err instanceof Error ? err.message : String(err);
-        // 메인이 던진 'busy:<mode>' 코드 → i18n 친화 문구.
         const message = /(^|:\s?(Error:\s?)?)busy:/.test(raw) ? t('publish.busyMsg') : raw;
         setSessions((prev) => {
           const current = prev[mode] ?? {

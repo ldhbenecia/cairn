@@ -39,8 +39,8 @@ const POP_W = 256;
 const POP_H = 322;
 
 type Props = {
-  value: string; // YYYY-MM-DD
-  max: string; // 선택 상한 (이 날짜 이후 비활성)
+  value: string;
+  max: string;
   disabled?: boolean;
   onChange: (iso: string) => void;
 };

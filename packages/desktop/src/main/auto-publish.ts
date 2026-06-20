@@ -27,7 +27,6 @@ function localYesterdayIso(): string {
 
 const anyAutoOn = (cfg: AutoPublish): boolean => cfg.daily || cfg.weekly || cfg.monthly;
 
-// 오늘 예약 시각(로컬)이 이미 지났는지. 지나기 전이면 발행하지 않고 타이머에 맡긴다.
 export function isScheduledTimeReached(now: Date, time: string): boolean {
   const [hStr, mStr] = time.split(':');
   const h = Number.parseInt(hStr ?? '', 10);

@@ -104,7 +104,7 @@ export async function syncStats(): Promise<void> {
       if (!push.ok) break;
     }
   } catch {
-    // best-effort — 동기화 실패가 앱을 막지 않는다.
+    // best-effort
   } finally {
     running = false;
   }
