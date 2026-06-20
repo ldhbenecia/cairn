@@ -30,3 +30,11 @@ Thumbs.db
 
 # Claude Code per-machine local settings (project .claude/settings.json is committed)
 .claude/settings.local.json
+
+# 내부 문서 — 로컬에서만 관리(공개 OSS 레포에 ADR/계획/진행/노트 노출 안 함).
+# 공개 유지: docs/SETUP*.md, docs/assets/, .claude/rules/, .claude/commands/, CLAUDE.md
+docs/decisions/
+docs/plans/
+docs/progress/
+docs/notes/
+.claude/cairn-context.md
