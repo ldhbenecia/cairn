@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { isOperator } from '../common/operator.js';
-import { CLAUDE_ICON_URL } from '../common/branding.js';
 import type { RollupActivity } from '../contracts/rollup-activity.types.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogLang } from '../cairn/run-options.js';
 import { NotionApiClient } from '../notion/notion-api.client.js';
+import {
+  bulletsOrEmpty,
+  callout,
+  claudeCallout,
+  heading2,
+  paragraph,
+} from '../notion/notion-blocks.js';
 import { NotionRollupApiClient } from '../notion/notion-rollup-api.client.js';
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
@@ -312,61 +318,4 @@ function buildRollupFallbackBlocks(
       `gh:${activity.metrics.prCount} / git:${activity.metrics.commitCount} / notion:${activity.metrics.notionPageCount} / dailies:${activity.metrics.dailyCount}`,
     ),
   ];
-}
-
-function claudeCallout(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'callout',
-    callout: {
-      icon: { type: 'external', external: { url: CLAUDE_ICON_URL } },
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function callout(emoji: string, text: string): unknown {
-  return {
-    object: 'block',
-    type: 'callout',
-    callout: {
-      icon: { type: 'emoji', emoji },
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function heading2(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'heading_2',
-    heading_2: {
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function paragraph(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'paragraph',
-    paragraph: {
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function bulletItem(text: string): unknown {
-  return {
-    object: 'block',
-    type: 'bulleted_list_item',
-    bulleted_list_item: {
-      rich_text: [{ type: 'text', text: { content: text } }],
-    },
-  };
-}
-
-function bulletsOrEmpty(items: readonly string[]): unknown[] {
-  if (items.length === 0) return [paragraph('—')];
-  return items.map((t) => bulletItem(t));
 }
