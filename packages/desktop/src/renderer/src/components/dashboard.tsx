@@ -95,7 +95,8 @@ function computeStreak(byDate: Map<string, DayActivity>): { current: number; lon
   let prev: Date | null = null;
   for (const ds of sorted) {
     const d = new Date(`${ds}T00:00:00`);
-    if (prev && (d.getTime() - prev.getTime()) / 86400000 === 1) run += 1;
+    // Math.round — DST 전환일은 로컬 자정 간격이 23/25h 라 정수 나눗셈만으론 1 이 안 됨
+    if (prev && Math.round((d.getTime() - prev.getTime()) / 86400000) === 1) run += 1;
     else run = 1;
     longest = Math.max(longest, run);
     prev = d;
@@ -104,7 +105,7 @@ function computeStreak(byDate: Map<string, DayActivity>): { current: number; lon
   let current = 0;
   const cursor = new Date();
   cursor.setHours(0, 0, 0, 0);
-  if (!active.has(isoDay(cursor))) cursor.setDate(cursor.getDate() - 1); // 오늘 미발행이면 어제부터
+  if (!active.has(isoDay(cursor))) cursor.setDate(cursor.getDate() - 1);
   while (active.has(isoDay(cursor))) {
     current += 1;
     cursor.setDate(cursor.getDate() - 1);
@@ -113,12 +114,10 @@ function computeStreak(byDate: Map<string, DayActivity>): { current: number; lon
   return { current, longest };
 }
 
-// accent 외 차트별 보조 색 — 단색 인디고 일색을 피해 의미별로 분산
 const HUE = { teal: '#14b8a6', violet: '#8b5cf6', amber: '#f59e0b', rose: '#f43f5e' } as const;
 
 type CumPoint = { date: string; value: number };
 
-// 일별 누적 PR+커밋 (로컬 날짜, 최근 120일 윈도우 — 윈도우 이전 누적은 시드로 합산)
 function cumulativeSeries(byDate: Map<string, DayActivity>): CumPoint[] | null {
   const active = [...byDate.values()].filter((d) => d.total > 0).map((d) => d.date);
   if (active.length === 0) return null;

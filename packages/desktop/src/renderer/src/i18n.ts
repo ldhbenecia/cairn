@@ -1,6 +1,5 @@
 import type { Language } from './cairn-api';
 
-// 키 누락 시 ko fallback
 const STRINGS = {
   ko: {
     'brand.worklog': 'Worklog',

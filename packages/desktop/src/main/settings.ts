@@ -11,7 +11,7 @@ export type AutoPublish = {
   daily: boolean;
   weekly: boolean;
   monthly: boolean;
-  time: string; // "HH:mm" 발화 시각
+  time: string;
   backfillDays: number;
   confirmBeforeRun: boolean;
 };
