@@ -8,7 +8,7 @@ cairn turns your daily dev activity — GitHub PRs and local Git commits across 
 
 It runs as an **Electron desktop app** on top of a headless engine. Everything stays on your machine: it uses the Claude Agent SDK (no direct Anthropic API calls) and never sends source code or diffs to external services.
 
-![cairn stats dashboard](packages/web/public/statistics_us.png)
+![cairn dashboard](packages/web/public/statistic_us.png)
 
 ## Highlights
 
@@ -73,16 +73,20 @@ pnpm monorepo:
 
 - `packages/core` — headless engine (collectors → Claude summarizer → Notion publisher), runnable as a CLI
 - `packages/desktop` — Electron app (setup wizard, manual/auto publishing, in-app log viewer, stats dashboard, preferences)
-- `packages/web` — marketing site (Next.js, deployed on Vercel)
+- `packages/web` — marketing site (Next.js, deployed on Vercel); also hosts the optional cross-device sync backend (auth + stats API)
+
+### Tech stack
+
+- **Engine** (`packages/core`) — TypeScript · NestJS (standalone) · Octokit · Notion SDK · Claude Agent SDK
+- **Desktop** (`packages/desktop`) — Electron · React 19 · Tailwind CSS v4 · electron-vite · electron-updater
+- **Web** (`packages/web`) — Next.js · Tailwind CSS v4 · Better Auth + Drizzle ORM + Postgres (cross-device sync)
+- **Tooling** — pnpm workspaces · ESLint/Prettier · Husky + lint-staged · GitHub Actions
 
 ## Documentation
 
 | Path | Contents |
 |------|----------|
 | [docs/SETUP.md](docs/SETUP.md) ([한국어](docs/SETUP.ko.md)) | Manual setup guide |
-| [docs/plans/](docs/plans/) | Living design plans |
-| [docs/progress/](docs/progress/) | Work log entries and stage progress |
-| [docs/decisions/](docs/decisions/) | Architecture Decision Records |
 | [CLAUDE.md](CLAUDE.md) / [AGENTS.md](AGENTS.md) | Working context for Claude Code / Codex |
 | [.claude/rules/](.claude/rules/) | Project rules |
 
@@ -94,8 +98,6 @@ cairn sends **anonymous usage telemetry** (PostHog) to understand how many peopl
 
 - **Sent**: a random anonymous install id, app version, OS/arch, and event names (`app_launched`, `publish` with mode + outcome).
 - **Never sent**: worklog content, PR titles, repo names, commit messages, file paths, tokens, or any personal information.
-
-See [docs/decisions/0017-anonymous-telemetry.md](docs/decisions/0017-anonymous-telemetry.md).
 
 ## License
 

@@ -86,4 +86,6 @@ This repo has detailed rules in `.claude/rules/` (full index + ADRs + live plans
 - **NestJS conventions** — [.claude/rules/nestjs-conventions.md](.claude/rules/nestjs-conventions.md): no barrel `index.ts`, always concrete-path imports, official NestJS docs first.
 - **Minimal comments** — only genuinely-needed ones (eslint-disable, egress/timezone gotchas, non-obvious why). No metadata/narration comments in output files.
 
+> Internal docs (`docs/decisions/`, `docs/plans/`, `docs/progress/`, `.claude/cairn-context.md`) are **local-only (gitignored)** — present on the maintainer's machine, not in the public repo. The links above resolve locally.
+
 @.claude/cairn-context.md
