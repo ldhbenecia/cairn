@@ -1,46 +1,55 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { authClient } from '@/lib/auth-client';
 
 type Phase = 'loading' | 'signin' | 'bridging' | 'done' | 'error';
 
+// port 는 순수 숫자만 허용 — `1@evil.com` 같은 값으로 loopback URL 의 호스트가
+// 바뀌어 one-time token 이 외부로 새는 오픈 리다이렉트를 차단.
+function readPort(): string | null {
+  if (typeof window === 'undefined') return null;
+  const raw = new URLSearchParams(window.location.search).get('port');
+  const ok = raw && /^\d{1,5}$/.test(raw) && Number(raw) >= 1 && Number(raw) <= 65535;
+  return ok ? raw : null;
+}
+
 export default function DesktopLogin() {
   const { data: session, isPending } = authClient.useSession();
-  const [phase, setPhase] = useState<Phase>('loading');
-  const [port, setPort] = useState<string | null>(null);
+  const [port] = useState<string | null>(readPort);
+  const [errored, setErrored] = useState(false);
+  // one-time token 은 단일 사용 — StrictMode 재마운트·재렌더로 generate 가 중복 호출되지 않도록 1회 가드
+  const bridged = useRef(false);
+
+  let phase: Phase = 'loading';
+  if (errored) phase = 'error';
+  else if (isPending) phase = 'loading';
+  else if (!session) phase = 'signin';
+  else if (!port) phase = 'done';
+  else phase = 'bridging';
 
   useEffect(() => {
-    // port 는 순수 숫자만 허용 — `1@evil.com` 같은 값으로 loopback URL 의 호스트가
-    // 바뀌어 one-time token 이 외부로 새는 오픈 리다이렉트를 차단.
-    const raw = new URLSearchParams(window.location.search).get('port');
-    const ok = raw && /^\d{1,5}$/.test(raw) && Number(raw) >= 1 && Number(raw) <= 65535;
-    setPort(ok ? raw : null);
-  }, []);
-
-  useEffect(() => {
-    if (isPending) return;
-    if (!session) {
-      setPhase('signin');
-      return;
-    }
-    if (!port) {
-      setPhase('done');
-      return;
-    }
-    setPhase('bridging');
+    if (phase !== 'bridging' || !port || bridged.current) return;
+    bridged.current = true;
+    let cancelled = false;
     void authClient.oneTimeToken
       .generate()
       .then((res) => {
+        if (cancelled) return;
         const token = res.data?.token;
         if (!token) {
-          setPhase('error');
+          setErrored(true);
           return;
         }
         window.location.href = `http://127.0.0.1:${port}/?token=${encodeURIComponent(token)}`;
       })
-      .catch(() => setPhase('error'));
-  }, [isPending, session, port]);
+      .catch(() => {
+        if (!cancelled) setErrored(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, port]);
 
   const signIn = (): void => {
     void authClient.signIn.social({ provider: 'google', callbackURL: window.location.href });

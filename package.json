@@ -24,7 +24,7 @@
   },
   "lint-staged": {
     "*.{ts,js,mjs,cjs}": [
-      "eslint --fix",
+      "eslint --fix --no-config-lookup --no-warn-ignored --config eslint.config.mjs",
       "prettier --write"
     ],
     "*.{json,yml,yaml}": [

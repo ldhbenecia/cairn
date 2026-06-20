@@ -27,5 +27,7 @@ jobs:
         run: pnpm -r typecheck
       - name: Lint
         run: pnpm lint
+      - name: Lint (web)
+        run: pnpm --filter @cairn/web lint
       - name: Test
         run: pnpm -r test
