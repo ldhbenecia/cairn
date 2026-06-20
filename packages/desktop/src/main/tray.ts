@@ -10,12 +10,17 @@ function buildTrayIcon(): Electron.NativeImage {
   return img;
 }
 
-function triggerCore(window: BrowserWindow, mode: CoreMode): void {
-  void runCore(mode, {}, window.webContents).then((result) => {
-    if (!result.ok) {
-      console.error(`[cairn] ${mode} failed:\n${result.stderrTail}`);
-    }
-  });
+function triggerCore(mode: CoreMode): void {
+  // busy 면 runCore 가 'busy:<mode>' 로 reject — 트레이 트리거에서 uncaught rejection 안 나게 catch.
+  void runCore(mode, {})
+    .then((result) => {
+      if (!result.ok) {
+        console.error(`[cairn] ${mode} failed:\n${result.stderrTail}`);
+      }
+    })
+    .catch((err: unknown) => {
+      console.error(`[cairn] ${mode} not started:`, err instanceof Error ? err.message : err);
+    });
 }
 
 let tray: Tray | null = null;
@@ -47,17 +52,17 @@ function buildMenu(window: BrowserWindow, onQuit: () => void): Menu {
     {
       label: mt('tray.daily'),
       accelerator: 'CommandOrControl+1',
-      click: () => triggerCore(window, 'daily'),
+      click: () => triggerCore('daily'),
     },
     {
       label: mt('tray.weekly'),
       accelerator: 'CommandOrControl+2',
-      click: () => triggerCore(window, 'weekly'),
+      click: () => triggerCore('weekly'),
     },
     {
       label: mt('tray.monthly'),
       accelerator: 'CommandOrControl+3',
-      click: () => triggerCore(window, 'monthly'),
+      click: () => triggerCore('monthly'),
     },
     { type: 'separator' },
     {

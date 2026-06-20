@@ -45,6 +45,17 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type BusyState = { busy: boolean; mode: CoreMode | null };
 
+export type RunProgress = { total: number; done: number; active: number };
+
+export type RunSnapshot = {
+  busy: boolean;
+  mode: CoreMode | null;
+  step: RunStep;
+  startedAt: number;
+  progress: RunProgress | null;
+  lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null;
+};
+
 export type SaveResult = { saved: boolean; path?: string; error?: string };
 
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
@@ -68,6 +79,8 @@ export type CoreResult = {
   publishKind: PublishKind;
   publishPageId: string | null;
   noActivity: boolean;
+  cancelled: boolean;
+  summaryFailed: boolean;
   stderrTail: string;
 };
 
@@ -100,8 +113,11 @@ contextBridge.exposeInMainWorld('cairn', {
   },
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
+  cancelRun: (): Promise<boolean> => ipcRenderer.invoke('cairn:run-cancel') as Promise<boolean>,
   running: (): Promise<boolean> => ipcRenderer.invoke('cairn:running') as Promise<boolean>,
   busyState: (): Promise<BusyState> => ipcRenderer.invoke('cairn:busy-state') as Promise<BusyState>,
+  runSnapshot: (): Promise<RunSnapshot> =>
+    ipcRenderer.invoke('cairn:run-snapshot') as Promise<RunSnapshot>,
   onBusy: (cb: (s: BusyState) => void): (() => void) => {
     const listener = (_e: Electron.IpcRendererEvent, payload: BusyState): void => cb(payload);
     ipcRenderer.on('cairn:busy', listener);
@@ -128,6 +144,14 @@ contextBridge.exposeInMainWorld('cairn', {
     const listener = (_e: Electron.IpcRendererEvent, mode: CoreMode): void => cb(mode);
     ipcRenderer.on('cairn:focus-mode', listener);
     return () => ipcRenderer.off('cairn:focus-mode', listener);
+  },
+  onRunProgress: (cb: (payload: { mode: CoreMode } & RunProgress) => void): (() => void) => {
+    const listener = (
+      _e: Electron.IpcRendererEvent,
+      payload: { mode: CoreMode } & RunProgress,
+    ): void => cb(payload);
+    ipcRenderer.on('cairn:run-progress', listener);
+    return () => ipcRenderer.off('cairn:run-progress', listener);
   },
   onRunStep: (cb: (payload: { mode: CoreMode; step: RunStep }) => void): (() => void) => {
     const listener = (

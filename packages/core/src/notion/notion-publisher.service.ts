@@ -3,6 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type { WorklogLang } from '../cairn/run-options.js';
 import { CLAUDE_ICON_URL } from '../common/branding.js';
 import { isOperator } from '../common/operator.js';
+import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type { GithubActivity } from '../contracts/github-activity.types.js';
 import type { LocalGitActivity } from '../contracts/local-git-activity.types.js';
 import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
@@ -143,22 +144,23 @@ export class NotionPublisherService {
         );
         return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
       }
-      const archiveStartedAt = Date.now();
-      await this.client.archivePage(token, existing.pageId);
-      this.logger.info(
-        {
-          date: input.date,
-          archivedPageId: existing.pageId,
-          elapsedMs: Date.now() - archiveStartedAt,
-        },
-        '--force: archived existing draft, recreating',
-      );
+      // 새 페이지를 먼저 만들고 그다음 기존 것을 archive — create 실패 시 기존 일지가 보존되도록
+      // (이전엔 archive 먼저라 create 가 실패하면 그 날 일지가 소실됐다). archive 가 실패하면
+      // 중복 페이지가 잠깐 남지만 데이터 손실은 없다(다음 force 가 최신 것을 잡도록 정렬 보강).
       const createStartedAt = Date.now();
       const created = await this.createPage(input, token, dataSourceId);
       this.logger.info(
         { date: input.date, elapsedMs: Date.now() - createStartedAt },
         'notion publish recreate done',
       );
+      try {
+        await this.client.archivePage(token, existing.pageId);
+      } catch (err) {
+        this.logger.warn(
+          { date: input.date, oldPageId: existing.pageId, err: String(err) },
+          '--force: 새 페이지 생성 후 기존 페이지 archive 실패 — 중복 남을 수 있음(데이터 손실 없음)',
+        );
+      }
       this.logger.info(
         { date: input.date, totalElapsedMs: Date.now() - startedAt },
         'notion publish done',
@@ -232,7 +234,6 @@ export class NotionPublisherService {
     token: string,
     dataSourceId: string,
   ): Promise<{ id: string; url: string | null }> {
-    const sourceCounts = formatSourceCounts(input);
     const children = input.summary
       ? buildSummaryBlocks(input.summary, input)
       : buildFallbackBlocks(input);
@@ -249,7 +250,6 @@ export class NotionPublisherService {
       dataSourceId,
       date: input.date,
       title: `${input.date} ${input.lang === 'en' ? 'Worklog' : '작업 일지'}`,
-      sourceCounts,
       tags: ['auto', 'daily'],
       children,
     });
@@ -258,7 +258,6 @@ export class NotionPublisherService {
         date: input.date,
         pageId: created.id,
         url: created.url,
-        sourceCounts,
         hasSummary: !!input.summary,
       },
       'worklog page created',
@@ -267,17 +266,8 @@ export class NotionPublisherService {
   }
 }
 
-function formatSourceCounts(input: PublishWorklogInput): string {
-  const gh = input.github?.prs.length ?? 0;
-  const githubCommits =
-    input.github?.prs.reduce((acc, pr) => acc + pr.commitsOnDate.length, 0) ?? 0;
-  const localCommits = input.localGit?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
-  const git = githubCommits + localCommits;
-  const hrs = formatHourHistogram(input);
-  return `gh:${gh} / git:${git}${hrs ? ` / ${hrs}` : ''}`;
-}
-
 // 커밋 시각(ISO) 들의 24칸 시간 히스토그램. 머신 로컬 시간 기준(getHours) — KST 단정 금지(timezone 룰).
+// 통계는 노션이 아닌 로컬에 저장(orchestrator) — 이 함수는 그 집계에 쓰인다.
 export function hourHistogram(isoTimestamps: readonly string[]): number[] {
   const hours = new Array<number>(24).fill(0);
   for (const iso of isoTimestamps) {
@@ -285,18 +275,6 @@ export function hourHistogram(isoTimestamps: readonly string[]): number[] {
     if (h >= 0 && h < 24) hours[h]! += 1;
   }
   return hours;
-}
-
-function formatHourHistogram(input: PublishWorklogInput): string | null {
-  const stamps: string[] = [];
-  for (const repo of input.localGit?.repos ?? []) {
-    for (const c of repo.commits) stamps.push(c.authoredAt);
-  }
-  for (const pr of input.github?.prs ?? []) {
-    for (const c of pr.commitsOnDate) stamps.push(c.authoredAt);
-  }
-  if (stamps.length === 0) return null;
-  return `hrs:${hourHistogram(stamps).join(',')}`;
 }
 
 function buildSummaryBlocks(
@@ -366,7 +344,15 @@ function buildFallbackBlocks(input: PublishWorklogInput): readonly unknown[] {
 }
 
 function buildRawDumpToggle(input: PublishWorklogInput): unknown {
-  const rawDump = JSON.stringify({ github: input.github, localGit: input.localGit }, null, 2);
+  // operator 전용 디버그 덤프도 egress 검사(fail-closed): 금지 패턴(절대경로·토큰·diff 등 —
+  // 예: CairnError.message 의 git 에러 경로)이 있으면 통째로 redact 후 발행 계속.
+  let rawDump: string;
+  try {
+    assertNoForbiddenPayload({ github: input.github, localGit: input.localGit }, 'notion.rawDump');
+    rawDump = JSON.stringify({ github: input.github, localGit: input.localGit }, null, 2);
+  } catch {
+    rawDump = '[redacted] raw dump contained forbidden content (path/token/diff)';
+  }
   const chunks = chunkRawDump(rawDump);
   return {
     object: 'block',

@@ -1,4 +1,4 @@
-import { BrowserWindow, Notification } from 'electron';
+import { app, BrowserWindow, Notification } from 'electron';
 import type { CoreMode, CoreResult } from './core-runner';
 import { mt } from './i18n';
 import { readSettings } from './settings';
@@ -15,6 +15,8 @@ function focusModeInApp(mode: CoreMode): void {
 }
 
 function notify(title: string, body: string, mode: CoreMode): void {
+  // 앱이 포커스 상태면 macOS 가 배너를 억제하므로, dock 바운스로 완료를 확실히 알린다.
+  app.dock?.bounce('informational');
   if (!Notification.isSupported()) return;
   const noti = new Notification({ title, body });
   noti.on('click', () => focusModeInApp(mode));

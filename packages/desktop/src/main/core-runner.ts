@@ -1,4 +1,4 @@
-import { app, BrowserWindow, type WebContents } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { fork, type ChildProcess } from 'node:child_process';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -31,6 +31,8 @@ export type CoreResult = {
   publishKind: PublishKind;
   publishPageId: string | null;
   noActivity: boolean;
+  cancelled: boolean;
+  summaryFailed: boolean;
   stderrTail: string;
 };
 
@@ -45,6 +47,7 @@ const LOGS_DIR = join(homedir(), '.cairn', 'logs');
 const STDERR_TAIL_LINES = 20;
 const NOTION_URL_REGEX = /https:\/\/www\.notion\.so\/\S+/g;
 const NO_ACTIVITY_REGEX = /no activity collected/i;
+const SUMMARY_FAILED_REGEX = /summary generation failed|요약 생성 실패/;
 const PUBLISH_KIND_REGEX = /"kind"\s*:\s*"(created|recreated|skipped|no-target)"/g;
 const PAGE_ID_REGEX = /"pageId"\s*:\s*"([0-9a-f-]{32,36})"/g;
 // eslint-disable-next-line no-control-regex
@@ -101,26 +104,99 @@ function promptEnv(prompts: Settings['prompts']): Record<string, string> {
 
 let running: ChildProcess | null = null;
 let runningMode: CoreMode | null = null;
+let cancelRequested = false;
+
+export function cancelRun(): boolean {
+  if (!running) return false;
+  cancelRequested = true;
+  running.kill('SIGTERM');
+  return true;
+}
+// 리로드/재부착 대비 — 진행 중 run 의 시작 시각·단계, 직전 완료 결과를 메인이 보관.
+let runStartedAt = 0;
+let runStep: RunStep = 'boot';
+let lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null = null;
+
+// 백필 배치 진행 — 전체 stdout 스트림 기준 누적(렌더러 200줄 tail 제한에 영향받지 않게).
+export type RunProgress = { total: number; done: number; active: number };
+let runProgress: RunProgress | null = null;
+let bfTotal = 0;
+let bfDone = 0;
+let bfStarted = 0;
+let bfInStat = false;
+let bfLastKey = '';
+
+function resetBackfillTracking(): void {
+  runProgress = null;
+  bfTotal = 0;
+  bfDone = 0;
+  bfStarted = 0;
+  bfInStat = false;
+  bfLastKey = '';
+}
+
+// pino-pretty 멀티라인 대응: 헤더(`[HH:MM:SS]`) 기준 블록으로 total/done 누적, date start 수로 동시 처리 산정.
+function trackBackfill(line: string, mode: CoreMode): void {
+  if (line.includes('backfill date start')) bfStarted += 1;
+  const isHeader = /^\[\d{2}:\d{2}:\d{2}/.test(line) || /"msg"\s*:/.test(line);
+  if (isHeader) bfInStat = /backfill batch start|backfill progress/.test(line);
+  else if (/backfill batch start|backfill progress/.test(line)) bfInStat = true;
+  if (bfInStat) {
+    const mt = /total["':\s]+(\d+)/.exec(line);
+    const md = /done["':\s]+(\d+)/.exec(line);
+    if (mt) bfTotal = Math.max(bfTotal, Number(mt[1]));
+    if (md) bfDone = Math.max(bfDone, Number(md[1]));
+  }
+  if (bfTotal <= 1) return;
+  const active = Math.max(0, Math.min(bfTotal - bfDone, bfStarted - bfDone));
+  const key = `${bfDone}/${bfTotal}/${active}`;
+  if (key === bfLastKey) return;
+  bfLastKey = key;
+  runProgress = { total: bfTotal, done: bfDone, active };
+  broadcast('cairn:run-progress', { mode, ...runProgress });
+}
 
 export function isRunning(): boolean {
   return running !== null;
 }
 
-function broadcastBusy(): void {
-  const payload = { busy: running !== null, mode: runningMode };
+function broadcast(channel: string, payload: unknown): void {
   for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('cairn:busy', payload);
+    win.webContents.send(channel, payload);
   }
+}
+
+function broadcastBusy(): void {
+  broadcast('cairn:busy', { busy: running !== null, mode: runningMode });
 }
 
 export function busyState(): { busy: boolean; mode: CoreMode | null } {
   return { busy: running !== null, mode: runningMode };
 }
 
+export type RunSnapshot = {
+  busy: boolean;
+  mode: CoreMode | null;
+  step: RunStep;
+  startedAt: number;
+  progress: RunProgress | null;
+  lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null;
+};
+
+export function runSnapshot(): RunSnapshot {
+  return {
+    busy: running !== null,
+    mode: runningMode,
+    step: runStep,
+    startedAt: runStartedAt,
+    progress: runProgress,
+    lastResult,
+  };
+}
+
 function broadcastRunDone(mode: CoreMode, result: CoreResult): void {
-  for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('cairn:run-done', { mode, result });
-  }
+  lastResult = { mode, result, endedAt: Date.now() };
+  broadcast('cairn:run-done', { mode, result });
 }
 
 export async function probeClaude(): Promise<{ ok: boolean }> {
@@ -144,27 +220,28 @@ export async function probeClaude(): Promise<{ ok: boolean }> {
   });
 }
 
-export async function runCore(
-  mode: CoreMode,
-  options: CoreRunOptions = {},
-  sender?: WebContents,
-): Promise<CoreResult> {
+export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Promise<CoreResult> {
   // 코드화된 에러 — 렌더러가 i18n 으로 매핑 (영어 사용자에게 한국어 새는 것 방지)
   if (running) throw new Error(`busy:${runningMode ?? mode}`);
 
+  // 전체 윈도우로 브로드캐스트 — 발행 도중 리로드해도 새 webContents 가 진행을 이어받게.
   const emit = (level: 'info' | 'err' | 'meta', line: string): void => {
     const clean = stripAnsi(line);
     appendRunLog(mode, level, clean);
-    sender?.send('cairn:run-line', { mode, level, line: clean });
+    broadcast('cairn:run-line', { mode, level, line: clean });
   };
 
-  let currentStep: RunStep = 'boot';
+  runStartedAt = Date.now();
+  runStep = 'boot';
+  lastResult = null;
+  cancelRequested = false;
+  resetBackfillTracking();
   const emitStep = (step: RunStep): void => {
-    if (stepRank(step) <= stepRank(currentStep)) return;
-    currentStep = step;
-    sender?.send('cairn:run-step', { mode, step });
+    if (stepRank(step) <= stepRank(runStep)) return;
+    runStep = step;
+    broadcast('cairn:run-step', { mode, step });
   };
-  sender?.send('cairn:run-step', { mode, step: currentStep });
+  broadcast('cairn:run-step', { mode, step: runStep });
 
   const settings = readSettings();
   const args = [`--mode=${mode}`];
@@ -207,6 +284,7 @@ export async function runCore(
       if (line.length === 0) continue;
       stdoutLines.push(line);
       emit('info', line);
+      trackBackfill(line, mode);
       const step = detectStep(line);
       if (step) emitStep(step);
     }
@@ -224,6 +302,8 @@ export async function runCore(
       running = null;
       runningMode = null;
       broadcastBusy();
+      // run 종료 — 누적 진행 상태 비움(완료 후엔 lastResult 가 스냅샷을 대신함)
+      resetBackfillTracking();
       const tailSource = stderrLines.length > 0 ? stderrLines : stdoutLines;
       const tail = tailSource.slice(-STDERR_TAIL_LINES).join('\n');
       const urlMatches = stdoutAll.match(NOTION_URL_REGEX) ?? [];
@@ -233,7 +313,9 @@ export async function runCore(
       const pageIdMatches = [...stdoutAll.matchAll(PAGE_ID_REGEX)];
       const lastPageId = pageIdMatches.at(-1)?.[1] ?? null;
       const finalNoActivity = noActivity && !lastKind && !lastUrl && !lastPageId;
-      emit('meta', `[exit] code=${exitCode ?? 'null'}`);
+      const cancelled = cancelRequested;
+      cancelRequested = false;
+      emit('meta', `[exit] code=${exitCode ?? 'null'}${cancelled ? ' (cancelled)' : ''}`);
       if (exitCode === 0) emitStep('done');
       const result: CoreResult = {
         ok: exitCode === 0,
@@ -242,11 +324,15 @@ export async function runCore(
         publishKind: lastKind,
         publishPageId: lastPageId,
         noActivity: finalNoActivity,
+        cancelled,
+        summaryFailed: SUMMARY_FAILED_REGEX.test(stdoutAll),
         stderrTail: tail,
       };
       const outcome = result.ok ? (finalNoActivity ? 'no-activity' : 'ok') : 'fail';
       trackPublish(mode, outcome);
-      if (result.ok && lastPageId && !finalNoActivity) {
+      // 취소 시에는 완료 알림을 띄우지 않는다.
+      if (!cancelled) sendResultNotification(mode, result);
+      if (!cancelled && result.ok && lastPageId && !finalNoActivity) {
         const pad = (n: number): string => String(n).padStart(2, '0');
         const d = new Date();
         const localDate =
@@ -261,7 +347,6 @@ export async function runCore(
           emit('err', `[export] sync 실패: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
-      sendResultNotification(mode, result);
       broadcastRunDone(mode, result);
       resolvePromise(result);
     });
@@ -269,6 +354,8 @@ export async function runCore(
       running = null;
       runningMode = null;
       broadcastBusy();
+      cancelRequested = false;
+      resetBackfillTracking();
       emit('err', `[error] ${err.message}`);
       const failResult: CoreResult = {
         ok: false,
@@ -277,8 +364,12 @@ export async function runCore(
         publishKind: null,
         publishPageId: null,
         noActivity: false,
+        cancelled: false,
+        summaryFailed: false,
         stderrTail: err.message,
       };
+      // spawn 실패(ENOENT 등)도 완료 알림을 띄운다 — close 가 안 오는 경로라 누락됐었음.
+      sendResultNotification(mode, failResult);
       broadcastRunDone(mode, failResult);
       resolvePromise(failResult);
     });

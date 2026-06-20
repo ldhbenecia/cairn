@@ -60,10 +60,30 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Verify Before Claiming
+
+**Never report success or "no bugs" without evidence. Run the check.**
+
+- Before saying "done": run the relevant build / typecheck / tests and state the result. If you couldn't run it, say so explicitly.
+- "I found no bugs" requires an actual audit — read the code paths, trace concrete failure scenarios. A glance is not an audit. When asked to find bugs, assume there ARE some until you've genuinely looked, and report *what you checked* and *how* (file:line, scenario), not just a verdict.
+- Report outcomes faithfully: if tests fail, show the output; if a step was skipped, say it. No silent success, no hedging when it actually passed.
+- For outward-facing / costly / irreversible actions (publishing to Notion, sending, deleting, large backfills that spend Claude tokens), confirm scope first and don't claim it happened until verified from the actual result.
+
 ---
 
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, clarifying questions come before implementation, and claims of "done/passing/no-bugs" are always backed by a run.
 
 ---
+
+## cairn — project non-negotiables
+
+This repo has detailed rules in `.claude/rules/` (full index + ADRs + live plans in cairn-context below). **Read the relevant rule before touching its area.** The ones that bite hardest if ignored:
+
+- **Start by reading context** — [.claude/rules/work-start-checklist.md](.claude/rules/work-start-checklist.md): current stage ([docs/progress/README.md](docs/progress/README.md)), relevant ADRs ([docs/decisions/](docs/decisions/)), the live plan ([docs/plans/](docs/plans/)). Don't code before you know where things stand.
+- **Egress security is a hard wall** — [.claude/rules/security-egress.md](.claude/rules/security-egress.md) + ADR 0003/0021: NEVER send code bodies, diffs/patches/hunks, absolute paths, tokens, emails, or per-user identifiers to any external sink (Claude/Notion/GitHub). Whitelist only. Apply the fail-closed `assertNoForbiddenPayload` on EVERY external payload — including debug/operator dumps, not just the obvious ones.
+- **Local timezone, never KST** — [.claude/rules/timezone.md](.claude/rules/timezone.md): use local `Date` methods; no `setUTCHours`, no hardcoded `+9`. For any date logic, first ask "does this assume KST?". The user runs cairn from anywhere.
+- **Process discipline** — [.claude/rules/git-conventions.md](.claude/rules/git-conventions.md) + [.claude/rules/progress-update.md](.claude/rules/progress-update.md): PR body uses the template (요약/작업사항/체크리스트); version bump is patch by default, **one minor per perceivable feature bundle, not per PR** (ADR 0020); commit in logical incremental units (no "+"-bundled mega-commits); write thorough progress docs and an ADR for non-trivial decisions.
+- **NestJS conventions** — [.claude/rules/nestjs-conventions.md](.claude/rules/nestjs-conventions.md): no barrel `index.ts`, always concrete-path imports, official NestJS docs first.
+- **Minimal comments** — only genuinely-needed ones (eslint-disable, egress/timezone gotchas, non-obvious why). No metadata/narration comments in output files.
 
 @.claude/cairn-context.md

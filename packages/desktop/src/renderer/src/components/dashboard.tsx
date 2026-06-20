@@ -1,4 +1,15 @@
-import { CalendarCheck, Flame, GitCommitHorizontal, GitPullRequest } from 'lucide-react';
+import {
+  Activity,
+  CalendarCheck,
+  CalendarRange,
+  Clock,
+  Flame,
+  GitCommitHorizontal,
+  GitPullRequest,
+  TrendingDown,
+  TrendingUp,
+  Trophy,
+} from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import type { RecentListResult, RecentPage } from '../cairn-api';
 import type { I18nKey } from '../i18n';
@@ -6,25 +17,8 @@ import { useSettings } from '../settings-context';
 
 type T = (key: I18nKey) => string;
 
-// "gh:3 / git:5" → { pr: 3, commit: 5 }.
-function parseCounts(sourceCounts: string | null): { pr: number; commit: number } {
-  if (!sourceCounts) return { pr: 0, commit: 0 };
-  const pr = /gh\s*:\s*(\d+)/i.exec(sourceCounts);
-  const commit = /git\s*:\s*(\d+)/i.exec(sourceCounts);
-  return { pr: pr ? Number(pr[1]) : 0, commit: commit ? Number(commit[1]) : 0 };
-}
-
 type DayActivity = { date: string; pr: number; commit: number; total: number };
 type MonthBucket = { month: string; pr: number; commit: number; activeDays: number };
-
-// "hrs:c0,..,c23" → 24칸 시간 히스토그램 (머신 로컬 시간 기준, 없으면 null).
-function parseHours(sourceCounts: string | null): number[] | null {
-  if (!sourceCounts) return null;
-  const m = /hrs:([\d,]+)/.exec(sourceCounts);
-  if (!m) return null;
-  const arr = m[1]!.split(',').map(Number);
-  return arr.length === 24 && arr.every(Number.isFinite) ? arr : null;
-}
 
 type Agg = {
   byDate: Map<string, DayActivity>;
@@ -50,9 +44,10 @@ function aggregate(pages: RecentPage[]): Agg {
 
   for (const p of pages) {
     if (p.category !== 'daily' || !p.date) continue;
-    const { pr, commit } = parseCounts(p.sourceCounts);
-    const hrs = parseHours(p.sourceCounts);
-    if (hrs) for (let i = 0; i < 24; i++) hours[i]! += hrs[i]!;
+    const pr = p.pr ?? 0;
+    const commit = p.commit ?? 0;
+    const hrs = p.hours;
+    if (hrs && hrs.length === 24) for (let i = 0; i < 24; i++) hours[i]! += hrs[i]!;
     const total = pr + commit;
     const prev = byDate.get(p.date);
     byDate.set(p.date, {
@@ -118,6 +113,77 @@ function computeStreak(byDate: Map<string, DayActivity>): { current: number; lon
   return { current, longest };
 }
 
+// accent 외 차트별 보조 색 — 단색 인디고 일색을 피해 의미별로 분산.
+const HUE = { teal: '#14b8a6', violet: '#8b5cf6', amber: '#f59e0b', rose: '#f43f5e' } as const;
+
+type CumPoint = { date: string; value: number };
+
+// 일별 누적 PR+커밋 (로컬 날짜, 최근 120일 윈도우 — 윈도우 이전 누적은 시드로 합산).
+function cumulativeSeries(byDate: Map<string, DayActivity>): CumPoint[] | null {
+  const active = [...byDate.values()].filter((d) => d.total > 0).map((d) => d.date);
+  if (active.length === 0) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const first = new Date(`${active.sort()[0]}T00:00:00`);
+  let start = new Date(today);
+  start.setDate(start.getDate() - 119);
+  if (first > start) start = first;
+  const startKey = isoDay(start);
+
+  let cum = 0;
+  for (const d of byDate.values()) if (d.date < startKey) cum += d.total;
+
+  const series: CumPoint[] = [];
+  const cur = new Date(start);
+  while (cur <= today) {
+    cum += byDate.get(isoDay(cur))?.total ?? 0;
+    series.push({ date: isoDay(cur), value: cum });
+    cur.setDate(cur.getDate() + 1);
+  }
+  return series;
+}
+
+type Insights = {
+  busiest: DayActivity | null;
+  dailyAvg: number;
+  thisMonth: number;
+  monthDelta: number | null;
+  peak: { key: I18nKey; count: number } | null;
+};
+
+function computeInsights(data: Agg): Insights {
+  let busiest: DayActivity | null = null;
+  for (const d of data.byDate.values()) {
+    if (d.total > 0 && (!busiest || d.total > busiest.total)) busiest = d;
+  }
+
+  const totalAll = data.total.pr + data.total.commit;
+  const dailyAvg = data.total.activeDays > 0 ? totalAll / data.total.activeDays : 0;
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const curKey = isoDay(now).slice(0, 7);
+  const prevKey = isoDay(new Date(now.getFullYear(), now.getMonth() - 1, 1)).slice(0, 7);
+  const monthTotal = (key: string): number => {
+    const m = data.months.find((b) => b.month === key);
+    return m ? m.pr + m.commit : 0;
+  };
+  const thisMonth = monthTotal(curKey);
+  const lastMonth = monthTotal(prevKey);
+  const monthDelta = lastMonth > 0 ? Math.round(((thisMonth - lastMonth) / lastMonth) * 100) : null;
+
+  let peak: { key: I18nKey; count: number } | null = null;
+  if (data.hours.some((h) => h > 0)) {
+    for (const p of TOD_PERIODS) {
+      let sum = 0;
+      for (let h = p.from; h <= p.to; h++) sum += data.hours[h] ?? 0;
+      if (!peak || sum > peak.count) peak = { key: p.key, count: sum };
+    }
+  }
+
+  return { busiest, dailyAvg, thisMonth, monthDelta, peak };
+}
+
 const HEATMAP_WEEKS = 53;
 const CELL = 12;
 const CELL_GAP = 3;
@@ -133,6 +199,8 @@ export function Dashboard({
 }) {
   const { t } = useSettings();
   const data = useMemo(() => aggregate(recent?.pages ?? []), [recent]);
+  const insights = useMemo(() => computeInsights(data), [data]);
+  const cumulative = useMemo(() => cumulativeSeries(data.byDate), [data]);
   const recentMonths = data.months.slice(-12);
 
   return (
@@ -189,13 +257,23 @@ export function Dashboard({
                 />
               </div>
 
-              <div className="dash-rise" style={{ animationDelay: '80ms' }}>
+              <div className="dash-rise" style={{ animationDelay: '60ms' }}>
+                <InsightCards insights={insights} t={t} />
+              </div>
+
+              {cumulative && cumulative.length > 1 && (
+                <div className="dash-rise" style={{ animationDelay: '120ms' }}>
+                  <CumulativeChart series={cumulative} t={t} />
+                </div>
+              )}
+
+              <div className="dash-rise" style={{ animationDelay: '180ms' }}>
                 <Heatmap byDate={data.byDate} t={t} onPickDate={onPickDate} />
               </div>
 
               <div
                 className="dash-rise grid grid-cols-1 gap-6 lg:grid-cols-3"
-                style={{ animationDelay: '160ms' }}
+                style={{ animationDelay: '240ms' }}
               >
                 <div className="lg:col-span-2">
                   <MonthlyChart months={recentMonths} t={t} />
@@ -204,14 +282,14 @@ export function Dashboard({
               </div>
 
               {data.hours.some((h) => h > 0) && (
-                <div className="dash-rise" style={{ animationDelay: '220ms' }}>
+                <div className="dash-rise" style={{ animationDelay: '300ms' }}>
                   <TimeOfDayChart hours={data.hours} t={t} />
                 </div>
               )}
 
               <p
                 className="dash-rise text-[11px] text-ink-tertiary"
-                style={{ animationDelay: '280ms' }}
+                style={{ animationDelay: '340ms' }}
               >
                 {t('stats.note')}
               </p>
@@ -244,6 +322,172 @@ function StatCard({
         {value}
       </span>
       {hint && <span className="text-[11px] text-ink-tertiary">{hint}</span>}
+    </div>
+  );
+}
+
+function InsightCards({ insights, t }: { insights: Insights; t: T }) {
+  const { busiest, dailyAvg, thisMonth, monthDelta, peak } = insights;
+  const suffix = t('stats.countSuffix');
+  const up = monthDelta !== null && monthDelta >= 0;
+  const deltaText =
+    monthDelta === null
+      ? t('stats.vsLastMonth')
+      : `${up ? '+' : ''}${monthDelta}% · ${t('stats.vsLastMonth')}`;
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {busiest && (
+        <InsightCard
+          hue={HUE.amber}
+          icon={<Trophy size={14} strokeWidth={2} />}
+          label={t('stats.busiestDay')}
+          value={busiest.date.slice(5)}
+          sub={`${busiest.total}${suffix}`}
+        />
+      )}
+      <InsightCard
+        hue={HUE.teal}
+        icon={<Activity size={14} strokeWidth={2} />}
+        label={t('stats.dailyAvg')}
+        value={dailyAvg.toFixed(1)}
+      />
+      <InsightCard
+        hue={HUE.violet}
+        icon={<CalendarRange size={14} strokeWidth={2} />}
+        label={t('stats.thisMonth')}
+        value={`${thisMonth}${suffix}`}
+        sub={deltaText}
+        subColor={monthDelta === null ? undefined : up ? '#10b981' : HUE.rose}
+        subIcon={
+          monthDelta === null ? null : up ? (
+            <TrendingUp size={11} strokeWidth={2.2} />
+          ) : (
+            <TrendingDown size={11} strokeWidth={2.2} />
+          )
+        }
+      />
+      {peak && (
+        <InsightCard
+          hue={HUE.rose}
+          icon={<Clock size={14} strokeWidth={2} />}
+          label={t('stats.peakTime')}
+          value={t(peak.key)}
+          sub={`${peak.count}${suffix}`}
+        />
+      )}
+    </div>
+  );
+}
+
+function InsightCard({
+  hue,
+  icon,
+  label,
+  value,
+  sub,
+  subColor,
+  subIcon,
+}: {
+  hue: string;
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub?: string;
+  subColor?: string;
+  subIcon?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="flex flex-col gap-1.5 rounded-lg border px-4 py-3.5"
+      style={{
+        borderColor: `color-mix(in srgb, ${hue} 28%, var(--color-hairline))`,
+        background: `color-mix(in srgb, ${hue} 6%, var(--color-surface-1))`,
+      }}
+    >
+      <span className="flex items-center gap-1.5 text-[12px]" style={{ color: hue }}>
+        {icon}
+        {label}
+      </span>
+      <span className="text-[18px] font-semibold tracking-[-0.3px] text-ink">{value}</span>
+      {sub && (
+        <span
+          className="flex items-center gap-1 text-[11px]"
+          style={{ color: subColor ?? 'var(--color-ink-tertiary)' }}
+        >
+          {subIcon}
+          {sub}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function CumulativeChart({ series, t }: { series: CumPoint[]; t: T }) {
+  const W = 560;
+  const H = 170;
+  const padL = 8;
+  const padR = 8;
+  const padT = 14;
+  const padB = 8;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const baseY = padT + plotH;
+
+  const n = series.length;
+  const minV = series[0]!.value;
+  const maxV = series[n - 1]!.value;
+  const span = Math.max(1, maxV - minV);
+  const x = (i: number): number => padL + (n === 1 ? 0 : (i / (n - 1)) * plotW);
+  const y = (v: number): number => baseY - ((v - minV) / span) * plotH;
+
+  const line = series
+    .map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`)
+    .join(' ');
+  const area = `M${x(0).toFixed(1)},${baseY} ${series
+    .map((p, i) => `L${x(i).toFixed(1)},${y(p.value).toFixed(1)}`)
+    .join(' ')} L${x(n - 1).toFixed(1)},${baseY} Z`;
+
+  return (
+    <div className="rounded-lg border border-hairline bg-surface-1 p-4">
+      <div className="mb-1 flex items-baseline gap-2">
+        <span className="text-[13px] font-medium text-ink-muted">{t('stats.cumulative')}</span>
+        <span className="ml-auto font-mono text-[20px] font-semibold tracking-[-0.5px] text-accent">
+          {maxV}
+        </span>
+      </div>
+      <p className="mb-2 text-[11px] text-ink-tertiary">{t('stats.cumulativeHint')}</p>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full"
+        role="img"
+        aria-label={t('stats.cumulative')}
+      >
+        <defs>
+          <linearGradient id="cum-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-accent)" stopOpacity={0.26} />
+            <stop offset="100%" stopColor="var(--color-accent)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <path className="area-fade" d={area} fill="url(#cum-fill)" />
+        <path
+          className="line-draw"
+          d={line}
+          pathLength={1}
+          fill="none"
+          stroke="var(--color-accent)"
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        <circle
+          className="area-fade"
+          cx={x(n - 1)}
+          cy={y(maxV)}
+          r={3.5}
+          fill="var(--color-accent)"
+        />
+      </svg>
     </div>
   );
 }
@@ -400,7 +644,7 @@ function MonthlyChart({ months, t }: { months: MonthBucket[]; t: T }) {
           {t('stats.totalPr')}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-sm" style={{ background: 'var(--color-ink-subtle)' }} />
+          <span className="size-2.5 rounded-sm" style={{ background: HUE.teal }} />
           {t('stats.totalCommit')}
         </span>
       </div>
@@ -442,7 +686,7 @@ function MonthlyChart({ months, t }: { months: MonthBucket[]; t: T }) {
                 width={barW}
                 height={commitH}
                 rx={2}
-                fill="var(--color-ink-subtle)"
+                fill={HUE.teal}
               >
                 <title>{`${m.month} · commit ${m.commit}`}</title>
               </rect>
@@ -486,8 +730,12 @@ function TimeOfDayChart({ hours, t }: { hours: number[]; t: T }) {
             <span className="w-12 shrink-0 text-[11px] text-ink-tertiary">{t(p.key)}</span>
             <div className="h-3 flex-1 overflow-hidden rounded-sm bg-surface-2">
               <div
-                className="bar-h h-full rounded-sm bg-accent"
-                style={{ width: `${(buckets[i]! / max) * 100}%`, animationDelay: `${i * 50}ms` }}
+                className="bar-h h-full rounded-sm"
+                style={{
+                  width: `${(buckets[i]! / max) * 100}%`,
+                  animationDelay: `${i * 50}ms`,
+                  background: HUE.violet,
+                }}
               />
             </div>
             <span className="w-8 shrink-0 text-right font-mono text-[11px] text-ink-tertiary">

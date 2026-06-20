@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { withConcurrency } from '../common/concurrency.js';
+import { computeDayTotals } from '../common/day-totals.js';
 import { CairnError } from '../common/error.js';
 import { GithubCollectorService } from '../github/github-collector.service.js';
 import { LocalGitCollectorService } from '../local-git/local-git-collector.service.js';
 import { NotificationService } from '../notification/notification.service.js';
 import {
+  hourHistogram,
   NotionPublisherService,
   type PublishWorklogResult,
 } from '../notion/notion-publisher.service.js';
@@ -17,9 +19,10 @@ import {
 import { RollupSummarizerService } from '../rollup/rollup-summarizer.service.js';
 import { periodRange } from '../rollup/period-range.js';
 import { DailySummarizerService } from '../summarizer/daily-summarizer.service.js';
+import { WorklogStatsService } from '../worklog-stats/worklog-stats.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
 
-const BACKFILL_CONCURRENCY = 2;
+const BACKFILL_CONCURRENCY = 4;
 
 @Injectable()
 export class OrchestratorService {
@@ -32,6 +35,7 @@ export class OrchestratorService {
     private readonly rollupCollector: RollupCollectorService,
     private readonly rollupSummarizer: RollupSummarizerService,
     private readonly rollupPublisher: RollupPublisherService,
+    private readonly stats: WorklogStatsService,
     @InjectPinoLogger(OrchestratorService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -95,10 +99,14 @@ export class OrchestratorService {
 
     let backfillDone = 0;
     const backfillTotal = missingDates.length;
+    // 데스크톱 배치 진행 UI 가 시작 즉시 총개수를 알도록(완료 로그 전부터 칸 렌더링).
+    this.logger.info({ total: backfillTotal }, 'daily: backfill batch start');
     const results = await withConcurrency<
       string,
       { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' }
     >(missingDates, BACKFILL_CONCURRENCY, async (date) => {
+      // 날짜별 "시작" — 요약 중(완료 전)에도 동시 처리 중인 칸을 펄스로 보여주기 위함.
+      this.logger.info({ date }, 'daily: backfill date start');
       let result: { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' };
       try {
         const outcome = await this.runDailyForDate(date, options, {
@@ -176,8 +184,8 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
-    const prCount = githubActivity?.prs.length ?? 0;
-    const commitCount = localGitActivity?.repos.reduce((acc, r) => acc + r.commitCount, 0) ?? 0;
+    // 발행 모달·요약·통계가 같은 정의를 쓰도록 한 곳에서 산정(commit=distinct, pr=그날 전체 PR).
+    const { prCount, commitCount } = computeDayTotals(githubActivity, localGitActivity);
 
     if (prCount + commitCount === 0) {
       this.logger.info({ date }, 'daily: no activity collected — skipping summarizer + publisher');
@@ -198,6 +206,16 @@ export class OrchestratorService {
     );
     const summarizeMs = Date.now() - summarizeStart;
 
+    // 요약 실패(Claude 세션 만료·쿼터 소진·중단 등)면 발행하지 않는다. 빈 fallback 페이지를
+    // '성공'으로 만들어 가짜 발행이 남던 문제 방지 — 발행 전에 던져 기존 페이지도 안 건드림.
+    if (!summary) {
+      this.logger.warn({ date }, 'daily: summary generation failed — aborting publish');
+      throw CairnError.from(
+        new Error('요약 생성 실패 — Claude 세션/쿼터를 확인한 뒤 다시 발행하세요'),
+        'summarizer',
+      );
+    }
+
     const publishStart = Date.now();
     const result = await this.notionPublisher.publish({
       date,
@@ -208,6 +226,34 @@ export class OrchestratorService {
       lang: options.lang,
     });
     const publishMs = Date.now() - publishStart;
+
+    // 통계는 노션이 아닌 로컬에 기록(진실 소스). pr·commit 은 위 distinct 총량과 동일,
+    // hours=커밋 시각 24칸 히스토그램(머신 로컬 TZ, SHA 중복 제거).
+    if (result.kind === 'created' || result.kind === 'recreated') {
+      const seen = new Set<string>();
+      const stamps: string[] = [];
+      for (const repo of localGitActivity?.repos ?? []) {
+        for (const c of repo.commits) {
+          if (!seen.has(c.shortSha)) {
+            seen.add(c.shortSha);
+            stamps.push(c.authoredAt);
+          }
+        }
+      }
+      for (const pr of githubActivity?.prs ?? []) {
+        for (const c of pr.commitsOnDate) {
+          if (!seen.has(c.shortSha)) {
+            seen.add(c.shortSha);
+            stamps.push(c.authoredAt);
+          }
+        }
+      }
+      this.stats.record('daily', date, {
+        pr: prCount,
+        commit: commitCount,
+        hours: hourHistogram(stamps),
+      });
+    }
 
     this.logger.info(
       {

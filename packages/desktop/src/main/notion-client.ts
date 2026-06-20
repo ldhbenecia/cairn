@@ -47,7 +47,9 @@ export type RecentPage = {
   date: string | null;
   status: string | null;
   category: RecentCategory;
-  sourceCounts: string | null;
+  pr: number | null;
+  commit: number | null;
+  hours: number[] | null;
   workspaceLabel: string;
 };
 
@@ -92,9 +94,15 @@ function readDate(props: Record<string, unknown>, key: string): string | null {
   return p?.date?.start ?? null;
 }
 
-function readRichText(props: Record<string, unknown>, key: string): string | null {
-  const p = props[key] as { rich_text?: Array<{ plain_text?: string }> } | undefined;
-  return p?.rich_text?.map((t) => t.plain_text ?? '').join('') || null;
+// 통계 진실 소스는 노션이 아닌 로컬 파일(core 가 발행 시 기록). key 는 `${category}:${date}`.
+type WorklogStat = { pr: number; commit: number; hours?: number[] };
+const STATS_PATH = join(homedir(), '.cairn', 'worklog-stats.json');
+function readWorklogStats(): Record<string, WorklogStat> {
+  try {
+    return JSON.parse(readFileSync(STATS_PATH, 'utf8')) as Record<string, WorklogStat>;
+  } catch {
+    return {};
+  }
 }
 
 export async function listRecentPages(): Promise<{
@@ -178,18 +186,23 @@ async function listDailyPages(
     sorts: [{ property: 'Date', direction: 'descending' }],
   });
 
+  const stats = readWorklogStats();
   return res.results.flatMap((item) => {
     if (!('properties' in item)) return [];
     const { properties: props, url } = item as NotionPageItem;
+    const date = readDate(props, 'Date');
+    const stat = date ? stats[`daily:${date}`] : undefined;
     return [
       {
         pageId: item.id,
         url: url ?? '',
         title: readTitle(props),
-        date: readDate(props, 'Date'),
+        date,
         status: readSelect(props, 'Status'),
         category: 'daily' as const,
-        sourceCounts: readRichText(props, 'Source counts'),
+        pr: stat?.pr ?? null,
+        commit: stat?.commit ?? null,
+        hours: stat?.hours ?? null,
         workspaceLabel,
       },
     ];
@@ -219,7 +232,9 @@ async function listRollupPages(
         status: readSelect(props, 'Status'),
         category:
           readSelect(props, 'Period') === 'monthly' ? ('monthly' as const) : ('weekly' as const),
-        sourceCounts: readRichText(props, 'Source counts'),
+        pr: null,
+        commit: null,
+        hours: null,
         workspaceLabel,
       },
     ];

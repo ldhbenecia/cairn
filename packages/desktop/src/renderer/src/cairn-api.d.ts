@@ -8,6 +8,17 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type BusyState = { busy: boolean; mode: CoreMode | null };
 
+export type RunProgress = { total: number; done: number; active: number };
+
+export type RunSnapshot = {
+  busy: boolean;
+  mode: CoreMode | null;
+  step: RunStep;
+  startedAt: number;
+  progress: RunProgress | null;
+  lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null;
+};
+
 export type SaveResult = { saved: boolean; path?: string; error?: string };
 
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
@@ -22,7 +33,9 @@ export type RecentPage = {
   date: string | null;
   status: string | null;
   category: RecentCategory;
-  sourceCounts: string | null;
+  pr: number | null;
+  commit: number | null;
+  hours: number[] | null;
   workspaceLabel: string;
 };
 
@@ -55,6 +68,8 @@ export type CoreResult = {
   publishKind: PublishKind;
   publishPageId: string | null;
   noActivity: boolean;
+  cancelled: boolean;
+  summaryFailed: boolean;
   stderrTail: string;
 };
 
@@ -129,6 +144,8 @@ declare global {
       run: (mode: CoreMode, options?: CoreRunOptions) => Promise<CoreResult>;
       running: () => Promise<boolean>;
       busyState: () => Promise<BusyState>;
+      runSnapshot: () => Promise<RunSnapshot>;
+      cancelRun: () => Promise<boolean>;
       onBusy: (cb: (s: BusyState) => void) => () => void;
       openExternal: (url: string) => Promise<void>;
       exportMarkdown: (defaultName: string, content: string) => Promise<SaveResult>;
@@ -139,6 +156,7 @@ declare global {
       onRunLine: (cb: (l: RunLine) => void) => () => void;
       onFocusMode: (cb: (mode: CoreMode) => void) => () => void;
       onRunStep: (cb: (p: { mode: CoreMode; step: RunStep }) => void) => () => void;
+      onRunProgress: (cb: (p: { mode: CoreMode } & RunProgress) => void) => () => void;
       onRunDone: (cb: (p: { mode: CoreMode; result: CoreResult }) => void) => () => void;
       readConfig: () => Promise<ConfigResult>;
       tailLogs: () => Promise<LogTailResult>;

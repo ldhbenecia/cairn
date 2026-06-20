@@ -1,4 +1,3 @@
-import { BrowserWindow } from 'electron';
 import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { notifyAutoConfirm, notifyAutoStart } from './notifier';
 import { readSettings, type AutoPublish } from './settings';
@@ -6,10 +5,6 @@ import { readSettings, type AutoPublish } from './settings';
 // 발화 시각은 사용자 로컬 TZ(rules/timezone.md).
 
 let dailyTimer: ReturnType<typeof setTimeout> | null = null;
-
-function senderWebContents(): Electron.WebContents | undefined {
-  return BrowserWindow.getAllWindows()[0]?.webContents;
-}
 
 function msUntilLocalTime(time: string): number {
   const parts = time.split(':');
@@ -75,7 +70,7 @@ async function runAutoPublish(trigger: 'startup' | 'scheduled'): Promise<void> {
   for (const { mode, options } of runs) {
     notifyAutoStart(mode);
     try {
-      await runCore(mode, options, senderWebContents());
+      await runCore(mode, options);
     } catch {
       // 결과 알림은 runCore 내부 처리
     }

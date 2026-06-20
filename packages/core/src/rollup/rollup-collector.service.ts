@@ -14,13 +14,8 @@ import type { ExtractedBlock, WorklogPageInRange } from '../notion/notion-api.ty
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
+import { WorklogStatsService } from '../worklog-stats/worklog-stats.service.js';
 import { periodRange } from './period-range.js';
-
-interface ParsedSourceCounts {
-  prCount: number;
-  commitCount: number;
-  notionPageCount: number;
-}
 
 interface ParsedSummaryText {
   paragraph: string;
@@ -36,6 +31,7 @@ export class RollupCollectorService {
     private readonly api: NotionApiClient,
     private readonly worklogConfig: WorklogConfigService,
     private readonly secrets: SecretsService,
+    private readonly stats: WorklogStatsService,
     @InjectPinoLogger(RollupCollectorService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -88,21 +84,21 @@ export class RollupCollectorService {
     const summaries: RollupDailySummaryText[] = [];
     let prTotal = 0;
     let commitTotal = 0;
-    let notionTotal = 0;
 
+    // 통계 진실 소스는 로컬(노션 Source counts 제거됨). 날짜별 daily 통계를 로컬에서 읽는다.
+    const localStats = this.stats.readAll();
     const parsedSummaries = await withConcurrency(pages, 4, async (page) => {
-      const counts = parseSourceCounts(page.sourceCounts);
+      const stat = localStats[`daily:${page.date}`] ?? { pr: 0, commit: 0 };
       const daily: RollupDailyPageMeta = {
         date: page.date,
         pageId: page.pageId,
         url: page.url ?? '',
-        prCount: counts.prCount,
-        commitCount: counts.commitCount,
-        notionPageCount: counts.notionPageCount,
+        prCount: stat.pr,
+        commitCount: stat.commit,
+        notionPageCount: 0,
       };
-      prTotal += counts.prCount;
-      commitTotal += counts.commitCount;
-      notionTotal += counts.notionPageCount;
+      prTotal += stat.pr;
+      commitTotal += stat.commit;
 
       try {
         const blocks = await this.api.getPageBlocks(token, page.pageId);
@@ -125,7 +121,7 @@ export class RollupCollectorService {
     const metrics: RollupMetrics = {
       prCount: prTotal,
       commitCount: commitTotal,
-      notionPageCount: notionTotal,
+      notionPageCount: 0,
       dailyCount: dailies.length,
     };
 
@@ -151,19 +147,6 @@ function emptyActivity(period: RollupPeriod, start: string, end: string): Rollup
     summaries: [],
     metrics: { prCount: 0, commitCount: 0, notionPageCount: 0, dailyCount: 0 },
   };
-}
-
-export function parseSourceCounts(text: string): ParsedSourceCounts {
-  const out = { prCount: 0, commitCount: 0, notionPageCount: 0 };
-  const matches = text.matchAll(/(gh|git|notion)\s*:\s*(\d+)/gi);
-  for (const m of matches) {
-    const key = m[1]?.toLowerCase();
-    const num = Number(m[2] ?? 0);
-    if (key === 'gh') out.prCount = num;
-    else if (key === 'git') out.commitCount = num;
-    else if (key === 'notion') out.notionPageCount = num;
-  }
-  return out;
 }
 
 export function parseSummaryFromBlocks(

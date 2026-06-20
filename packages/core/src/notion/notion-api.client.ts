@@ -85,7 +85,6 @@ export class NotionApiClient {
               ],
             },
           },
-          'Source counts': { rich_text: {} },
           Status: {
             select: {
               options: [
@@ -127,6 +126,8 @@ export class NotionApiClient {
     const res = await client.dataSources.query({
       data_source_id: dataSourceId,
       filter: { property: 'Date', date: { equals: isoDate } },
+      // 중복 페이지가 있을 때(예: force 중 archive 실패) 항상 최신 것을 잡도록 created_time desc.
+      sorts: [{ timestamp: 'created_time', direction: 'descending' }],
       page_size: 1,
     });
     const first = res.results[0];
@@ -148,9 +149,6 @@ export class NotionApiClient {
         Title: { title: [{ type: 'text', text: { content: input.title } }] },
         Date: { date: { start: input.date } },
         Tags: { multi_select: tags.map((t) => ({ name: t })) },
-        'Source counts': {
-          rich_text: [{ type: 'text', text: { content: input.sourceCounts } }],
-        },
         Status: { select: { name: 'draft' } },
       },
       ...(input.children ? { children: input.children as never } : {}),
@@ -195,8 +193,7 @@ export class NotionApiClient {
         const date = dateProp?.date?.start ?? null;
         if (!date) continue;
         const url = 'url' in item && typeof item.url === 'string' ? item.url : null;
-        const sourceCounts = extractSourceCounts(props);
-        out.push({ pageId: item.id, url, date, sourceCounts });
+        out.push({ pageId: item.id, url, date });
       }
       cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
     } while (cursor);
@@ -288,19 +285,6 @@ function extractTitle(page: SearchPageItem): string {
     }
   }
   return '(untitled)';
-}
-
-interface RichTextItem {
-  plain_text?: string;
-}
-
-function extractSourceCounts(props: Record<string, unknown>): string {
-  const sc = props['Source counts'] as { rich_text?: RichTextItem[] } | undefined;
-  if (!sc?.rich_text) return '';
-  return sc.rich_text
-    .map((rt) => rt.plain_text ?? '')
-    .join('')
-    .trim();
 }
 
 function plainTextFromRichText(rt: unknown): string {

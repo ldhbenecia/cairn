@@ -150,7 +150,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                 onClose={() => setOpen(false)}
               />
             ) : showProgress && (isRunning || busy) ? (
-              <Progress session={session} t={t} />
+              <Progress session={session} t={t} onCancel={() => void window.cairn.cancelRun()} />
             ) : (
               <>
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
@@ -278,20 +278,6 @@ function collectedCounts(lines: RunSession['lines']): { pr: number | null; commi
   return { pr, commit };
 }
 
-// 엔진의 "backfill progress" 로그에서 done/total 추출.
-function backfillProgress(lines: RunSession['lines']): { done: number; total: number } | null {
-  let done = 0;
-  let total = 0;
-  for (const l of lines) {
-    if (!l.line.includes('backfill progress')) continue;
-    const md = /done["':\s]+(\d+)/.exec(l.line);
-    const mt = /total["':\s]+(\d+)/.exec(l.line);
-    if (md) done = Math.max(done, Number(md[1]));
-    if (mt) total = Number(mt[1]);
-  }
-  return total > 1 ? { done, total } : null;
-}
-
 const SUMMARIZE_HINTS: I18nKey[] = [
   'publish.hint.summarize',
   'publish.hint.summarize.read',
@@ -300,7 +286,16 @@ const SUMMARIZE_HINTS: I18nKey[] = [
   'publish.hint.summarize.polish',
 ];
 
-function Progress({ session, t }: { session: RunSession | null; t: T }) {
+function Progress({
+  session,
+  t,
+  onCancel,
+}: {
+  session: RunSession | null;
+  t: T;
+  onCancel: () => void;
+}) {
+  const [cancelling, setCancelling] = useState(false);
   const step = session?.step ?? 'boot';
   const currentRank = STEP_RANK[step];
   const running = session?.state === 'running';
@@ -319,7 +314,10 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
   const ss = String(elapsed % 60).padStart(2, '0');
   const lines = session?.lines ?? [];
   const counts = useMemo(() => collectedCounts(lines), [lines]);
-  const backfill = useMemo(() => backfillProgress(lines), [lines]);
+  // 배치 진행은 메인이 누적·브로드캐스트한 값(로그 tail 제한과 무관하게 안정적).
+  const backfill = session?.progress ?? null;
+  // 백필은 트리거 시점부터 배치 모드 — 진행 값(N/M) 도착 전에도 선형 스텝 대신 일자별 UI.
+  const isBatch = session?.batch === true || backfill !== null;
   const hintIdx = step === 'summarize' ? Math.floor(elapsed / 8) % SUMMARIZE_HINTS.length : 0;
   const hint =
     step === 'collect'
@@ -331,71 +329,112 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
   const fillPct = Math.max(0, Math.min(100, ((currentRank - STEP_RANK.collect) / 2) * 100));
   return (
     <div className="flex flex-col gap-5 py-1">
-      <div className="relative flex items-start justify-between px-3">
-        <div className="absolute top-[11px] right-3 left-3 h-0.5 rounded-full bg-hairline" />
-        <div
-          className="absolute top-[11px] left-3 h-0.5 rounded-full bg-accent transition-[width] duration-500 ease-out"
-          style={{ width: `calc((100% - 1.5rem) * ${fillPct / 100})` }}
-        />
-        {STEPS.map((s) => {
-          const rank = STEP_RANK[s.key];
-          const status = rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
-          return (
-            <div key={s.key} className="relative z-10 flex flex-col items-center gap-1.5">
-              <div
-                className={[
-                  'flex size-[22px] items-center justify-center rounded-full border-2 transition-all duration-300',
-                  status === 'done'
-                    ? 'border-accent bg-accent text-white'
-                    : status === 'active'
-                      ? 'border-accent bg-surface-1 text-accent'
-                      : 'border-hairline-strong bg-surface-1 text-ink-tertiary',
-                ].join(' ')}
-              >
-                {status === 'done' ? (
-                  <Check size={12} strokeWidth={3} />
-                ) : status === 'active' ? (
-                  <Loader2 size={12} strokeWidth={2.5} className="animate-spin" />
-                ) : (
-                  <span className="size-1.5 rounded-full bg-current opacity-50" />
-                )}
-              </div>
-              <span
-                className={`text-[11px] transition-colors ${status === 'pending' ? 'text-ink-tertiary' : 'text-ink-muted'}`}
-              >
-                {t(s.labelKey)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {backfill && (
-        <div className="flex flex-col gap-2 rounded-lg border border-hairline bg-surface-2/50 px-3 py-2.5">
-          <div className="flex items-center justify-between text-[12.5px]">
-            <span className="font-medium text-ink-muted">{t('publish.backfill.publishing')}</span>
-            <span className="font-mono text-ink">
-              {backfill.done}/{backfill.total}
-              {t('publish.backfill.daysSuffix')}
+      {isBatch ? (
+        // 백필은 날짜별로 수집·요약·발행이 동시에 도므로 단일 선형 스텝 대신 일자별 진행을 메인으로.
+        <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-2/50 px-4 py-3.5">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[13px] font-medium text-ink-muted">
+              {t('publish.backfill.publishing')}
             </span>
+            {backfill && (
+              <span className="font-mono text-[19px] font-semibold tracking-[-0.5px] text-ink">
+                <span key={backfill.done} className="batch-count text-accent">
+                  {backfill.done}
+                </span>
+                <span className="text-ink-tertiary">/{backfill.total}</span>
+                <span className="ml-0.5 text-[12px] font-normal text-ink-tertiary">
+                  {t('publish.backfill.daysSuffix')}
+                </span>
+              </span>
+            )}
           </div>
-          <div className="h-1 overflow-hidden rounded-full bg-surface-2">
-            <div
-              className="h-full rounded-full bg-accent transition-all"
-              style={{ width: `${(backfill.done / backfill.total) * 100}%` }}
-            />
-          </div>
+          {backfill && backfill.total <= 31 ? (
+            // 일자별 칸 — 완료(팝-인) / 동시 처리 중(펄스) / 대기. concurrency=4 만큼 active 표시.
+            <div className="flex flex-wrap gap-1">
+              {Array.from({ length: backfill.total }).map((_, i) => {
+                const done = i < backfill.done;
+                const active = !done && i < backfill.done + backfill.active;
+                return (
+                  <span
+                    key={i}
+                    className={[
+                      'h-2.5 min-w-[8px] flex-1 rounded-full transition-colors duration-300',
+                      done
+                        ? 'batch-pop bg-accent'
+                        : active
+                          ? 'batch-pulse bg-accent/40'
+                          : 'bg-surface-2',
+                    ].join(' ')}
+                  />
+                );
+              })}
+            </div>
+          ) : backfill ? (
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+              <div
+                className="h-full rounded-full bg-accent transition-all duration-500 ease-out"
+                style={{ width: `${(backfill.done / backfill.total) * 100}%` }}
+              />
+            </div>
+          ) : (
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+              <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
+            </div>
+          )}
+          <span className="text-[11px] leading-relaxed text-ink-tertiary">
+            {t('publish.backfill.concurrent')}
+          </span>
+        </div>
+      ) : (
+        <div className="relative flex items-start justify-between px-3">
+          <div className="absolute top-[11px] right-3 left-3 h-0.5 rounded-full bg-hairline" />
+          <div
+            className="absolute top-[11px] left-3 h-0.5 rounded-full bg-accent transition-[width] duration-500 ease-out"
+            style={{ width: `calc((100% - 1.5rem) * ${fillPct / 100})` }}
+          />
+          {STEPS.map((s) => {
+            const rank = STEP_RANK[s.key];
+            const status =
+              rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
+            return (
+              <div key={s.key} className="relative z-10 flex flex-col items-center gap-1.5">
+                <div
+                  className={[
+                    'flex size-[22px] items-center justify-center rounded-full border-2 transition-all duration-300',
+                    status === 'done'
+                      ? 'border-accent bg-accent text-white'
+                      : status === 'active'
+                        ? 'border-accent bg-surface-1 text-accent'
+                        : 'border-hairline-strong bg-surface-1 text-ink-tertiary',
+                  ].join(' ')}
+                >
+                  {status === 'done' ? (
+                    <Check size={12} strokeWidth={3} />
+                  ) : status === 'active' ? (
+                    <Loader2 size={12} strokeWidth={2.5} className="animate-spin" />
+                  ) : (
+                    <span className="size-1.5 rounded-full bg-current opacity-50" />
+                  )}
+                </div>
+                <span
+                  className={`text-[11px] transition-colors ${status === 'pending' ? 'text-ink-tertiary' : 'text-ink-muted'}`}
+                >
+                  {t(s.labelKey)}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {step === 'summarize' && !backfill && (
+      {step === 'summarize' && !isBatch && (
         <div className="flex justify-center py-1.5">
           <BrandMark size={28} className="cairn-breathe text-accent" />
         </div>
       )}
 
-      {/* 백필일 땐 일자별 바와 겹치지 않게 indeterminate 바 숨김 */}
-      {!backfill && (
+      {/* 배치(백필)일 땐 일자별 바와 겹치지 않게 indeterminate 바 숨김 */}
+      {!isBatch && (
         <div className="h-1 overflow-hidden rounded-full bg-surface-2">
           <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
         </div>
@@ -410,17 +449,34 @@ function Progress({ session, t }: { session: RunSession | null; t: T }) {
         </span>
       </div>
 
-      {currentRank >= STEP_RANK.summarize && counts.pr !== null && counts.commit !== null && (
-        <div className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
-          <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
-            PR {counts.pr}
-          </span>
-          <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
-            {t('publish.collected.commits')} {counts.commit}
-          </span>
-          <span>{t('publish.collected')}</span>
-        </div>
-      )}
+      {!isBatch &&
+        currentRank >= STEP_RANK.summarize &&
+        counts.pr !== null &&
+        counts.commit !== null && (
+          <div className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
+            <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
+              PR {counts.pr}
+            </span>
+            <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
+              {t('publish.collected.commits')} {counts.commit}
+            </span>
+            <span>{t('publish.collected')}</span>
+          </div>
+        )}
+
+      <div className="flex justify-center pt-1">
+        <button
+          type="button"
+          disabled={cancelling}
+          onClick={() => {
+            setCancelling(true);
+            onCancel();
+          }}
+          className="rounded-md px-3 py-1.5 text-[12px] text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+        >
+          {cancelling ? t('publish.cancelling') : t('publish.cancel')}
+        </button>
+      </div>
     </div>
   );
 }
@@ -477,7 +533,16 @@ function Result({
     result.publishKind !== 'skipped' &&
     !result.noActivity;
   let body: React.ReactNode;
-  if (!result.ok) {
+  if (result.cancelled) {
+    body = <p className="text-ink-muted">{t('publish.result.cancelled')}</p>;
+  } else if (result.summaryFailed) {
+    body = (
+      <p className="flex items-center gap-2 text-[15px] text-[#f87171]">
+        <TriangleAlert size={18} strokeWidth={2.25} />
+        {t('publish.result.summaryFailed')}
+      </p>
+    );
+  } else if (!result.ok) {
     body = (
       <p className="text-[#f87171]">
         {t('publish.result.fail')} (exit {result.exitCode ?? 'unknown'})
