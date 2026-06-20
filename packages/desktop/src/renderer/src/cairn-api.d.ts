@@ -83,6 +83,9 @@ export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
 export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
 
+export type CloudUser = { name: string; email: string; image: string | null };
+export type CloudAuthState = { signedIn: boolean; user: CloudUser | null };
+
 export type NotionProbe = { ok: boolean; persons: { id: string; name: string }[]; error?: string };
 export type NotionPage = { id: string; title: string };
 export type NotionDb = { databaseId: string; dataSourceId: string; title: string };
@@ -146,6 +149,12 @@ declare global {
         probeClaude: () => Promise<{ ok: boolean }>;
         finish: (payload: OnboardingPayload) => Promise<{ ok: boolean; error?: string }>;
         pickFolder: () => Promise<string | null>;
+      };
+      cloud: {
+        state: () => Promise<CloudAuthState>;
+        signIn: () => Promise<void>;
+        signOut: () => Promise<void>;
+        onChanged: (cb: (s: CloudAuthState) => void) => () => void;
       };
       run: (mode: CoreMode, options?: CoreRunOptions) => Promise<CoreResult>;
       running: () => Promise<boolean>;
