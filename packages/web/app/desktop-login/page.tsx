@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { authClient } from '@/lib/auth-client';
 
 type Phase = 'loading' | 'signin' | 'bridging' | 'done' | 'error';
@@ -18,6 +18,8 @@ export default function DesktopLogin() {
   const { data: session, isPending } = authClient.useSession();
   const [port] = useState<string | null>(readPort);
   const [errored, setErrored] = useState(false);
+  // one-time token 은 단일 사용 — StrictMode 재마운트·재렌더로 generate 가 중복 호출되지 않도록 1회 가드
+  const bridged = useRef(false);
 
   let phase: Phase = 'loading';
   if (errored) phase = 'error';
@@ -27,10 +29,13 @@ export default function DesktopLogin() {
   else phase = 'bridging';
 
   useEffect(() => {
-    if (phase !== 'bridging' || !port) return;
+    if (phase !== 'bridging' || !port || bridged.current) return;
+    bridged.current = true;
+    let cancelled = false;
     void authClient.oneTimeToken
       .generate()
       .then((res) => {
+        if (cancelled) return;
         const token = res.data?.token;
         if (!token) {
           setErrored(true);
@@ -38,7 +43,12 @@ export default function DesktopLogin() {
         }
         window.location.href = `http://127.0.0.1:${port}/?token=${encodeURIComponent(token)}`;
       })
-      .catch(() => setErrored(true));
+      .catch(() => {
+        if (!cancelled) setErrored(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [phase, port]);
 
   const signIn = (): void => {
