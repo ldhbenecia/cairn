@@ -70,6 +70,9 @@ export type RecentPage = {
   workspaceLabel: string;
 };
 
+export type CloudUser = { name: string; email: string; image: string | null };
+export type CloudAuthState = { signedIn: boolean; user: CloudUser | null };
+
 export type RecentListResult = { pages: RecentPage[]; warnings: string[] };
 
 export type CoreResult = {
@@ -117,6 +120,16 @@ contextBridge.exposeInMainWorld('cairn', {
     finish: (payload: unknown) =>
       ipcRenderer.invoke('cairn:onboarding:finish', payload) as Promise<unknown>,
     pickFolder: () => ipcRenderer.invoke('cairn:onboarding:pick-folder') as Promise<string | null>,
+  },
+  cloud: {
+    state: () => ipcRenderer.invoke('cairn:auth:state') as Promise<CloudAuthState>,
+    signIn: () => ipcRenderer.invoke('cairn:auth:sign-in') as Promise<void>,
+    signOut: () => ipcRenderer.invoke('cairn:auth:sign-out') as Promise<void>,
+    onChanged: (cb: (s: CloudAuthState) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, s: CloudAuthState): void => cb(s);
+      ipcRenderer.on('cairn:auth:changed', listener);
+      return () => ipcRenderer.off('cairn:auth:changed', listener);
+    },
   },
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
