@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   check:
-    name: Type-check · Lint · Test
+    name: Type-check · Lint · Test · Build
     runs-on: ubuntu-latest
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
@@ -31,3 +31,5 @@ jobs:
         run: pnpm --filter @cairn/web lint
       - name: Test
         run: pnpm -r test
+      - name: Build (desktop)
+        run: pnpm --filter @cairn/desktop build
