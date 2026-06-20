@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { BrandMark } from './brand-mark';
 
@@ -14,12 +15,12 @@ export function LegalShell({
     <div className="min-h-screen">
       <header className="border-b border-hairline">
         <div className="mx-auto max-w-3xl px-6 py-5">
-          <a href="/" className="inline-flex items-center gap-2 text-[15px] font-semibold">
+          <Link href="/" className="inline-flex items-center gap-2 text-[15px] font-semibold">
             <span className="flex size-6 items-center justify-center rounded-md bg-accent text-white">
               <BrandMark size={15} />
             </span>
             cairn
-          </a>
+          </Link>
         </div>
       </header>
 
@@ -32,9 +33,9 @@ export function LegalShell({
       <footer className="border-t border-hairline">
         <div className="mx-auto max-w-3xl px-6 py-6 text-[13px] text-ink-tertiary">
           © {new Date().getFullYear()} Cairn ·{' '}
-          <a href="/" className="hover:text-ink">
+          <Link href="/" className="hover:text-ink">
             Home
-          </a>
+          </Link>
         </div>
       </footer>
     </div>

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { content, type Lang } from '../lib/content';
 import { getRepoStats, REPO_URL, RELEASES_LATEST } from '../lib/github';
 import { BrandMark } from './brand-mark';
@@ -282,12 +283,12 @@ export async function Landing({ lang }: { lang: Lang }) {
             >
               {c.footer.docs}
             </a>
-            <a href="/privacy" className="hover:text-ink">
+            <Link href="/privacy" className="hover:text-ink">
               {c.footer.privacy}
-            </a>
-            <a href="/terms" className="hover:text-ink">
+            </Link>
+            <Link href="/terms" className="hover:text-ink">
               {c.footer.terms}
-            </a>
+            </Link>
             <a
               href={`${REPO_URL}/blob/main/LICENSE`}
               target="_blank"

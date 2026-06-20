@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { LegalSection, LegalShell } from '../../components/legal-shell';
 
 export const metadata: Metadata = {
@@ -27,9 +28,9 @@ export default function TermsPage() {
           Cross-device sync is an optional hosted service provided on a best-effort basis with no
           uptime guarantee. We may change, suspend, or discontinue it at any time. It syncs only
           aggregate statistics as described in the{' '}
-          <a className="text-accent-hover hover:text-accent" href="/privacy">
+          <Link className="text-accent-hover hover:text-accent" href="/privacy">
             Privacy Policy
-          </a>
+          </Link>
           .
         </p>
       </LegalSection>
