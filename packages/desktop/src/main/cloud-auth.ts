@@ -4,7 +4,7 @@ import { createServer, type Server } from 'node:http';
 import { dirname, join } from 'node:path';
 import { CAIRN_ROOT } from './setup';
 
-export const WEB_BASE = process.env.CAIRN_WEB_URL ?? 'https://cairn-web-ruby.vercel.app';
+export const WEB_BASE = process.env.CAIRN_WEB_URL ?? 'https://cairnlog.cloud';
 const AUTH_PATH = join(CAIRN_ROOT, 'auth.json');
 
 export type CloudUser = { name: string; email: string; image: string | null };
