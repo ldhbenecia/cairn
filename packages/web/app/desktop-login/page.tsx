@@ -56,7 +56,7 @@ export default function DesktopLogin() {
           <button
             type="button"
             onClick={signIn}
-            className="inline-flex h-10 items-center gap-3 rounded-[4px] border border-[#747775] bg-white px-3 font-medium text-[#1f1f1f] transition-shadow hover:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_1px_3px_1px_rgba(0,0,0,0.15)]"
+            className="inline-flex h-11 items-center gap-3 rounded-full border border-[#747775] bg-white px-6 font-medium text-[#1f1f1f] transition-shadow hover:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_1px_3px_1px_rgba(0,0,0,0.15)]"
             style={{ fontFamily: 'Roboto, system-ui, sans-serif', fontSize: 14 }}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
