@@ -82,6 +82,8 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const [finishing, setFinishing] = useState(false);
   const [finishErr, setFinishErr] = useState<string | null>(null);
   const [claudeStatus, setClaudeStatus] = useState<Status>('idle');
+  const [ghImporting, setGhImporting] = useState(false);
+  const [ghMsg, setGhMsg] = useState<I18nKey | null>(null);
 
   const patchNotion = (i: number, p: Partial<NotionEntry>) =>
     setNotion((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
@@ -127,6 +129,27 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     patchGithub(i, { status: 'testing', error: undefined });
     const r = await window.cairn.onboarding.probeGithub(e.token.trim());
     patchGithub(i, r.ok ? { status: 'ok', login: r.login } : { status: 'err', error: r.error });
+  }
+
+  // 설치된 gh CLI 인증 재사용 — 수동 PAT 없이 토큰 가져와 첫 빈 계정에 채우고 바로 검증.
+  async function importFromGh() {
+    setGhImporting(true);
+    setGhMsg(null);
+    const r = await window.cairn.onboarding.githubFromGhCli();
+    if (!r.ok || !r.token) {
+      setGhMsg(r.error === 'gh-not-found' ? 'onb.github.ghNotFound' : 'onb.github.ghNotAuthed');
+      setGhImporting(false);
+      return;
+    }
+    const empty = github.findIndex((e) => !e.token.trim());
+    const target = empty >= 0 ? empty : 0;
+    patchGithub(target, { token: r.token, status: 'testing', error: undefined });
+    const probe = await window.cairn.onboarding.probeGithub(r.token);
+    patchGithub(
+      target,
+      probe.ok ? { status: 'ok', login: probe.login } : { status: 'err', error: probe.error },
+    );
+    setGhImporting(false);
   }
 
   const notionValid = notion.some((e) => e.status === 'ok' && e.pageId && e.personId);
@@ -258,6 +281,26 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 },
               ]}
             >
+              <div className="rounded-lg border border-accent/30 bg-accent/[0.06] p-3.5">
+                <p className="mb-0.5 text-[13px] font-medium text-ink">{t('onb.github.ghTitle')}</p>
+                <p className="mb-2.5 text-[12px] leading-relaxed text-ink-subtle">
+                  {t('onb.github.ghBody')}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void importFromGh()}
+                  disabled={ghImporting}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-60"
+                >
+                  {ghImporting ? t('onb.github.ghImporting') : t('onb.github.ghImport')}
+                </button>
+                {ghMsg && <p className="mt-2 text-[12px] text-[#f87171]">{t(ghMsg)}</p>}
+              </div>
+              <div className="flex items-center gap-2.5 py-0.5">
+                <span className="h-px flex-1 bg-hairline" />
+                <span className="text-[11px] text-ink-tertiary">{t('onb.github.orManual')}</span>
+                <span className="h-px flex-1 bg-hairline" />
+              </div>
               <div className="rounded-lg border border-hairline bg-surface-1 p-3.5 text-[12px] leading-relaxed text-ink-subtle">
                 <p className="mb-1.5 text-[13px] font-medium text-ink-muted">
                   {t('onb.github.fineTitle')}
