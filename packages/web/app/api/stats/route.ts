@@ -31,14 +31,16 @@ function parseRows(input: unknown): StatRow[] | null {
     const o = r as Record<string, unknown>;
     if (typeof o.category !== 'string' || !CATEGORIES.has(o.category)) return null;
     if (typeof o.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(o.date)) return null;
-    if (typeof o.pr !== 'number' || typeof o.commitCount !== 'number') return null;
-    if (!Array.isArray(o.hours) || o.hours.some((h) => typeof h !== 'number')) return null;
+    if (!Number.isInteger(o.pr) || (o.pr as number) < 0) return null;
+    if (!Number.isInteger(o.commitCount) || (o.commitCount as number) < 0) return null;
+    if (!Array.isArray(o.hours) || o.hours.some((h) => !Number.isInteger(h) || (h as number) < 0))
+      return null;
     if (typeof o.updatedAt !== 'string' || Number.isNaN(Date.parse(o.updatedAt))) return null;
     rows.push({
       category: o.category,
       date: o.date,
-      pr: o.pr,
-      commitCount: o.commitCount,
+      pr: o.pr as number,
+      commitCount: o.commitCount as number,
       hours: o.hours as number[],
       updatedAt: o.updatedAt,
     });
