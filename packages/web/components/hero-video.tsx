@@ -1,11 +1,28 @@
 'use client';
 
-// hero 데모 영상 — 자동재생(음소거·루프·인라인). poster 로 첫 페인트는 스크린샷이 즉시 뜨고,
-// 영상 로드되면 재생. 모션 최소화 설정이면 영상 대신 poster 만 보여준다.
+import { useEffect, useRef } from 'react';
+
 export function HeroVideo({ src, poster, alt }: { src: string; poster: string; alt: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // prefers-reduced-motion 존중: 모션 최소화 설정이면 재생 멈추고 poster 만 보여준다.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = (): void => {
+      if (mq.matches) video.pause();
+      else void video.play().catch(() => {});
+    };
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
   return (
     <div className="screenshot-frame block w-full overflow-hidden">
       <video
+        ref={videoRef}
         className="block w-full"
         src={src}
         poster={poster}
