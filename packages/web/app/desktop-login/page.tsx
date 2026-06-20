@@ -47,7 +47,11 @@ export default function DesktopLogin() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+    <main className="relative flex min-h-screen flex-col items-center justify-center gap-4 overflow-hidden px-6 text-center">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="login-aurora" />
+        <div className="login-aurora login-aurora-2" />
+      </div>
       <h1 className="text-[20px] font-semibold tracking-[-0.02em]">cairn</h1>
       {phase === 'loading' && <p className="text-[14px] text-ink-subtle">…</p>}
       {phase === 'signin' && (
