@@ -1,6 +1,7 @@
 import { content, type Lang } from '../lib/content';
 import { getRepoStats, REPO_URL, RELEASES_LATEST } from '../lib/github';
 import { BrandMark } from './brand-mark';
+import { HeroVideo } from './hero-video';
 import { LangSwitcher } from './lang-switcher';
 import { Nav } from './nav';
 import { Reveal } from './reveal';
@@ -67,10 +68,10 @@ export async function Landing({ lang }: { lang: Lang }) {
                 filter: 'blur(36px)',
               }}
             />
-            <Screenshot
-              src={`/statistics_${lang === 'ko' ? 'ko' : 'us'}.png`}
-              alt="cairn statistics dashboard"
-              priority
+            <HeroVideo
+              src="/intro.mp4"
+              poster={`/statistics_${lang === 'ko' ? 'ko' : 'us'}.png`}
+              alt={lang === 'ko' ? 'cairn 데모 영상' : 'cairn demo'}
             />
           </div>
         </div>
