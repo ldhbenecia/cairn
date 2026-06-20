@@ -1,7 +1,8 @@
-# CodeRabbit 설정 — https://docs.coderabbit.ai/
-# 앱 설치 후 활성화: https://github.com/apps/coderabbitai (public 레포 무료)
 language: ko-KR
-tone_instructions: 백엔드 시니어 개발자 관점. 스타일 지적보다 실질적 문제(버그·레이스·호환성·보안) 위주로 간결하게.
+tone_instructions: >-
+  Write all review output in Korean. Take the perspective of a senior backend
+  engineer. Prioritize substantive issues (bugs, races, compatibility, security)
+  over style nits, and keep comments concise.
 reviews:
   profile: chill
   request_changes_workflow: false
@@ -21,12 +22,17 @@ reviews:
   path_instructions:
     - path: packages/core/**
       instructions: >-
-        NestJS standalone 엔진. 외부 송신 금지 — 코드 본문/diff/절대경로/토큰/식별자를 Claude·Notion·GitHub 로 보내면 안 됨
-        (.claude/rules/security-egress.md, ADR 0003/0021, fail-closed assertNoForbiddenPayload). 날짜/시간은 머신 로컬 TZ
-        (.claude/rules/timezone.md) — KST/UTC 단정·하드코딩 +9 금지. barrel index.ts 금지, 구체 경로 import.
+        NestJS standalone engine. No external egress — never send code bodies,
+        diffs, absolute paths, tokens, or identifiers to Claude/Notion/GitHub
+        (.claude/rules/security-egress.md, ADR 0003/0021, fail-closed
+        assertNoForbiddenPayload). Dates/times use the machine-local timezone
+        (.claude/rules/timezone.md) — no KST/UTC assumptions, no hardcoded +9.
+        No barrel index.ts; import from concrete paths.
     - path: packages/desktop/**
       instructions: >-
-        Electron + React + Tailwind v4. 발행 진행/세션 상태 레이스, IPC 브로드캐스트, 리스너 누수 주의.
-        통계 진실 소스는 로컬 ~/.cairn/worklog-stats.json (ADR 0027) — 노션 속성에 의존 금지.
+        Electron + React + Tailwind v4. Watch for publish-progress/session-state
+        races, IPC broadcast issues, and listener leaks. The source of truth for
+        stats is the local ~/.cairn/worklog-stats.json (ADR 0027) — do not depend
+        on Notion properties.
 chat:
   auto_reply: true
