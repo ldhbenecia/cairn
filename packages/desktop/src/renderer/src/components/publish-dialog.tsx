@@ -1,9 +1,14 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import {
+  Ban,
   CalendarClock,
   CalendarDays,
   CalendarRange,
   Check,
+  CheckCircle2,
+  ChevronRight,
+  Circle,
+  CircleDotDashed,
   ExternalLink,
   type LucideIcon,
   Loader2,
@@ -12,9 +17,18 @@ import {
   TriangleAlert,
   X,
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import type { RunSession } from '../App';
-import type { CoreMode, CoreResult, CoreRunOptions, RunStep, SummaryModel } from '../cairn-api';
+import type {
+  CoreMode,
+  CoreResult,
+  CoreRunOptions,
+  DateStep,
+  RunProgress,
+  RunStep,
+  SummaryModel,
+} from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { BrandMark } from './brand-mark';
@@ -93,6 +107,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
   const busy = runningMode !== null || externalBusy;
   const isRunning = session?.state === 'running';
   const isDone = session?.state === 'done';
+  const wide = showProgress && (isRunning || isDone || busy);
 
   return (
     <Dialog.Root
@@ -120,7 +135,9 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50 [-webkit-app-region:no-drag]" />
         <Dialog.Content
           onOpenAutoFocus={(e) => e.preventDefault()}
-          className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-115 max-w-[90vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]"
+          className={`dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] [-webkit-app-region:no-drag] ${
+            wide ? 'w-[560px]' : 'w-[440px]'
+          }`}
         >
           <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
             <Dialog.Title className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.2px] text-ink">
@@ -137,6 +154,8 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
           <div className="overflow-y-auto px-6 py-5">
             {showProgress && isDone && session?.error ? (
               <ErrorCard message={session.error} t={t} onClose={() => setOpen(false)} />
+            ) : showProgress && isDone && session?.result?.cancelled ? (
+              <CancelledCard progress={session.progress} t={t} onClose={() => setOpen(false)} />
             ) : showProgress && isDone && session?.result ? (
               <Result
                 result={session.result}
@@ -284,6 +303,437 @@ const SUMMARIZE_HINTS: I18nKey[] = [
   'publish.hint.summarize.polish',
 ];
 
+const STEP_SEQ: DateStep[] = ['collect', 'summarize', 'publish'];
+const DSTEP_FULL: Record<DateStep, I18nKey> = {
+  collect: 'publish.step.collect',
+  summarize: 'publish.step.summarize',
+  publish: 'publish.step.publish',
+};
+const DSTEP_SHORT: Record<DateStep, I18nKey> = {
+  collect: 'publish.dstep.collect',
+  summarize: 'publish.dstep.summarize',
+  publish: 'publish.dstep.publish',
+};
+const DSTEP_DOING: Record<DateStep, I18nKey> = {
+  collect: 'publish.dstep.collect.doing',
+  summarize: 'publish.dstep.summarize.doing',
+  publish: 'publish.dstep.publish.doing',
+};
+const DSTEP_DESC: Record<DateStep, I18nKey> = {
+  collect: 'publish.dstep.collect.desc',
+  summarize: 'publish.dstep.summarize.desc',
+  publish: 'publish.dstep.publish.desc',
+};
+
+type DStatus = 'done' | 'active' | 'pending';
+type Layout = 'tree' | 'compact';
+
+type PanelDate = {
+  date: string;
+  dow: string;
+  status: DStatus;
+  sub: DateStep | null;
+  steps: { step: DateStep; status: DStatus }[];
+};
+
+function weekdayLabel(date: string, lang: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  if (!y || !m || !d) return '';
+  return new Date(y, m - 1, d).toLocaleDateString(lang === 'ko' ? 'ko-KR' : 'en-US', {
+    weekday: 'short',
+  });
+}
+
+function buildPanelDates(
+  dates: string[],
+  doneDates: string[],
+  stepByDate: Record<string, DateStep>,
+  lang: string,
+): PanelDate[] {
+  // 멤버십 기반 — 동시 완료 순서가 날짜 순서와 달라도 정확(인덱스 가정 제거)
+  const doneSet = new Set(doneDates);
+  return dates.map((date) => {
+    const status: DStatus = doneSet.has(date) ? 'done' : stepByDate[date] ? 'active' : 'pending';
+    const sub = status === 'active' ? (stepByDate[date] ?? 'collect') : null;
+    const subIdx = sub ? STEP_SEQ.indexOf(sub) : -1;
+    const steps = STEP_SEQ.map((step, j) => {
+      const sStatus: DStatus =
+        status === 'done'
+          ? 'done'
+          : status === 'pending'
+            ? 'pending'
+            : j < subIdx
+              ? 'done'
+              : j === subIdx
+                ? 'active'
+                : 'pending';
+      return { step, status: sStatus };
+    });
+    return { date, dow: weekdayLabel(date, lang), status, sub, steps };
+  });
+}
+
+const STATUS_BADGE: Record<DStatus, { key: I18nKey; cls: string }> = {
+  done: { key: 'publish.status.done', cls: 'bg-emerald-500/15 text-emerald-400' },
+  active: { key: 'publish.status.active', cls: 'bg-accent/15 text-accent-hover' },
+  pending: { key: 'publish.status.pending', cls: 'bg-surface-2 text-ink-tertiary' },
+};
+
+function StatusIcon({ status, size }: { status: DStatus; size: number }) {
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.span
+        key={status}
+        initial={{ opacity: 0, scale: 0.7, rotate: -10 }}
+        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+        exit={{ opacity: 0, scale: 0.7, rotate: 10 }}
+        transition={{ duration: 0.18, ease: [0.2, 0.65, 0.3, 0.9] }}
+        className="flex items-center justify-center"
+      >
+        {status === 'done' ? (
+          <CheckCircle2 size={size} strokeWidth={2.25} className="text-emerald-400" />
+        ) : status === 'active' ? (
+          <CircleDotDashed
+            size={size}
+            strokeWidth={2.25}
+            className="animate-spin text-accent [animation-duration:3s]"
+          />
+        ) : (
+          <Circle size={size} strokeWidth={2} className="text-ink-tertiary" />
+        )}
+      </motion.span>
+    </AnimatePresence>
+  );
+}
+
+function StatusBadge({ status, t }: { status: DStatus; t: T }) {
+  const b = STATUS_BADGE[status];
+  return (
+    <motion.span
+      key={status}
+      initial={{ scale: 0.85, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+      className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${b.cls}`}
+    >
+      {t(b.key)}
+    </motion.span>
+  );
+}
+
+function LayoutToggle({
+  layout,
+  setLayout,
+  t,
+}: {
+  layout: Layout;
+  setLayout: (l: Layout) => void;
+  t: T;
+}) {
+  return (
+    <div className="flex gap-0.5 rounded-lg border border-hairline bg-surface-2 p-0.5">
+      {(['tree', 'compact'] as Layout[]).map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => setLayout(l)}
+          className={[
+            'rounded-md px-2.5 py-1 text-[11.5px] font-medium transition-colors',
+            layout === l
+              ? 'bg-surface-1 text-ink shadow-sm'
+              : 'text-ink-tertiary hover:text-ink-muted',
+          ].join(' ')}
+        >
+          {t(l === 'tree' ? 'publish.layout.tree' : 'publish.layout.compact')}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function OverallBar({
+  done,
+  total,
+  pct,
+  mm,
+  ss,
+  t,
+}: {
+  done: number;
+  total: number;
+  pct: number;
+  mm: string;
+  ss: string;
+  t: T;
+}) {
+  return (
+    <div className="flex items-center gap-3.5">
+      <div className="flex shrink-0 items-baseline gap-0.5 tabular-nums">
+        <span
+          key={done}
+          className="batch-count font-mono text-[26px] font-semibold tracking-[-0.5px] text-ink"
+        >
+          {done}
+        </span>
+        <span className="font-mono text-[15px] text-ink-tertiary">/{total}</span>
+        <span className="ml-0.5 font-mono text-[12px] text-ink-tertiary">
+          {t('publish.backfill.daysSuffix')}
+        </span>
+      </div>
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
+        <motion.div
+          className="bar-flow h-full rounded-full"
+          initial={false}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+        />
+      </div>
+      <span className="shrink-0 font-mono text-[12.5px] text-ink-tertiary">
+        {mm}:{ss}
+      </span>
+    </div>
+  );
+}
+
+function StepRow({
+  step,
+  status,
+  open,
+  onToggle,
+  summarizeHint,
+  t,
+}: {
+  step: DateStep;
+  status: DStatus;
+  open: boolean;
+  onToggle: () => void;
+  summarizeHint: string;
+  t: T;
+}) {
+  const detail =
+    status === 'active'
+      ? step === 'summarize'
+        ? summarizeHint
+        : t(DSTEP_DOING[step])
+      : status === 'done'
+        ? t('publish.status.done')
+        : t('publish.status.pending');
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2.5 rounded-md py-1 pr-1 text-left transition-colors hover:bg-surface-2/40"
+      >
+        <span className="z-10 flex size-[16px] shrink-0 items-center justify-center rounded-full bg-surface-1">
+          <StatusIcon status={status} size={13} />
+        </span>
+        <span
+          className={[
+            'text-[12px]',
+            status === 'pending'
+              ? 'text-ink-tertiary'
+              : status === 'active'
+                ? 'font-medium text-ink'
+                : 'text-ink-muted',
+          ].join(' ')}
+        >
+          {t(DSTEP_FULL[step])}
+        </span>
+        <ChevronRight
+          size={12}
+          strokeWidth={2.5}
+          className={`ml-auto text-ink-subtle transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.2, 0.65, 0.3, 0.9] }}
+            className="overflow-hidden"
+          >
+            <div className="pt-0.5 pr-2 pb-1.5 pl-[26px]">
+              <p className="text-[11px] leading-relaxed text-ink-muted">{t(DSTEP_DESC[step])}</p>
+              <p
+                key={detail}
+                className={[
+                  'hint-fade mt-1 font-mono text-[11px]',
+                  status === 'active' ? 'text-accent-hover' : 'text-ink-tertiary',
+                ].join(' ')}
+              >
+                {detail}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function TreeRow({
+  d,
+  i,
+  open,
+  onToggle,
+  isStepOpen,
+  onToggleStep,
+  summarizeHint,
+  t,
+}: {
+  d: PanelDate;
+  i: number;
+  open: boolean;
+  onToggle: () => void;
+  isStepOpen: (step: DateStep) => boolean;
+  onToggleStep: (step: DateStep) => void;
+  summarizeHint: string;
+  t: T;
+}) {
+  return (
+    <motion.li
+      layout
+      initial={{ opacity: 0, x: -6 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.2, delay: Math.min(i * 0.015, 0.18) }}
+      className="relative"
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface-2/40"
+      >
+        <span className="flex size-[18px] shrink-0 items-center justify-center">
+          <StatusIcon status={d.status} size={18} />
+        </span>
+        <span
+          className={[
+            'font-mono text-[13px]',
+            d.status === 'pending'
+              ? 'text-ink-tertiary'
+              : d.status === 'active'
+                ? 'font-medium text-ink'
+                : 'text-ink-muted',
+          ].join(' ')}
+        >
+          {d.date}
+        </span>
+        <span className="text-[12px] text-ink-tertiary">{d.dow}</span>
+        <span className="ml-auto flex items-center gap-2">
+          <StatusBadge status={d.status} t={t} />
+          <ChevronRight
+            size={13}
+            strokeWidth={2.5}
+            className={`text-ink-subtle transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+          />
+        </span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.2, 0.65, 0.3, 0.9] }}
+            className="overflow-hidden"
+          >
+            <div className="relative mr-1 mb-1 ml-[9px] pt-0.5 pb-1">
+              <span
+                className="pointer-events-none absolute top-1 bottom-3 left-[8px] border-l border-dashed border-hairline-strong"
+                aria-hidden="true"
+              />
+              <div className="flex flex-col gap-0.5">
+                {d.steps.map((s) => (
+                  <StepRow
+                    key={s.step}
+                    step={s.step}
+                    status={s.status}
+                    open={isStepOpen(s.step)}
+                    onToggle={() => onToggleStep(s.step)}
+                    summarizeHint={summarizeHint}
+                    t={t}
+                  />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.li>
+  );
+}
+
+function CompactRow({ d, i, t }: { d: PanelDate; i: number; t: T }) {
+  return (
+    <motion.li
+      layout
+      initial={{ opacity: 0, x: -6 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.2, delay: Math.min(i * 0.012, 0.15) }}
+      className={[
+        'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5',
+        d.status === 'active' ? 'bg-accent/[0.06]' : '',
+      ].join(' ')}
+    >
+      <span className="flex size-[16px] shrink-0 items-center justify-center">
+        <StatusIcon status={d.status} size={16} />
+      </span>
+      <span
+        className={[
+          'font-mono text-[12.5px]',
+          d.status === 'pending' ? 'text-ink-tertiary' : 'text-ink-muted',
+        ].join(' ')}
+      >
+        {d.date}
+      </span>
+      <span className="text-[11px] text-ink-tertiary">{d.dow}</span>
+      <div className="ml-auto flex items-center gap-1">
+        {d.steps.map((s) => (
+          <span
+            key={s.step}
+            className={[
+              'rounded-md px-1.5 py-0.5 text-[10px] font-medium',
+              s.status === 'done'
+                ? 'bg-emerald-500/12 text-emerald-400'
+                : s.status === 'active'
+                  ? 'batch-pulse bg-accent/15 text-accent-hover'
+                  : 'bg-surface-2 text-ink-tertiary',
+            ].join(' ')}
+          >
+            {t(DSTEP_SHORT[s.step])}
+          </span>
+        ))}
+      </div>
+    </motion.li>
+  );
+}
+
+function CancelButton({
+  cancelling,
+  onClick,
+  t,
+}: {
+  cancelling: boolean;
+  onClick: () => void;
+  t: T;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={cancelling}
+      onClick={onClick}
+      className="inline-flex h-7 shrink-0 items-center rounded-md px-2.5 text-[12px] leading-none text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+    >
+      {cancelling ? t('publish.cancelling') : t('publish.cancel')}
+    </button>
+  );
+}
+
 function Progress({
   session,
   t,
@@ -293,7 +743,25 @@ function Progress({
   t: T;
   onCancel: () => void;
 }) {
+  const { settings } = useSettings();
   const [cancelling, setCancelling] = useState(false);
+  const [layout, setLayout] = useState<Layout>('tree');
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+  const toggleDate = (d: string): void =>
+    setExpandedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(d)) next.delete(d);
+      else next.add(d);
+      return next;
+    });
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+  const toggleStep = (key: string): void =>
+    setExpandedSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   const step = session?.step ?? 'boot';
   const currentRank = STEP_RANK[step];
   const running = session?.state === 'running';
@@ -322,154 +790,177 @@ function Progress({
         ? t(SUMMARIZE_HINTS[hintIdx]!)
         : t(STEP_HINT_KEY[step]);
 
-  const fillPct = Math.max(0, Math.min(100, ((currentRank - STEP_RANK.collect) / 2) * 100));
+  const panelDates = backfill
+    ? buildPanelDates(backfill.dates, backfill.doneDates, backfill.stepByDate, settings.language)
+    : [];
+  const stepsDone =
+    (backfill?.done ?? 0) * 3 +
+    panelDates
+      .filter((d) => d.status === 'active')
+      .reduce((n, d) => n + d.steps.filter((s) => s.status === 'done').length, 0);
+  const pct =
+    backfill && backfill.total > 0 ? Math.round((stepsDone / (backfill.total * 3)) * 100) : 0;
+  const allDone = backfill ? backfill.done >= backfill.total : false;
+  // 날짜마다 다른 요약 문구가 돌도록 인덱스 오프셋 — 동시 요약 시 같은 문구 중복 방지
+  const hintTick = Math.floor(elapsed / 4);
+  const summarizeHintFor = (idx: number): string =>
+    t(SUMMARIZE_HINTS[(hintTick + idx) % SUMMARIZE_HINTS.length]!);
+  const activeIdx = panelDates.findIndex((d) => d.status === 'active');
+  const activeDate = activeIdx >= 0 ? panelDates[activeIdx] : undefined;
+  const currentAction = allDone
+    ? t('publish.allDone')
+    : activeDate?.sub === 'summarize'
+      ? `${activeDate.date} · ${summarizeHintFor(activeIdx)}`
+      : activeDate?.sub
+        ? `${activeDate.date} · ${t(DSTEP_DOING[activeDate.sub])}`
+        : t('publish.hint.boot');
+  const cancel = (): void => {
+    setCancelling(true);
+    onCancel();
+  };
+
   return (
-    <div className="flex flex-col gap-5 py-1">
+    <div className="flex flex-col gap-4 py-1">
       {isBatch ? (
-        <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-2/50 px-4 py-3.5">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[13px] font-medium text-ink-muted">
-              {t('publish.backfill.publishing')}
-            </span>
-            {backfill && (
-              <span className="font-mono text-[19px] font-semibold tracking-[-0.5px] text-ink">
-                <span key={backfill.done} className="batch-count text-accent">
-                  {backfill.done}
-                </span>
-                <span className="text-ink-tertiary">/{backfill.total}</span>
-                <span className="ml-0.5 text-[12px] font-normal text-ink-tertiary">
-                  {t('publish.backfill.daysSuffix')}
-                </span>
+        backfill && backfill.dates.length > 0 ? (
+          <>
+            <div className="flex items-center justify-between gap-3">
+              <span className="min-w-0 truncate text-[11.5px] text-ink-tertiary">
+                {t('publish.subtitle')}
               </span>
-            )}
-          </div>
-          {backfill && backfill.total <= 31 ? (
-            <div className="flex flex-wrap gap-1">
-              {Array.from({ length: backfill.total }).map((_, i) => {
-                const done = i < backfill.done;
-                const active = !done && i < backfill.done + backfill.active;
-                return (
-                  <span
-                    key={i}
-                    className={[
-                      'h-2.5 min-w-[8px] flex-1 rounded-full transition-colors duration-300',
-                      done
-                        ? 'batch-pop bg-accent'
-                        : active
-                          ? 'batch-pulse bg-accent/40'
-                          : 'bg-surface-2',
-                    ].join(' ')}
+              <LayoutToggle layout={layout} setLayout={setLayout} t={t} />
+            </div>
+            <OverallBar
+              done={backfill.done}
+              total={backfill.total}
+              pct={pct}
+              mm={mm}
+              ss={ss}
+              t={t}
+            />
+            <ul className="-mx-1 flex max-h-[44vh] flex-col gap-0.5 overflow-y-auto pr-0.5 pl-1">
+              {panelDates.map((d, i) =>
+                layout === 'tree' ? (
+                  <TreeRow
+                    key={d.date}
+                    d={d}
+                    i={i}
+                    open={expandedDates.has(d.date)}
+                    onToggle={() => toggleDate(d.date)}
+                    isStepOpen={(s) => expandedSteps.has(`${d.date}|${s}`)}
+                    onToggleStep={(s) => toggleStep(`${d.date}|${s}`)}
+                    summarizeHint={summarizeHintFor(i)}
+                    t={t}
                   />
-                );
-              })}
-            </div>
-          ) : backfill ? (
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
-              <div
-                className="h-full rounded-full bg-accent transition-all duration-500 ease-out"
-                style={{ width: `${(backfill.done / backfill.total) * 100}%` }}
+                ) : (
+                  <CompactRow key={d.date} d={d} i={i} t={t} />
+                ),
+              )}
+            </ul>
+            <div className="flex items-center gap-2.5 border-t border-hairline pt-3">
+              <span
+                className={`size-1.5 shrink-0 rounded-full ${allDone ? 'bg-emerald-400' : 'batch-pulse bg-accent'}`}
               />
+              <span
+                key={currentAction}
+                className="hint-fade min-w-0 flex-1 truncate text-[12.5px] leading-none text-ink-muted"
+              >
+                {currentAction}
+              </span>
+              <span className="shrink-0 font-mono text-[11px] leading-none text-ink-tertiary">
+                {backfill.total - backfill.done} {t('publish.backfill.remaining')}
+              </span>
+              <CancelButton cancelling={cancelling} onClick={cancel} t={t} />
             </div>
-          ) : (
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
-              <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
-            </div>
-          )}
-          <span className="text-[11px] leading-relaxed text-ink-tertiary">
-            {t('publish.backfill.concurrent')}
-          </span>
-        </div>
-      ) : (
-        <div className="relative flex items-start justify-between px-3">
-          <div className="absolute top-[11px] right-3 left-3 h-0.5 rounded-full bg-hairline" />
-          <div
-            className="absolute top-[11px] left-3 h-0.5 rounded-full bg-accent transition-[width] duration-500 ease-out"
-            style={{ width: `calc((100% - 1.5rem) * ${fillPct / 100})` }}
-          />
-          {STEPS.map((s) => {
-            const rank = STEP_RANK[s.key];
-            const status =
-              rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
-            return (
-              <div key={s.key} className="relative z-10 flex flex-col items-center gap-1.5">
-                <div
-                  className={[
-                    'flex size-[22px] items-center justify-center rounded-full border-2 transition-all duration-300',
-                    status === 'done'
-                      ? 'border-accent bg-accent text-white'
-                      : status === 'active'
-                        ? 'border-accent bg-surface-1 text-accent'
-                        : 'border-hairline-strong bg-surface-1 text-ink-tertiary',
-                  ].join(' ')}
-                >
-                  {status === 'done' ? (
-                    <Check size={12} strokeWidth={3} />
-                  ) : status === 'active' ? (
-                    <Loader2 size={12} strokeWidth={2.5} className="animate-spin" />
-                  ) : (
-                    <span className="size-1.5 rounded-full bg-current opacity-50" />
-                  )}
-                </div>
-                <span
-                  className={`text-[11px] transition-colors ${status === 'pending' ? 'text-ink-tertiary' : 'text-ink-muted'}`}
-                >
-                  {t(s.labelKey)}
-                </span>
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-2 px-4 py-3.5">
+              <span className="text-[13px] font-medium text-ink-muted">
+                {t('publish.backfill.publishing')}
+              </span>
+              <div className="h-1.5 overflow-hidden rounded-full bg-surface-1">
+                <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {step === 'summarize' && !isBatch && (
-        <div className="flex justify-center py-1.5">
-          <BrandMark size={28} className="cairn-breathe text-accent" />
-        </div>
-      )}
-
-      {!isBatch && (
-        <div className="h-1 overflow-hidden rounded-full bg-surface-2">
-          <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
-        </div>
-      )}
-
-      <div className="flex items-center justify-between gap-3 text-[13px]">
-        <span key={hint} className="hint-fade min-w-0 truncate text-ink-muted">
-          {hint}
-        </span>
-        <span className="shrink-0 font-mono text-ink-tertiary">
-          {mm}:{ss}
-        </span>
-      </div>
-
-      {!isBatch &&
-        currentRank >= STEP_RANK.summarize &&
-        counts.pr !== null &&
-        counts.commit !== null && (
-          <div className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
-            <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
-              PR {counts.pr}
-            </span>
-            <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
-              {t('publish.collected.commits')} {counts.commit}
-            </span>
-            <span>{t('publish.collected')}</span>
+              <span className="text-[11px] leading-relaxed text-ink-tertiary">
+                {t('publish.backfill.concurrent')}
+              </span>
+            </div>
+            <div className="flex justify-center pt-1">
+              <CancelButton cancelling={cancelling} onClick={cancel} t={t} />
+            </div>
+          </>
+        )
+      ) : (
+        <>
+          <ul className="flex flex-col">
+            {STEPS.map((s) => {
+              const rank = STEP_RANK[s.key];
+              const status: DStatus =
+                rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
+              const isActive = status === 'active';
+              return (
+                <li key={s.key} className="flex flex-col">
+                  <div className="flex items-center gap-2.5 py-1">
+                    <span className="flex size-[20px] shrink-0 items-center justify-center">
+                      <StatusIcon status={status} size={18} />
+                    </span>
+                    <span
+                      className={[
+                        'text-[13px] transition-colors',
+                        status === 'pending'
+                          ? 'text-ink-tertiary'
+                          : isActive
+                            ? 'font-medium text-ink'
+                            : 'text-ink-muted',
+                      ].join(' ')}
+                    >
+                      {t(s.labelKey)}
+                    </span>
+                    <span className="ml-auto flex shrink-0 items-center gap-2">
+                      {isActive && (
+                        <span className="font-mono text-[11px] text-ink-tertiary">
+                          {mm}:{ss}
+                        </span>
+                      )}
+                      <StatusBadge status={status} t={t} />
+                    </span>
+                  </div>
+                  {isActive && (
+                    <div className="ml-[9px] flex flex-col gap-2 border-l border-dashed border-hairline-strong pb-2.5 pl-[20px]">
+                      <span
+                        key={hint}
+                        className="hint-fade text-[12px] leading-relaxed text-ink-muted"
+                      >
+                        {hint}
+                      </span>
+                      {s.key === 'summarize' && (
+                        <BrandMark size={24} className="cairn-breathe text-accent" />
+                      )}
+                      {rank >= STEP_RANK.summarize &&
+                        counts.pr !== null &&
+                        counts.commit !== null && (
+                          <div className="flex items-center gap-1.5 text-[11px] text-ink-tertiary">
+                            <span className="rounded-md border border-hairline bg-surface-2 px-1.5 py-0.5">
+                              PR {counts.pr}
+                            </span>
+                            <span className="rounded-md border border-hairline bg-surface-2 px-1.5 py-0.5">
+                              {t('publish.collected.commits')} {counts.commit}
+                            </span>
+                            <span>{t('publish.collected')}</span>
+                          </div>
+                        )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          <div className="flex justify-center pt-1">
+            <CancelButton cancelling={cancelling} onClick={cancel} t={t} />
           </div>
-        )}
-
-      <div className="flex justify-center pt-1">
-        <button
-          type="button"
-          disabled={cancelling}
-          onClick={() => {
-            setCancelling(true);
-            onCancel();
-          }}
-          className="rounded-md px-3 py-1.5 text-[12px] text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
-        >
-          {cancelling ? t('publish.cancelling') : t('publish.cancel')}
-        </button>
-      </div>
+        </>
+      )}
     </div>
   );
 }
@@ -477,6 +968,54 @@ function Progress({
 function pageIdToUrl(pageId: string | null): string | null {
   if (!pageId) return null;
   return `https://www.notion.so/${pageId.replace(/-/g, '')}`;
+}
+
+function CancelledCard({
+  progress,
+  t,
+  onClose,
+}: {
+  progress?: RunProgress;
+  t: T;
+  onClose: () => void;
+}) {
+  const partial = progress && progress.total > 1;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+      className="flex flex-col items-center gap-4 py-6 text-center"
+    >
+      <motion.span
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 20, delay: 0.05 }}
+        className="flex size-12 items-center justify-center rounded-full bg-surface-2 text-ink-tertiary"
+      >
+        <Ban size={22} strokeWidth={2} />
+      </motion.span>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-[14px] font-medium text-ink">{t('publish.result.cancelled')}</p>
+        {partial && (
+          <p className="font-mono text-[12px] text-ink-tertiary tabular-nums">
+            {progress.done} / {progress.total}
+            {t('publish.backfill.daysSuffix')} {t('publish.cancelled.partial')}
+          </p>
+        )}
+        <p className="mx-auto max-w-[330px] text-[12px] leading-relaxed text-balance text-ink-muted">
+          {t('publish.cancelled.desc')}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="mt-1 rounded-md border border-hairline px-3.5 py-2 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+      >
+        {t('publish.close')}
+      </button>
+    </motion.div>
+  );
 }
 
 function ErrorCard({ message, t, onClose }: { message: string; t: T; onClose: () => void }) {
@@ -526,9 +1065,7 @@ function Result({
     result.publishKind !== 'skipped' &&
     !result.noActivity;
   let body: React.ReactNode;
-  if (result.cancelled) {
-    body = <p className="text-ink-muted">{t('publish.result.cancelled')}</p>;
-  } else if (result.summaryFailed) {
+  if (result.summaryFailed) {
     body = (
       <p className="flex items-center gap-2 text-[15px] text-[#f87171]">
         <TriangleAlert size={18} strokeWidth={2.25} />

@@ -24,6 +24,8 @@ import type { RunOptions, RunSource } from './run-options.js';
 
 const BACKFILL_CONCURRENCY = 4;
 
+type DailyStep = 'collect' | 'summarize' | 'publish';
+
 @Injectable()
 export class OrchestratorService {
   constructor(
@@ -98,9 +100,13 @@ export class OrchestratorService {
     );
 
     let backfillDone = 0;
+    const completedDates: string[] = [];
     const backfillTotal = missingDates.length;
-    // 데스크톱 배치 진행 UI 가 시작 즉시 총개수를 알도록(완료 로그 전부터 칸 렌더링)
-    this.logger.info({ total: backfillTotal }, 'daily: backfill batch start');
+    // 데스크톱 배치 진행 UI 가 시작 즉시 총개수·날짜 목록을 알도록(완료 로그 전부터 날짜별 행 렌더링)
+    this.logger.info(
+      { total: backfillTotal, dates: missingDates.join(',') },
+      'daily: backfill batch start',
+    );
     const results = await withConcurrency<
       string,
       { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' }
@@ -112,6 +118,7 @@ export class OrchestratorService {
         const outcome = await this.runDailyForDate(date, options, {
           silent: true,
           precheck: false,
+          onStep: (step) => this.logger.info({ date, step }, 'daily: backfill date step'),
         });
         result = { date, kind: outcome };
       } catch (err) {
@@ -120,8 +127,10 @@ export class OrchestratorService {
         result = { date, kind: 'failed' };
       }
       backfillDone += 1;
+      completedDates.push(date);
+      // doneDates: 완료 순서가 날짜 순서와 달라도 UI 가 멤버십으로 정확히 상태 판정하도록 누적 목록 전달
       this.logger.info(
-        { date, done: backfillDone, total: backfillTotal },
+        { date, done: backfillDone, total: backfillTotal, doneDates: completedDates.join(',') },
         'daily: backfill progress',
       );
       return result;
@@ -133,7 +142,7 @@ export class OrchestratorService {
   private async runDailyForDate(
     date: string,
     options: RunOptions,
-    opts: { silent: boolean; precheck?: boolean },
+    opts: { silent: boolean; precheck?: boolean; onStep?: (step: DailyStep) => void },
   ): Promise<PublishWorklogResult['kind'] | 'no-activity'> {
     const wantsGithub = wantsSource(options.sources, 'github');
     const wantsLocalGit = wantsSource(options.sources, 'local-git');
@@ -161,6 +170,7 @@ export class OrchestratorService {
       }
     }
 
+    opts.onStep?.('collect');
     const collectStart = Date.now();
     const [githubActivity, localGitActivity] = await Promise.all([
       wantsGithub
@@ -194,6 +204,7 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
+    opts.onStep?.('summarize');
     const summarizeStart = Date.now();
     const summary = await this.summarizer.summarize(
       {
@@ -215,6 +226,7 @@ export class OrchestratorService {
       );
     }
 
+    opts.onStep?.('publish');
     const publishStart = Date.now();
     const result = await this.notionPublisher.publish({
       date,

@@ -1,6 +1,6 @@
 {
   "name": "@cairn/desktop",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "private": true,
   "description": "cairn desktop — Electron shell for cairn engine. menubar tray + manual triggers + native notifications.",
   "author": "Donghyeok Lim",
@@ -20,6 +20,7 @@
   "dependencies": {
     "@notionhq/client": "^5.22.0",
     "electron-updater": "^6.8.9",
+    "framer-motion": "^12.40.0",
     "posthog-node": "^5.36.3"
   },
   "devDependencies": {
