@@ -72,8 +72,16 @@ body::before {
   inset: 0;
   z-index: -2;
   background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--color-ink) 3.5%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--color-ink) 3.5%, transparent) 1px, transparent 1px);
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-ink) 3.5%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-ink) 3.5%, transparent) 1px,
+      transparent 1px
+    );
   background-size: 64px 64px;
   mask-image: radial-gradient(ellipse 75% 55% at 50% -5%, #000 35%, transparent 78%);
   pointer-events: none;

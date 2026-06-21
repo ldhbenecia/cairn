@@ -1,7 +1,8 @@
 import { CalendarDays, GitPullRequest, LayoutDashboard, ShieldCheck, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+
 import { content, type Lang } from '../lib/content';
-import { getRepoStats, REPO_URL, RELEASES_LATEST } from '../lib/github';
+import { getRepoStats, RELEASES_LATEST, REPO_URL } from '../lib/github';
 import { BrandMark } from './brand-mark';
 import { CopyCommand } from './copy-command';
 import { HeroVideo } from './hero-video';
@@ -82,7 +83,9 @@ export async function Landing({ lang }: { lang: Lang }) {
               {c.hero.sub}
             </p>
             <div className="mt-5 max-w-md">
-              <p className="mb-2 text-[12.5px] leading-relaxed text-ink-tertiary">{c.hero.unsigned}</p>
+              <p className="mb-2 text-[12.5px] leading-relaxed text-ink-tertiary">
+                {c.hero.unsigned}
+              </p>
               <CopyCommand command={unblockCmd} copyLabel={c.hero.copyCmd} />
             </div>
           </div>
@@ -114,7 +117,9 @@ export async function Landing({ lang }: { lang: Lang }) {
               <span className="font-mono text-[13px] font-medium text-accent-hover">01</span>
               <CollectVisual />
               <div>
-                <h3 className="text-[22px] font-semibold tracking-[-0.02em]">{c.how.steps[0]!.t}</h3>
+                <h3 className="text-[22px] font-semibold tracking-[-0.02em]">
+                  {c.how.steps[0]!.t}
+                </h3>
                 <p className="mt-3 max-w-md text-[14.5px] leading-relaxed text-ink-subtle">
                   {c.how.steps[0]!.d}
                 </p>
@@ -122,10 +127,20 @@ export async function Landing({ lang }: { lang: Lang }) {
             </div>
           </Reveal>
           <Reveal className="md:col-span-2" delay={0.06}>
-            <BentoTile n="02" title={c.how.steps[1]!.t} desc={c.how.steps[1]!.d} className="h-full" />
+            <BentoTile
+              n="02"
+              title={c.how.steps[1]!.t}
+              desc={c.how.steps[1]!.d}
+              className="h-full"
+            />
           </Reveal>
           <Reveal className="md:col-span-2" delay={0.12}>
-            <BentoTile n="03" title={c.how.steps[2]!.t} desc={c.how.steps[2]!.d} className="h-full" />
+            <BentoTile
+              n="03"
+              title={c.how.steps[2]!.t}
+              desc={c.how.steps[2]!.d}
+              className="h-full"
+            />
           </Reveal>
         </div>
 

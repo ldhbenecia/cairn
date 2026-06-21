@@ -1,8 +1,9 @@
 'use client';
 
-import { type FC, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { type FC, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+
 import { cn } from '@/lib/utils';
 
 type Uniforms = Record<string, { value: number[] | number[][] | number; type: string }>;

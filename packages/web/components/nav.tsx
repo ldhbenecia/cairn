@@ -1,7 +1,7 @@
 import { content, type Lang } from '../lib/content';
+import { REPO, REPO_URL } from '../lib/github';
 import { BrandMark } from './brand-mark';
 import { LangSwitcher } from './lang-switcher';
-import { REPO, REPO_URL } from '../lib/github';
 
 function formatStars(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;

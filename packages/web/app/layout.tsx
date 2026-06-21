@@ -1,8 +1,10 @@
+import './globals.css';
+
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
-import './globals.css';
-import { SITE_URL } from '../lib/site';
+
 import { REPO_URL } from '../lib/github';
+import { SITE_URL } from '../lib/site';
 
 const TITLE = 'cairn — your daily dev work, as a Notion worklog';
 const DESC =

@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { authClient } from '@/lib/auth-client';
+
 import { CanvasRevealEffect } from '@/components/ui/canvas-reveal-effect';
+import { authClient } from '@/lib/auth-client';
 
 type Phase = 'loading' | 'signin' | 'bridging' | 'done' | 'error';
 

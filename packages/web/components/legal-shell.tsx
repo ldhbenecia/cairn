@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+
 import { BrandMark } from './brand-mark';
 
 export function LegalShell({
@@ -27,7 +28,9 @@ export function LegalShell({
       <main className="mx-auto max-w-3xl px-6 py-12">
         <h1 className="text-[28px] font-semibold tracking-[-0.025em]">{title}</h1>
         <p className="mt-2 text-[13px] text-ink-tertiary">Last updated: {updated}</p>
-        <div className="mt-8 space-y-7 text-[14.5px] leading-relaxed text-ink-subtle">{children}</div>
+        <div className="mt-8 space-y-7 text-[14.5px] leading-relaxed text-ink-subtle">
+          {children}
+        </div>
       </main>
 
       <footer className="border-t border-hairline">

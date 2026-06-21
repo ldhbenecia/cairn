@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+
 import { LegalSection, LegalShell } from '../../components/legal-shell';
 
 export const metadata: Metadata = {
@@ -11,8 +12,8 @@ export default function TermsPage() {
   return (
     <LegalShell title="Terms of Service" updated="June 20, 2026">
       <p>
-        By downloading, installing, or using cairn — including the optional cross-device sync service
-        — you agree to these terms. If you do not agree, do not use the software or service.
+        By downloading, installing, or using cairn — including the optional cross-device sync
+        service — you agree to these terms. If you do not agree, do not use the software or service.
       </p>
 
       <LegalSection heading="The software">
