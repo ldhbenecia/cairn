@@ -15,6 +15,7 @@ import {
   TriangleAlert,
   X,
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import type { RunSession } from '../App';
 import type { CoreMode, CoreResult, CoreRunOptions, RunStep, SummaryModel } from '../cairn-api';
@@ -287,6 +288,56 @@ const SUMMARIZE_HINTS: I18nKey[] = [
   'publish.hint.summarize.polish',
 ];
 
+type DStatus = 'done' | 'active' | 'pending';
+
+const STATUS_BADGE: Record<DStatus, { key: I18nKey; cls: string }> = {
+  done: { key: 'publish.status.done', cls: 'bg-emerald-500/15 text-emerald-400' },
+  active: { key: 'publish.status.active', cls: 'bg-accent/15 text-accent-hover' },
+  pending: { key: 'publish.status.pending', cls: 'bg-surface-2 text-ink-tertiary' },
+};
+
+function StatusIcon({ status, size }: { status: DStatus; size: number }) {
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.span
+        key={status}
+        initial={{ opacity: 0, scale: 0.7, rotate: -10 }}
+        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+        exit={{ opacity: 0, scale: 0.7, rotate: 10 }}
+        transition={{ duration: 0.18, ease: [0.2, 0.65, 0.3, 0.9] }}
+        className="flex items-center justify-center"
+      >
+        {status === 'done' ? (
+          <CheckCircle2 size={size} strokeWidth={2.25} className="text-emerald-400" />
+        ) : status === 'active' ? (
+          <CircleDotDashed
+            size={size}
+            strokeWidth={2.25}
+            className="animate-spin text-accent [animation-duration:3s]"
+          />
+        ) : (
+          <Circle size={size} strokeWidth={2} className="text-ink-tertiary" />
+        )}
+      </motion.span>
+    </AnimatePresence>
+  );
+}
+
+function StatusBadge({ status, t }: { status: DStatus; t: T }) {
+  const b = STATUS_BADGE[status];
+  return (
+    <motion.span
+      key={status}
+      initial={{ scale: 0.85, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+      className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${b.cls}`}
+    >
+      {t(b.key)}
+    </motion.span>
+  );
+}
+
 function Progress({
   session,
   t,
@@ -329,7 +380,7 @@ function Progress({
     <div className="flex flex-col gap-5 py-1">
       {isBatch ? (
         <>
-          <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-2/50 px-4 py-3.5">
+          <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-2 px-4 py-3.5">
             <div className="flex items-baseline justify-between">
               <span className="text-[13px] font-medium text-ink-muted">
                 {t('publish.backfill.publishing')}
@@ -347,32 +398,33 @@ function Progress({
               )}
             </div>
             {backfill && backfill.dates.length > 0 ? (
-              <ul className="flex max-h-[220px] flex-col gap-0.5 overflow-y-auto pr-1">
+              <ul className="relative flex max-h-[240px] flex-col gap-0.5 overflow-y-auto pr-1">
+                <div
+                  className="pointer-events-none absolute top-2 bottom-2 left-[10px] border-l border-dashed border-hairline-strong"
+                  aria-hidden="true"
+                />
                 {backfill.dates.map((d, i) => {
-                  const dstatus =
+                  const dstatus: DStatus =
                     i < backfill.done
                       ? 'done'
                       : i < backfill.done + backfill.active
                         ? 'active'
                         : 'pending';
                   return (
-                    <li key={d} className="flex items-center gap-2.5 py-0.5">
-                      <span className="flex size-[18px] shrink-0 items-center justify-center">
-                        {dstatus === 'done' ? (
-                          <CheckCircle2 size={16} strokeWidth={2.25} className="text-accent" />
-                        ) : dstatus === 'active' ? (
-                          <CircleDotDashed
-                            size={16}
-                            strokeWidth={2.25}
-                            className="animate-spin text-accent [animation-duration:3s]"
-                          />
-                        ) : (
-                          <Circle size={16} strokeWidth={2} className="text-ink-tertiary" />
-                        )}
+                    <motion.li
+                      key={d}
+                      layout
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.2, delay: Math.min(i * 0.015, 0.18) }}
+                      className="relative flex items-center gap-2.5 py-0.5"
+                    >
+                      <span className="z-10 flex size-[20px] shrink-0 items-center justify-center rounded-full bg-surface-2">
+                        <StatusIcon status={dstatus} size={16} />
                       </span>
                       <span
                         className={[
-                          'font-mono text-[12px] transition-colors',
+                          'font-mono text-[12px]',
                           dstatus === 'pending'
                             ? 'text-ink-tertiary'
                             : dstatus === 'active'
@@ -382,7 +434,10 @@ function Progress({
                       >
                         {d}
                       </span>
-                    </li>
+                      <span className="ml-auto">
+                        <StatusBadge status={dstatus} t={t} />
+                      </span>
+                    </motion.li>
                   );
                 })}
               </ul>
@@ -419,6 +474,9 @@ function Progress({
               </div>
             )}
             <span className="text-[11px] leading-relaxed text-ink-tertiary">
+              {backfill
+                ? `${backfill.total - backfill.done} ${t('publish.backfill.remaining')} · `
+                : ''}
               {t('publish.backfill.concurrent')}
             </span>
           </div>
@@ -435,24 +493,14 @@ function Progress({
         <ul className="flex flex-col">
           {STEPS.map((s) => {
             const rank = STEP_RANK[s.key];
-            const status =
+            const status: DStatus =
               rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
             const isActive = status === 'active';
             return (
               <li key={s.key} className="flex flex-col">
                 <div className="flex items-center gap-2.5 py-1">
                   <span className="flex size-[20px] shrink-0 items-center justify-center">
-                    {status === 'done' ? (
-                      <CheckCircle2 size={18} strokeWidth={2.25} className="text-accent" />
-                    ) : isActive ? (
-                      <CircleDotDashed
-                        size={18}
-                        strokeWidth={2.25}
-                        className="animate-spin text-accent [animation-duration:3s]"
-                      />
-                    ) : (
-                      <Circle size={18} strokeWidth={2} className="text-ink-tertiary" />
-                    )}
+                    <StatusIcon status={status} size={18} />
                   </span>
                   <span
                     className={[
@@ -466,11 +514,14 @@ function Progress({
                   >
                     {t(s.labelKey)}
                   </span>
-                  {isActive && (
-                    <span className="ml-auto shrink-0 font-mono text-[11px] text-ink-tertiary">
-                      {mm}:{ss}
-                    </span>
-                  )}
+                  <span className="ml-auto flex shrink-0 items-center gap-2">
+                    {isActive && (
+                      <span className="font-mono text-[11px] text-ink-tertiary">
+                        {mm}:{ss}
+                      </span>
+                    )}
+                    <StatusBadge status={status} t={t} />
+                  </span>
                 </div>
                 {isActive && (
                   <div className="ml-[9px] flex flex-col gap-2 border-l border-dashed border-hairline-strong pb-2.5 pl-[20px]">
