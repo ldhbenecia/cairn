@@ -32,6 +32,7 @@ export class LocalGitClient {
   ): Promise<RawLocalCommit[]> {
     const out = await this.git(repoPath).raw([
       'log',
+      '--all',
       `--since=${since}`,
       `--until=${until}`,
       '--no-merges',
