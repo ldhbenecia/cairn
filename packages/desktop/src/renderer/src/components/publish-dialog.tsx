@@ -4,6 +4,9 @@ import {
   CalendarDays,
   CalendarRange,
   Check,
+  CheckCircle2,
+  Circle,
+  CircleDotDashed,
   ExternalLink,
   type LucideIcon,
   Loader2,
@@ -322,140 +325,144 @@ function Progress({
         ? t(SUMMARIZE_HINTS[hintIdx]!)
         : t(STEP_HINT_KEY[step]);
 
-  const fillPct = Math.max(0, Math.min(100, ((currentRank - STEP_RANK.collect) / 2) * 100));
   return (
     <div className="flex flex-col gap-5 py-1">
       {isBatch ? (
-        <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-2/50 px-4 py-3.5">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[13px] font-medium text-ink-muted">
-              {t('publish.backfill.publishing')}
-            </span>
-            {backfill && (
-              <span className="font-mono text-[19px] font-semibold tracking-[-0.5px] text-ink">
-                <span key={backfill.done} className="batch-count text-accent">
-                  {backfill.done}
-                </span>
-                <span className="text-ink-tertiary">/{backfill.total}</span>
-                <span className="ml-0.5 text-[12px] font-normal text-ink-tertiary">
-                  {t('publish.backfill.daysSuffix')}
-                </span>
+        <>
+          <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-2/50 px-4 py-3.5">
+            <div className="flex items-baseline justify-between">
+              <span className="text-[13px] font-medium text-ink-muted">
+                {t('publish.backfill.publishing')}
               </span>
+              {backfill && (
+                <span className="font-mono text-[19px] font-semibold tracking-[-0.5px] text-ink">
+                  <span key={backfill.done} className="batch-count text-accent">
+                    {backfill.done}
+                  </span>
+                  <span className="text-ink-tertiary">/{backfill.total}</span>
+                  <span className="ml-0.5 text-[12px] font-normal text-ink-tertiary">
+                    {t('publish.backfill.daysSuffix')}
+                  </span>
+                </span>
+              )}
+            </div>
+            {backfill && backfill.total <= 31 ? (
+              <div className="flex flex-wrap gap-1">
+                {Array.from({ length: backfill.total }).map((_, i) => {
+                  const done = i < backfill.done;
+                  const active = !done && i < backfill.done + backfill.active;
+                  return (
+                    <span
+                      key={i}
+                      className={[
+                        'h-2.5 min-w-[8px] flex-1 rounded-full transition-colors duration-300',
+                        done
+                          ? 'batch-pop bg-accent'
+                          : active
+                            ? 'batch-pulse bg-accent/40'
+                            : 'bg-surface-2',
+                      ].join(' ')}
+                    />
+                  );
+                })}
+              </div>
+            ) : backfill ? (
+              <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+                <div
+                  className="h-full rounded-full bg-accent transition-all duration-500 ease-out"
+                  style={{ width: `${(backfill.done / backfill.total) * 100}%` }}
+                />
+              </div>
+            ) : (
+              <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+                <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
+              </div>
             )}
+            <span className="text-[11px] leading-relaxed text-ink-tertiary">
+              {t('publish.backfill.concurrent')}
+            </span>
           </div>
-          {backfill && backfill.total <= 31 ? (
-            <div className="flex flex-wrap gap-1">
-              {Array.from({ length: backfill.total }).map((_, i) => {
-                const done = i < backfill.done;
-                const active = !done && i < backfill.done + backfill.active;
-                return (
-                  <span
-                    key={i}
-                    className={[
-                      'h-2.5 min-w-[8px] flex-1 rounded-full transition-colors duration-300',
-                      done
-                        ? 'batch-pop bg-accent'
-                        : active
-                          ? 'batch-pulse bg-accent/40'
-                          : 'bg-surface-2',
-                    ].join(' ')}
-                  />
-                );
-              })}
-            </div>
-          ) : backfill ? (
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
-              <div
-                className="h-full rounded-full bg-accent transition-all duration-500 ease-out"
-                style={{ width: `${(backfill.done / backfill.total) * 100}%` }}
-              />
-            </div>
-          ) : (
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
-              <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
-            </div>
-          )}
-          <span className="text-[11px] leading-relaxed text-ink-tertiary">
-            {t('publish.backfill.concurrent')}
-          </span>
-        </div>
+          <div className="flex items-center justify-between gap-3 text-[13px]">
+            <span key={hint} className="hint-fade min-w-0 truncate text-ink-muted">
+              {hint}
+            </span>
+            <span className="shrink-0 font-mono text-ink-tertiary">
+              {mm}:{ss}
+            </span>
+          </div>
+        </>
       ) : (
-        <div className="relative flex items-start justify-between px-3">
-          <div className="absolute top-[11px] right-3 left-3 h-0.5 rounded-full bg-hairline" />
-          <div
-            className="absolute top-[11px] left-3 h-0.5 rounded-full bg-accent transition-[width] duration-500 ease-out"
-            style={{ width: `calc((100% - 1.5rem) * ${fillPct / 100})` }}
-          />
+        <ul className="flex flex-col">
           {STEPS.map((s) => {
             const rank = STEP_RANK[s.key];
             const status =
               rank < currentRank ? 'done' : rank === currentRank ? 'active' : 'pending';
+            const isActive = status === 'active';
             return (
-              <div key={s.key} className="relative z-10 flex flex-col items-center gap-1.5">
-                <div
-                  className={[
-                    'flex size-[22px] items-center justify-center rounded-full border-2 transition-all duration-300',
-                    status === 'done'
-                      ? 'border-accent bg-accent text-white'
-                      : status === 'active'
-                        ? 'border-accent bg-surface-1 text-accent'
-                        : 'border-hairline-strong bg-surface-1 text-ink-tertiary',
-                  ].join(' ')}
-                >
-                  {status === 'done' ? (
-                    <Check size={12} strokeWidth={3} />
-                  ) : status === 'active' ? (
-                    <Loader2 size={12} strokeWidth={2.5} className="animate-spin" />
-                  ) : (
-                    <span className="size-1.5 rounded-full bg-current opacity-50" />
+              <li key={s.key} className="flex flex-col">
+                <div className="flex items-center gap-2.5 py-1">
+                  <span className="flex size-[20px] shrink-0 items-center justify-center">
+                    {status === 'done' ? (
+                      <CheckCircle2 size={18} strokeWidth={2.25} className="text-accent" />
+                    ) : isActive ? (
+                      <CircleDotDashed
+                        size={18}
+                        strokeWidth={2.25}
+                        className="animate-spin text-accent [animation-duration:3s]"
+                      />
+                    ) : (
+                      <Circle size={18} strokeWidth={2} className="text-ink-tertiary" />
+                    )}
+                  </span>
+                  <span
+                    className={[
+                      'text-[13px] transition-colors',
+                      status === 'pending'
+                        ? 'text-ink-tertiary'
+                        : isActive
+                          ? 'font-medium text-ink'
+                          : 'text-ink-muted',
+                    ].join(' ')}
+                  >
+                    {t(s.labelKey)}
+                  </span>
+                  {isActive && (
+                    <span className="ml-auto shrink-0 font-mono text-[11px] text-ink-tertiary">
+                      {mm}:{ss}
+                    </span>
                   )}
                 </div>
-                <span
-                  className={`text-[11px] transition-colors ${status === 'pending' ? 'text-ink-tertiary' : 'text-ink-muted'}`}
-                >
-                  {t(s.labelKey)}
-                </span>
-              </div>
+                {isActive && (
+                  <div className="ml-[9px] flex flex-col gap-2 border-l border-dashed border-hairline-strong pb-2.5 pl-[20px]">
+                    <span
+                      key={hint}
+                      className="hint-fade text-[12px] leading-relaxed text-ink-muted"
+                    >
+                      {hint}
+                    </span>
+                    {s.key === 'summarize' && (
+                      <BrandMark size={24} className="cairn-breathe text-accent" />
+                    )}
+                    {rank >= STEP_RANK.summarize &&
+                      counts.pr !== null &&
+                      counts.commit !== null && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-ink-tertiary">
+                          <span className="rounded-md border border-hairline bg-surface-2 px-1.5 py-0.5">
+                            PR {counts.pr}
+                          </span>
+                          <span className="rounded-md border border-hairline bg-surface-2 px-1.5 py-0.5">
+                            {t('publish.collected.commits')} {counts.commit}
+                          </span>
+                          <span>{t('publish.collected')}</span>
+                        </div>
+                      )}
+                  </div>
+                )}
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
-
-      {step === 'summarize' && !isBatch && (
-        <div className="flex justify-center py-1.5">
-          <BrandMark size={28} className="cairn-breathe text-accent" />
-        </div>
-      )}
-
-      {!isBatch && (
-        <div className="h-1 overflow-hidden rounded-full bg-surface-2">
-          <div className="progress-indeterminate h-full w-1/3 rounded-full bg-accent" />
-        </div>
-      )}
-
-      <div className="flex items-center justify-between gap-3 text-[13px]">
-        <span key={hint} className="hint-fade min-w-0 truncate text-ink-muted">
-          {hint}
-        </span>
-        <span className="shrink-0 font-mono text-ink-tertiary">
-          {mm}:{ss}
-        </span>
-      </div>
-
-      {!isBatch &&
-        currentRank >= STEP_RANK.summarize &&
-        counts.pr !== null &&
-        counts.commit !== null && (
-          <div className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
-            <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
-              PR {counts.pr}
-            </span>
-            <span className="rounded-md border border-hairline bg-surface-2 px-2 py-1">
-              {t('publish.collected.commits')} {counts.commit}
-            </span>
-            <span>{t('publish.collected')}</span>
-          </div>
-        )}
 
       <div className="flex justify-center pt-1">
         <button
