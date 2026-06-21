@@ -125,7 +125,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50 [-webkit-app-region:no-drag]" />
         <Dialog.Content
           onOpenAutoFocus={(e) => e.preventDefault()}
-          className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-[600px] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]"
+          className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-[520px] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]"
         >
           <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
             <Dialog.Title className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.2px] text-ink">
@@ -289,6 +289,15 @@ const SUMMARIZE_HINTS: I18nKey[] = [
   'publish.hint.summarize.polish',
 ];
 
+const ACTIVE_POOL: I18nKey[] = [
+  'publish.hint.collectGithub',
+  'publish.hint.summarize.read',
+  'publish.hint.summarize.commits',
+  'publish.hint.collectGit',
+  'publish.hint.summarize.numbers',
+  'publish.hint.summarize.polish',
+];
+
 type DStatus = 'done' | 'active' | 'pending';
 
 const STATUS_BADGE: Record<DStatus, { key: I18nKey; cls: string }> = {
@@ -422,7 +431,7 @@ function Progress({
                   const open = expandedDates.has(d);
                   const detail =
                     dstatus === 'active'
-                      ? hint
+                      ? t(ACTIVE_POOL[(i - backfill.done) % ACTIVE_POOL.length]!)
                       : dstatus === 'done'
                         ? t('publish.result.done')
                         : t('publish.status.pending');
