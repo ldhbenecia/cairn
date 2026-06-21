@@ -10,7 +10,6 @@ export interface BentoItem {
     status?: string;
     tags?: string[];
     meta?: string;
-    cta?: string;
     colSpan?: number;
     hasPersistentHover?: boolean;
 }
@@ -114,7 +113,7 @@ function BentoGrid({ items = itemsSample }: BentoGridProps) {
                             </p>
                         </div>
 
-                        <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center mt-2">
                             <div className="flex items-center space-x-2 text-xs text-ink-tertiary">
                                 {item.tags?.map((tag, i) => (
                                     <span
@@ -125,9 +124,6 @@ function BentoGrid({ items = itemsSample }: BentoGridProps) {
                                     </span>
                                 ))}
                             </div>
-                            <span className="text-xs text-ink-tertiary opacity-0 group-hover:opacity-100 transition-opacity">
-                                {item.cta || "Explore →"}
-                            </span>
                         </div>
                     </div>
 
