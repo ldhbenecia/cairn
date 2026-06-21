@@ -46,6 +46,7 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 export type BusyState = { busy: boolean; mode: CoreMode | null };
 
 export type DateStep = 'collect' | 'summarize' | 'publish';
+export type DateCounts = { pr: number; commit: number };
 export type RunProgress = {
   total: number;
   done: number;
@@ -53,6 +54,7 @@ export type RunProgress = {
   dates: string[];
   doneDates: string[];
   stepByDate: Record<string, DateStep>;
+  countsByDate: Record<string, DateCounts>;
 };
 
 export type RunSnapshot = {

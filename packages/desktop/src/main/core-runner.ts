@@ -119,6 +119,7 @@ let lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null =
 
 // 백필 배치 진행 — 전체 stdout 스트림 기준 누적(렌더러 200줄 tail 제한에 영향받지 않게)
 export type DateStep = 'collect' | 'summarize' | 'publish';
+export type DateCounts = { pr: number; commit: number };
 export type RunProgress = {
   total: number;
   done: number;
@@ -126,6 +127,7 @@ export type RunProgress = {
   dates: string[];
   doneDates: string[];
   stepByDate: Record<string, DateStep>;
+  countsByDate: Record<string, DateCounts>;
 };
 let runProgress: RunProgress | null = null;
 let bfTotal = 0;
@@ -137,6 +139,9 @@ let bfDates: string[] = [];
 let bfDoneDates: string[] = [];
 let bfStepByDate: Record<string, DateStep> = {};
 let bfStepBlock: { date?: string; step?: DateStep } | null = null;
+let bfCountsByDate: Record<string, DateCounts> = {};
+let bfCountBlock: { date?: string; pr?: number; commit?: number; noActivity?: boolean } | null =
+  null;
 
 function resetBackfillTracking(): void {
   runProgress = null;
@@ -149,6 +154,8 @@ function resetBackfillTracking(): void {
   bfDoneDates = [];
   bfStepByDate = {};
   bfStepBlock = null;
+  bfCountsByDate = {};
+  bfCountBlock = null;
 }
 
 // 'backfill date step' 블록에서 날짜별 단계(수집/요약/발행) 추출 — JSON 한 줄·pino-pretty 멀티라인 모두 대응
@@ -179,10 +186,55 @@ function trackDateStep(line: string): void {
   }
 }
 
+// 날짜별 수집 수치(PR·커밋) 추출 — 'daily: publish done'(date+prCount+commitCountTotal),
+// 'no activity collected'(0/0). JSON 한 줄·pino-pretty 멀티라인 블록 모두 대응.
+function flushCountBlock(): void {
+  const b = bfCountBlock;
+  if (!b?.date) return;
+  if (b.noActivity) {
+    bfCountsByDate = { ...bfCountsByDate, [b.date]: { pr: 0, commit: 0 } };
+    bfCountBlock = null;
+  } else if (b.pr !== undefined && b.commit !== undefined) {
+    bfCountsByDate = { ...bfCountsByDate, [b.date]: { pr: b.pr, commit: b.commit } };
+    bfCountBlock = null;
+  }
+}
+
+function trackDateCounts(line: string): void {
+  const isDone = /daily: publish done/.test(line);
+  const isNoActivity = /no activity collected/.test(line);
+  if (isDone || isNoActivity) {
+    const d = /date["':\s]+["']?(\d{4}-\d{2}-\d{2})/.exec(line);
+    const p = /prCount["':\s]+(\d+)/.exec(line);
+    const c = /commitCountTotal["':\s]+(\d+)/.exec(line);
+    bfCountBlock = {
+      date: d?.[1],
+      pr: isNoActivity ? 0 : p ? Number(p[1]) : undefined,
+      commit: isNoActivity ? 0 : c ? Number(c[1]) : undefined,
+      noActivity: isNoActivity,
+    };
+    flushCountBlock();
+    return;
+  }
+  if (!bfCountBlock) return;
+  if (/^\[\d{2}:\d{2}:\d{2}/.test(line) || /"msg"\s*:/.test(line)) {
+    bfCountBlock = null;
+    return;
+  }
+  const d = /date["':\s]+["']?(\d{4}-\d{2}-\d{2})/.exec(line);
+  const p = /prCount["':\s]+(\d+)/.exec(line);
+  const c = /commitCountTotal["':\s]+(\d+)/.exec(line);
+  if (d) bfCountBlock.date = d[1];
+  if (p && !bfCountBlock.noActivity) bfCountBlock.pr = Number(p[1]);
+  if (c && !bfCountBlock.noActivity) bfCountBlock.commit = Number(c[1]);
+  flushCountBlock();
+}
+
 // pino-pretty 멀티라인 대응: 헤더(`[HH:MM:SS]`) 기준 블록으로 total/done 누적, date start 수로 동시 처리 산정
 function trackBackfill(line: string, mode: CoreMode): void {
   if (line.includes('backfill date start')) bfStarted += 1;
   trackDateStep(line);
+  trackDateCounts(line);
   // 배치 시작 시 1회 찍히는 날짜 목록(쉼표 join) — 헤더/블록 어느 라인에 있어도 잡히게 무조건 검사
   // 음수 lookbehind 로 'doneDates' 는 제외(전체 대상 목록만)
   const mDates = /(?<![a-zA-Z])dates["':\s]+["']?([\d,-]+)/.exec(line);
@@ -211,7 +263,11 @@ function trackBackfill(line: string, mode: CoreMode): void {
     .map(([d, s]) => `${d}:${s}`)
     .sort()
     .join(',');
-  const key = `${bfDone}/${bfTotal}/${active}/${bfDates.length}/${bfDoneDates.length}/${stepSig}`;
+  const countSig = Object.entries(bfCountsByDate)
+    .map(([d, v]) => `${d}:${v.pr}:${v.commit}`)
+    .sort()
+    .join(',');
+  const key = `${bfDone}/${bfTotal}/${active}/${bfDates.length}/${bfDoneDates.length}/${stepSig}/${countSig}`;
   if (key === bfLastKey) return;
   bfLastKey = key;
   runProgress = {
@@ -221,6 +277,7 @@ function trackBackfill(line: string, mode: CoreMode): void {
     dates: bfDates,
     doneDates: bfDoneDates,
     stepByDate: bfStepByDate,
+    countsByDate: bfCountsByDate,
   };
   broadcast('cairn:run-progress', { mode, ...runProgress });
 }
