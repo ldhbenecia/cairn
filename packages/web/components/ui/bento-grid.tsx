@@ -67,8 +67,7 @@ function BentoGrid({ items = itemsSample }: BentoGridProps) {
                         "border border-hairline bg-surface-1",
                         "hover:border-hairline-strong hover:shadow-[0_4px_20px_rgba(0,0,0,0.25)]",
                         "hover:-translate-y-0.5 will-change-transform",
-                        item.colSpan || "col-span-1",
-                        item.colSpan === 2 ? "md:col-span-2" : "",
+                        item.colSpan === 2 ? "md:col-span-2" : "md:col-span-1",
                         {
                             "border-hairline-strong shadow-[0_4px_20px_rgba(0,0,0,0.25)] -translate-y-0.5":
                                 item.hasPersistentHover,
@@ -104,9 +103,11 @@ function BentoGrid({ items = itemsSample }: BentoGridProps) {
                         <div className="space-y-2">
                             <h3 className="font-medium text-ink tracking-tight text-[15px]">
                                 {item.title}
-                                <span className="ml-2 text-xs text-ink-tertiary font-normal">
-                                    {item.meta}
-                                </span>
+                                {item.meta && (
+                                    <span className="ml-2 text-xs text-ink-tertiary font-normal">
+                                        {item.meta}
+                                    </span>
+                                )}
                             </h3>
                             <p className="text-sm text-ink-muted leading-snug font-[425]">
                                 {item.description}

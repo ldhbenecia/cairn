@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowLeft, Ghost, Home } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
   Empty,
@@ -28,12 +29,16 @@ export default function NotFound() {
         </EmptyHeader>
         <EmptyContent>
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button onClick={() => (window.location.href = '/')} className="group">
-              <Home className="mr-1 h-4 w-4 transition-transform group-hover:scale-110" />
-              Go home
+            <Button asChild className="group">
+              <Link href="/">
+                <Home className="mr-1 h-4 w-4 transition-transform group-hover:scale-110" />
+                Go home
+              </Link>
             </Button>
             <Button
-              onClick={() => window.history.back()}
+              onClick={() =>
+                window.history.length > 1 ? window.history.back() : (window.location.href = '/')
+              }
               variant="outline"
               className="group"
             >

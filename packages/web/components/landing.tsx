@@ -28,12 +28,12 @@ export async function Landing({ lang }: { lang: Lang }) {
   const download = RELEASES_LATEST;
   const unblockCmd = 'xattr -d com.apple.quarantine /Applications/Cairn.app';
   const highlightItems: BentoItem[] = c.highlights.items.map((it, i) => {
-    const Icon = HL_ICONS[i]!;
+    const Icon = HL_ICONS[i] ?? Sparkles;
     return {
       ...it,
-      icon: <Icon className={`h-4 w-4 ${HL_COLORS[i]}`} />,
-      colSpan: HL_SPAN[i],
-      hasPersistentHover: HL_PERSIST[i],
+      icon: <Icon className={`h-4 w-4 ${HL_COLORS[i] ?? 'text-ink-subtle'}`} />,
+      colSpan: HL_SPAN[i] ?? 1,
+      hasPersistentHover: HL_PERSIST[i] ?? false,
     };
   });
 

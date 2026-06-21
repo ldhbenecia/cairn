@@ -1,6 +1,6 @@
 'use client';
 
-import { type FC, useMemo, useRef } from 'react';
+import { type FC, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { cn } from '@/lib/utils';
@@ -230,7 +230,9 @@ const ShaderMaterial = ({ source, uniforms }: { source: string; uniforms: Unifor
       blendDst: THREE.OneFactor,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [size.width, size.height, source]);
+  }, [size.width, size.height, source, uniforms]);
+
+  useEffect(() => () => material.dispose(), [material]);
 
   return (
     <mesh ref={ref}>
