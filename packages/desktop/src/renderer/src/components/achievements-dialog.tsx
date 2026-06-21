@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ArrowLeft, Check, Copy, Info, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
@@ -132,7 +132,7 @@ export function AchievementsDialog({
   const scanDone = scanned.length;
   const ringPct = scanTotal > 0 ? Math.round((scanDone / scanTotal) * 100) : 0;
   const ringOffset = RING_C * (1 - (scanTotal > 0 ? scanDone / scanTotal : 0));
-  const recentScan = scanned.slice(-5).reverse();
+  const recentScan = scanned.slice(-5);
   const filename = `worklog-last-${days}d.md`;
   const wide = phase === 'result';
 
@@ -268,32 +268,26 @@ export function AchievementsDialog({
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="font-mono text-[22px] font-semibold text-ink">{ringPct}%</span>
+                  <span className="font-mono text-[22px] leading-none font-semibold text-ink tabular-nums">
+                    {ringPct}%
+                  </span>
                 </div>
               </div>
               <p className="mt-4 text-[14px] font-medium text-ink">{t('achv.scanning')}</p>
-              <p className="mt-1 text-[11.5px] text-ink-tertiary">
+              <p className="mt-1 text-[11.5px] text-ink-tertiary tabular-nums">
                 <span className="font-mono text-accent-hover">{scanDone}</span> / {scanTotal}
                 {t('achv.worklogs')}
               </p>
-              <div className="mt-4 flex w-full flex-col gap-1.5 rounded-xl border border-hairline bg-surface-2/40 px-3.5 py-3">
-                <AnimatePresence initial={false}>
-                  {recentScan.map((s) => (
-                    <motion.div
-                      key={s.date}
-                      layout
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center gap-2.5"
-                    >
-                      <Check size={13} strokeWidth={2.5} className="shrink-0 text-emerald-400" />
-                      <span className="font-mono text-[11.5px] text-ink-muted">{s.date}</span>
-                      <span className="ml-auto font-mono text-[11px] text-ink-tertiary">
-                        {s.count} Done
-                      </span>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+              <div className="mt-4 flex h-[132px] w-full flex-col justify-end gap-1.5 overflow-hidden rounded-xl border border-hairline bg-surface-2/40 px-3.5 py-3">
+                {recentScan.map((s) => (
+                  <div key={s.date} className="flex items-center gap-2.5">
+                    <Check size={13} strokeWidth={2.5} className="shrink-0 text-emerald-400" />
+                    <span className="font-mono text-[11.5px] text-ink-muted">{s.date}</span>
+                    <span className="ml-auto font-mono text-[11px] text-ink-tertiary tabular-nums">
+                      {s.count} Done
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           )}

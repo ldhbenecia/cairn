@@ -458,7 +458,7 @@ function OverallBar({
 }) {
   return (
     <div className="flex items-center gap-3.5">
-      <div className="flex shrink-0 items-baseline gap-0.5">
+      <div className="flex shrink-0 items-baseline gap-0.5 tabular-nums">
         <span
           key={done}
           className="batch-count font-mono text-[26px] font-semibold tracking-[-0.5px] text-ink"
@@ -472,7 +472,7 @@ function OverallBar({
       </div>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
         <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-accent to-accent-hover"
+          className="bar-flow h-full rounded-full"
           initial={false}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -493,13 +493,13 @@ function StepDetail({ step, status, t }: { step: DateStep; status: DStatus; t: T
         ? t('publish.status.done')
         : t('publish.status.pending');
   return (
-    <div className="flex items-center gap-2.5 py-[3px]">
+    <div className="flex items-center gap-2.5 py-[3px] pr-1">
       <span className="z-10 flex size-[18px] shrink-0 items-center justify-center rounded-full bg-surface-1">
         <StatusIcon status={status} size={13} />
       </span>
       <span
         className={[
-          'text-[12px]',
+          'shrink-0 text-[12px]',
           status === 'pending'
             ? 'text-ink-tertiary'
             : status === 'active'
@@ -511,7 +511,7 @@ function StepDetail({ step, status, t }: { step: DateStep; status: DStatus; t: T
       </span>
       <span
         className={[
-          'ml-auto font-mono text-[11px]',
+          'ml-auto truncate text-right font-mono text-[11px]',
           status === 'active' ? 'text-accent-hover' : 'text-ink-tertiary',
         ].join(' ')}
       >
@@ -587,7 +587,7 @@ function TreeRow({
             transition={{ duration: 0.22, ease: [0.2, 0.65, 0.3, 0.9] }}
             className="overflow-hidden"
           >
-            <div className="ml-[19px] flex flex-col border-l border-dashed border-hairline-strong pt-0.5 pb-2 pl-3">
+            <div className="mr-2 ml-[19px] flex flex-col border-l border-dashed border-hairline-strong pt-0.5 pb-2 pl-3">
               {d.steps.map((s) => (
                 <StepDetail key={s.step} step={s.step} status={s.status} t={t} />
               ))}
@@ -658,7 +658,7 @@ function CancelButton({
       type="button"
       disabled={cancelling}
       onClick={onClick}
-      className="shrink-0 rounded-md px-2.5 py-1 text-[12px] text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+      className="inline-flex h-7 shrink-0 items-center rounded-md px-2.5 text-[12px] leading-none text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
     >
       {cancelling ? t('publish.cancelling') : t('publish.cancel')}
     </button>
@@ -760,7 +760,7 @@ function Progress({
               ss={ss}
               t={t}
             />
-            <ul className="-mx-1 flex max-h-[44vh] flex-col gap-0.5 overflow-y-auto px-1">
+            <ul className="-mx-1 flex max-h-[44vh] flex-col gap-0.5 overflow-y-auto pr-0.5 pl-1">
               {panelDates.map((d, i) =>
                 layout === 'tree' ? (
                   <TreeRow
@@ -782,11 +782,11 @@ function Progress({
               />
               <span
                 key={currentAction}
-                className="hint-fade min-w-0 flex-1 truncate text-[12.5px] text-ink-muted"
+                className="hint-fade min-w-0 flex-1 truncate text-[12.5px] leading-none text-ink-muted"
               >
                 {currentAction}
               </span>
-              <span className="shrink-0 font-mono text-[11px] text-ink-tertiary">
+              <span className="shrink-0 font-mono text-[11px] leading-none text-ink-tertiary">
                 {backfill.total - backfill.done} {t('publish.backfill.remaining')}
               </span>
               <CancelButton cancelling={cancelling} onClick={cancel} t={t} />

@@ -461,6 +461,24 @@ button {
 .batch-pulse {
   animation: batch-pulse 1.4s ease-in-out infinite;
 }
+@keyframes bar-flow {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.bar-flow {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-accent),
+    var(--color-accent-hover),
+    var(--color-accent)
+  );
+  background-size: 200% 100%;
+  animation: bar-flow 2.2s linear infinite;
+}
 @keyframes batch-count {
   from {
     transform: translateY(-35%);
