@@ -80,7 +80,7 @@ export default function DesktopLogin() {
 
         {phase === 'signin' && (
           <>
-            <p className="text-[14px] text-white/60">데스크톱 앱 동기화를 위해 로그인하세요.</p>
+            <p className="text-[14px] text-white/60">Sign in to sync your desktop app.</p>
             <button
               type="button"
               onClick={signIn}
@@ -105,21 +105,21 @@ export default function DesktopLogin() {
                   d="M9 3.5795c1.3214 0 2.5077.4541 3.4405 1.346l2.5813-2.5814C13.4632.8918 11.426 0 9 0 5.4818 0 2.4382 2.0168.9573 4.9582L3.964 7.29C4.6718 5.1627 6.656 3.5795 9 3.5795z"
                 />
               </svg>
-              Google 계정으로 로그인
+              Sign in with Google
             </button>
           </>
         )}
 
         {phase === 'bridging' && (
-          <p className="text-[14px] text-white/60">cairn 앱으로 돌아가는 중…</p>
+          <p className="text-[14px] text-white/60">Returning to the cairn app…</p>
         )}
         {phase === 'done' && (
           <p className="text-[14px] text-white/60">
-            {session?.user.email} 로 로그인됨. 이제 cairn 앱으로 돌아가도 됩니다.
+            Signed in as {session?.user.email}. You can return to the cairn app now.
           </p>
         )}
         {phase === 'error' && (
-          <p className="text-[14px] text-[#f87171]">토큰 발급에 실패했어요. 다시 시도해 주세요.</p>
+          <p className="text-[14px] text-[#f87171]">Couldn’t issue a token. Please try again.</p>
         )}
       </main>
     </div>
