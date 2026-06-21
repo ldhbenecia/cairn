@@ -52,6 +52,17 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
   monthly: null,
 };
 
+const RECENT_CACHE_KEY = 'cairn:recentCache';
+
+function readRecentCache(): RecentListResult | null {
+  try {
+    const raw = localStorage.getItem(RECENT_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as RecentListResult) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function App() {
   const [filter, setFilter] = useState<WorklogFilter>('all');
   const [view, setView] = useState<MainView>('stats');
@@ -69,12 +80,19 @@ export function App() {
   const [busy, setBusy] = useState<BusyState>({ busy: false, mode: null });
   const busyRef = useRef(busy);
   busyRef.current = busy;
-  const [recent, setRecent] = useState<RecentListResult | null>(null);
+  // 마지막 결과를 로컬 캐시에 보관 — 새로고침 시 노션 조회 완료 전까지 빈 스켈레톤이 깜빡이지 않게
+  // 캐시를 즉시 보여주고 백그라운드로 갱신(stale-while-revalidate). 로컬 한정 저장(외부 송신 아님)
+  const [recent, setRecent] = useState<RecentListResult | null>(readRecentCache);
   const { t } = useSettings();
 
   const loadRecent = useCallback(async () => {
     const r = await window.cairn.listRecent();
     setRecent(r);
+    try {
+      localStorage.setItem(RECENT_CACHE_KEY, JSON.stringify(r));
+    } catch {
+      // 저장 실패(쿼터 등)는 무시 — 캐시는 부가 기능
+    }
   }, []);
 
   useEffect(() => {
