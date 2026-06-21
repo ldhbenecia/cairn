@@ -8,7 +8,7 @@ export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type BusyState = { busy: boolean; mode: CoreMode | null };
 
-export type RunProgress = { total: number; done: number; active: number };
+export type RunProgress = { total: number; done: number; active: number; dates: string[] };
 
 export type RunSnapshot = {
   busy: boolean;

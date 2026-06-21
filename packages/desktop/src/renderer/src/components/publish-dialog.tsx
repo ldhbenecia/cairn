@@ -346,7 +346,47 @@ function Progress({
                 </span>
               )}
             </div>
-            {backfill && backfill.total <= 31 ? (
+            {backfill && backfill.dates.length > 0 ? (
+              <ul className="flex max-h-[220px] flex-col gap-0.5 overflow-y-auto pr-1">
+                {backfill.dates.map((d, i) => {
+                  const dstatus =
+                    i < backfill.done
+                      ? 'done'
+                      : i < backfill.done + backfill.active
+                        ? 'active'
+                        : 'pending';
+                  return (
+                    <li key={d} className="flex items-center gap-2.5 py-0.5">
+                      <span className="flex size-[18px] shrink-0 items-center justify-center">
+                        {dstatus === 'done' ? (
+                          <CheckCircle2 size={16} strokeWidth={2.25} className="text-accent" />
+                        ) : dstatus === 'active' ? (
+                          <CircleDotDashed
+                            size={16}
+                            strokeWidth={2.25}
+                            className="animate-spin text-accent [animation-duration:3s]"
+                          />
+                        ) : (
+                          <Circle size={16} strokeWidth={2} className="text-ink-tertiary" />
+                        )}
+                      </span>
+                      <span
+                        className={[
+                          'font-mono text-[12px] transition-colors',
+                          dstatus === 'pending'
+                            ? 'text-ink-tertiary'
+                            : dstatus === 'active'
+                              ? 'font-medium text-ink'
+                              : 'text-ink-muted',
+                        ].join(' ')}
+                      >
+                        {d}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : backfill && backfill.total <= 31 ? (
               <div className="flex flex-wrap gap-1">
                 {Array.from({ length: backfill.total }).map((_, i) => {
                   const done = i < backfill.done;

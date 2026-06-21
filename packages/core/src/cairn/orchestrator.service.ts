@@ -99,8 +99,11 @@ export class OrchestratorService {
 
     let backfillDone = 0;
     const backfillTotal = missingDates.length;
-    // 데스크톱 배치 진행 UI 가 시작 즉시 총개수를 알도록(완료 로그 전부터 칸 렌더링)
-    this.logger.info({ total: backfillTotal }, 'daily: backfill batch start');
+    // 데스크톱 배치 진행 UI 가 시작 즉시 총개수·날짜 목록을 알도록(완료 로그 전부터 날짜별 행 렌더링)
+    this.logger.info(
+      { total: backfillTotal, dates: missingDates.join(',') },
+      'daily: backfill batch start',
+    );
     const results = await withConcurrency<
       string,
       { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' }

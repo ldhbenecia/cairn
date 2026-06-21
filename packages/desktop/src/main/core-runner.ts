@@ -118,13 +118,14 @@ let runStep: RunStep = 'boot';
 let lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null = null;
 
 // 백필 배치 진행 — 전체 stdout 스트림 기준 누적(렌더러 200줄 tail 제한에 영향받지 않게)
-export type RunProgress = { total: number; done: number; active: number };
+export type RunProgress = { total: number; done: number; active: number; dates: string[] };
 let runProgress: RunProgress | null = null;
 let bfTotal = 0;
 let bfDone = 0;
 let bfStarted = 0;
 let bfInStat = false;
 let bfLastKey = '';
+let bfDates: string[] = [];
 
 function resetBackfillTracking(): void {
   runProgress = null;
@@ -133,11 +134,18 @@ function resetBackfillTracking(): void {
   bfStarted = 0;
   bfInStat = false;
   bfLastKey = '';
+  bfDates = [];
 }
 
 // pino-pretty 멀티라인 대응: 헤더(`[HH:MM:SS]`) 기준 블록으로 total/done 누적, date start 수로 동시 처리 산정
 function trackBackfill(line: string, mode: CoreMode): void {
   if (line.includes('backfill date start')) bfStarted += 1;
+  // 배치 시작 시 1회 찍히는 날짜 목록(쉼표 join) — 헤더/블록 어느 라인에 있어도 잡히게 무조건 검사
+  const mDates = /dates["':\s]+["']?([\d,-]+)/.exec(line);
+  if (mDates?.[1]) {
+    const parsed = mDates[1].split(',').filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+    if (parsed.length > bfDates.length) bfDates = parsed;
+  }
   const isHeader = /^\[\d{2}:\d{2}:\d{2}/.test(line) || /"msg"\s*:/.test(line);
   if (isHeader) bfInStat = /backfill batch start|backfill progress/.test(line);
   else if (/backfill batch start|backfill progress/.test(line)) bfInStat = true;
@@ -149,10 +157,10 @@ function trackBackfill(line: string, mode: CoreMode): void {
   }
   if (bfTotal <= 1) return;
   const active = Math.max(0, Math.min(bfTotal - bfDone, bfStarted - bfDone));
-  const key = `${bfDone}/${bfTotal}/${active}`;
+  const key = `${bfDone}/${bfTotal}/${active}/${bfDates.length}`;
   if (key === bfLastKey) return;
   bfLastKey = key;
-  runProgress = { total: bfTotal, done: bfDone, active };
+  runProgress = { total: bfTotal, done: bfDone, active, dates: bfDates };
   broadcast('cairn:run-progress', { mode, ...runProgress });
 }
 
