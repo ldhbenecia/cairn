@@ -13,7 +13,7 @@ const RANGE_LABEL: Record<number, I18nKey> = {
 };
 
 type Phase = 'select' | 'scanning' | 'result';
-type Scanned = { date: string; count: number };
+type Scanned = { key: string; date: string; count: number };
 
 // N일 전 로컬 날짜(YYYY-MM-DD). 로컬 자정 기준 — KST 단정 금지(timezone 룰)
 function localDateDaysAgo(days: number): string {
@@ -83,10 +83,10 @@ export function AchievementsDialog({
       try {
         const content = await window.cairn.pageContent(p.pageId, p.workspaceLabel);
         const bullets = sectionBullets(content.blocks, 'done');
-        setScanned((prev) => [...prev, { date, count: bullets.length }]);
+        setScanned((prev) => [...prev, { key: p.pageId, date, count: bullets.length }]);
         return { date, bullets };
       } catch {
-        setScanned((prev) => [...prev, { date, count: 0 }]);
+        setScanned((prev) => [...prev, { key: p.pageId, date, count: 0 }]);
         return { date, bullets: [] as string[] };
       }
     });
@@ -287,11 +287,11 @@ export function AchievementsDialog({
               </p>
               <div className="mt-4 flex h-[132px] w-full flex-col justify-end gap-1.5 overflow-hidden rounded-xl border border-hairline bg-surface-2/40 px-3.5 py-3">
                 {recentScan.map((s) => (
-                  <div key={s.date} className="flex items-center gap-2.5">
+                  <div key={s.key} className="flex items-center gap-2.5">
                     <Check size={13} strokeWidth={2.5} className="shrink-0 text-emerald-400" />
                     <span className="font-mono text-[11.5px] text-ink-muted">{s.date}</span>
                     <span className="ml-auto font-mono text-[11px] text-ink-tertiary tabular-nums">
-                      {s.count} Done
+                      {s.count} {t('achv.done')}
                     </span>
                   </div>
                 ))}
@@ -310,7 +310,7 @@ export function AchievementsDialog({
                   {stats && (
                     <span className="rounded-md bg-accent/10 px-2.5 py-1 font-mono text-[11.5px] text-accent-hover">
                       {stats.worklogs}
-                      {t('achv.worklogs')} · {stats.done} Done · {stats.months}
+                      {t('achv.worklogs')} · {stats.done} {t('achv.done')} · {stats.months}
                       {t('achv.months')}
                     </span>
                   )}

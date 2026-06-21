@@ -13,16 +13,35 @@ type PageItem = number | 'dots';
 
 function generatePages(total: number, current: number, maxVisible: number): PageItem[] {
   if (total <= maxVisible) return Array.from({ length: total }, (_, i) => i + 1);
-  const side = 1;
-  const middle = maxVisible - 2 * side - 2;
-  const pages: PageItem[] = [1];
-  let left = Math.max(current - Math.floor(middle / 2), side + 1);
-  const right = Math.min(current + Math.floor(middle / 2), total - side);
-  if (left > side + 1) pages.push('dots');
-  else left = side + 1;
-  for (let i = left; i <= right; i++) pages.push(i);
-  if (right < total - side) pages.push('dots');
-  pages.push(total);
+  // current 주변 고정 폭 창 — 양 끝에선 창을 밀어 폭을 유지(시작/끝에서 버튼이 줄던 버그)
+  const delta = Math.max(1, Math.floor((maxVisible - 5) / 2));
+  let start = current - delta;
+  let end = current + delta;
+  if (start < 2) {
+    end += 2 - start;
+    start = 2;
+  }
+  if (end > total - 1) {
+    start -= end - (total - 1);
+    end = total - 1;
+  }
+  start = Math.max(2, start);
+  end = Math.min(total - 1, end);
+
+  const range = [1];
+  for (let i = start; i <= end; i++) range.push(i);
+  range.push(total);
+
+  const pages: PageItem[] = [];
+  let prev = 0;
+  for (const p of range) {
+    if (prev) {
+      if (p - prev === 2) pages.push(prev + 1);
+      else if (p - prev > 1) pages.push('dots');
+    }
+    pages.push(p);
+    prev = p;
+  }
   return pages;
 }
 

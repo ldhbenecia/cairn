@@ -522,6 +522,7 @@ function StepRow({
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={open}
         className="flex w-full items-center gap-2.5 rounded-md py-1 pr-1 text-left transition-colors hover:bg-surface-2/40"
       >
         <span className="z-10 flex size-[16px] shrink-0 items-center justify-center rounded-full bg-surface-1">
@@ -603,6 +604,7 @@ function TreeRow({
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={open}
         className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface-2/40"
       >
         <span className="flex size-[18px] shrink-0 items-center justify-center">
