@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { authClient } from '@/lib/auth-client';
-import { CanvasRevealEffect } from '@/components/ui/sign-in-flow-1';
+import { CanvasRevealEffect } from '@/components/ui/canvas-reveal-effect';
 
 type Phase = 'loading' | 'signin' | 'bridging' | 'done' | 'error';
 
