@@ -1,3 +1,4 @@
+import { CalendarDays, GitPullRequest, LayoutDashboard, ShieldCheck, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { content, type Lang } from '../lib/content';
 import { getRepoStats, REPO_URL, RELEASES_LATEST } from '../lib/github';
@@ -8,12 +9,26 @@ import { LangSwitcher } from './lang-switcher';
 import { Nav } from './nav';
 import { Reveal } from './reveal';
 import { Screenshot } from './screenshot';
+import { BentoGrid, type BentoItem } from './ui/bento-grid';
+
+const HL_ICONS = [GitPullRequest, Sparkles, CalendarDays, LayoutDashboard, ShieldCheck];
+const HL_SPAN = [2, 1, 2, 1, 2];
+const HL_PERSIST = [true, false, false, false, false];
 
 export async function Landing({ lang }: { lang: Lang }) {
   const c = content[lang];
   const { stars, latestTag } = await getRepoStats();
   const download = RELEASES_LATEST;
   const unblockCmd = 'xattr -d com.apple.quarantine /Applications/Cairn.app';
+  const highlightItems: BentoItem[] = c.highlights.items.map((it, i) => {
+    const Icon = HL_ICONS[i]!;
+    return {
+      ...it,
+      icon: <Icon className="h-4 w-4 text-accent" />,
+      colSpan: HL_SPAN[i],
+      hasPersistentHover: HL_PERSIST[i],
+    };
+  });
 
   return (
     <div id="top">
@@ -120,6 +135,17 @@ export async function Landing({ lang }: { lang: Lang }) {
             src={`/summarizing_${lang === 'ko' ? 'ko' : 'us'}.png`}
             alt="cairn publishing a worklog"
           />
+        </Reveal>
+      </section>
+
+      <section id="highlights" className="mx-auto max-w-6xl px-6 pb-24">
+        <SectionHead
+          eyebrow={c.highlights.eyebrow}
+          title={c.highlights.title}
+          lead={c.highlights.lead}
+        />
+        <Reveal className="mt-10">
+          <BentoGrid items={highlightItems} />
         </Reveal>
       </section>
 
