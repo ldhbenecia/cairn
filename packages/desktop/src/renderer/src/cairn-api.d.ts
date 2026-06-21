@@ -14,6 +14,7 @@ export type RunProgress = {
   done: number;
   active: number;
   dates: string[];
+  doneDates: string[];
   stepByDate: Record<string, DateStep>;
 };
 

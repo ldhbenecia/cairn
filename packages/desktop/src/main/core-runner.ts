@@ -124,6 +124,7 @@ export type RunProgress = {
   done: number;
   active: number;
   dates: string[];
+  doneDates: string[];
   stepByDate: Record<string, DateStep>;
 };
 let runProgress: RunProgress | null = null;
@@ -133,6 +134,7 @@ let bfStarted = 0;
 let bfInStat = false;
 let bfLastKey = '';
 let bfDates: string[] = [];
+let bfDoneDates: string[] = [];
 let bfStepByDate: Record<string, DateStep> = {};
 let bfStepBlock: { date?: string; step?: DateStep } | null = null;
 
@@ -144,6 +146,7 @@ function resetBackfillTracking(): void {
   bfInStat = false;
   bfLastKey = '';
   bfDates = [];
+  bfDoneDates = [];
   bfStepByDate = {};
   bfStepBlock = null;
 }
@@ -181,10 +184,17 @@ function trackBackfill(line: string, mode: CoreMode): void {
   if (line.includes('backfill date start')) bfStarted += 1;
   trackDateStep(line);
   // 배치 시작 시 1회 찍히는 날짜 목록(쉼표 join) — 헤더/블록 어느 라인에 있어도 잡히게 무조건 검사
-  const mDates = /dates["':\s]+["']?([\d,-]+)/.exec(line);
+  // 음수 lookbehind 로 'doneDates' 는 제외(전체 대상 목록만)
+  const mDates = /(?<![a-zA-Z])dates["':\s]+["']?([\d,-]+)/.exec(line);
   if (mDates?.[1]) {
     const parsed = mDates[1].split(',').filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
     if (parsed.length > bfDates.length) bfDates = parsed;
+  }
+  // 완료된 날짜 누적 목록 — 동시 완료 순서가 날짜 순서와 달라도 UI 가 멤버십으로 상태 판정
+  const mDone = /doneDates["':\s]+["']?([\d,-]+)/.exec(line);
+  if (mDone?.[1]) {
+    const parsed = mDone[1].split(',').filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+    if (parsed.length >= bfDoneDates.length) bfDoneDates = parsed;
   }
   const isHeader = /^\[\d{2}:\d{2}:\d{2}/.test(line) || /"msg"\s*:/.test(line);
   if (isHeader) bfInStat = /backfill batch start|backfill progress/.test(line);
@@ -201,10 +211,17 @@ function trackBackfill(line: string, mode: CoreMode): void {
     .map(([d, s]) => `${d}:${s}`)
     .sort()
     .join(',');
-  const key = `${bfDone}/${bfTotal}/${active}/${bfDates.length}/${stepSig}`;
+  const key = `${bfDone}/${bfTotal}/${active}/${bfDates.length}/${bfDoneDates.length}/${stepSig}`;
   if (key === bfLastKey) return;
   bfLastKey = key;
-  runProgress = { total: bfTotal, done: bfDone, active, dates: bfDates, stepByDate: bfStepByDate };
+  runProgress = {
+    total: bfTotal,
+    done: bfDone,
+    active,
+    dates: bfDates,
+    doneDates: bfDoneDates,
+    stepByDate: bfStepByDate,
+  };
   broadcast('cairn:run-progress', { mode, ...runProgress });
 }
 

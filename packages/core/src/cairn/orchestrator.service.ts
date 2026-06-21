@@ -100,6 +100,7 @@ export class OrchestratorService {
     );
 
     let backfillDone = 0;
+    const completedDates: string[] = [];
     const backfillTotal = missingDates.length;
     // 데스크톱 배치 진행 UI 가 시작 즉시 총개수·날짜 목록을 알도록(완료 로그 전부터 날짜별 행 렌더링)
     this.logger.info(
@@ -126,8 +127,10 @@ export class OrchestratorService {
         result = { date, kind: 'failed' };
       }
       backfillDone += 1;
+      completedDates.push(date);
+      // doneDates: 완료 순서가 날짜 순서와 달라도 UI 가 멤버십으로 정확히 상태 판정하도록 누적 목록 전달
       this.logger.info(
-        { date, done: backfillDone, total: backfillTotal },
+        { date, done: backfillDone, total: backfillTotal, doneDates: completedDates.join(',') },
         'daily: backfill progress',
       );
       return result;

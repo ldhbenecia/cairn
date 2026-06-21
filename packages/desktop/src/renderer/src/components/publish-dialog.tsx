@@ -346,13 +346,14 @@ function weekdayLabel(date: string, lang: string): string {
 
 function buildPanelDates(
   dates: string[],
-  done: number,
-  active: number,
+  doneDates: string[],
   stepByDate: Record<string, DateStep>,
   lang: string,
 ): PanelDate[] {
-  return dates.map((date, i) => {
-    const status: DStatus = i < done ? 'done' : i < done + active ? 'active' : 'pending';
+  // 멤버십 기반 — 동시 완료 순서가 날짜 순서와 달라도 정확(인덱스 가정 제거)
+  const doneSet = new Set(doneDates);
+  return dates.map((date) => {
+    const status: DStatus = doneSet.has(date) ? 'done' : stepByDate[date] ? 'active' : 'pending';
     const sub = status === 'active' ? (stepByDate[date] ?? 'collect') : null;
     const subIdx = sub ? STEP_SEQ.indexOf(sub) : -1;
     const steps = STEP_SEQ.map((step, j) => {
@@ -790,13 +791,7 @@ function Progress({
         : t(STEP_HINT_KEY[step]);
 
   const panelDates = backfill
-    ? buildPanelDates(
-        backfill.dates,
-        backfill.done,
-        backfill.active,
-        backfill.stepByDate,
-        settings.language,
-      )
+    ? buildPanelDates(backfill.dates, backfill.doneDates, backfill.stepByDate, settings.language)
     : [];
   const stepsDone =
     (backfill?.done ?? 0) * 3 +
