@@ -1,5 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
-import { NextResponse, type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
+
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { worklogStats } from '@/lib/schema';

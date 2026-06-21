@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+
 import { Landing } from '../../components/landing';
 
 const TITLE = 'cairn — 매일의 개발 작업을 Notion 일지로';

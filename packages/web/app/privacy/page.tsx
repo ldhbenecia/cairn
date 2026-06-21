@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+
 import { LegalSection, LegalShell } from '../../components/legal-shell';
 
 export const metadata: Metadata = {
@@ -72,8 +73,8 @@ export default function PrivacyPage() {
       <LegalSection heading="Third-party services you connect">
         <p>
           cairn talks directly to Notion, GitHub, and Anthropic (Claude) using tokens you provide.
-          That data flows according to your own configuration and those services&apos; policies — not
-          through us.
+          That data flows according to your own configuration and those services&apos; policies —
+          not through us.
         </p>
       </LegalSection>
 
@@ -90,9 +91,7 @@ export default function PrivacyPage() {
       </LegalSection>
 
       <LegalSection heading="Changes">
-        <p>
-          We may update this policy; material changes will be reflected here with a new date.
-        </p>
+        <p>We may update this policy; material changes will be reflected here with a new date.</p>
       </LegalSection>
 
       <LegalSection heading="Contact">

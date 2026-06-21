@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+
 import type { Lang } from '../lib/content';
 
 const LABELS: Record<Lang, string> = { en: 'English', ko: '한국어' };
@@ -53,7 +54,9 @@ export function LangSwitcher({ lang }: { lang: Lang }) {
               key={l}
               href={l === 'ko' ? '/ko' : '/'}
               className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-[13px] transition-colors ${
-                l === lang ? 'bg-surface-2 font-medium text-ink' : 'text-ink-muted hover:bg-surface-2'
+                l === lang
+                  ? 'bg-surface-2 font-medium text-ink'
+                  : 'text-ink-muted hover:bg-surface-2'
               }`}
             >
               {LABELS[l]}

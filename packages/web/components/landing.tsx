@@ -1,6 +1,8 @@
+import { CalendarDays, GitPullRequest, LayoutDashboard, ShieldCheck, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+
 import { content, type Lang } from '../lib/content';
-import { getRepoStats, REPO_URL, RELEASES_LATEST } from '../lib/github';
+import { getRepoStats, RELEASES_LATEST, REPO_URL } from '../lib/github';
 import { BrandMark } from './brand-mark';
 import { CopyCommand } from './copy-command';
 import { HeroVideo } from './hero-video';
@@ -8,12 +10,33 @@ import { LangSwitcher } from './lang-switcher';
 import { Nav } from './nav';
 import { Reveal } from './reveal';
 import { Screenshot } from './screenshot';
+import { BentoGrid, type BentoItem } from './ui/bento-grid';
+
+const HL_ICONS = [GitPullRequest, Sparkles, CalendarDays, LayoutDashboard, ShieldCheck];
+const HL_COLORS = [
+  'text-blue-400',
+  'text-emerald-400',
+  'text-violet-400',
+  'text-amber-400',
+  'text-sky-400',
+];
+const HL_SPAN = [2, 1, 2, 1, 2];
+const HL_PERSIST = [true, false, false, false, false];
 
 export async function Landing({ lang }: { lang: Lang }) {
   const c = content[lang];
   const { stars, latestTag } = await getRepoStats();
   const download = RELEASES_LATEST;
   const unblockCmd = 'xattr -d com.apple.quarantine /Applications/Cairn.app';
+  const highlightItems: BentoItem[] = c.highlights.items.map((it, i) => {
+    const Icon = HL_ICONS[i] ?? Sparkles;
+    return {
+      ...it,
+      icon: <Icon className={`h-4 w-4 ${HL_COLORS[i] ?? 'text-ink-subtle'}`} />,
+      colSpan: HL_SPAN[i] ?? 1,
+      hasPersistentHover: HL_PERSIST[i] ?? false,
+    };
+  });
 
   return (
     <div id="top">
@@ -60,7 +83,9 @@ export async function Landing({ lang }: { lang: Lang }) {
               {c.hero.sub}
             </p>
             <div className="mt-5 max-w-md">
-              <p className="mb-2 text-[12.5px] leading-relaxed text-ink-tertiary">{c.hero.unsigned}</p>
+              <p className="mb-2 text-[12.5px] leading-relaxed text-ink-tertiary">
+                {c.hero.unsigned}
+              </p>
               <CopyCommand command={unblockCmd} copyLabel={c.hero.copyCmd} />
             </div>
           </div>
@@ -92,7 +117,9 @@ export async function Landing({ lang }: { lang: Lang }) {
               <span className="font-mono text-[13px] font-medium text-accent-hover">01</span>
               <CollectVisual />
               <div>
-                <h3 className="text-[22px] font-semibold tracking-[-0.02em]">{c.how.steps[0]!.t}</h3>
+                <h3 className="text-[22px] font-semibold tracking-[-0.02em]">
+                  {c.how.steps[0]!.t}
+                </h3>
                 <p className="mt-3 max-w-md text-[14.5px] leading-relaxed text-ink-subtle">
                   {c.how.steps[0]!.d}
                 </p>
@@ -100,10 +127,20 @@ export async function Landing({ lang }: { lang: Lang }) {
             </div>
           </Reveal>
           <Reveal className="md:col-span-2" delay={0.06}>
-            <BentoTile n="02" title={c.how.steps[1]!.t} desc={c.how.steps[1]!.d} className="h-full" />
+            <BentoTile
+              n="02"
+              title={c.how.steps[1]!.t}
+              desc={c.how.steps[1]!.d}
+              className="h-full"
+            />
           </Reveal>
           <Reveal className="md:col-span-2" delay={0.12}>
-            <BentoTile n="03" title={c.how.steps[2]!.t} desc={c.how.steps[2]!.d} className="h-full" />
+            <BentoTile
+              n="03"
+              title={c.how.steps[2]!.t}
+              desc={c.how.steps[2]!.d}
+              className="h-full"
+            />
           </Reveal>
         </div>
 
@@ -120,6 +157,17 @@ export async function Landing({ lang }: { lang: Lang }) {
             src={`/summarizing_${lang === 'ko' ? 'ko' : 'us'}.png`}
             alt="cairn publishing a worklog"
           />
+        </Reveal>
+      </section>
+
+      <section id="highlights" className="mx-auto max-w-6xl px-6 pb-24">
+        <SectionHead
+          eyebrow={c.highlights.eyebrow}
+          title={c.highlights.title}
+          lead={c.highlights.lead}
+        />
+        <Reveal className="mt-10">
+          <BentoGrid items={highlightItems} />
         </Reveal>
       </section>
 
@@ -217,7 +265,7 @@ export async function Landing({ lang }: { lang: Lang }) {
           <p>
             <strong className="font-medium text-ink-muted">{c.setup.gatekeeperPre}</strong>
             {c.setup.gatekeeper}
-            <code className="rounded bg-surface-2 px-1.5 py-0.5 text-ink-muted">
+            <code className="inline-block rounded bg-surface-2 px-1.5 py-0.5 whitespace-nowrap text-ink-muted">
               xattr -d com.apple.quarantine /Applications/Cairn.app
             </code>
             {c.setup.gatekeeperPost}

@@ -16,6 +16,24 @@
   --color-accent-hover: #818cf8;
   --color-accent-deep: #4338ca;
 
+  /* shadcn 토큰 alias — 외부 컴포넌트(bg-card, text-muted-foreground 등)용, cairn 다크 팔레트로 매핑 */
+  --color-background: #050507;
+  --color-foreground: #f7f8f8;
+  --color-card: #0d0e11;
+  --color-card-foreground: #f7f8f8;
+  --color-muted: #14151a;
+  --color-muted-foreground: #888e9b;
+  --color-secondary: #14151a;
+  --color-secondary-foreground: #c7ccd6;
+  --color-border: #1f2128;
+  --color-primary: #6166f1;
+  --color-primary-foreground: #ffffff;
+  --color-accent-foreground: #ffffff;
+  --color-input: #1f2128;
+  --color-ring: #6166f1;
+  --color-destructive: #f87171;
+  --color-destructive-foreground: #ffffff;
+
   --font-sans: 'Inter', 'SF Pro Display', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace;
 }
@@ -54,8 +72,16 @@ body::before {
   inset: 0;
   z-index: -2;
   background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--color-ink) 3.5%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--color-ink) 3.5%, transparent) 1px, transparent 1px);
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-ink) 3.5%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-ink) 3.5%, transparent) 1px,
+      transparent 1px
+    );
   background-size: 64px 64px;
   mask-image: radial-gradient(ellipse 75% 55% at 50% -5%, #000 35%, transparent 78%);
   pointer-events: none;

@@ -34,6 +34,52 @@ export const content = {
         },
       ],
     },
+    highlights: {
+      eyebrow: 'Highlights',
+      title: 'What you get',
+      lead: 'Everything cairn does, at a glance.',
+      items: [
+        {
+          title: 'Aggregate',
+          meta: 'GitHub + local Git',
+          status: 'Core',
+          description:
+            'GitHub PRs (authored + assigned) and local Git commits across multiple repos and accounts.',
+          tags: ['GitHub', 'Local Git'],
+        },
+        {
+          title: 'Summarize',
+          meta: 'Claude Agent SDK',
+          status: 'AI',
+          description:
+            'Claude writes the worklog in your language — Korean or English — with the model you choose.',
+          tags: ['Claude', 'KO/EN'],
+        },
+        {
+          title: 'Publish',
+          meta: 'daily · weekly · monthly',
+          status: 'Notion',
+          description: 'Daily logs to Notion with automatic weekly and monthly rollups.',
+          tags: ['Notion', 'Rollups'],
+        },
+        {
+          title: 'Desktop app',
+          meta: 'macOS',
+          status: 'App',
+          description:
+            'Guided setup, one-click and scheduled auto-publish, an in-app Notion viewer, a stats dashboard, and cross-device sync.',
+          tags: ['Auto-publish', 'Dashboard'],
+        },
+        {
+          title: 'Local-first & private',
+          meta: 'no code egress',
+          status: 'Privacy',
+          description:
+            'Machine-local secrets, no server — no code body or diff ever leaves your machine.',
+          tags: ['Local', 'Whitelist'],
+        },
+      ],
+    },
     output: {
       eyebrow: 'The output',
       title: 'A worklog that reads itself back',
@@ -114,6 +160,50 @@ export const content = {
         {
           t: '발행',
           d: '날짜별 일지가 복붙용 Share 섹션과 함께 Notion 에 올라갑니다. 주간·월간 롤업도 자동 생성됩니다.',
+        },
+      ],
+    },
+    highlights: {
+      eyebrow: '핵심',
+      title: 'cairn 이 하는 일',
+      lead: '한눈에 보는 주요 기능.',
+      items: [
+        {
+          title: '수집',
+          meta: 'GitHub + 로컬 Git',
+          status: 'Core',
+          description: '여러 계정·레포에 걸친 GitHub PR(작성·할당)과 로컬 Git 커밋을 모읍니다.',
+          tags: ['GitHub', 'Local Git'],
+        },
+        {
+          title: '요약',
+          meta: 'Claude Agent SDK',
+          status: 'AI',
+          description: 'Claude 가 원하는 언어(한/영)와 선택한 모델로 일지를 작성합니다.',
+          tags: ['Claude', 'KO/EN'],
+        },
+        {
+          title: '발행',
+          meta: '일간 · 주간 · 월간',
+          status: 'Notion',
+          description: 'Notion 에 일일 일지 발행 + 주간·월간 롤업 자동 생성.',
+          tags: ['Notion', 'Rollups'],
+        },
+        {
+          title: '데스크톱 앱',
+          meta: 'macOS',
+          status: 'App',
+          description:
+            '가이드 설정, 원클릭·예약 자동 발행, 인앱 Notion 뷰어, 통계 대시보드, 기기 간 동기화.',
+          tags: ['Auto-publish', 'Dashboard'],
+        },
+        {
+          title: '로컬 우선 · 프라이버시',
+          meta: 'no code egress',
+          status: 'Privacy',
+          description:
+            '시크릿은 기기에만, 서버 없음 — 코드 본문·diff 는 절대 외부로 나가지 않습니다.',
+          tags: ['Local', 'Whitelist'],
         },
       ],
     },
