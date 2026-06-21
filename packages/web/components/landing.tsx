@@ -12,6 +12,13 @@ import { Screenshot } from './screenshot';
 import { BentoGrid, type BentoItem } from './ui/bento-grid';
 
 const HL_ICONS = [GitPullRequest, Sparkles, CalendarDays, LayoutDashboard, ShieldCheck];
+const HL_COLORS = [
+  'text-blue-400',
+  'text-emerald-400',
+  'text-violet-400',
+  'text-amber-400',
+  'text-sky-400',
+];
 const HL_SPAN = [2, 1, 2, 1, 2];
 const HL_PERSIST = [true, false, false, false, false];
 
@@ -24,7 +31,7 @@ export async function Landing({ lang }: { lang: Lang }) {
     const Icon = HL_ICONS[i]!;
     return {
       ...it,
-      icon: <Icon className="h-4 w-4 text-accent" />,
+      icon: <Icon className={`h-4 w-4 ${HL_COLORS[i]}`} />,
       colSpan: HL_SPAN[i],
       hasPersistentHover: HL_PERSIST[i],
     };
