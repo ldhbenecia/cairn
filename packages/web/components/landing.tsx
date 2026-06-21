@@ -250,7 +250,7 @@ export async function Landing({ lang }: { lang: Lang }) {
           <p>
             <strong className="font-medium text-ink-muted">{c.setup.gatekeeperPre}</strong>
             {c.setup.gatekeeper}
-            <code className="rounded bg-surface-2 px-1.5 py-0.5 text-ink-muted">
+            <code className="inline-block rounded bg-surface-2 px-1.5 py-0.5 whitespace-nowrap text-ink-muted">
               xattr -d com.apple.quarantine /Applications/Cairn.app
             </code>
             {c.setup.gatekeeperPost}
