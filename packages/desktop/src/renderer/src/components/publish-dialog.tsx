@@ -1006,7 +1006,7 @@ function CancelledCard({
             {t('publish.backfill.daysSuffix')} {t('publish.cancelled.partial')}
           </p>
         )}
-        <p className="mx-auto max-w-[280px] text-[12px] leading-relaxed text-ink-muted">
+        <p className="mx-auto max-w-[330px] text-[12px] leading-relaxed text-balance text-ink-muted">
           {t('publish.cancelled.desc')}
         </p>
       </div>
