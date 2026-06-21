@@ -5,6 +5,7 @@ import {
   CalendarRange,
   Check,
   CheckCircle2,
+  ChevronRight,
   Circle,
   CircleDotDashed,
   ExternalLink,
@@ -124,7 +125,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50 [-webkit-app-region:no-drag]" />
         <Dialog.Content
           onOpenAutoFocus={(e) => e.preventDefault()}
-          className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-115 max-w-[90vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]"
+          className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-[600px] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]"
         >
           <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
             <Dialog.Title className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.2px] text-ink">
@@ -348,6 +349,14 @@ function Progress({
   onCancel: () => void;
 }) {
   const [cancelling, setCancelling] = useState(false);
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+  const toggleDate = (d: string): void =>
+    setExpandedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(d)) next.delete(d);
+      else next.add(d);
+      return next;
+    });
   const step = session?.step ?? 'boot';
   const currentRank = STEP_RANK[step];
   const running = session?.state === 'running';
@@ -410,6 +419,13 @@ function Progress({
                       : i < backfill.done + backfill.active
                         ? 'active'
                         : 'pending';
+                  const open = expandedDates.has(d);
+                  const detail =
+                    dstatus === 'active'
+                      ? hint
+                      : dstatus === 'done'
+                        ? t('publish.result.done')
+                        : t('publish.status.pending');
                   return (
                     <motion.li
                       key={d}
@@ -417,26 +433,55 @@ function Progress({
                       initial={{ opacity: 0, x: -6 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.2, delay: Math.min(i * 0.015, 0.18) }}
-                      className="relative flex items-center gap-2.5 py-0.5"
+                      className="relative"
                     >
-                      <span className="z-10 flex size-[20px] shrink-0 items-center justify-center rounded-full bg-surface-2">
-                        <StatusIcon status={dstatus} size={16} />
-                      </span>
-                      <span
+                      <button
+                        type="button"
+                        onClick={() => toggleDate(d)}
                         className={[
-                          'font-mono text-[12px]',
-                          dstatus === 'pending'
-                            ? 'text-ink-tertiary'
-                            : dstatus === 'active'
-                              ? 'font-medium text-ink'
-                              : 'text-ink-muted',
+                          'flex w-full items-center gap-2.5 rounded-md py-1 pr-1 text-left transition-colors',
+                          dstatus === 'active' ? 'bg-accent/[0.07]' : 'hover:bg-surface-1/60',
                         ].join(' ')}
                       >
-                        {d}
-                      </span>
-                      <span className="ml-auto">
-                        <StatusBadge status={dstatus} t={t} />
-                      </span>
+                        <span className="z-10 flex size-[20px] shrink-0 items-center justify-center rounded-full bg-surface-2">
+                          <StatusIcon status={dstatus} size={16} />
+                        </span>
+                        <span
+                          className={[
+                            'font-mono text-[12.5px]',
+                            dstatus === 'pending'
+                              ? 'text-ink-tertiary'
+                              : dstatus === 'active'
+                                ? 'font-medium text-ink'
+                                : 'text-ink-muted',
+                          ].join(' ')}
+                        >
+                          {d}
+                        </span>
+                        <span className="ml-auto flex items-center gap-2">
+                          <StatusBadge status={dstatus} t={t} />
+                          <ChevronRight
+                            size={13}
+                            strokeWidth={2.5}
+                            className={`text-ink-tertiary transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+                          />
+                        </span>
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {open && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.22, ease: [0.2, 0.65, 0.3, 0.9] }}
+                            className="overflow-hidden"
+                          >
+                            <p className="my-1 pr-1 pl-[32px] text-[11px] leading-relaxed text-ink-muted">
+                              {detail}
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </motion.li>
                   );
                 })}
