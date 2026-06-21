@@ -195,10 +195,12 @@ function Reveal({
   children,
   className,
   root,
+  threshold = 0.3,
 }: {
   children: ReactNode;
   className?: string;
   root: RefObject<HTMLElement | null>;
+  threshold?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState(false);
@@ -213,11 +215,11 @@ function Reveal({
           io.disconnect();
         }
       },
-      { root: root.current, threshold: 0.12 },
+      { root: root.current, threshold },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [root, shown]);
+  }, [root, shown, threshold]);
   return (
     <div
       ref={ref}
@@ -309,7 +311,11 @@ export function Dashboard({
                 <Heatmap byDate={data.byDate} t={t} onPickDate={onPickDate} />
               </Reveal>
 
-              <Reveal className="dash-rise grid grid-cols-1 gap-6 lg:grid-cols-3" root={scrollRef}>
+              <Reveal
+                className="dash-rise grid grid-cols-1 gap-6 lg:grid-cols-3"
+                root={scrollRef}
+                threshold={0.45}
+              >
                 <div className="lg:col-span-2">
                   <MonthlyChart months={recentMonths} t={t} />
                 </div>
