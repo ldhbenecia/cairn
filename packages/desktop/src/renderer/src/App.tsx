@@ -52,12 +52,16 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
   monthly: null,
 };
 
-const RECENT_CACHE_KEY = 'cairn:recentCache';
+// RecentListResult/RecentPage 스키마가 바뀌면 버전을 올린다 — 구버전 캐시를 무시(캐시 미스→스켈레톤 1회)해
+// 잘못된 모양으로 파싱돼 렌더 중 undefined 참조가 나는 것을 방지
+const RECENT_CACHE_KEY = 'cairn:recentCache:v1';
 
 function readRecentCache(): RecentListResult | null {
   try {
     const raw = localStorage.getItem(RECENT_CACHE_KEY);
-    return raw ? (JSON.parse(raw) as RecentListResult) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as RecentListResult;
+    return Array.isArray(parsed?.pages) ? parsed : null;
   } catch {
     return null;
   }
