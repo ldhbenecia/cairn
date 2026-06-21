@@ -804,12 +804,16 @@ function Progress({
   const pct =
     backfill && backfill.total > 0 ? Math.round((stepsDone / (backfill.total * 3)) * 100) : 0;
   const allDone = backfill ? backfill.done >= backfill.total : false;
-  const activeDate = panelDates.find((d) => d.status === 'active');
-  const summarizeHint = t(SUMMARIZE_HINTS[Math.floor(elapsed / 4) % SUMMARIZE_HINTS.length]!);
+  // 날짜마다 다른 요약 문구가 돌도록 인덱스 오프셋 — 동시 요약 시 같은 문구 중복 방지
+  const hintTick = Math.floor(elapsed / 4);
+  const summarizeHintFor = (idx: number): string =>
+    t(SUMMARIZE_HINTS[(hintTick + idx) % SUMMARIZE_HINTS.length]!);
+  const activeIdx = panelDates.findIndex((d) => d.status === 'active');
+  const activeDate = activeIdx >= 0 ? panelDates[activeIdx] : undefined;
   const currentAction = allDone
     ? t('publish.allDone')
     : activeDate?.sub === 'summarize'
-      ? `${activeDate.date} · ${summarizeHint}`
+      ? `${activeDate.date} · ${summarizeHintFor(activeIdx)}`
       : activeDate?.sub
         ? `${activeDate.date} · ${t(DSTEP_DOING[activeDate.sub])}`
         : t('publish.hint.boot');
@@ -848,7 +852,7 @@ function Progress({
                     onToggle={() => toggleDate(d.date)}
                     isStepOpen={(s) => expandedSteps.has(`${d.date}|${s}`)}
                     onToggleStep={(s) => toggleStep(`${d.date}|${s}`)}
-                    summarizeHint={summarizeHint}
+                    summarizeHint={summarizeHintFor(i)}
                     t={t}
                   />
                 ) : (
