@@ -26,6 +26,13 @@
   --color-secondary: #14151a;
   --color-secondary-foreground: #c7ccd6;
   --color-border: #1f2128;
+  --color-primary: #6166f1;
+  --color-primary-foreground: #ffffff;
+  --color-accent-foreground: #ffffff;
+  --color-input: #1f2128;
+  --color-ring: #6166f1;
+  --color-destructive: #f87171;
+  --color-destructive-foreground: #ffffff;
 
   --font-sans: 'Inter', 'SF Pro Display', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace;
