@@ -334,6 +334,7 @@ type PanelDate = {
   status: DStatus;
   sub: DateStep | null;
   steps: { step: DateStep; status: DStatus }[];
+  counts?: { pr: number; commit: number };
 };
 
 function weekdayLabel(date: string, lang: string): string {
@@ -348,6 +349,7 @@ function buildPanelDates(
   dates: string[],
   doneDates: string[],
   stepByDate: Record<string, DateStep>,
+  countsByDate: Record<string, { pr: number; commit: number }>,
   lang: string,
 ): PanelDate[] {
   // 멤버십 기반 — 동시 완료 순서가 날짜 순서와 달라도 정확(인덱스 가정 제거)
@@ -369,7 +371,7 @@ function buildPanelDates(
                 : 'pending';
       return { step, status: sStatus };
     });
-    return { date, dow: weekdayLabel(date, lang), status, sub, steps };
+    return { date, dow: weekdayLabel(date, lang), status, sub, steps, counts: countsByDate[date] };
   });
 }
 
@@ -624,6 +626,11 @@ function TreeRow({
           {d.date}
         </span>
         <span className="text-[12px] text-ink-tertiary">{d.dow}</span>
+        {d.counts && (
+          <span className="font-mono text-[11px] text-ink-tertiary tabular-nums">
+            PR {d.counts.pr} · {t('publish.collected.commits')} {d.counts.commit}
+          </span>
+        )}
         <span className="ml-auto flex items-center gap-2">
           <StatusBadge status={d.status} t={t} />
           <ChevronRight
@@ -692,6 +699,11 @@ function CompactRow({ d, i, t }: { d: PanelDate; i: number; t: T }) {
         {d.date}
       </span>
       <span className="text-[11px] text-ink-tertiary">{d.dow}</span>
+      {d.counts && (
+        <span className="font-mono text-[10.5px] text-ink-tertiary tabular-nums">
+          PR {d.counts.pr} · {t('publish.collected.commits')} {d.counts.commit}
+        </span>
+      )}
       <div className="ml-auto flex items-center gap-1">
         {d.steps.map((s) => (
           <span
@@ -791,7 +803,13 @@ function Progress({
         : t(STEP_HINT_KEY[step]);
 
   const panelDates = backfill
-    ? buildPanelDates(backfill.dates, backfill.doneDates, backfill.stepByDate, settings.language)
+    ? buildPanelDates(
+        backfill.dates,
+        backfill.doneDates,
+        backfill.stepByDate,
+        backfill.countsByDate,
+        settings.language,
+      )
     : [];
   const stepsDone =
     (backfill?.done ?? 0) * 3 +
