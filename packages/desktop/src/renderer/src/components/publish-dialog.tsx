@@ -1,5 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import {
+  Ban,
   CalendarClock,
   CalendarDays,
   CalendarRange,
@@ -24,6 +25,7 @@ import type {
   CoreResult,
   CoreRunOptions,
   DateStep,
+  RunProgress,
   RunStep,
   SummaryModel,
 } from '../cairn-api';
@@ -152,6 +154,8 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
           <div className="overflow-y-auto px-6 py-5">
             {showProgress && isDone && session?.error ? (
               <ErrorCard message={session.error} t={t} onClose={() => setOpen(false)} />
+            ) : showProgress && isDone && session?.result?.cancelled ? (
+              <CancelledCard progress={session.progress} t={t} onClose={() => setOpen(false)} />
             ) : showProgress && isDone && session?.result ? (
               <Result
                 result={session.result}
@@ -965,6 +969,54 @@ function pageIdToUrl(pageId: string | null): string | null {
   return `https://www.notion.so/${pageId.replace(/-/g, '')}`;
 }
 
+function CancelledCard({
+  progress,
+  t,
+  onClose,
+}: {
+  progress?: RunProgress;
+  t: T;
+  onClose: () => void;
+}) {
+  const partial = progress && progress.total > 1;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+      className="flex flex-col items-center gap-4 py-6 text-center"
+    >
+      <motion.span
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 20, delay: 0.05 }}
+        className="flex size-12 items-center justify-center rounded-full bg-surface-2 text-ink-tertiary"
+      >
+        <Ban size={22} strokeWidth={2} />
+      </motion.span>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-[14px] font-medium text-ink">{t('publish.result.cancelled')}</p>
+        {partial && (
+          <p className="font-mono text-[12px] text-ink-tertiary tabular-nums">
+            {progress.done} / {progress.total}
+            {t('publish.backfill.daysSuffix')} {t('publish.cancelled.partial')}
+          </p>
+        )}
+        <p className="mx-auto max-w-[280px] text-[12px] leading-relaxed text-ink-muted">
+          {t('publish.cancelled.desc')}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="mt-1 rounded-md border border-hairline px-3.5 py-2 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+      >
+        {t('publish.close')}
+      </button>
+    </motion.div>
+  );
+}
+
 function ErrorCard({ message, t, onClose }: { message: string; t: T; onClose: () => void }) {
   return (
     <div className="flex flex-col gap-5 py-2">
@@ -1012,9 +1064,7 @@ function Result({
     result.publishKind !== 'skipped' &&
     !result.noActivity;
   let body: React.ReactNode;
-  if (result.cancelled) {
-    body = <p className="text-ink-muted">{t('publish.result.cancelled')}</p>;
-  } else if (result.summaryFailed) {
+  if (result.summaryFailed) {
     body = (
       <p className="flex items-center gap-2 text-[15px] text-[#f87171]">
         <TriangleAlert size={18} strokeWidth={2.25} />

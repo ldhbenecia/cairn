@@ -200,6 +200,8 @@ const STRINGS = {
     'publish.hint.publish': '노션에 발행하는 중',
     'publish.result.done': '발행 완료',
     'publish.result.cancelled': '발행 취소됨',
+    'publish.cancelled.desc': '진행 중이던 발행을 멈췄어요. 다시 발행하면 이어서 채워집니다.',
+    'publish.cancelled.partial': '발행 후 중단',
     'publish.result.summaryFailed': '요약 생성 실패 — Claude 세션·쿼터 확인 후 다시 발행하세요',
     'publish.result.noActivity': '활동 없음 — 발행 안 함',
     'publish.result.skipped': '이미 발행됨 — skip',
@@ -540,6 +542,8 @@ const STRINGS = {
     'publish.hint.publish': 'Publishing to Notion',
     'publish.result.done': 'Published',
     'publish.result.cancelled': 'Publish cancelled',
+    'publish.cancelled.desc': 'Stopped the publish in progress. Run it again to fill in the rest.',
+    'publish.cancelled.partial': 'done before stopping',
     'publish.result.summaryFailed':
       'Summary generation failed — check your Claude session/quota and publish again',
     'publish.result.noActivity': 'No activity — nothing published',
