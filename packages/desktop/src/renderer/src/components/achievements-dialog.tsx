@@ -97,7 +97,7 @@ export function AchievementsDialog({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 pt-[10vh] [-webkit-app-region:no-drag]"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-6 [-webkit-app-region:no-drag]"
     >
       <motion.div
         onMouseDown={(e) => e.stopPropagation()}
