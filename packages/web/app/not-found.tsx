@@ -23,14 +23,14 @@ export default function NotFound() {
             404
           </EmptyTitle>
           <EmptyDescription className="text-lg">
-            이 페이지는 없어요. 옮겨졌거나 삭제된 주소일 수 있습니다.
+            This page doesn’t exist. It may have been moved or deleted.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button onClick={() => (window.location.href = '/')} className="group">
               <Home className="mr-1 h-4 w-4 transition-transform group-hover:scale-110" />
-              홈으로
+              Go home
             </Button>
             <Button
               onClick={() => window.history.back()}
@@ -38,7 +38,7 @@ export default function NotFound() {
               className="group"
             >
               <ArrowLeft className="mr-1 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-              뒤로 가기
+              Go back
             </Button>
           </div>
         </EmptyContent>
