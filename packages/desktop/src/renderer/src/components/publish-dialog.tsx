@@ -315,6 +315,11 @@ const DSTEP_DOING: Record<DateStep, I18nKey> = {
   summarize: 'publish.dstep.summarize.doing',
   publish: 'publish.dstep.publish.doing',
 };
+const DSTEP_DESC: Record<DateStep, I18nKey> = {
+  collect: 'publish.dstep.collect.desc',
+  summarize: 'publish.dstep.summarize.desc',
+  publish: 'publish.dstep.publish.desc',
+};
 
 type DStatus = 'done' | 'active' | 'pending';
 type Layout = 'tree' | 'compact';
@@ -485,14 +490,18 @@ function OverallBar({
   );
 }
 
-function StepDetail({
+function StepRow({
   step,
   status,
+  open,
+  onToggle,
   summarizeHint,
   t,
 }: {
   step: DateStep;
   status: DStatus;
+  open: boolean;
+  onToggle: () => void;
   summarizeHint: string;
   t: T;
 }) {
@@ -505,31 +514,57 @@ function StepDetail({
         ? t('publish.status.done')
         : t('publish.status.pending');
   return (
-    <div className="flex items-center gap-2.5 py-[3px] pr-1">
-      <span className="z-10 flex size-[18px] shrink-0 items-center justify-center rounded-full bg-surface-1">
-        <StatusIcon status={status} size={13} />
-      </span>
-      <span
-        className={[
-          'shrink-0 text-[12px]',
-          status === 'pending'
-            ? 'text-ink-tertiary'
-            : status === 'active'
-              ? 'font-medium text-ink'
-              : 'text-ink-muted',
-        ].join(' ')}
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center gap-2.5 rounded-md py-1 pr-1 text-left transition-colors hover:bg-surface-2/40"
       >
-        {t(DSTEP_FULL[step])}
-      </span>
-      <span
-        key={detail}
-        className={[
-          'hint-fade ml-auto truncate text-right font-mono text-[11px]',
-          status === 'active' ? 'text-accent-hover' : 'text-ink-tertiary',
-        ].join(' ')}
-      >
-        {detail}
-      </span>
+        <span className="z-10 flex size-[16px] shrink-0 items-center justify-center rounded-full bg-surface-1">
+          <StatusIcon status={status} size={13} />
+        </span>
+        <span
+          className={[
+            'text-[12px]',
+            status === 'pending'
+              ? 'text-ink-tertiary'
+              : status === 'active'
+                ? 'font-medium text-ink'
+                : 'text-ink-muted',
+          ].join(' ')}
+        >
+          {t(DSTEP_FULL[step])}
+        </span>
+        <ChevronRight
+          size={12}
+          strokeWidth={2.5}
+          className={`ml-auto text-ink-subtle transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.2, 0.65, 0.3, 0.9] }}
+            className="overflow-hidden"
+          >
+            <div className="pt-0.5 pr-2 pb-1.5 pl-[26px]">
+              <p className="text-[11px] leading-relaxed text-ink-muted">{t(DSTEP_DESC[step])}</p>
+              <p
+                key={detail}
+                className={[
+                  'hint-fade mt-1 font-mono text-[11px]',
+                  status === 'active' ? 'text-accent-hover' : 'text-ink-tertiary',
+                ].join(' ')}
+              >
+                {detail}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -539,6 +574,8 @@ function TreeRow({
   i,
   open,
   onToggle,
+  isStepOpen,
+  onToggleStep,
   summarizeHint,
   t,
 }: {
@@ -546,6 +583,8 @@ function TreeRow({
   i: number;
   open: boolean;
   onToggle: () => void;
+  isStepOpen: (step: DateStep) => boolean;
+  onToggleStep: (step: DateStep) => void;
   summarizeHint: string;
   t: T;
 }) {
@@ -579,9 +618,6 @@ function TreeRow({
         </span>
         <span className="text-[12px] text-ink-tertiary">{d.dow}</span>
         <span className="ml-auto flex items-center gap-2">
-          {d.status === 'active' && d.sub && (
-            <span className="text-[11px] text-ink-tertiary">{t(DSTEP_SHORT[d.sub])}</span>
-          )}
           <StatusBadge status={d.status} t={t} />
           <ChevronRight
             size={13}
@@ -599,16 +635,24 @@ function TreeRow({
             transition={{ duration: 0.22, ease: [0.2, 0.65, 0.3, 0.9] }}
             className="overflow-hidden"
           >
-            <div className="mr-2 mb-1 ml-[18px] flex flex-col border-l border-dashed border-hairline-strong pt-0.5 pb-1.5 pl-4">
-              {d.steps.map((s) => (
-                <StepDetail
-                  key={s.step}
-                  step={s.step}
-                  status={s.status}
-                  summarizeHint={summarizeHint}
-                  t={t}
-                />
-              ))}
+            <div className="relative mr-1 mb-1 ml-[9px] pt-0.5 pb-1">
+              <span
+                className="pointer-events-none absolute top-1 bottom-3 left-[8px] border-l border-dashed border-hairline-strong"
+                aria-hidden="true"
+              />
+              <div className="flex flex-col gap-0.5">
+                {d.steps.map((s) => (
+                  <StepRow
+                    key={s.step}
+                    step={s.step}
+                    status={s.status}
+                    open={isStepOpen(s.step)}
+                    onToggle={() => onToggleStep(s.step)}
+                    summarizeHint={summarizeHint}
+                    t={t}
+                  />
+                ))}
+              </div>
             </div>
           </motion.div>
         )}
@@ -703,6 +747,14 @@ function Progress({
       else next.add(d);
       return next;
     });
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+  const toggleStep = (key: string): void =>
+    setExpandedSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   const step = session?.step ?? 'boot';
   const currentRank = STEP_RANK[step];
   const running = session?.state === 'running';
@@ -790,6 +842,8 @@ function Progress({
                     i={i}
                     open={expandedDates.has(d.date)}
                     onToggle={() => toggleDate(d.date)}
+                    isStepOpen={(s) => expandedSteps.has(`${d.date}|${s}`)}
+                    onToggleStep={(s) => toggleStep(`${d.date}|${s}`)}
                     summarizeHint={summarizeHint}
                     t={t}
                   />

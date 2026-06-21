@@ -243,8 +243,8 @@ export function AchievementsDialog({
 
           {phase === 'scanning' && (
             <div className="flex flex-col items-center pt-2 pb-1">
-              <div className="relative size-24">
-                <svg width="96" height="96" viewBox="0 0 80 80" className="block -rotate-90">
+              <div className="size-24">
+                <svg width="96" height="96" viewBox="0 0 80 80" className="block">
                   <circle
                     cx="40"
                     cy="40"
@@ -262,16 +262,23 @@ export function AchievementsDialog({
                     strokeWidth="7"
                     strokeLinecap="round"
                     strokeDasharray={RING_C}
+                    transform="rotate(-90 40 40)"
                     initial={false}
                     animate={{ strokeDashoffset: ringOffset }}
                     transition={{ duration: 0.25, ease: 'easeOut' }}
                   />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="font-mono text-[22px] leading-none font-semibold text-ink tabular-nums">
+                  <text
+                    x="40"
+                    y="40"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    className="font-mono font-semibold tabular-nums"
+                    fontSize="17"
+                    fill="var(--color-ink)"
+                  >
                     {ringPct}%
-                  </span>
-                </div>
+                  </text>
+                </svg>
               </div>
               <p className="mt-4 text-[14px] font-medium text-ink">{t('achv.scanning')}</p>
               <p className="mt-1 text-[11.5px] text-ink-tertiary tabular-nums">
