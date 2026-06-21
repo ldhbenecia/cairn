@@ -244,7 +244,7 @@ export function AchievementsDialog({
           {phase === 'scanning' && (
             <div className="flex flex-col items-center pt-2 pb-1">
               <div className="relative size-24">
-                <svg width="96" height="96" viewBox="0 0 80 80" className="-rotate-90">
+                <svg width="96" height="96" viewBox="0 0 80 80" className="block -rotate-90">
                   <circle
                     cx="40"
                     cy="40"

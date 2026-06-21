@@ -485,10 +485,22 @@ function OverallBar({
   );
 }
 
-function StepDetail({ step, status, t }: { step: DateStep; status: DStatus; t: T }) {
+function StepDetail({
+  step,
+  status,
+  summarizeHint,
+  t,
+}: {
+  step: DateStep;
+  status: DStatus;
+  summarizeHint: string;
+  t: T;
+}) {
   const detail =
     status === 'active'
-      ? t(DSTEP_DOING[step])
+      ? step === 'summarize'
+        ? summarizeHint
+        : t(DSTEP_DOING[step])
       : status === 'done'
         ? t('publish.status.done')
         : t('publish.status.pending');
@@ -510,8 +522,9 @@ function StepDetail({ step, status, t }: { step: DateStep; status: DStatus; t: T
         {t(DSTEP_FULL[step])}
       </span>
       <span
+        key={detail}
         className={[
-          'ml-auto truncate text-right font-mono text-[11px]',
+          'hint-fade ml-auto truncate text-right font-mono text-[11px]',
           status === 'active' ? 'text-accent-hover' : 'text-ink-tertiary',
         ].join(' ')}
       >
@@ -526,12 +539,14 @@ function TreeRow({
   i,
   open,
   onToggle,
+  summarizeHint,
   t,
 }: {
   d: PanelDate;
   i: number;
   open: boolean;
   onToggle: () => void;
+  summarizeHint: string;
   t: T;
 }) {
   return (
@@ -540,15 +555,12 @@ function TreeRow({
       initial={{ opacity: 0, x: -6 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.2, delay: Math.min(i * 0.015, 0.18) }}
-      className={[
-        'rounded-xl',
-        d.status === 'active' ? 'bg-accent/[0.06] ring-1 ring-inset ring-accent/15' : '',
-      ].join(' ')}
+      className="relative"
     >
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left"
+        className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface-2/40"
       >
         <span className="flex size-[18px] shrink-0 items-center justify-center">
           <StatusIcon status={d.status} size={18} />
@@ -574,7 +586,7 @@ function TreeRow({
           <ChevronRight
             size={13}
             strokeWidth={2.5}
-            className={`text-ink-tertiary transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+            className={`text-ink-subtle transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
           />
         </span>
       </button>
@@ -587,9 +599,15 @@ function TreeRow({
             transition={{ duration: 0.22, ease: [0.2, 0.65, 0.3, 0.9] }}
             className="overflow-hidden"
           >
-            <div className="mr-2 ml-[19px] flex flex-col border-l border-dashed border-hairline-strong pt-0.5 pb-2 pl-3">
+            <div className="mr-2 mb-1 ml-[18px] flex flex-col border-l border-dashed border-hairline-strong pt-0.5 pb-1.5 pl-4">
               {d.steps.map((s) => (
-                <StepDetail key={s.step} step={s.step} status={s.status} t={t} />
+                <StepDetail
+                  key={s.step}
+                  step={s.step}
+                  status={s.status}
+                  summarizeHint={summarizeHint}
+                  t={t}
+                />
               ))}
             </div>
           </motion.div>
@@ -731,11 +749,14 @@ function Progress({
     backfill && backfill.total > 0 ? Math.round((stepsDone / (backfill.total * 3)) * 100) : 0;
   const allDone = backfill ? backfill.done >= backfill.total : false;
   const activeDate = panelDates.find((d) => d.status === 'active');
+  const summarizeHint = t(SUMMARIZE_HINTS[Math.floor(elapsed / 4) % SUMMARIZE_HINTS.length]!);
   const currentAction = allDone
     ? t('publish.allDone')
-    : activeDate?.sub
-      ? `${activeDate.date} · ${t(DSTEP_DOING[activeDate.sub])}`
-      : t('publish.hint.boot');
+    : activeDate?.sub === 'summarize'
+      ? `${activeDate.date} · ${summarizeHint}`
+      : activeDate?.sub
+        ? `${activeDate.date} · ${t(DSTEP_DOING[activeDate.sub])}`
+        : t('publish.hint.boot');
   const cancel = (): void => {
     setCancelling(true);
     onCancel();
@@ -767,8 +788,9 @@ function Progress({
                     key={d.date}
                     d={d}
                     i={i}
-                    open={expandedDates.has(d.date) || d.status === 'active'}
+                    open={expandedDates.has(d.date)}
                     onToggle={() => toggleDate(d.date)}
+                    summarizeHint={summarizeHint}
                     t={t}
                   />
                 ) : (
