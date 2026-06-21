@@ -187,10 +187,6 @@ const HEATMAP_WEEKS = 53;
 const CELL = 12;
 const CELL_GAP = 3;
 
-// 스크롤 진입 시 등장 — 뷰포트(스크롤 컨테이너) 안에 들어오면 dash-rise/차트 애니메이션을 재생.
-// 화면 밖 섹션은 진입 전까지 숨김(styles.css 의 animation-play-state: paused), once 동작.
-// 섹션 자체엔 delay 를 두지 않는다 — 섹션 등장이 내부 차트 막대 stagger 보다 늦으면
-// 막대가 섹션이 보이기 전에 자라기 시작해 "중간부터 늘어나는" 것처럼 보임.
 function Reveal({
   children,
   className,

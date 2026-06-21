@@ -52,8 +52,6 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
   monthly: null,
 };
 
-// RecentListResult/RecentPage 스키마가 바뀌면 버전을 올린다 — 구버전 캐시를 무시(캐시 미스→스켈레톤 1회)해
-// 잘못된 모양으로 파싱돼 렌더 중 undefined 참조가 나는 것을 방지
 const RECENT_CACHE_KEY = 'cairn:recentCache:v1';
 
 function readRecentCache(): RecentListResult | null {
@@ -84,8 +82,6 @@ export function App() {
   const [busy, setBusy] = useState<BusyState>({ busy: false, mode: null });
   const busyRef = useRef(busy);
   busyRef.current = busy;
-  // 마지막 결과를 로컬 캐시에 보관 — 새로고침 시 노션 조회 완료 전까지 빈 스켈레톤이 깜빡이지 않게
-  // 캐시를 즉시 보여주고 백그라운드로 갱신(stale-while-revalidate). 로컬 한정 저장(외부 송신 아님)
   const [recent, setRecent] = useState<RecentListResult | null>(readRecentCache);
   const { t } = useSettings();
 
@@ -95,7 +91,7 @@ export function App() {
     try {
       localStorage.setItem(RECENT_CACHE_KEY, JSON.stringify(r));
     } catch {
-      // 저장 실패(쿼터 등)는 무시 — 캐시는 부가 기능
+      /* empty */
     }
   }, []);
 

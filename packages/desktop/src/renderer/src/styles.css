@@ -435,8 +435,6 @@ button {
   animation: dash-rise 1.8s ease-out 0.3s both;
 }
 
-/* 스크롤 진입 reveal — 뷰포트 밖 섹션은 진입 애니메이션을 일시정지(both/forwards 라 첫 프레임=숨김 유지).
-   옵저버가 .reveal-in 을 붙이면 재생. 화면 안 섹션은 마운트 직후 즉시 reveal-in → 기존 등장 그대로 */
 .reveal:not(.reveal-in),
 .reveal:not(.reveal-in) .bar-v,
 .reveal:not(.reveal-in) .bar-h,
