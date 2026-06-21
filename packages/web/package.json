@@ -39,6 +39,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.0",
     "eslint-config-next": "^16.2.9",
+    "eslint-plugin-simple-import-sort": "^13.0.0",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3"
   }
