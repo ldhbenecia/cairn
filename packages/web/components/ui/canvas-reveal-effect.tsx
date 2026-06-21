@@ -13,7 +13,6 @@ interface ShaderProps {
 }
 
 export const CanvasRevealEffect = ({
-  animationSpeed = 10,
   opacities = [0.3, 0.3, 0.3, 0.5, 0.5, 0.5, 0.8, 0.8, 0.8, 1],
   colors = [[0, 255, 255]],
   containerClassName,
@@ -21,7 +20,6 @@ export const CanvasRevealEffect = ({
   showGradient = true,
   reverse = false,
 }: {
-  animationSpeed?: number;
   opacities?: number[];
   colors?: number[][];
   containerClassName?: string;
@@ -36,10 +34,7 @@ export const CanvasRevealEffect = ({
           colors={colors ?? [[0, 255, 255]]}
           dotSize={dotSize ?? 3}
           opacities={opacities ?? [0.3, 0.3, 0.3, 0.5, 0.5, 0.5, 0.8, 0.8, 0.8, 1]}
-          shader={`
-            ${reverse ? 'u_reverse_active' : 'false'}_;
-            animation_speed_factor_${animationSpeed.toFixed(1)}_;
-          `}
+          shader={reverse ? 'u_reverse_active' : ''}
           center={['x', 'y']}
         />
       </div>

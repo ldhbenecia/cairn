@@ -61,7 +61,6 @@ export default function DesktopLogin() {
       {/* 셰이더 도트 배경 — 실제 OAuth 로직과 무관한 비주얼 레이어 */}
       <div className="absolute inset-0 z-0">
         <CanvasRevealEffect
-          animationSpeed={3}
           containerClassName="bg-black"
           colors={[
             [255, 255, 255],
