@@ -1,8 +1,6 @@
 import {
   ArrowDownUp,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   GitCommitHorizontal,
   GitPullRequest,
   ListTree,
@@ -11,6 +9,7 @@ import {
   Search,
   Sparkles,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RunSession } from '../App';
 import type {
@@ -22,6 +21,7 @@ import type {
 } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
+import { Pagination } from './pagination';
 import { PublishDialog } from './publish-dialog';
 import type { WorklogFilter } from './sidebar';
 
@@ -259,7 +259,13 @@ export function WorklogList({
               ))}
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
+            <motion.div
+              key={current}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden rounded-lg border border-hairline bg-surface-1"
+            >
               {visible.map((p) => (
                 <PageRow
                   key={p.pageId}
@@ -269,7 +275,7 @@ export function WorklogList({
                   selected={p.pageId === selectedId}
                 />
               ))}
-            </div>
+            </motion.div>
           )}
 
           {recent && recent.warnings.length > 0 && (
@@ -286,26 +292,13 @@ export function WorklogList({
       </div>
 
       {groupBy === 'none' && pageCount > 1 && (
-        <div className="flex items-center justify-center gap-3 border-t border-hairline py-2.5 text-[12px] text-ink-subtle">
-          <button
-            type="button"
-            disabled={current === 0}
-            onClick={() => setPage(current - 1)}
-            className="flex size-6 items-center justify-center rounded-md hover:bg-surface-2 disabled:opacity-30"
-          >
-            <ChevronLeft size={14} strokeWidth={2} />
-          </button>
-          <span className="font-mono">
-            {current + 1} / {pageCount}
-          </span>
-          <button
-            type="button"
-            disabled={current >= pageCount - 1}
-            onClick={() => setPage(current + 1)}
-            className="flex size-6 items-center justify-center rounded-md hover:bg-surface-2 disabled:opacity-30"
-          >
-            <ChevronRight size={14} strokeWidth={2} />
-          </button>
+        <div className="border-t border-hairline px-4 py-3.5">
+          <Pagination
+            totalPages={pageCount}
+            currentPage={current + 1}
+            onPageChange={(p) => setPage(p - 1)}
+            maxVisiblePages={9}
+          />
         </div>
       )}
     </section>
