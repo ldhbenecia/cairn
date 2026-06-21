@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Client } from '@notionhq/client';
+import { APIResponseError, Client } from '@notionhq/client';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type {
   CreateWorklogDatabaseInput,
@@ -38,23 +38,40 @@ interface SearchPageItem {
 export class NotionApiClient {
   private readonly clients = new Map<string, Client>();
   private static readonly REQUEST_TIMEOUT_MS = 30_000;
+  private static readonly MAX_RETRIES = 4;
 
   constructor(
     @InjectPinoLogger(NotionApiClient.name)
     private readonly logger: PinoLogger,
   ) {}
 
+  private async withRetry<T>(op: string, fn: () => Promise<T>): Promise<T> {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await fn();
+      } catch (err) {
+        const rateLimited = err instanceof APIResponseError && err.status === 429;
+        if (!rateLimited || attempt >= NotionApiClient.MAX_RETRIES) throw err;
+        const waitMs = Math.min(1000 * 2 ** attempt, 8000);
+        this.logger.warn({ op, attempt: attempt + 1, waitMs }, 'notion 429 — retrying');
+        await new Promise((r) => setTimeout(r, waitMs));
+      }
+    }
+  }
+
   async searchPages(
     token: string,
     opts: { startCursor?: string; pageSize?: number } = {},
   ): Promise<SearchPagesResult> {
     const client = this.getClient(token);
-    const res = await client.search({
-      sort: { direction: 'descending', timestamp: 'last_edited_time' },
-      filter: { value: 'page', property: 'object' },
-      start_cursor: opts.startCursor,
-      page_size: opts.pageSize ?? 100,
-    });
+    const res = await this.withRetry('search', () =>
+      client.search({
+        sort: { direction: 'descending', timestamp: 'last_edited_time' },
+        filter: { value: 'page', property: 'object' },
+        start_cursor: opts.startCursor,
+        page_size: opts.pageSize ?? 100,
+      }),
+    );
 
     const pages: RawNotionPage[] = [];
     for (const item of res.results) {
@@ -69,35 +86,37 @@ export class NotionApiClient {
     input: CreateWorklogDatabaseInput,
   ): Promise<CreateWorklogDatabaseResult> {
     const client = this.getClient(input.token);
-    const res = await client.databases.create({
-      parent: { type: 'page_id', page_id: input.parentPageId },
-      title: [{ type: 'text', text: { content: input.title } }],
-      is_inline: true,
-      initial_data_source: {
-        properties: {
-          Title: { title: {} },
-          Date: { date: {} },
-          Tags: {
-            multi_select: {
-              options: [
-                { name: 'auto', color: 'default' },
-                { name: 'daily', color: 'blue' },
-              ],
+    const res = await this.withRetry('databases.create', () =>
+      client.databases.create({
+        parent: { type: 'page_id', page_id: input.parentPageId },
+        title: [{ type: 'text', text: { content: input.title } }],
+        is_inline: true,
+        initial_data_source: {
+          properties: {
+            Title: { title: {} },
+            Date: { date: {} },
+            Tags: {
+              multi_select: {
+                options: [
+                  { name: 'auto', color: 'default' },
+                  { name: 'daily', color: 'blue' },
+                ],
+              },
             },
-          },
-          Status: {
-            select: {
-              options: [
-                { name: 'draft', color: 'yellow' },
-                { name: 'final', color: 'green' },
-              ],
+            Status: {
+              select: {
+                options: [
+                  { name: 'draft', color: 'yellow' },
+                  { name: 'final', color: 'green' },
+                ],
+              },
             },
+            'Created at': { created_time: {} },
+            'Last edited at': { last_edited_time: {} },
           },
-          'Created at': { created_time: {} },
-          'Last edited at': { last_edited_time: {} },
         },
-      },
-    });
+      }),
+    );
     const dataSources = (res as { data_sources?: Array<{ id?: string }> }).data_sources;
     const dataSourceId = dataSources?.[0]?.id;
     if (!dataSourceId) {
@@ -108,7 +127,9 @@ export class NotionApiClient {
 
   async getPrimaryDataSourceId(token: string, databaseId: string): Promise<string> {
     const client = this.getClient(token);
-    const res = await client.databases.retrieve({ database_id: databaseId });
+    const res = await this.withRetry('databases.retrieve', () =>
+      client.databases.retrieve({ database_id: databaseId }),
+    );
     const dataSources = (res as { data_sources?: Array<{ id?: string }> }).data_sources;
     const dataSourceId = dataSources?.[0]?.id;
     if (!dataSourceId) {
@@ -123,13 +144,15 @@ export class NotionApiClient {
     isoDate: string,
   ): Promise<ExistingWorklogPage | null> {
     const client = this.getClient(token);
-    const res = await client.dataSources.query({
-      data_source_id: dataSourceId,
-      filter: { property: 'Date', date: { equals: isoDate } },
-      // 중복 페이지가 있을 때(예: force 중 archive 실패) 항상 최신 것을 잡도록 created_time desc
-      sorts: [{ timestamp: 'created_time', direction: 'descending' }],
-      page_size: 1,
-    });
+    const res = await this.withRetry('dataSources.query', () =>
+      client.dataSources.query({
+        data_source_id: dataSourceId,
+        filter: { property: 'Date', date: { equals: isoDate } },
+        // 중복 페이지가 있을 때(예: force 중 archive 실패) 항상 최신 것을 잡도록 created_time desc
+        sorts: [{ timestamp: 'created_time', direction: 'descending' }],
+        page_size: 1,
+      }),
+    );
     const first = res.results[0];
     if (!first || !('properties' in first)) return null;
     const props = (first as { properties: Record<string, unknown> }).properties;
@@ -143,23 +166,27 @@ export class NotionApiClient {
   ): Promise<{ id: string; url: string | null }> {
     const client = this.getClient(input.token);
     const tags = input.tags ?? ['auto', 'daily'];
-    const res = await client.pages.create({
-      parent: { type: 'data_source_id', data_source_id: input.dataSourceId },
-      properties: {
-        Title: { title: [{ type: 'text', text: { content: input.title } }] },
-        Date: { date: { start: input.date } },
-        Tags: { multi_select: tags.map((t) => ({ name: t })) },
-        Status: { select: { name: 'draft' } },
-      },
-      ...(input.children ? { children: input.children as never } : {}),
-    });
+    const res = await this.withRetry('pages.create', () =>
+      client.pages.create({
+        parent: { type: 'data_source_id', data_source_id: input.dataSourceId },
+        properties: {
+          Title: { title: [{ type: 'text', text: { content: input.title } }] },
+          Date: { date: { start: input.date } },
+          Tags: { multi_select: tags.map((t) => ({ name: t })) },
+          Status: { select: { name: 'draft' } },
+        },
+        ...(input.children ? { children: input.children as never } : {}),
+      }),
+    );
     const url = 'url' in res && typeof res.url === 'string' ? res.url : null;
     return { id: res.id, url };
   }
 
   async archivePage(token: string, pageId: string): Promise<void> {
     const client = this.getClient(token);
-    await client.pages.update({ page_id: pageId, archived: true });
+    await this.withRetry('pages.update', () =>
+      client.pages.update({ page_id: pageId, archived: true }),
+    );
   }
 
   async queryWorklogPagesInRange(
@@ -173,18 +200,20 @@ export class NotionApiClient {
     let cursor: string | undefined = undefined;
 
     do {
-      const res = await client.dataSources.query({
-        data_source_id: dataSourceId,
-        filter: {
-          and: [
-            { property: 'Date', date: { on_or_after: rangeStart } },
-            { property: 'Date', date: { on_or_before: rangeEnd } },
-          ],
-        },
-        sorts: [{ property: 'Date', direction: 'ascending' }],
-        start_cursor: cursor,
-        page_size: 100,
-      });
+      const res = await this.withRetry('dataSources.query', () =>
+        client.dataSources.query({
+          data_source_id: dataSourceId,
+          filter: {
+            and: [
+              { property: 'Date', date: { on_or_after: rangeStart } },
+              { property: 'Date', date: { on_or_before: rangeEnd } },
+            ],
+          },
+          sorts: [{ property: 'Date', direction: 'ascending' }],
+          start_cursor: cursor,
+          page_size: 100,
+        }),
+      );
 
       for (const item of res.results) {
         if (!('properties' in item)) continue;
@@ -207,11 +236,13 @@ export class NotionApiClient {
     let cursor: string | undefined = undefined;
 
     do {
-      const res = await client.blocks.children.list({
-        block_id: pageId,
-        start_cursor: cursor,
-        page_size: 100,
-      });
+      const res = await this.withRetry('blocks.children.list', () =>
+        client.blocks.children.list({
+          block_id: pageId,
+          start_cursor: cursor,
+          page_size: 100,
+        }),
+      );
       for (const block of res.results) {
         out.push(toExtractedBlock(block));
       }
