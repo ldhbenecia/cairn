@@ -189,15 +189,15 @@ const CELL_GAP = 3;
 
 // 스크롤 진입 시 등장 — 뷰포트(스크롤 컨테이너) 안에 들어오면 dash-rise/차트 애니메이션을 재생.
 // 화면 밖 섹션은 진입 전까지 숨김(styles.css 의 animation-play-state: paused), once 동작.
+// 섹션 자체엔 delay 를 두지 않는다 — 섹션 등장이 내부 차트 막대 stagger 보다 늦으면
+// 막대가 섹션이 보이기 전에 자라기 시작해 "중간부터 늘어나는" 것처럼 보임.
 function Reveal({
   children,
   className,
-  delay,
   root,
 }: {
   children: ReactNode;
   className?: string;
-  delay?: number;
   root: RefObject<HTMLElement | null>;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -222,7 +222,6 @@ function Reveal({
     <div
       ref={ref}
       className={`reveal${shown ? ' reveal-in' : ''}${className ? ` ${className}` : ''}`}
-      style={delay !== undefined ? { animationDelay: `${delay}ms` } : undefined}
     >
       {children}
     </div>
@@ -272,11 +271,7 @@ export function Dashboard({
             </div>
           ) : (
             <div className="flex flex-col gap-6">
-              <Reveal
-                className="dash-rise grid grid-cols-2 gap-3 sm:grid-cols-4"
-                delay={0}
-                root={scrollRef}
-              >
+              <Reveal className="dash-rise grid grid-cols-2 gap-3 sm:grid-cols-4" root={scrollRef}>
                 <StatCard
                   icon={<GitPullRequest size={15} strokeWidth={2} />}
                   label={t('stats.totalPr')}
@@ -300,25 +295,21 @@ export function Dashboard({
                 />
               </Reveal>
 
-              <Reveal className="dash-rise" delay={60} root={scrollRef}>
+              <Reveal className="dash-rise" root={scrollRef}>
                 <InsightCards insights={insights} t={t} />
               </Reveal>
 
               {cumulative && cumulative.length > 1 && (
-                <Reveal className="dash-rise" delay={120} root={scrollRef}>
+                <Reveal className="dash-rise" root={scrollRef}>
                   <CumulativeChart series={cumulative} t={t} />
                 </Reveal>
               )}
 
-              <Reveal className="dash-rise" delay={180} root={scrollRef}>
+              <Reveal className="dash-rise" root={scrollRef}>
                 <Heatmap byDate={data.byDate} t={t} onPickDate={onPickDate} />
               </Reveal>
 
-              <Reveal
-                className="dash-rise grid grid-cols-1 gap-6 lg:grid-cols-3"
-                delay={240}
-                root={scrollRef}
-              >
+              <Reveal className="dash-rise grid grid-cols-1 gap-6 lg:grid-cols-3" root={scrollRef}>
                 <div className="lg:col-span-2">
                   <MonthlyChart months={recentMonths} t={t} />
                 </div>
@@ -326,16 +317,12 @@ export function Dashboard({
               </Reveal>
 
               {data.hours.some((h) => h > 0) && (
-                <Reveal className="dash-rise" delay={300} root={scrollRef}>
+                <Reveal className="dash-rise" root={scrollRef}>
                   <TimeOfDayChart hours={data.hours} t={t} />
                 </Reveal>
               )}
 
-              <Reveal
-                className="dash-rise text-[11px] text-ink-tertiary"
-                delay={340}
-                root={scrollRef}
-              >
+              <Reveal className="dash-rise text-[11px] text-ink-tertiary" root={scrollRef}>
                 {t('stats.note')}
               </Reveal>
             </div>
