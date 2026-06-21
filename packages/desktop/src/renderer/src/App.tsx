@@ -14,6 +14,7 @@ import type {
   RecentListResult,
   RecentPage,
   RunLine,
+  RunProgress,
   RunStep,
 } from './cairn-api';
 import { useSettings } from './settings-context';
@@ -40,7 +41,7 @@ export type RunSession = {
   startedAt: number;
   endedAt?: number;
   batch?: boolean;
-  progress?: { total: number; done: number; active: number; dates: string[] };
+  progress?: RunProgress;
 };
 
 const TAIL_MAX = 200;
@@ -153,7 +154,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const off = window.cairn.onRunProgress(({ mode, total, done, active, dates }) => {
+    const off = window.cairn.onRunProgress(({ mode, ...progress }) => {
       setSessions((prev) => {
         const current = prev[mode] ?? {
           state: 'running' as const,
@@ -163,7 +164,7 @@ export function App() {
         };
         return {
           ...prev,
-          [mode]: { ...current, batch: true, progress: { total, done, active, dates } },
+          [mode]: { ...current, batch: true, progress },
         };
       });
     });

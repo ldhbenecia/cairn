@@ -118,7 +118,14 @@ let runStep: RunStep = 'boot';
 let lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null = null;
 
 // 백필 배치 진행 — 전체 stdout 스트림 기준 누적(렌더러 200줄 tail 제한에 영향받지 않게)
-export type RunProgress = { total: number; done: number; active: number; dates: string[] };
+export type DateStep = 'collect' | 'summarize' | 'publish';
+export type RunProgress = {
+  total: number;
+  done: number;
+  active: number;
+  dates: string[];
+  stepByDate: Record<string, DateStep>;
+};
 let runProgress: RunProgress | null = null;
 let bfTotal = 0;
 let bfDone = 0;
@@ -126,6 +133,8 @@ let bfStarted = 0;
 let bfInStat = false;
 let bfLastKey = '';
 let bfDates: string[] = [];
+let bfStepByDate: Record<string, DateStep> = {};
+let bfStepBlock: { date?: string; step?: DateStep } | null = null;
 
 function resetBackfillTracking(): void {
   runProgress = null;
@@ -135,11 +144,42 @@ function resetBackfillTracking(): void {
   bfInStat = false;
   bfLastKey = '';
   bfDates = [];
+  bfStepByDate = {};
+  bfStepBlock = null;
+}
+
+// 'backfill date step' 블록에서 날짜별 단계(수집/요약/발행) 추출 — JSON 한 줄·pino-pretty 멀티라인 모두 대응
+function trackDateStep(line: string): void {
+  if (/backfill date step/.test(line)) {
+    const dOne = /"date"\s*:\s*"(\d{4}-\d{2}-\d{2})"/.exec(line);
+    const sOne = /"step"\s*:\s*"(collect|summarize|publish)"/.exec(line);
+    if (dOne && sOne) {
+      bfStepByDate = { ...bfStepByDate, [dOne[1]!]: sOne[1] as DateStep };
+      bfStepBlock = null;
+    } else {
+      bfStepBlock = {};
+    }
+    return;
+  }
+  if (!bfStepBlock) return;
+  if (/^\[\d{2}:\d{2}:\d{2}/.test(line) || /"msg"\s*:/.test(line)) {
+    bfStepBlock = null;
+    return;
+  }
+  const d = /date["':\s]+["']?(\d{4}-\d{2}-\d{2})/.exec(line);
+  const s = /step["':\s]+["']?(collect|summarize|publish)/.exec(line);
+  if (d) bfStepBlock.date = d[1];
+  if (s) bfStepBlock.step = s[1] as DateStep;
+  if (bfStepBlock.date && bfStepBlock.step) {
+    bfStepByDate = { ...bfStepByDate, [bfStepBlock.date]: bfStepBlock.step };
+    bfStepBlock = null;
+  }
 }
 
 // pino-pretty 멀티라인 대응: 헤더(`[HH:MM:SS]`) 기준 블록으로 total/done 누적, date start 수로 동시 처리 산정
 function trackBackfill(line: string, mode: CoreMode): void {
   if (line.includes('backfill date start')) bfStarted += 1;
+  trackDateStep(line);
   // 배치 시작 시 1회 찍히는 날짜 목록(쉼표 join) — 헤더/블록 어느 라인에 있어도 잡히게 무조건 검사
   const mDates = /dates["':\s]+["']?([\d,-]+)/.exec(line);
   if (mDates?.[1]) {
@@ -157,10 +197,14 @@ function trackBackfill(line: string, mode: CoreMode): void {
   }
   if (bfTotal <= 1) return;
   const active = Math.max(0, Math.min(bfTotal - bfDone, bfStarted - bfDone));
-  const key = `${bfDone}/${bfTotal}/${active}/${bfDates.length}`;
+  const stepSig = Object.entries(bfStepByDate)
+    .map(([d, s]) => `${d}:${s}`)
+    .sort()
+    .join(',');
+  const key = `${bfDone}/${bfTotal}/${active}/${bfDates.length}/${stepSig}`;
   if (key === bfLastKey) return;
   bfLastKey = key;
-  runProgress = { total: bfTotal, done: bfDone, active, dates: bfDates };
+  runProgress = { total: bfTotal, done: bfDone, active, dates: bfDates, stepByDate: bfStepByDate };
   broadcast('cairn:run-progress', { mode, ...runProgress });
 }
 

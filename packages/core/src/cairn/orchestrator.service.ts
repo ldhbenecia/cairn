@@ -24,6 +24,8 @@ import type { RunOptions, RunSource } from './run-options.js';
 
 const BACKFILL_CONCURRENCY = 4;
 
+type DailyStep = 'collect' | 'summarize' | 'publish';
+
 @Injectable()
 export class OrchestratorService {
   constructor(
@@ -115,6 +117,7 @@ export class OrchestratorService {
         const outcome = await this.runDailyForDate(date, options, {
           silent: true,
           precheck: false,
+          onStep: (step) => this.logger.info({ date, step }, 'daily: backfill date step'),
         });
         result = { date, kind: outcome };
       } catch (err) {
@@ -136,7 +139,7 @@ export class OrchestratorService {
   private async runDailyForDate(
     date: string,
     options: RunOptions,
-    opts: { silent: boolean; precheck?: boolean },
+    opts: { silent: boolean; precheck?: boolean; onStep?: (step: DailyStep) => void },
   ): Promise<PublishWorklogResult['kind'] | 'no-activity'> {
     const wantsGithub = wantsSource(options.sources, 'github');
     const wantsLocalGit = wantsSource(options.sources, 'local-git');
@@ -164,6 +167,7 @@ export class OrchestratorService {
       }
     }
 
+    opts.onStep?.('collect');
     const collectStart = Date.now();
     const [githubActivity, localGitActivity] = await Promise.all([
       wantsGithub
@@ -197,6 +201,7 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
+    opts.onStep?.('summarize');
     const summarizeStart = Date.now();
     const summary = await this.summarizer.summarize(
       {
@@ -218,6 +223,7 @@ export class OrchestratorService {
       );
     }
 
+    opts.onStep?.('publish');
     const publishStart = Date.now();
     const result = await this.notionPublisher.publish({
       date,
