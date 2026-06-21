@@ -98,6 +98,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
   const busy = runningMode !== null || externalBusy;
   const isRunning = session?.state === 'running';
   const isDone = session?.state === 'done';
+  const wide = showProgress && (isRunning || isDone || busy);
 
   return (
     <Dialog.Root
@@ -125,7 +126,9 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50 [-webkit-app-region:no-drag]" />
         <Dialog.Content
           onOpenAutoFocus={(e) => e.preventDefault()}
-          className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] w-[520px] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 [-webkit-app-region:no-drag]"
+          className={`dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] [-webkit-app-region:no-drag] ${
+            wide ? 'w-[560px]' : 'w-[440px]'
+          }`}
         >
           <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
             <Dialog.Title className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.2px] text-ink">
