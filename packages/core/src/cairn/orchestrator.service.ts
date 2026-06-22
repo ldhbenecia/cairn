@@ -204,6 +204,10 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
+    // 그랜드 토탈(로컬+GitHub PR dedup)을 요약 전에 한 번 — 발행 진행 UI 칩이
+    // local-git collect 의 로컬-온리 수치 대신 실제 합계를 표시하도록
+    this.logger.info({ date, prCount, commitCountTotal: commitCount }, 'daily: day totals');
+
     opts.onStep?.('summarize');
     const summarizeStart = Date.now();
     const summary = await this.summarizer.summarize(
