@@ -9,8 +9,7 @@
 
 ## 커밋 (Conventional Commits)
 
-- 형식: `type(scope): subject`
-- type: `feat` | `fix` | `refactor` | `perf` | `docs` | `test` | `chore` | `build` | `ci` | `style` | `revert`
+- 형식·type 검증: `./scripts/commit-msg.sh` 가 소유 (아래 "스크립트로 고정 포맷 생성"). 여기선 판단(scope·톤·body)만 다룸
 - scope 예: `github`, `local-git`, `notion`(발행/출력만 — 수집 소스는 2026-06-03 제거), `summarizer`, `rollup`, `state`, `ops`, `config`, `repo`, `release`, `desktop`, `core`
 - **subject 톤**: 한국어 명사구 우선. 영어 명령형 동사(`add`, `update`) 가능하면 피함
   - 좋음: `feat(github): GithubCollectorService — 4 search queries + dedup`
@@ -40,3 +39,12 @@
 - PR 단위: 한 PR 은 한 가지 일. 리뷰 30 분 이내 사이즈
 - 버전은 ADR 0020 기준 — **patch 기본**(버그/성능/리팩토링/작은 개선), 체감 기능 묶음당 **minor 1회**, docs/CI 만이면 무 bump. 릴리스는 배포 시점에 태그 푸시 (태그 == root version)
 - PR 직렬화: 다음 작업은 직전 PR 머지 후 시작
+
+## 스크립트로 고정 포맷 생성
+
+기계적인 형식(제목 포맷·type 검증·precommit)은 룰을 재서술하지 말고 스크립트를 실행한다 (단일 출처).
+
+- 커밋 제목: `./scripts/commit-msg.sh <type> <scope> <subject...>` → `type(scope): subject`. type 유효성 검증 포함
+- PR 제목: `./scripts/pr-title.sh <type> <scope> <title...>` (commit-msg 에 위임)
+- 커밋 전 정리: `git add` 후 `./scripts/precommit.sh` — 스테이지된 `.ts/.tsx` 에 prettier + eslint --fix, 자동 수정 불가 에러는 차단
+- scope·subject·body·버전 bump 같은 **판단**은 위 룰대로 직접 결정한다 (스크립트는 형식만 보장)
