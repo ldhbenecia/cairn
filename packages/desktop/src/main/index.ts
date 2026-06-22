@@ -85,8 +85,8 @@ function createWindow(): BrowserWindow {
     win.hide();
   });
 
-  // 메뉴바(트레이) 앱 — 창을 숨기면 Dock 아이콘도 빼고(트레이에만 상주), 다시 열면 Dock 복귀 (macOS)
-  if (app.isPackaged) {
+  // 메뉴바(트레이) 앱 — 창을 숨기면 Dock 아이콘도 빼고(트레이에만 상주), 다시 열면 Dock 복귀 (macOS 전용)
+  if (app.isPackaged && process.platform === 'darwin') {
     win.on('hide', () => void app.dock?.hide());
     win.on('show', () => void app.dock?.show());
   }
