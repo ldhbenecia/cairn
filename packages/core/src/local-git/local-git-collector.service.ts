@@ -56,7 +56,7 @@ export class LocalGitCollectorService {
       {
         date,
         repoCount: repos.length,
-        commitCountTotal: repos.reduce((acc, r) => acc + r.commitCount, 0),
+        localCommitCount: repos.reduce((acc, r) => acc + r.commitCount, 0),
       },
       'local-git collect done',
     );
