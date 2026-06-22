@@ -21,7 +21,7 @@ export function CopyCommand({ command, copyLabel }: { command: string; copyLabel
       aria-label={copyLabel}
       className="group inline-flex max-w-full items-center gap-2 rounded-lg border border-hairline bg-surface-1 px-3 py-2 text-left transition-colors hover:border-ink-subtle"
     >
-      <code className="truncate font-mono text-[12px] text-ink-muted">{command}</code>
+      <code className="min-w-0 truncate font-mono text-[12px] text-ink-muted">{command}</code>
       <span className="shrink-0 text-ink-tertiary transition-colors group-hover:text-ink-muted">
         {copied ? (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
