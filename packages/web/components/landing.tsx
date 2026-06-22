@@ -43,7 +43,7 @@ export async function Landing({ lang }: { lang: Lang }) {
       <Nav stars={stars} lang={lang} />
 
       <section className="relative px-6 pt-16 pb-20 sm:pt-24">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-10">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-10">
           <div className="reveal">
             <a
               href={REPO_URL}
@@ -111,7 +111,7 @@ export async function Landing({ lang }: { lang: Lang }) {
 
       <section id="how" className="mx-auto max-w-6xl px-6 py-24">
         <SectionHead eyebrow={c.how.eyebrow} title={c.how.title} lead={c.how.lead} />
-        <div className="mt-14 grid gap-3 md:grid-cols-4 md:grid-rows-2">
+        <div className="mt-14 grid grid-cols-1 gap-3 md:grid-cols-4 md:grid-rows-2">
           <Reveal className="md:col-span-2 md:row-span-2">
             <div className="card-hover group/c relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-hairline bg-surface-1 p-8">
               <span className="font-mono text-[13px] font-medium text-accent-hover">01</span>
@@ -187,7 +187,7 @@ export async function Landing({ lang }: { lang: Lang }) {
           </ul>
           <Reveal delay={0.08} className="relative mt-14">
             <div
-              className="pointer-events-none absolute -inset-x-10 -top-10 bottom-0 -z-10 opacity-60"
+              className="pointer-events-none absolute -inset-x-4 -top-10 bottom-0 -z-10 opacity-60 sm:-inset-x-10"
               style={{
                 background:
                   'radial-gradient(50% 50% at 50% 25%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 70%)',
@@ -204,7 +204,7 @@ export async function Landing({ lang }: { lang: Lang }) {
 
       <section id="setup" className="mx-auto max-w-6xl px-6 py-24">
         <SectionHead eyebrow={c.setup.eyebrow} title={c.setup.title} lead={c.setup.lead} />
-        <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
+        <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
           <SetupCard tag="Notion" title={c.setup.notion.title}>
             <li>
               {c.setup.notion.s1pre}
@@ -262,10 +262,10 @@ export async function Landing({ lang }: { lang: Lang }) {
         </Reveal>
         <div className="mt-8 flex items-start gap-3 rounded-xl border border-hairline bg-surface-1 px-5 py-4 text-[13.5px] leading-relaxed text-ink-subtle">
           <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#d4a574]" />
-          <p>
+          <p className="min-w-0">
             <strong className="font-medium text-ink-muted">{c.setup.gatekeeperPre}</strong>
             {c.setup.gatekeeper}
-            <code className="inline-block rounded bg-surface-2 px-1.5 py-0.5 whitespace-nowrap text-ink-muted">
+            <code className="rounded bg-surface-2 px-1.5 py-0.5 text-ink-muted">
               xattr -d com.apple.quarantine /Applications/Cairn.app
             </code>
             {c.setup.gatekeeperPost}
@@ -365,7 +365,7 @@ function CollectVisual() {
           >
             {r.kind}
           </span>
-          <span className="truncate text-[12.5px] text-ink-muted">{r.text}</span>
+          <span className="min-w-0 truncate text-[12.5px] text-ink-muted">{r.text}</span>
           <span className="ml-auto shrink-0 font-mono text-[10px] text-ink-tertiary">{r.meta}</span>
         </div>
       ))}
