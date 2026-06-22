@@ -10,7 +10,7 @@ import {
   TrendingUp,
   Trophy,
 } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult, RecentPage } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
@@ -187,6 +187,45 @@ const HEATMAP_WEEKS = 53;
 const CELL = 12;
 const CELL_GAP = 3;
 
+function Reveal({
+  children,
+  className,
+  root,
+  threshold = 0.3,
+}: {
+  children: ReactNode;
+  className?: string;
+  root: RefObject<HTMLElement | null>;
+  threshold?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (shown) return;
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setShown(true);
+          io.disconnect();
+        }
+      },
+      { root: root.current, threshold },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [root, shown, threshold]);
+  return (
+    <div
+      ref={ref}
+      className={`reveal${shown ? ' reveal-in' : ''}${className ? ` ${className}` : ''}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function Dashboard({
   recent,
   onPickDate,
@@ -197,6 +236,7 @@ export function Dashboard({
   onGoToWorklogs?: () => void;
 }) {
   const { t } = useSettings();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const data = useMemo(() => aggregate(recent?.pages ?? []), [recent]);
   const insights = useMemo(() => computeInsights(data), [data]);
   const cumulative = useMemo(() => cumulativeSeries(data.byDate), [data]);
@@ -205,7 +245,7 @@ export function Dashboard({
   return (
     <section className="flex flex-1 flex-col overflow-hidden bg-canvas">
       <div className="h-20 shrink-0 [-webkit-app-region:drag]" />
-      <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
         <div className="mx-auto w-full max-w-5xl px-6 pb-10">
           <h1 className="pb-1 text-[20px] font-semibold tracking-[-0.3px] text-ink">
             {t('stats.title')}
@@ -229,10 +269,7 @@ export function Dashboard({
             </div>
           ) : (
             <div className="flex flex-col gap-6">
-              <div
-                className="dash-rise grid grid-cols-2 gap-3 sm:grid-cols-4"
-                style={{ animationDelay: '0ms' }}
-              >
+              <Reveal className="dash-rise grid grid-cols-2 gap-3 sm:grid-cols-4" root={scrollRef}>
                 <StatCard
                   icon={<GitPullRequest size={15} strokeWidth={2} />}
                   label={t('stats.totalPr')}
@@ -254,44 +291,42 @@ export function Dashboard({
                   value={data.streak.current}
                   hint={`${t('stats.streakLongest')} ${data.streak.longest}`}
                 />
-              </div>
+              </Reveal>
 
-              <div className="dash-rise" style={{ animationDelay: '60ms' }}>
+              <Reveal className="dash-rise" root={scrollRef}>
                 <InsightCards insights={insights} t={t} />
-              </div>
+              </Reveal>
 
               {cumulative && cumulative.length > 1 && (
-                <div className="dash-rise" style={{ animationDelay: '120ms' }}>
+                <Reveal className="dash-rise" root={scrollRef}>
                   <CumulativeChart series={cumulative} t={t} />
-                </div>
+                </Reveal>
               )}
 
-              <div className="dash-rise" style={{ animationDelay: '180ms' }}>
+              <Reveal className="dash-rise" root={scrollRef}>
                 <Heatmap byDate={data.byDate} t={t} onPickDate={onPickDate} />
-              </div>
+              </Reveal>
 
-              <div
+              <Reveal
                 className="dash-rise grid grid-cols-1 gap-6 lg:grid-cols-3"
-                style={{ animationDelay: '240ms' }}
+                root={scrollRef}
+                threshold={0.45}
               >
                 <div className="lg:col-span-2">
                   <MonthlyChart months={recentMonths} t={t} />
                 </div>
                 <WeekdayChart weekday={data.weekday} t={t} />
-              </div>
+              </Reveal>
 
               {data.hours.some((h) => h > 0) && (
-                <div className="dash-rise" style={{ animationDelay: '300ms' }}>
+                <Reveal className="dash-rise" root={scrollRef}>
                   <TimeOfDayChart hours={data.hours} t={t} />
-                </div>
+                </Reveal>
               )}
 
-              <p
-                className="dash-rise text-[11px] text-ink-tertiary"
-                style={{ animationDelay: '340ms' }}
-              >
+              <Reveal className="dash-rise text-[11px] text-ink-tertiary" root={scrollRef}>
                 {t('stats.note')}
-              </p>
+              </Reveal>
             </div>
           )}
         </div>

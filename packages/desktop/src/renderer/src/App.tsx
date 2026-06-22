@@ -52,6 +52,19 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
   monthly: null,
 };
 
+const RECENT_CACHE_KEY = 'cairn:recentCache:v1';
+
+function readRecentCache(): RecentListResult | null {
+  try {
+    const raw = localStorage.getItem(RECENT_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as RecentListResult;
+    return Array.isArray(parsed?.pages) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function App() {
   const [filter, setFilter] = useState<WorklogFilter>('all');
   const [view, setView] = useState<MainView>('stats');
@@ -69,12 +82,17 @@ export function App() {
   const [busy, setBusy] = useState<BusyState>({ busy: false, mode: null });
   const busyRef = useRef(busy);
   busyRef.current = busy;
-  const [recent, setRecent] = useState<RecentListResult | null>(null);
+  const [recent, setRecent] = useState<RecentListResult | null>(readRecentCache);
   const { t } = useSettings();
 
   const loadRecent = useCallback(async () => {
     const r = await window.cairn.listRecent();
     setRecent(r);
+    try {
+      localStorage.setItem(RECENT_CACHE_KEY, JSON.stringify(r));
+    } catch {
+      /* empty */
+    }
   }, []);
 
   useEffect(() => {
