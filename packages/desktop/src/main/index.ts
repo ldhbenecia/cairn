@@ -85,9 +85,8 @@ function createWindow(): BrowserWindow {
     win.hide();
   });
 
-  // 메뉴바(트레이) 앱 — 창을 숨기면 Dock 아이콘도 빼고(트레이에만 상주), 다시 열면 Dock 복귀 (macOS 전용)
+  // 창을 다시 열면 Dock 아이콘 복귀 — Cmd+Q 로 트레이 전용 진입 시 빠졌던 Dock 을 되살림 (macOS 전용)
   if (app.isPackaged && process.platform === 'darwin') {
-    win.on('hide', () => void app.dock?.hide());
     win.on('show', () => void app.dock?.show());
   }
 
@@ -191,6 +190,8 @@ app.on('before-quit', (e) => {
   if (!allowQuit && app.isPackaged) {
     e.preventDefault();
     BrowserWindow.getAllWindows().forEach((w) => w.hide());
+    // Cmd+Q 는 완전 종료가 아니라 트레이 전용(메뉴바 상주) — 이때만 Dock 아이콘 제거
+    if (process.platform === 'darwin') app.dock?.hide();
     return;
   }
   void shutdownTelemetry();
