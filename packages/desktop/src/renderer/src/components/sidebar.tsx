@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
+import { AccountStatusPill } from './account-status-pill';
 import { BrandMark } from './brand-mark';
 
 export type WorklogFilter = 'all' | 'daily' | 'weekly' | 'monthly';
@@ -114,6 +115,7 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
           <BrandMark size={15} />
         </span>
         <span className="text-[15px] font-semibold tracking-[-0.2px] text-ink">cairn</span>
+        <AccountStatusPill />
         <button
           type="button"
           onClick={() => void window.cairn.cloud.signIn().catch(() => {})}
@@ -140,6 +142,7 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
         <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-ink">
           {user.name}
         </span>
+        <AccountStatusPill className="mr-0.5" />
       </button>
       {open && (
         <div className="popover-in absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40 [transform-origin:top]">
