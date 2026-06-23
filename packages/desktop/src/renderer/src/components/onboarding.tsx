@@ -538,9 +538,14 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   );
 }
 
-const FADE_UP = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const } },
+const SLOW = [0.22, 1, 0.36, 1] as const;
+const RISE = {
+  hidden: { opacity: 0, y: 16, filter: 'blur(4px)' },
+  show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.9, ease: SLOW } },
+};
+const BRAND_IN = {
+  hidden: { opacity: 0, scale: 0.8, filter: 'blur(10px)' },
+  show: { opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 1.3, ease: SLOW } },
 };
 
 function Welcome({ t }: { t: T }) {
@@ -549,22 +554,22 @@ function Welcome({ t }: { t: T }) {
     <motion.div
       initial="hidden"
       animate="show"
-      variants={{ show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } } }}
+      variants={{ show: { transition: { staggerChildren: 0.32, delayChildren: 0.35 } } }}
       className="flex h-full flex-col items-center justify-center gap-7 pb-6 text-center"
     >
       <motion.span
-        variants={FADE_UP}
-        className="flex size-16 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-accent/25"
+        variants={BRAND_IN}
+        className="flex size-20 items-center justify-center rounded-[20px] bg-accent text-white shadow-xl shadow-accent/30"
       >
-        <BrandMark size={34} />
+        <BrandMark size={42} />
       </motion.span>
-      <motion.div variants={FADE_UP} className="flex flex-col gap-2.5">
+      <motion.div variants={RISE} className="flex flex-col gap-2.5">
         <h1 className="text-[28px] font-semibold tracking-[-0.6px]">{t('onb.welcome.title')}</h1>
         <p className="mx-auto max-w-md text-[14px] leading-relaxed text-ink-muted">
           {t('onb.welcome.desc')}
         </p>
       </motion.div>
-      <motion.ul variants={FADE_UP} className="flex flex-col gap-1.5 text-[13px] text-ink-subtle">
+      <motion.ul variants={RISE} className="flex flex-col gap-1.5 text-[13px] text-ink-subtle">
         <li>
           <span className="text-ink-muted">Notion</span> — {t('onb.welcome.notion')}
         </li>
@@ -576,7 +581,7 @@ function Welcome({ t }: { t: T }) {
         </li>
       </motion.ul>
       <motion.div
-        variants={FADE_UP}
+        variants={RISE}
         className="w-full max-w-md rounded-xl border border-hairline bg-surface-1 p-4 text-left"
       >
         {signedIn && user ? (
