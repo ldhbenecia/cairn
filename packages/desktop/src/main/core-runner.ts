@@ -384,6 +384,7 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     env: {
       ...process.env,
+      NODE_ENV: app.isPackaged ? 'production' : (process.env.NODE_ENV ?? 'development'),
       CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
       ...claudeEnv(),
       ...promptEnv(settings.prompts),

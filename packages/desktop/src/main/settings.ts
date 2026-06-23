@@ -1,3 +1,4 @@
+import { app } from 'electron';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -58,6 +59,14 @@ const DEFAULTS: Settings = {
 
 const SETTINGS_PATH = join(homedir(), '.cairn', 'settings.json');
 
+function machineLanguage(): Language {
+  try {
+    return app.getLocale().startsWith('ko') ? 'ko' : 'en';
+  } catch {
+    return 'en';
+  }
+}
+
 export function readSettings(): Settings {
   try {
     const parsed = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8')) as Partial<Settings> & {
@@ -75,6 +84,7 @@ export function readSettings(): Settings {
     return {
       ...DEFAULTS,
       ...parsed,
+      language: parsed.language ?? machineLanguage(),
       liquidGlass,
       autoPublish: {
         daily: ap.daily,
@@ -88,7 +98,7 @@ export function readSettings(): Settings {
       export: { ...DEFAULTS.export, ...(parsed.export ?? {}) },
     };
   } catch {
-    return DEFAULTS;
+    return { ...DEFAULTS, language: machineLanguage() };
   }
 }
 
