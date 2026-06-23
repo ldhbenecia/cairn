@@ -1,5 +1,6 @@
 import { Loader2, RotateCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { ConnectionAccounts } from '../../cairn-api';
 import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';
 import { Field } from './field';
@@ -36,6 +37,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
   const { t } = useSettings();
   const [cfg, setCfg] = useState<ParsedConfig>({});
   const [claude, setClaude] = useState<Claude>(claudeCache ?? 'checking');
+  const [accounts, setAccounts] = useState<ConnectionAccounts | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -50,6 +52,12 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
     void probeClaudeCached().then((c) => {
       if (alive) setClaude(c);
     });
+    void window.cairn.connections
+      .accounts()
+      .then((a) => {
+        if (alive) setAccounts(a);
+      })
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -64,6 +72,15 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
   const github = cfg.githubAccounts ?? [];
   const repos = cfg.localGitRepos ?? [];
 
+  const notionVals = notion.map((w) => {
+    const acc = accounts?.notion.find((n) => n.label === w.label);
+    return acc?.workspace ? `${w.label} · ${acc.workspace}` : w.label;
+  });
+  const githubVals = github.map((g) => {
+    const acc = accounts?.github.find((a) => a.label === g.label);
+    return acc?.login ? `${g.label} · @${acc.login}` : g.label;
+  });
+
   return (
     <div className="divide-y divide-hairline">
       <Field label={t('prefs.connections')} desc={t('prefs.conn.localDataNote')}>
@@ -71,8 +88,8 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
       </Field>
       <div className="py-5">
         <div className="space-y-2 rounded-lg border border-hairline bg-surface-1 p-3">
-          <Row label="Notion" values={notion.map((w) => w.label)} />
-          <Row label="GitHub" values={github.map((g) => g.label)} />
+          <Row label="Notion" values={notionVals} />
+          <Row label="GitHub" values={githubVals} />
           <Row
             label="Claude"
             pending={claude === 'checking'}
