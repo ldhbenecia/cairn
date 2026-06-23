@@ -22,6 +22,7 @@ function probeClaudeCached(force = false): Promise<Exclude<Claude, 'checking'>> 
   claudeInflight ??= window.cairn.onboarding
     .probeClaude()
     .then((r) => r.ok)
+    .catch(() => false)
     .finally(() => {
       claudeInflight = null;
     });
@@ -37,8 +38,21 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
   const [claude, setClaude] = useState<Claude>(claudeCache ?? 'checking');
 
   useEffect(() => {
-    void window.cairn.readConfig().then((r) => setCfg((r.parsed as ParsedConfig | null) ?? {}));
-    void probeClaudeCached().then(setClaude);
+    let alive = true;
+    void window.cairn
+      .readConfig()
+      .then((r) => {
+        if (alive) setCfg((r.parsed as ParsedConfig | null) ?? {});
+      })
+      .catch(() => {
+        if (alive) setCfg({});
+      });
+    void probeClaudeCached().then((c) => {
+      if (alive) setClaude(c);
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const refreshClaude = (): void => {
