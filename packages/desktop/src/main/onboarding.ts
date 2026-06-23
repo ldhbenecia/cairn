@@ -240,6 +240,7 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
     if (payload.anthropicApiKey?.trim()) env.ANTHROPIC_API_KEY = payload.anthropicApiKey.trim();
 
     writeEnvMerged(env);
+    for (const [k, v] of Object.entries(env)) process.env[k] = v;
 
     const config = {
       ...existing,

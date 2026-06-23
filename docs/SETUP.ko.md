@@ -95,9 +95,8 @@ cp .env.example .env
 ```env
 MACHINE_NAME=personal-mac
 NODE_ENV=development
-LOG_LEVEL=info
 # MACHINE_NAME 은 이 머신 라벨, NODE_ENV=production 이면 네이티브 알림 활성화
-# (launchd plist 가 셋팅함), LOG_LEVEL 은 pino 레벨. 셋 다 기본값 있음
+# (launchd plist 가 셋팅함). 둘 다 기본값 있음
 
 ANTHROPIC_OAUTH_TOKEN=
 # 비워둬도 OK — Claude Code 로그인 상태면 OAuth 자동 상속
