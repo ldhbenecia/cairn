@@ -14,7 +14,7 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
   const links = [
     { href: '#how', label: c.how },
     { href: '#output', label: c.worklog },
-    { href: '#setup', label: c.setup },
+    { href: lang === 'ko' ? '/ko/setup/notion' : '/setup/notion', label: c.setup },
   ];
 
   return (

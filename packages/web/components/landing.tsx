@@ -1,6 +1,7 @@
 import { CalendarDays, GitPullRequest, LayoutDashboard, ShieldCheck, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
+import { VIDEO } from '../lib/assets';
 import { content, type Lang } from '../lib/content';
 import { getRepoStats, RELEASES_LATEST, REPO_URL } from '../lib/github';
 import { BrandMark } from './brand-mark';
@@ -100,7 +101,7 @@ export async function Landing({ lang }: { lang: Lang }) {
               }}
             />
             <HeroVideo
-              src="/intro.mp4"
+              src={VIDEO.intro}
               poster={`/statistic_${lang === 'ko' ? 'ko' : 'us'}.png`}
               alt={lang === 'ko' ? 'cairn 데모 영상' : 'cairn demo'}
               expandLabel={c.hero.expand}
@@ -245,21 +246,6 @@ export async function Landing({ lang }: { lang: Lang }) {
             <li>{c.setup.claude.s2}</li>
           </SetupCard>
         </div>
-        <Reveal delay={0.08} className="relative mx-auto mt-10 max-w-3xl">
-          <p className="mb-3 text-center text-[13px] text-ink-tertiary">{c.setup.notionVideo}</p>
-          <div className="screenshot-frame overflow-hidden">
-            <video
-              className="block w-full"
-              src="/notion-integration.mp4"
-              poster="/notion-integration-poster.png"
-              controls
-              muted
-              playsInline
-              preload="metadata"
-              aria-label={c.setup.notionVideo}
-            />
-          </div>
-        </Reveal>
         <div className="mt-8 flex items-start gap-3 rounded-xl border border-hairline bg-surface-1 px-5 py-4 text-[13.5px] leading-relaxed text-ink-subtle">
           <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#d4a574]" />
           <p className="min-w-0">
