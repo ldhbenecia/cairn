@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { Loader2, RotateCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';
@@ -10,15 +10,41 @@ type ParsedConfig = {
   localGitRepos?: string[];
 };
 
+type Claude = 'checking' | 'ok' | 'err';
+
+// 연결 탭을 열 때마다 코어를 fork(probeClaude, 최대 ~1분)하지 않도록 세션 단위 캐시
+let claudeCache: Exclude<Claude, 'checking'> | null = null;
+let claudeInflight: Promise<boolean> | null = null;
+
+function probeClaudeCached(force = false): Promise<Exclude<Claude, 'checking'>> {
+  if (force) claudeCache = null;
+  if (claudeCache) return Promise.resolve(claudeCache);
+  claudeInflight ??= window.cairn.onboarding
+    .probeClaude()
+    .then((r) => r.ok)
+    .finally(() => {
+      claudeInflight = null;
+    });
+  return claudeInflight.then((ok) => {
+    claudeCache = ok ? 'ok' : 'err';
+    return claudeCache;
+  });
+}
+
 export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
   const { t } = useSettings();
   const [cfg, setCfg] = useState<ParsedConfig>({});
-  const [claude, setClaude] = useState<'checking' | 'ok' | 'err'>('checking');
+  const [claude, setClaude] = useState<Claude>(claudeCache ?? 'checking');
 
   useEffect(() => {
     void window.cairn.readConfig().then((r) => setCfg((r.parsed as ParsedConfig | null) ?? {}));
-    void window.cairn.onboarding.probeClaude().then((r) => setClaude(r.ok ? 'ok' : 'err'));
+    void probeClaudeCached().then(setClaude);
   }, []);
+
+  const refreshClaude = (): void => {
+    setClaude('checking');
+    void probeClaudeCached(true).then(setClaude);
+  };
 
   const notion = cfg.notionWorkspaces ?? [];
   const github = cfg.githubAccounts ?? [];
@@ -33,7 +59,12 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
         <div className="space-y-2 rounded-lg border border-hairline bg-surface-1 p-3">
           <Row label="Notion" values={notion.map((w) => w.label)} />
           <Row label="GitHub" values={github.map((g) => g.label)} />
-          <Row label="Claude" pending={claude === 'checking'} ok={claude === 'ok'} />
+          <Row
+            label="Claude"
+            pending={claude === 'checking'}
+            ok={claude === 'ok'}
+            onRefresh={claude === 'checking' ? undefined : refreshClaude}
+          />
           <Row label={t('prefs.conn.localGit')} ok={repos.length > 0} note={String(repos.length)} />
         </div>
         <button
@@ -54,12 +85,14 @@ function Row({
   ok,
   pending,
   note,
+  onRefresh,
 }: {
   label: string;
   values?: string[];
   ok?: boolean;
   pending?: boolean;
   note?: string;
+  onRefresh?: () => void;
 }) {
   const { t } = useSettings();
   const connected = pending ? false : values ? values.length > 0 : !!ok;
@@ -83,6 +116,16 @@ function Row({
       )}
       <span className="text-ink-muted">{label}</span>
       <span className="ml-auto truncate pl-3 text-[12px] text-ink-tertiary">{right}</span>
+      {onRefresh && (
+        <button
+          type="button"
+          onClick={onRefresh}
+          aria-label={t('prefs.conn.recheck')}
+          className="shrink-0 rounded p-0.5 text-ink-tertiary transition-colors hover:text-ink-muted"
+        >
+          <RotateCw size={12} strokeWidth={2} />
+        </button>
+      )}
     </div>
   );
 }
