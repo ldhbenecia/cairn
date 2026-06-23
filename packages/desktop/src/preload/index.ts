@@ -122,8 +122,7 @@ contextBridge.exposeInMainWorld('cairn', {
     githubFromGhCli: () =>
       ipcRenderer.invoke('cairn:onboarding:github-from-gh') as Promise<{
         ok: boolean;
-        token?: string;
-        login?: string;
+        accounts?: { login: string; token: string }[];
         error?: string;
       }>,
     probeClaude: () => ipcRenderer.invoke('cairn:onboarding:probe-claude') as Promise<unknown>,

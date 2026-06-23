@@ -105,38 +105,48 @@ export async function listNotionDatabases(token: string, pageId: string): Promis
   return out;
 }
 
-export type GhCliToken = { ok: boolean; token?: string; login?: string; error?: string };
+export type GhCliAccounts = {
+  ok: boolean;
+  accounts?: { login: string; token: string }[];
+  error?: string;
+};
 
-// async execFile 로 메인 스레드 블로킹 회피(gh 호출이 합산 최대 13초 걸릴 수 있음).
-export async function githubTokenFromGhCli(): Promise<GhCliToken> {
+// async execFile 로 메인 스레드 블로킹 회피. gh 에 로그인된 모든 계정의 토큰을 가져온다.
+export async function githubAccountsFromGhCli(): Promise<GhCliAccounts> {
   const exe = process.platform === 'win32' ? 'gh.exe' : 'gh';
   const gh = findInPath(exe);
   if (!gh) return { ok: false, error: 'gh-not-found' };
   const env = { ...process.env, PATH: searchPathEnv() };
-  let token: string;
+
+  let logins: string[];
   try {
-    const { stdout } = await execFileAsync(gh, ['auth', 'token'], {
-      encoding: 'utf8',
-      timeout: 5000,
-      env,
-    });
-    token = stdout.trim();
+    const { stdout, stderr } = await execFileAsync(
+      gh,
+      ['auth', 'status', '--hostname', 'github.com'],
+      { encoding: 'utf8', timeout: 5000, env },
+    );
+    logins = [...new Set([...`${stdout}\n${stderr}`.matchAll(/account (\S+)/g)].map((m) => m[1]!))];
   } catch {
     return { ok: false, error: 'gh-not-authed' };
   }
-  if (!token) return { ok: false, error: 'gh-not-authed' };
-  let login: string | undefined;
-  try {
-    const { stdout } = await execFileAsync(gh, ['api', 'user', '--jq', '.login'], {
-      encoding: 'utf8',
-      timeout: 8000,
-      env,
-    });
-    login = stdout.trim();
-  } catch {
-    // 토큰은 받았으니 login 못 가져와도 진행(probe 단계에서 검증)
+  if (logins.length === 0) return { ok: false, error: 'gh-not-authed' };
+
+  const accounts: { login: string; token: string }[] = [];
+  for (const login of logins) {
+    try {
+      const { stdout } = await execFileAsync(
+        gh,
+        ['auth', 'token', '--hostname', 'github.com', '--user', login],
+        { encoding: 'utf8', timeout: 5000, env },
+      );
+      const token = stdout.trim();
+      if (token) accounts.push({ login, token });
+    } catch {
+      // 해당 계정 토큰 못 가져오면 skip
+    }
   }
-  return { ok: true, token, login: login || undefined };
+  if (accounts.length === 0) return { ok: false, error: 'gh-not-authed' };
+  return { ok: true, accounts };
 }
 
 export async function probeGithub(token: string): Promise<GithubProbe> {

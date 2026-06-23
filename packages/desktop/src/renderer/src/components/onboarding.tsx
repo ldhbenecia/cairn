@@ -142,17 +142,24 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     setGhMsg(null);
     try {
       const r = await window.cairn.onboarding.githubFromGhCli();
-      if (!r.ok || !r.token) {
+      if (!r.ok || !r.accounts?.length) {
         setGhMsg(r.error === 'gh-not-found' ? 'onb.github.ghNotFound' : 'onb.github.ghNotAuthed');
         return;
       }
-      const empty = github.findIndex((e) => !e.token.trim());
-      const target = empty >= 0 ? empty : 0;
-      patchGithub(target, { token: r.token, status: 'testing', error: undefined });
-      const probe = await window.cairn.onboarding.probeGithub(r.token);
-      patchGithub(
-        target,
-        probe.ok ? { status: 'ok', login: probe.login } : { status: 'err', error: probe.error },
+      const entries: GithubEntry[] = r.accounts.map((a) => ({
+        label: a.login,
+        token: a.token,
+        status: 'testing',
+      }));
+      setGithub(entries);
+      await Promise.all(
+        entries.map(async (entry, i) => {
+          const probe = await window.cairn.onboarding.probeGithub(entry.token);
+          patchGithub(
+            i,
+            probe.ok ? { status: 'ok', login: probe.login } : { status: 'err', error: probe.error },
+          );
+        }),
       );
     } catch {
       setGhMsg('onb.github.ghNotAuthed');

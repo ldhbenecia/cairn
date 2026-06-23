@@ -88,7 +88,7 @@ const STRINGS = {
     'onb.github.linkFine': 'Fine-grained PAT 만들기',
     'onb.github.ghTitle': 'gh CLI 로 자동 연결',
     'onb.github.ghBody':
-      'GitHub CLI(gh)가 설치·로그인돼 있으면 토큰을 직접 만들 필요 없이 한 번에 가져옵니다.',
+      'GitHub CLI(gh)가 설치·로그인돼 있으면 로그인된 모든 계정을 토큰 없이 한 번에 가져옵니다.',
     'onb.github.ghImport': 'gh CLI 에서 가져오기',
     'onb.github.ghImporting': 'gh 인증 가져오는 중…',
     'onb.github.ghNotFound': 'gh CLI 를 찾지 못했어요 — 설치돼 있나요?',
@@ -436,7 +436,7 @@ const STRINGS = {
     'onb.github.linkFine': 'Create a fine-grained PAT',
     'onb.github.ghTitle': 'Connect via gh CLI',
     'onb.github.ghBody':
-      'If the GitHub CLI (gh) is installed and signed in, import a token in one click — no manual PAT needed.',
+      'If the GitHub CLI (gh) is installed and signed in, import all signed-in accounts in one click — no manual PAT needed.',
     'onb.github.ghImport': 'Import from gh CLI',
     'onb.github.ghImporting': 'Fetching gh auth…',
     'onb.github.ghNotFound': "Couldn't find the gh CLI — is it installed?",
