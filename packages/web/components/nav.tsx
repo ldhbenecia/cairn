@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { content, type Lang } from '../lib/content';
 import { REPO, REPO_URL } from '../lib/github';
 import { BrandMark } from './brand-mark';
@@ -30,15 +32,19 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
           <nav className="hidden items-center gap-0.5 md:flex">
-            {links.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                className="rounded-lg px-3 py-1.5 text-[13.5px] whitespace-nowrap text-ink-muted transition-colors hover:bg-surface-2/70 hover:text-ink"
-              >
-                {l.label}
-              </a>
-            ))}
+            {links.map((l) => {
+              const cls =
+                'rounded-lg px-3 py-1.5 text-[13.5px] whitespace-nowrap text-ink-muted transition-colors hover:bg-surface-2/70 hover:text-ink';
+              return l.href.startsWith('/') ? (
+                <Link key={l.href} href={l.href} className={cls}>
+                  {l.label}
+                </Link>
+              ) : (
+                <a key={l.href} href={l.href} className={cls}>
+                  {l.label}
+                </a>
+              );
+            })}
           </nav>
           <span className="mx-0.5 hidden h-4 w-px bg-hairline-strong md:block" />
           <LangSwitcher lang={lang} />
