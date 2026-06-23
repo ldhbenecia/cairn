@@ -73,8 +73,10 @@ const STRINGS = {
     'onb.notion.videoGuide': 'Notion integration 연결 — 30초 영상 가이드',
     'onb.notion.add': '워크스페이스 추가',
     'onb.notion.selectAccount': '내 계정 선택',
-    'onb.notion.searchPh': '발행할 페이지 이름 검색',
+    'onb.notion.searchPh': '발행할 페이지 이름 검색 (클릭하면 최근 페이지)',
     'onb.notion.search': '검색',
+    'onb.notion.searchEmpty':
+      '검색 결과 없음 — Notion 에서 이 integration 을 발행할 페이지에 연결했는지 확인하세요 (페이지 ⋯ → 연결 → integration 추가). 연결 후 다시 검색.',
     'onb.notion.dbHint': '이 페이지의 기존 DB 연결 (선택 — 비우면 자동 생성)',
     'onb.notion.worklogAuto': '일지 DB: 자동 생성',
     'onb.notion.rollupAuto': '롤업 DB: 자동 생성',
@@ -419,8 +421,10 @@ const STRINGS = {
     'onb.notion.videoGuide': 'Notion integration — 30-second walkthrough',
     'onb.notion.add': 'Add workspace',
     'onb.notion.selectAccount': 'Select your account',
-    'onb.notion.searchPh': 'Search page name to publish under',
+    'onb.notion.searchPh': 'Search page name (click to see recent pages)',
     'onb.notion.search': 'Search',
+    'onb.notion.searchEmpty':
+      "No results — make sure you've connected this integration to the page in Notion (page ⋯ → Connections → add the integration), then search again.",
     'onb.notion.dbHint': 'Existing DBs on this page (optional — leave empty to auto-create)',
     'onb.notion.worklogAuto': 'Worklog DB: auto-create',
     'onb.notion.rollupAuto': 'Rollup DB: auto-create',

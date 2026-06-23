@@ -59,6 +59,7 @@ export async function searchNotionPages(token: string, query?: string): Promise<
   const res = await notion.search({
     query: query?.trim() || undefined,
     filter: { property: 'object', value: 'page' },
+    sort: { direction: 'descending', timestamp: 'last_edited_time' },
     page_size: 25,
   });
   const pages: NotionPage[] = [];

@@ -39,6 +39,7 @@ type NotionEntry = {
   pages: NotionPage[];
   pageId: string;
   searching: boolean;
+  searched: boolean;
   databases: NotionDb[];
   worklogDbId: string;
   rollupDbId: string;
@@ -67,6 +68,7 @@ const newNotion = (label: string): NotionEntry => ({
   pages: [],
   pageId: '',
   searching: false,
+  searched: false,
   databases: [],
   worklogDbId: '',
   rollupDbId: '',
@@ -114,7 +116,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     patchNotion(i, { searching: true });
     try {
       const pages = await window.cairn.onboarding.searchNotion(e.token.trim(), e.query);
-      patchNotion(i, { pages });
+      patchNotion(i, { pages, searched: true });
     } finally {
       patchNotion(i, { searching: false });
     }
@@ -790,6 +792,9 @@ function NotionCard({
             <input
               value={e.query}
               onChange={(ev) => onChange({ query: ev.target.value })}
+              onFocus={() => {
+                if (!e.query.trim() && e.pages.length === 0 && !e.searching) onSearch();
+              }}
               onKeyDown={(ev) => {
                 if (ev.key === 'Enter') onSearch();
               }}
@@ -831,6 +836,11 @@ function NotionCard({
                 </button>
               ))}
             </div>
+          )}
+          {e.searched && !e.searching && e.pages.length === 0 && (
+            <p className="text-[12px] leading-relaxed text-ink-tertiary">
+              {t('onb.notion.searchEmpty')}
+            </p>
           )}
           {e.pageId && e.databases.length > 0 && (
             <div className="flex flex-col gap-1.5">
