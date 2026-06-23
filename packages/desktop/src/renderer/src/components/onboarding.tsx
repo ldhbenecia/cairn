@@ -229,20 +229,20 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
           <span className="text-[17px] font-semibold tracking-[-0.3px]">cairn</span>
           {step !== 'welcome' && (
             <span className="ml-auto text-[12px] text-ink-tertiary">
-              {stepIdx + 1} / {STEPS.length} · {t(STEP_TITLE_KEY[step])}
+              {stepIdx} / {STEPS.length - 1} · {t(STEP_TITLE_KEY[step])}
             </span>
           )}
         </div>
         {step !== 'welcome' && (
           <div className="flex items-center gap-1.5 pb-5">
-            {STEPS.map((s, i) => (
+            {STEPS.slice(1).map((s, i) => (
               <span
                 key={s}
                 className={[
                   'h-1 rounded-full transition-all duration-300',
-                  i === stepIdx
+                  i === stepIdx - 1
                     ? 'w-6 bg-accent'
-                    : i < stepIdx
+                    : i < stepIdx - 1
                       ? 'w-3 bg-accent/45'
                       : 'w-3 bg-surface-3',
                 ].join(' ')}
