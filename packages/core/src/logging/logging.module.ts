@@ -62,7 +62,7 @@ const REDACT_PATHS = [
               };
         return {
           pinoHttp: {
-            level: config.logLevel,
+            level: 'info',
             base: { machine: config.machineName },
             redact: { paths: REDACT_PATHS, censor: '[REDACTED]' },
             timestamp: () => `,"time":"${new Date().toISOString()}"`,

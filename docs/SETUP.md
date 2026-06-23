@@ -97,9 +97,8 @@ cp .env.example .env
 ```env
 MACHINE_NAME=personal-mac
 NODE_ENV=development
-LOG_LEVEL=info
 # MACHINE_NAME labels this machine; NODE_ENV=production enables native notifications
-# (the launchd plists set it); LOG_LEVEL is the pino level. All have sane defaults.
+# (the launchd plists set it). Both have sane defaults.
 
 ANTHROPIC_OAUTH_TOKEN=
 # Optional. Leave empty when running under Claude Code (inherits OAuth).
