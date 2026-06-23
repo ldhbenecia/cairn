@@ -57,12 +57,16 @@ const STRINGS = {
     'onb.step.claude': 'Claude',
     'onb.step.repos': '로컬 Git (선택)',
     'onb.step.review': '완료',
-    'onb.welcome.title': 'cairn 셋업',
+    'onb.welcome.title': 'Cairn 에 오신 걸 환영해요',
     'onb.welcome.desc':
       '등산로의 돌탑처럼, 매일 작업 흔적을 모아 Notion 일지로 남깁니다. 시작하려면 세 가지만 연결하면 돼요:',
     'onb.welcome.notion': '일지를 발행할 곳',
     'onb.welcome.github': 'PR·커밋 수집 (선택)',
     'onb.welcome.claude': '한국어 요약 (CLI 로그인 시 자동)',
+    'onb.welcome.signedInAs': '{email} 로 로그인됨',
+    'onb.welcome.syncNote':
+      '로그인하면 일지 통계가 클라우드에 저장돼 다른 기기에서도 대시보드를 볼 수 있어요. 나중에 로그인해도 그동안 쌓인 통계가 함께 올라갑니다.',
+    'onb.welcome.optional': '로그인 없이도 로컬로 모두 사용할 수 있어요',
     'onb.notion.desc':
       '일지를 발행할 Notion 워크스페이스. integration 토큰 + 발행할 부모 페이지를 연결합니다.',
     'onb.notion.link': 'Notion integration 만들기',
@@ -399,12 +403,16 @@ const STRINGS = {
     'onb.step.claude': 'Claude',
     'onb.step.repos': 'Local Git (optional)',
     'onb.step.review': 'Done',
-    'onb.welcome.title': 'cairn setup',
+    'onb.welcome.title': 'Welcome to Cairn',
     'onb.welcome.desc':
       'Like a trail cairn, it gathers your daily work into a Notion worklog. Connect just three things to start:',
     'onb.welcome.notion': 'where worklogs are published',
     'onb.welcome.github': 'collect PRs & commits (optional)',
     'onb.welcome.claude': 'summary (automatic when CLI is logged in)',
+    'onb.welcome.signedInAs': 'Signed in as {email}',
+    'onb.welcome.syncNote':
+      'Sign in to back up your worklog stats and view your dashboard on any device. Sign in whenever — your existing stats sync up too.',
+    'onb.welcome.optional': 'You can use everything locally without signing in',
     'onb.notion.desc':
       'The Notion workspace to publish to. Connect an integration token and the parent page to publish under.',
     'onb.notion.link': 'Create a Notion integration',
