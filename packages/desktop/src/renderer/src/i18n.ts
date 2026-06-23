@@ -70,7 +70,7 @@ const STRINGS = {
     'onb.notion.desc':
       '일지를 발행할 Notion 워크스페이스. integration 토큰 + 발행할 부모 페이지를 연결합니다.',
     'onb.notion.link': 'Notion integration 만들기',
-    'onb.notion.videoGuide': 'Notion integration 연결 — 30초 영상 가이드',
+    'onb.notion.webGuide': 'Notion 연결 가이드 보기 — 영상·단계별 설명 (웹)',
     'onb.notion.add': '워크스페이스 추가',
     'onb.notion.selectAccount': '내 계정 선택',
     'onb.notion.searchPh': '페이지 이름으로 필터 (인증되면 접근 가능한 페이지 자동 표시)',
@@ -418,7 +418,7 @@ const STRINGS = {
     'onb.notion.desc':
       'The Notion workspace to publish to. Connect an integration token and the parent page to publish under.',
     'onb.notion.link': 'Create a Notion integration',
-    'onb.notion.videoGuide': 'Notion integration — 30-second walkthrough',
+    'onb.notion.webGuide': 'Open the Notion setup guide — video & steps (web)',
     'onb.notion.add': 'Add workspace',
     'onb.notion.selectAccount': 'Select your account',
     'onb.notion.searchPh': 'Filter by page name (accessible pages shown after verifying)',

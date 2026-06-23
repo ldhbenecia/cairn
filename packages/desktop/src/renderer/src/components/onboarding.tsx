@@ -5,8 +5,6 @@ import type { NotionDb, NotionPage } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
-import notionGuidePoster from '../assets/notion-integration-poster.png';
-import notionGuideVideo from '../assets/notion-integration.mp4';
 import { BrandMark } from './brand-mark';
 
 type T = (key: I18nKey) => string;
@@ -75,7 +73,7 @@ const newNotion = (label: string): NotionEntry => ({
 });
 
 export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
-  const { t } = useSettings();
+  const { t, settings } = useSettings();
   const [stepIdx, setStepIdx] = useState(0);
   const step = STEPS[stepIdx]!;
   const [notion, setNotion] = useState<NotionEntry[]>([newNotion('Personal')]);
@@ -270,21 +268,19 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   { label: t('onb.notion.link'), url: 'https://www.notion.so/my-integrations' },
                 ]}
               >
-                <figure className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
-                  <video
-                    className="block w-full"
-                    src={notionGuideVideo}
-                    poster={notionGuidePoster}
-                    controls
-                    muted
-                    playsInline
-                    preload="auto"
-                    aria-label={t('onb.notion.videoGuide')}
-                  />
-                  <figcaption className="border-t border-hairline px-3 py-2 text-[12px] text-ink-tertiary">
-                    {t('onb.notion.videoGuide')}
-                  </figcaption>
-                </figure>
+                <a
+                  href="https://cairnlog.cloud/setup/notion"
+                  onClick={(ev) => {
+                    ev.preventDefault();
+                    void window.cairn.openExternal(
+                      `https://cairnlog.cloud${settings.language === 'ko' ? '/ko' : ''}/setup/notion`,
+                    );
+                  }}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-surface-1 px-4 py-3 text-[13px] text-ink-muted transition-colors hover:border-ink-subtle hover:text-ink"
+                >
+                  <span>{t('onb.notion.webGuide')}</span>
+                  <ExternalLink size={14} strokeWidth={2} className="shrink-0 text-ink-tertiary" />
+                </a>
                 {notion.map((e, i) => (
                   <NotionCard
                     key={i}
