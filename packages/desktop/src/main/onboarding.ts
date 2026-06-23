@@ -164,6 +164,73 @@ export async function probeGithub(token: string): Promise<GithubProbe> {
   }
 }
 
+export type ConnectionAccounts = {
+  github: { label: string; login?: string }[];
+  notion: { label: string; workspace?: string }[];
+};
+
+function readEnvMap(): Record<string, string> {
+  try {
+    const map: Record<string, string> = {};
+    for (const line of readFileSync(ENV_PATH, 'utf8').split('\n')) {
+      const eq = line.indexOf('=');
+      if (eq < 0 || line.trim().startsWith('#')) continue;
+      map[line.slice(0, eq).trim()] = line.slice(eq + 1);
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+async function notionWorkspaceName(token: string): Promise<string | undefined> {
+  const me = (await new Client({ auth: token }).users.me({})) as {
+    name?: string;
+    bot?: { workspace_name?: string };
+  };
+  return me.bot?.workspace_name ?? me.name ?? undefined;
+}
+
+type ConnConfig = {
+  githubAccounts?: { label: string; tokenEnv: string }[];
+  notionWorkspaces?: { label: string; tokenEnv?: string }[];
+};
+
+// 연결 탭용: config + .env 토큰으로 각 계정 식별자만 조회. 토큰은 renderer 로 내보내지 않는다.
+export async function probeConnectionAccounts(): Promise<ConnectionAccounts> {
+  let config: ConnConfig;
+  try {
+    config = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as ConnConfig;
+  } catch {
+    config = {};
+  }
+  const envMap = readEnvMap();
+  const github = await Promise.all(
+    (config.githubAccounts ?? []).map(async (g) => {
+      const token = envMap[g.tokenEnv];
+      if (!token) return { label: g.label };
+      try {
+        const probe = await probeGithub(token);
+        return probe.ok ? { label: g.label, login: probe.login } : { label: g.label };
+      } catch {
+        return { label: g.label };
+      }
+    }),
+  );
+  const notion = await Promise.all(
+    (config.notionWorkspaces ?? []).map(async (w) => {
+      const token = envMap[w.tokenEnv ?? envKey('NOTION_TOKEN', w.label)];
+      if (!token) return { label: w.label };
+      try {
+        return { label: w.label, workspace: await notionWorkspaceName(token) };
+      } catch {
+        return { label: w.label };
+      }
+    }),
+  );
+  return { github, notion };
+}
+
 // 기존 .env 의 주석/순서를 유지한 채 키만 교체·추가
 function writeEnvMerged(patch: Record<string, string>): void {
   let lines: string[];
