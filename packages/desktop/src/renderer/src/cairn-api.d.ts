@@ -152,8 +152,7 @@ declare global {
         probeGithub: (token: string) => Promise<GithubProbe>;
         githubFromGhCli: () => Promise<{
           ok: boolean;
-          token?: string;
-          login?: string;
+          accounts?: { login: string; token: string }[];
           error?: string;
         }>;
         probeClaude: () => Promise<{ ok: boolean }>;
