@@ -72,6 +72,7 @@ export function App() {
   const [cmdkOpen, setCmdkOpen] = useState(false);
   const [achvOpen, setAchvOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
+  const [everSetup, setEverSetup] = useState(window.cairn.initialSetupComplete);
   const [selectedPage, setSelectedPage] = useState<RecentPage | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = Number(localStorage.getItem('cairn:sidebarWidth'));
@@ -340,10 +341,11 @@ export function App() {
     return (
       <Onboarding
         onDone={() => {
+          setEverSetup(true);
           setSetupComplete(true);
           void loadRecent();
         }}
-        onCancel={window.cairn.initialSetupComplete ? () => setSetupComplete(true) : undefined}
+        onCancel={everSetup ? () => setSetupComplete(true) : undefined}
       />
     );
   }
