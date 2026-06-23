@@ -150,15 +150,19 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
         status: 'testing',
       }));
       setGithub(entries);
-      await Promise.all(
-        entries.map(async (entry, i) => {
-          const probe = await window.cairn.onboarding.probeGithub(entry.token);
-          patchGithub(
-            i,
-            probe.ok ? { status: 'ok', login: probe.login } : { status: 'err', error: probe.error },
-          );
+      const probed = await Promise.all(
+        entries.map(async (entry): Promise<GithubEntry> => {
+          try {
+            const probe = await window.cairn.onboarding.probeGithub(entry.token);
+            return probe.ok
+              ? { ...entry, status: 'ok', login: probe.login }
+              : { ...entry, status: 'err', error: probe.error };
+          } catch {
+            return { ...entry, status: 'err', error: 'failed' };
+          }
         }),
       );
+      setGithub(probed);
     } catch {
       setGhMsg('onb.github.ghNotAuthed');
     } finally {
