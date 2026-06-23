@@ -65,6 +65,8 @@ export async function searchNotionPages(token: string, query?: string): Promise<
   const pages: NotionPage[] = [];
   for (const item of res.results) {
     if (!('properties' in item)) continue;
+    // 연결한 최상위 페이지만 — 그 하위/관련 페이지는 제외
+    if ((item as { parent?: { type?: string } }).parent?.type !== 'workspace') continue;
     const props = (item as { properties: Record<string, unknown> }).properties;
     let title = '(제목 없음)';
     for (const v of Object.values(props)) {
