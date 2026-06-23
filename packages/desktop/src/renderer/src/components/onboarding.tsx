@@ -109,6 +109,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
       persons: r.persons,
       personId: r.persons.length === 1 ? r.persons[0]!.id : '',
     });
+    void searchPages(i);
   }
 
   async function searchPages(i: number) {
@@ -792,9 +793,6 @@ function NotionCard({
             <input
               value={e.query}
               onChange={(ev) => onChange({ query: ev.target.value })}
-              onFocus={() => {
-                if (!e.query.trim() && e.pages.length === 0 && !e.searching) onSearch();
-              }}
               onKeyDown={(ev) => {
                 if (ev.key === 'Enter') onSearch();
               }}

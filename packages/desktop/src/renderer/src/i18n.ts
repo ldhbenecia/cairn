@@ -73,7 +73,7 @@ const STRINGS = {
     'onb.notion.videoGuide': 'Notion integration 연결 — 30초 영상 가이드',
     'onb.notion.add': '워크스페이스 추가',
     'onb.notion.selectAccount': '내 계정 선택',
-    'onb.notion.searchPh': '발행할 페이지 이름 검색 (클릭하면 최근 페이지)',
+    'onb.notion.searchPh': '페이지 이름으로 필터 (인증되면 접근 가능한 페이지 자동 표시)',
     'onb.notion.search': '검색',
     'onb.notion.searchEmpty':
       '검색 결과 없음 — Notion 에서 이 integration 을 발행할 페이지에 연결했는지 확인하세요 (페이지 ⋯ → 연결 → integration 추가). 연결 후 다시 검색.',
@@ -421,7 +421,7 @@ const STRINGS = {
     'onb.notion.videoGuide': 'Notion integration — 30-second walkthrough',
     'onb.notion.add': 'Add workspace',
     'onb.notion.selectAccount': 'Select your account',
-    'onb.notion.searchPh': 'Search page name (click to see recent pages)',
+    'onb.notion.searchPh': 'Filter by page name (accessible pages shown after verifying)',
     'onb.notion.search': 'Search',
     'onb.notion.searchEmpty':
       "No results — make sure you've connected this integration to the page in Notion (page ⋯ → Connections → add the integration), then search again.",
