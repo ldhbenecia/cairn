@@ -47,6 +47,7 @@ function stopServer(): void {
 
 export function startCloudSignIn(): void {
   stopServer();
+  let idleTimer: ReturnType<typeof setTimeout> | null = null;
   const current = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     const ott = url.searchParams.get('token');
@@ -59,6 +60,7 @@ export function startCloudSignIn(): void {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     res.end(DONE_HTML);
     void completeSignIn(ott);
+    if (idleTimer) clearTimeout(idleTimer);
     current.close();
     if (server === current) server = null;
   });
@@ -68,6 +70,13 @@ export function startCloudSignIn(): void {
     const port = addr && typeof addr === 'object' ? addr.port : 0;
     void shell.openExternal(`${WEB_BASE}/desktop-login?port=${port}`);
   });
+  // 브라우저 로그인 플로우를 포기하면 포트가 무기한 점유되지 않도록 5분 후 정리
+  idleTimer = setTimeout(
+    () => {
+      if (server === current) stopServer();
+    },
+    5 * 60 * 1000,
+  );
 }
 
 async function completeSignIn(ott: string): Promise<void> {
