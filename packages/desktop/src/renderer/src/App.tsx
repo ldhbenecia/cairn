@@ -248,7 +248,7 @@ export function App() {
                   state: 'done',
                   step: 'done',
                   lines: [],
-                  startedAt: endedAt,
+                  startedAt: 0, // 복원 시 실제 시작 시각 미상 → elapsed 표시 숨김
                   result,
                   endedAt,
                 },
