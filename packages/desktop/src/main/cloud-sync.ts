@@ -4,6 +4,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { writeFileAtomic } from './atomic-write';
 import { cloudToken, WEB_BASE } from './cloud-auth';
+import { withFileLock } from './file-lock';
 
 // core WorklogStatsService 와 같은 파일·포맷(`${category}:${date}` → 집계 수치). ADR 0027/0029
 const STATS_PATH = join(homedir(), '.cairn', 'worklog-stats.json');
@@ -51,8 +52,6 @@ export async function syncStats(): Promise<void> {
   if (!token || running) return;
   running = true;
   try {
-    const local = readLocal();
-
     const pull = await fetch(`${WEB_BASE}/api/stats`, {
       headers: { Authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -62,37 +61,41 @@ export async function syncStats(): Promise<void> {
     const stats = body?.stats;
     if (!Array.isArray(stats)) return;
 
+    // 머지+쓰기만 락 안에서(짧게, 동기) — 네트워크는 락 밖. core 의 동시 write 와 직렬화
     let changed = false;
-    for (const r of stats) {
-      // 우리 API 가 검증해 저장한 데이터지만, 로컬 파일 오염 방지로 한 번 더 가드
-      if (!r || !CATEGORIES.has(r.category) || !DATE_RE.test(r.date)) continue;
-      const key = `${r.category}:${r.date}`;
-      const cur = local[key];
-      if (!cur || (Date.parse(r.updatedAt) || 0) > tsOf(cur, r.date)) {
-        local[key] = { pr: r.pr, commit: r.commitCount, hours: r.hours, updatedAt: r.updatedAt };
-        changed = true;
+    const rows = withFileLock(STATS_PATH, () => {
+      const local = readLocal();
+      for (const r of stats) {
+        // 우리 API 가 검증해 저장한 데이터지만, 로컬 파일 오염 방지로 한 번 더 가드
+        if (!r || !CATEGORIES.has(r.category) || !DATE_RE.test(r.date)) continue;
+        const key = `${r.category}:${r.date}`;
+        const cur = local[key];
+        if (!cur || (Date.parse(r.updatedAt) || 0) > tsOf(cur, r.date)) {
+          local[key] = { pr: r.pr, commit: r.commitCount, hours: r.hours, updatedAt: r.updatedAt };
+          changed = true;
+        }
       }
-    }
+      if (changed) writeLocal(local);
+      return Object.entries(local)
+        .map(([key, s]) => {
+          const idx = key.indexOf(':');
+          const category = key.slice(0, idx);
+          const date = key.slice(idx + 1);
+          return {
+            category,
+            date,
+            pr: s.pr,
+            commitCount: s.commit,
+            hours: s.hours ?? [],
+            updatedAt: s.updatedAt ?? new Date(tsOf(s, date)).toISOString(),
+          };
+        })
+        .filter((r) => CATEGORIES.has(r.category) && DATE_RE.test(r.date));
+    });
+
     if (changed) {
-      writeLocal(local);
       for (const win of BrowserWindow.getAllWindows()) win.webContents.send('cairn:stats:synced');
     }
-
-    const rows = Object.entries(local)
-      .map(([key, s]) => {
-        const idx = key.indexOf(':');
-        const category = key.slice(0, idx);
-        const date = key.slice(idx + 1);
-        return {
-          category,
-          date,
-          pr: s.pr,
-          commitCount: s.commit,
-          hours: s.hours ?? [],
-          updatedAt: s.updatedAt ?? new Date(tsOf(s, date)).toISOString(),
-        };
-      })
-      .filter((r) => CATEGORIES.has(r.category) && DATE_RE.test(r.date));
 
     for (let i = 0; i < rows.length; i += BATCH) {
       const push = await fetch(`${WEB_BASE}/api/stats`, {
