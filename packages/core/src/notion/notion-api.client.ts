@@ -11,6 +11,7 @@ import type {
   SearchPagesResult,
   WorklogPageInRange,
 } from './notion-api.types.js';
+import { appendChildrenInBatches, NOTION_MAX_CHILDREN } from './notion-page-create.js';
 
 interface NotionTitleProperty {
   type: 'title';
@@ -143,6 +144,7 @@ export class NotionApiClient {
   ): Promise<{ id: string; url: string | null }> {
     const client = this.getClient(input.token);
     const tags = input.tags ?? ['auto', 'daily'];
+    const children = input.children ?? [];
     const res = await client.pages.create({
       parent: { type: 'data_source_id', data_source_id: input.dataSourceId },
       properties: {
@@ -151,8 +153,11 @@ export class NotionApiClient {
         Tags: { multi_select: tags.map((t) => ({ name: t })) },
         Status: { select: { name: 'draft' } },
       },
-      ...(input.children ? { children: input.children as never } : {}),
+      ...(children.length ? { children: children.slice(0, NOTION_MAX_CHILDREN) as never } : {}),
     });
+    if (children.length > NOTION_MAX_CHILDREN) {
+      await appendChildrenInBatches(client, res.id, children.slice(NOTION_MAX_CHILDREN));
+    }
     const url = 'url' in res && typeof res.url === 'string' ? res.url : null;
     return { id: res.id, url };
   }

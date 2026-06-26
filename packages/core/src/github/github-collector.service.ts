@@ -259,7 +259,7 @@ export class GithubCollectorService {
       assertNoForbiddenPayload(truncated, `github.pr-body.${item.repo}#${item.number}`);
     } catch (err) {
       this.logger.warn(
-        { repo: item.repo, number: item.number, err: CairnError.from(err, 'github').message },
+        { repo: item.repo, number: item.number, err: CairnError.from(err, 'github').code },
         'pr body contains forbidden pattern — body dropped',
       );
       return null;
