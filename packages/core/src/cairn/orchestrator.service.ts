@@ -393,7 +393,6 @@ export class OrchestratorService {
 
     const summary = await this.rollupSummarizer.summarize({ activity }, options.lang);
 
-    // 요약 실패면 발행 안 함 — daily 와 동일 정책(빈 fallback 페이지를 가짜 발행으로 남기지 않음)
     if (!summary) {
       this.logger.warn(
         { period: activity.period, rangeStart: activity.rangeStart },

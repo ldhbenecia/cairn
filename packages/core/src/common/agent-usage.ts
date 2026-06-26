@@ -21,8 +21,6 @@ interface ResultMessage {
 
 const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
 
-// Claude agent query 의 result 메시지에서 토큰·비용을 누적 — daily/rollup summarizer 공용.
-// SDK 가 modelUsage 필드/캐시 합산을 바꾸면 여기 한 곳만 고치면 되도록 단일 출처로 둔다.
 export async function accumulateAgentUsage(q: AsyncIterable<unknown>): Promise<AgentUsage> {
   let inputTokens = 0;
   let outputTokens = 0;

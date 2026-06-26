@@ -4,8 +4,6 @@ import { dirname, join } from 'node:path';
 
 const STATE_PATH = join(homedir(), '.cairn', 'auto-publish-state.json');
 
-// 마지막으로 성공 발행한 daily(로컬 날짜)·weekly/monthly 기간의 anchor(YYYY-MM-DD).
-// 발화 시점에 앱이 꺼져 있어도 다음 실행에서 미발행분을 catch-up, 절전 복귀 시 중복발행 방지.
 export type AutoPublishState = { daily?: string; weekly?: string; monthly?: string };
 
 export function readAutoPublishState(): AutoPublishState {

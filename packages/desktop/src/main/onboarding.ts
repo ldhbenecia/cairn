@@ -240,7 +240,6 @@ function writeEnvMerged(patch: Record<string, string>): void {
   try {
     lines = readFileSync(ENV_PATH, 'utf8').split('\n');
   } catch (err) {
-    // 파일 없음(ENOENT)만 빈 시작 — 일시 IO 오류(EBUSY 등)를 ENOENT 로 오인해 기존 키를 날리지 않게 throw
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
     lines = [];
   }

@@ -112,14 +112,12 @@ export function cancelRun(): boolean {
   cancelRequested = true;
   const child = running;
   child.kill('SIGTERM');
-  // SIGTERM 무시(네트워크/요약 대기) 시 5초 후 강제 종료 — 영구 busy 방지(close 핸들러가 running=null)
   setTimeout(() => {
     if (running === child) child.kill('SIGKILL');
   }, 5000);
   return true;
 }
 
-// 앱 종료 시 진행 중 core 자식을 즉시 정리(고아 방지) — graceful 불필요
 export function killRunning(): void {
   if (running) running.kill('SIGKILL');
 }
@@ -419,7 +417,6 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
     const text = stripAnsi(buf.toString('utf8'));
     stdoutAll += text;
     if (NO_ACTIVITY_REGEX.test(text)) noActivity = true;
-    // 청크 경계에서 줄이 쪼개지지 않게 미완성 마지막 줄은 carry-over(완전한 줄만 파싱)
     const lines = (stdoutCarry + text).split('\n');
     stdoutCarry = lines.pop() ?? '';
     for (const line of lines) {

@@ -219,7 +219,6 @@ export class RollupPublisherService {
     let children = summary
       ? buildRollupBlocks(summary, activity, lang)
       : buildRollupFallbackBlocks(activity, lang);
-    // fail-closed: 발행 직전 블록에 금지 패턴이 섞이면 metrics-only fallback 으로 degrade(daily 와 동일)
     try {
       assertNoForbiddenPayload(
         children,

@@ -69,7 +69,6 @@ export class WorklogConfigService {
     ids: { databaseId: string; dataSourceId: string },
   ): void {
     const path = this.resolvePath();
-    // 락 안에서 re-read → mutate → 원자적 write — backfill 동시 persist 의 lost-update·손상 방지
     withFileLock(path, () => {
       const { config } = this.readForPersist('persistWorklogTarget');
       let matched = false;

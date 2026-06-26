@@ -208,7 +208,6 @@ export class NotionPublisherService {
     if (cached?.databaseId && cached.dataSourceId) {
       return { databaseId: cached.databaseId, dataSourceId: cached.dataSourceId };
     }
-    // 동시(backfill) 호출이 DB 를 중복 생성하지 않도록 label 별 in-flight promise 를 공유
     const inflight = this.dbInflight.get(target.label);
     if (inflight) return inflight;
     const promise = this.resolveDatabaseAndDataSource(target, token).finally(() => {

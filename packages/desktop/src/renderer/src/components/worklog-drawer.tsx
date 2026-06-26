@@ -165,7 +165,6 @@ export function WorklogDrawer({ page, onClose }: Props) {
     };
   }, [page.pageId, page.workspaceLabel]);
 
-  // 드래그 중 drawer 언마운트되면 document 리스너가 남으므로 cleanup 을 ref 로 잡아 unmount 시 호출
   const resizeCleanup = useRef<(() => void) | null>(null);
   useEffect(() => () => resizeCleanup.current?.(), []);
 
