@@ -16,7 +16,6 @@ import { sectionBullets } from '../lib/blocks';
 import { blocksToMarkdown } from '../lib/markdown';
 import { blocksToHtml } from '../../../shared/html';
 import { useSettings } from '../settings-context';
-import 'highlight.js/styles/github-dark.css';
 
 type Props = { page: RecentPage; onClose: () => void };
 
