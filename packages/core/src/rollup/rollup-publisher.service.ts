@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { isOperator } from '../common/operator.js';
+import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type { RollupActivity } from '../contracts/rollup-activity.types.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogLang } from '../cairn/run-options.js';
@@ -215,9 +216,29 @@ export class RollupPublisherService {
   ): Promise<{ id: string; url: string | null }> {
     const { activity, summary, lang } = input;
     const title = buildTitle(activity, lang);
-    const children = summary
+    let children = summary
       ? buildRollupBlocks(summary, activity, lang)
       : buildRollupFallbackBlocks(activity, lang);
+    // fail-closed: 발행 직전 블록에 금지 패턴이 섞이면 metrics-only fallback 으로 degrade(daily 와 동일)
+    try {
+      assertNoForbiddenPayload(
+        children,
+        `rollup.publish.${activity.period}.${activity.rangeStart}`,
+      );
+    } catch {
+      this.logger.warn(
+        { period: activity.period, rangeStart: activity.rangeStart },
+        'rollup blocks tripped forbidden pattern — degrading to fallback',
+      );
+      children = buildRollupFallbackBlocks(activity, lang);
+      try {
+        assertNoForbiddenPayload(children, `rollup.publish.fallback.${activity.rangeStart}`);
+      } catch {
+        throw new Error(
+          `rollup.publish.${activity.period}.${activity.rangeStart}: fallback also tripped forbidden pattern`,
+        );
+      }
+    }
     const created = await this.rollupApi.createRollupPage({
       token,
       dataSourceId,

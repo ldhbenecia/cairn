@@ -28,6 +28,9 @@ const FORBIDDEN_PATTERNS: readonly { name: string; pattern: RegExp }[] = [
   { name: 'github-token-classic', pattern: /\bghp_[A-Za-z0-9]{30,}/ },
   { name: 'github-token-fine', pattern: /\bgithub_pat_[A-Za-z0-9_]{30,}/ },
   { name: 'generic-secret-prefix', pattern: /\bsecret_[A-Za-z0-9_-]{16,}/ },
+  // 자유 텍스트(PR body 등)에 섞인 소스 코드 — diff 헤더가 없어도 fenced 블록이면 코드로 간주해 차단
+  { name: 'fenced-code-block', pattern: /```/ },
+  { name: 'email-address', pattern: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/ },
 ];
 
 export function assertNoForbiddenPayload(payload: unknown, label: string): void {

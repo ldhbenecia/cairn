@@ -70,6 +70,17 @@ describe('assertNoForbiddenPayload', () => {
     ).not.toThrow();
   });
 
+  it('throws on a fenced source-code block (no diff header)', () => {
+    const body = '설명\n```ts\nfunction transferFunds() { return 1; }\n```';
+    expect(() => assertNoForbiddenPayload({ body }, 'test')).toThrow(/fenced-code-block/);
+  });
+
+  it('throws on an email address', () => {
+    expect(() => assertNoForbiddenPayload({ subject: 'fix by jane.doe@corp.io' }, 'test')).toThrow(
+      /email-address/,
+    );
+  });
+
   it('throws on Notion token prefix', () => {
     expect(() => assertNoForbiddenPayload({ token: `ntn_${'a'.repeat(40)}` }, 'test')).toThrow(
       /notion-token/,
