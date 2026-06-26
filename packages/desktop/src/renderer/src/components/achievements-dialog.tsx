@@ -59,14 +59,13 @@ export function AchievementsDialog({
     null,
   );
   const [copied, setCopied] = useState(false);
-  // 스캔 중 다이얼로그를 닫으면 남은 pool fetch 중단 + 언마운트 후 setState 방지
   const alive = useRef(true);
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    alive.current = true;
+    return () => {
       alive.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   const countInRange = (r: number): number =>
     (recent?.pages ?? []).filter(

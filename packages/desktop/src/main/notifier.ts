@@ -51,23 +51,35 @@ export function notifyAutoStart(mode: CoreMode): void {
   notify(mt('notify.autoTitle'), mt('notify.autoRunning', { mode: modeLabel(mode) }), mode);
 }
 
-function notifyWithAction(title: string, body: string, onClick: () => void): void {
+// 참조를 안 잡으면 GC 가 Notification 을 수거해 click 리스너가 죽는다(Electron) — click/close 시 해제
+const activeNotifications = new Set<Notification>();
+
+function notifyWithAction(title: string, body: string, onClick: () => void): boolean {
   app.dock?.bounce('informational');
-  if (!Notification.isSupported()) return;
+  if (!Notification.isSupported()) return false;
   const noti = new Notification({ title, body });
-  noti.on('click', onClick);
+  activeNotifications.add(noti);
+  noti.on('click', () => {
+    activeNotifications.delete(noti);
+    onClick();
+  });
+  noti.on('close', () => activeNotifications.delete(noti));
   noti.show();
+  return true;
 }
 
-// 확인 알림 — 클릭 시 onConfirm 으로 실제 발행. 발행 확인이 유일한 트리거라 notifications 토글과 무관히 표시.
-export function notifyAutoConfirm(modes: CoreMode[], onConfirm: () => void): void {
+export function notifyAutoConfirm(modes: CoreMode[], onConfirm: () => void): boolean {
   const primary = modes[0];
-  if (!primary) return;
+  if (!primary) return false;
   const label = modes.map((m) => modeLabel(m)).join(', ');
-  notifyWithAction(mt('notify.autoConfirmTitle'), mt('notify.autoConfirm', { mode: label }), () => {
-    focusModeInApp(primary);
-    onConfirm();
-  });
+  return notifyWithAction(
+    mt('notify.autoConfirmTitle'),
+    mt('notify.autoConfirm', { mode: label }),
+    () => {
+      focusModeInApp(primary);
+      onConfirm();
+    },
+  );
 }
 
 // 명시적 요청이므로 설정 토글과 무관하게 항상 표시 시도 (권한 프롬프트 유도 포함)

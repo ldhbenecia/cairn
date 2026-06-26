@@ -155,12 +155,11 @@ void app.whenReady().then(() => {
     savePdf(defaultName, html),
   );
   ipcMain.handle('cairn:open-external', (_e, url: string) => {
-    // 스킴 화이트리스트 — Notion href 등 외부 통제 값이 file://·vbscript: 로 로컬 핸들러를 못 켜게
     try {
       const p = new URL(url).protocol;
       if (p === 'https:' || p === 'http:' || p === 'mailto:') return shell.openExternal(url);
     } catch {
-      // invalid URL → drop
+      return Promise.resolve();
     }
     return Promise.resolve();
   });

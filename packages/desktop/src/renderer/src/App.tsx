@@ -208,7 +208,6 @@ export function App() {
       });
       setRunningMode((rm) => (rm === mode ? null : rm));
       void loadRecent();
-      // 로그인 상태일 때만 sync — 로컬 모드에서 매 발행마다 불필요 IPC 회피
       if (signedInRef.current) void window.cairn.cloud.syncNow().catch(() => {});
     });
     return off;
@@ -288,9 +287,8 @@ export function App() {
     async (mode: CoreMode, options?: CoreRunOptions) => {
       const active = busyRef.current;
       if (active.busy) {
-        // 이미 그 mode 가 돌고 있으면 synthetic done/error 로 덮지 않음(진행 상태 보존)
         setSessions((prev) => {
-          if (prev[mode]?.state === 'running') return prev;
+          if (prev[mode]?.state === 'running' || active.mode === mode) return prev;
           return {
             ...prev,
             [mode]: {

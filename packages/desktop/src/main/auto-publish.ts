@@ -39,7 +39,6 @@ function lastCompletedMonthAnchor(now: Date): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
-// 오늘 로컬 날짜 — daily anchor(하루 1회·절전 복귀 시 중복 방지)
 function localTodayIso(now: Date): string {
   return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
 }
@@ -103,11 +102,11 @@ async function runAutoPublish(trigger: 'startup' | 'scheduled'): Promise<void> {
   if (runs.length === 0) return;
 
   if (cfg.confirmBeforeRun) {
-    // 알림 클릭 시 실제 발행 — 이전엔 알림만 띄우고 끝나 발행이 영영 안 됐음. 모든 due mode 함께
-    notifyAutoConfirm(
+    const shown = notifyAutoConfirm(
       runs.map((r) => r.mode),
-      () => void executeRuns(runs),
+      () => void executeRuns(dueRuns(cfg, readAutoPublishState())),
     );
+    if (!shown) await executeRuns(runs);
     return;
   }
 
@@ -149,10 +148,9 @@ function scheduleDaily(): void {
 export function initAutoPublish(): void {
   void runAutoPublish('startup');
   scheduleDaily();
-  // 절전 복귀 시 타이머가 밀렸을 수 있으니 재스케줄 + 도래분 실행(daily/weekly/monthly anchor 로 중복 방지)
   powerMonitor.on('resume', () => {
     scheduleDaily();
-    void runAutoPublish('scheduled');
+    void runAutoPublish('startup');
   });
 }
 

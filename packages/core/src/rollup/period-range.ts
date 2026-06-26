@@ -50,9 +50,15 @@ export function monthLabel(rangeStart: string): string {
 }
 
 function parseLocalDate(localDate: string): { y: number; m: number; d: number } {
-  const parts = localDate.split('-').map(Number);
-  const [y, m, d] = parts;
-  if (y === undefined || m === undefined || d === undefined) {
+  const matched = /^(\d{4})-(\d{2})-(\d{2})$/.exec(localDate);
+  if (!matched) {
+    throw new Error(`invalid localDate: ${localDate}`);
+  }
+  const y = Number(matched[1]);
+  const m = Number(matched[2]);
+  const d = Number(matched[3]);
+  const probe = new Date(Date.UTC(y, m - 1, d));
+  if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== m - 1 || probe.getUTCDate() !== d) {
     throw new Error(`invalid localDate: ${localDate}`);
   }
   return { y, m, d };
