@@ -83,6 +83,7 @@ export function App() {
   const [busy, setBusy] = useState<BusyState>({ busy: false, mode: null });
   const busyRef = useRef(busy);
   busyRef.current = busy;
+  const signedInRef = useRef(false);
   const [recent, setRecent] = useState<RecentListResult | null>(readRecentCache);
   const { t } = useSettings();
 
@@ -121,6 +122,7 @@ export function App() {
 
   useEffect(() => {
     const trySync = (signedIn: boolean): void => {
+      signedInRef.current = signedIn;
       if (signedIn) void window.cairn.cloud.syncNow().catch(() => {});
     };
     void window.cairn.cloud
@@ -206,7 +208,8 @@ export function App() {
       });
       setRunningMode((rm) => (rm === mode ? null : rm));
       void loadRecent();
-      void window.cairn.cloud.syncNow().catch(() => {});
+      // 로그인 상태일 때만 sync — 로컬 모드에서 매 발행마다 불필요 IPC 회피
+      if (signedInRef.current) void window.cairn.cloud.syncNow().catch(() => {});
     });
     return off;
   }, [loadRecent]);

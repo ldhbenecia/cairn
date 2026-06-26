@@ -1,6 +1,7 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { accumulateAgentUsage, type AgentUsage } from '../common/agent-usage.js';
 import { claudeExecutableOptions } from '../common/claude-executable.js';
 import { customPromptFor, withCustomPrompt } from '../common/custom-prompt.js';
 import { summaryModelOption } from '../common/summary-model.js';
@@ -28,11 +29,7 @@ export class DailySummarizerService {
 
     const userPrompt = `Summarize my work for ${input.date}.`;
 
-    let inputTokens = 0;
-    let outputTokens = 0;
-    let costUsd = 0;
-    let resultSubtype = 'unknown';
-
+    let agentUsage: AgentUsage;
     try {
       const q = query({
         prompt: userPrompt,
@@ -50,42 +47,13 @@ export class DailySummarizerService {
           ...claudeExecutableOptions(),
         },
       });
-
-      for await (const message of q) {
-        if (message.type === 'result') {
-          resultSubtype = message.subtype;
-          if ('total_cost_usd' in message && typeof message.total_cost_usd === 'number') {
-            costUsd = message.total_cost_usd;
-          }
-          const modelUsage = (
-            message as {
-              modelUsage?: Record<
-                string,
-                {
-                  inputTokens?: number;
-                  outputTokens?: number;
-                  cacheReadInputTokens?: number;
-                  cacheCreationInputTokens?: number;
-                }
-              >;
-            }
-          ).modelUsage;
-          if (modelUsage) {
-            for (const u of Object.values(modelUsage)) {
-              inputTokens +=
-                (typeof u.inputTokens === 'number' ? u.inputTokens : 0) +
-                (typeof u.cacheReadInputTokens === 'number' ? u.cacheReadInputTokens : 0) +
-                (typeof u.cacheCreationInputTokens === 'number' ? u.cacheCreationInputTokens : 0);
-              outputTokens += typeof u.outputTokens === 'number' ? u.outputTokens : 0;
-            }
-          }
-        }
-      }
+      agentUsage = await accumulateAgentUsage(q);
     } catch (err) {
       const error = CairnError.from(err, 'summarizer');
       this.logger.warn({ date: input.date, error }, 'summarizer threw — fallback');
       return null;
     }
+    const { resultSubtype, inputTokens, outputTokens, costUsd } = agentUsage;
 
     this.logger.info(
       {
