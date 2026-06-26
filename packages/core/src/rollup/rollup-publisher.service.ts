@@ -133,12 +133,21 @@ export class RollupPublisherService {
         );
         return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
       }
-      await this.api.archivePage(token, existing.pageId);
-      this.logger.info(
-        { period: activity.period, archivedPageId: existing.pageId },
-        '--force: archived existing draft, recreating',
-      );
+      // 새 페이지를 먼저 만들고 그다음 기존 것을 archive — create 실패 시 기존 rollup 이 보존되도록
+      // (daily publisher 와 동일 패턴). archive 가 실패하면 중복이 잠깐 남지만 데이터 손실은 없음
       const created = await this.createPage(input, token, dataSourceId);
+      try {
+        await this.api.archivePage(token, existing.pageId);
+        this.logger.info(
+          { period: activity.period, archivedPageId: existing.pageId },
+          '--force: recreated rollup, archived old draft',
+        );
+      } catch (err) {
+        this.logger.warn(
+          { period: activity.period, oldPageId: existing.pageId, err: String(err) },
+          '--force: 새 rollup 생성 후 기존 페이지 archive 실패 — 중복 남을 수 있음(데이터 손실 없음)',
+        );
+      }
       return {
         kind: 'recreated',
         pageId: created.id,
