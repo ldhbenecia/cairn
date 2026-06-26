@@ -6,6 +6,8 @@ import { db } from '@/lib/db';
 import { worklogStats } from '@/lib/schema';
 
 const CATEGORIES = new Set(['daily', 'weekly', 'monthly']);
+const MAX_COUNT = 100_000; // int4 overflow·과대값 차단 (도메인 상한)
+const HOURS_LEN = 24;
 
 type StatRow = {
   category: string;
@@ -39,18 +41,31 @@ function parseRows(input: unknown): StatRow[] | null {
     const o = r as Record<string, unknown>;
     if (typeof o.category !== 'string' || !CATEGORIES.has(o.category)) return null;
     if (typeof o.date !== 'string' || !isValidDate(o.date)) return null;
-    if (!Number.isInteger(o.pr) || (o.pr as number) < 0) return null;
-    if (!Number.isInteger(o.commitCount) || (o.commitCount as number) < 0) return null;
-    // 시간대 히스토그램은 24칸 고정 — 길이 상한으로 메모리 폭주 차단
-    if (!Array.isArray(o.hours) || o.hours.length > 24) return null;
-    if (o.hours.some((h) => !Number.isInteger(h) || (h as number) < 0)) return null;
+    if (!Number.isInteger(o.pr) || (o.pr as number) < 0 || (o.pr as number) > MAX_COUNT)
+      return null;
+    if (
+      !Number.isInteger(o.commitCount) ||
+      (o.commitCount as number) < 0 ||
+      (o.commitCount as number) > MAX_COUNT
+    )
+      return null;
+    // 시간대 히스토그램은 24칸 고정 — 길이 상한으로 메모리 폭주 차단, 음수·과대값 차단
+    if (!Array.isArray(o.hours) || o.hours.length > HOURS_LEN) return null;
+    if (o.hours.some((h) => !Number.isInteger(h) || (h as number) < 0 || (h as number) > MAX_COUNT))
+      return null;
     if (typeof o.updatedAt !== 'string' || Number.isNaN(Date.parse(o.updatedAt))) return null;
+    // reader 가 hours[0..23] 인덱싱하므로 정확히 24칸 보장(부족분 0 패딩)
+    const hours = o.hours as number[];
+    const normalizedHours =
+      hours.length === HOURS_LEN
+        ? hours
+        : Array.from({ length: HOURS_LEN }, (_, i) => hours[i] ?? 0);
     rows.push({
       category: o.category,
       date: o.date,
       pr: o.pr as number,
       commitCount: o.commitCount as number,
-      hours: o.hours as number[],
+      hours: normalizedHours,
       updatedAt: o.updatedAt,
     });
   }

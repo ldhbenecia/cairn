@@ -2,6 +2,7 @@ import './globals.css';
 
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 
 import { REPO_URL } from '../lib/github';
 import { SITE_URL } from '../lib/site';
@@ -76,9 +77,11 @@ const JSON_LD = {
   author: { '@type': 'Person', name: 'ldhbenecia', url: REPO_URL },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const pathname = (await headers()).get('x-pathname') ?? '';
+  const lang = pathname.startsWith('/ko') ? 'ko' : 'en';
   return (
-    <html lang="en">
+    <html lang={lang}>
       <head>
         <link rel="preconnect" href="https://rsms.me/" />
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
