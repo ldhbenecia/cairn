@@ -1048,7 +1048,7 @@ function CancelledCard({
 function ErrorCard({ message, t, onClose }: { message: string; t: T; onClose: () => void }) {
   return (
     <div className="flex flex-col gap-5 py-2">
-      <p className="flex items-center gap-2 text-[15px] text-[#f87171]">
+      <p className="flex items-center gap-2 text-[15px] text-danger">
         <TriangleAlert size={18} strokeWidth={2.25} />
         {t('publish.result.error')}
       </p>
@@ -1094,19 +1094,19 @@ function Result({
   let body: React.ReactNode;
   if (result.summaryFailed) {
     body = (
-      <p className="flex items-center gap-2 text-[15px] text-[#f87171]">
+      <p className="flex items-center gap-2 text-[15px] text-danger">
         <TriangleAlert size={18} strokeWidth={2.25} />
         {t('publish.result.summaryFailed')}
       </p>
     );
   } else if (!result.ok) {
     body = (
-      <p className="text-[#f87171]">
+      <p className="text-danger">
         {t('publish.result.fail')} (exit {result.exitCode ?? 'unknown'})
       </p>
     );
   } else if (result.publishKind === 'no-target') {
-    body = <p className="text-[#d4a574]">{t('publish.result.noTarget')}</p>;
+    body = <p className="text-notice">{t('publish.result.noTarget')}</p>;
   } else if (result.noActivity) {
     body = <p className="text-ink-muted">{t('publish.result.noActivity')}</p>;
   } else if (result.publishKind === 'skipped') {
