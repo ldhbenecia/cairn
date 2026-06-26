@@ -96,9 +96,9 @@ async function runAutoPublish(trigger: 'startup' | 'scheduled'): Promise<void> {
   for (const { mode, options, rollupField, anchor } of runs) {
     notifyAutoStart(mode);
     try {
-      await runCore(mode, options);
-      // 성공 시 anchor 기록 → 같은 기간 재실행 방지(catch-up 종료)
-      if (rollupField && anchor) {
+      const result = await runCore(mode, options);
+      // runCore 는 실패 시 throw 가 아니라 ok:false 를 반환 → 성공일 때만 anchor 기록(실패면 다음 실행에서 재시도)
+      if (result.ok && rollupField && anchor) {
         writeAutoPublishState({ ...readAutoPublishState(), [rollupField]: anchor });
       }
     } catch {
