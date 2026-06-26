@@ -53,7 +53,10 @@ function parseRows(input: unknown): StatRow[] | null {
     if (!Array.isArray(o.hours) || o.hours.length > HOURS_LEN) return null;
     if (o.hours.some((h) => !Number.isInteger(h) || (h as number) < 0 || (h as number) > MAX_COUNT))
       return null;
-    if (typeof o.updatedAt !== 'string' || Number.isNaN(Date.parse(o.updatedAt))) return null;
+    if (typeof o.updatedAt !== 'string') return null;
+    const updatedTs = Date.parse(o.updatedAt);
+    // far-future updatedAt 가 LWW 로 row 를 영구 freeze(이후 정상 업데이트 차단)하지 못하게 — 미래 1일 skew 상한
+    if (Number.isNaN(updatedTs) || updatedTs > Date.now() + 86_400_000) return null;
     // reader 가 hours[0..23] 인덱싱하므로 정확히 24칸 보장(부족분 0 패딩)
     const hours = o.hours as number[];
     const normalizedHours =
