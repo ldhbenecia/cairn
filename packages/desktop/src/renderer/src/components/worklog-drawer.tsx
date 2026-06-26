@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import hljs from 'highlight.js/lib/common';
+import hljs from 'highlight.js';
 import {
   Check,
+  ChevronRight,
   Copy,
   ExternalLink,
   FileDown,
@@ -15,7 +16,6 @@ import { sectionBullets } from '../lib/blocks';
 import { blocksToMarkdown } from '../lib/markdown';
 import { blocksToHtml } from '../../../shared/html';
 import { useSettings } from '../settings-context';
-import 'highlight.js/styles/github-dark.css';
 
 type Props = { page: RecentPage; onClose: () => void };
 
@@ -339,15 +339,41 @@ function Rich({ spans }: { spans: RichSpan[] }) {
   );
 }
 
+// Notion 코드블록 언어명 → highlight.js 식별자 (불일치하는 것만)
+const LANG_ALIAS: Record<string, string> = {
+  'c++': 'cpp',
+  'c#': 'csharp',
+  'f#': 'fsharp',
+  'objective-c': 'objectivec',
+  'plain text': 'plaintext',
+  shell: 'bash',
+  html: 'xml',
+  markup: 'xml',
+  docker: 'dockerfile',
+  'vb.net': 'vbnet',
+  'visual basic': 'vbnet',
+  webassembly: 'wasm',
+  'llvm ir': 'llvm',
+};
+
 function CodeBlock({ code, language }: { code: string; language?: string }) {
-  const lang = language && hljs.getLanguage(language) ? language : undefined;
+  const raw = (language ?? '').toLowerCase().trim();
+  const mapped = LANG_ALIAS[raw] ?? raw;
+  const lang = mapped && hljs.getLanguage(mapped) ? mapped : undefined;
   const html = lang
     ? hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
     : hljs.highlightAuto(code).value;
   return (
-    <pre className="overflow-x-auto rounded-md border border-hairline text-[12px] leading-relaxed">
-      <code className="hljs font-mono" dangerouslySetInnerHTML={{ __html: html }} />
-    </pre>
+    <div className="overflow-hidden rounded-md border border-hairline">
+      {language && mapped !== 'plaintext' && (
+        <div className="border-b border-hairline bg-surface-3 px-3 py-1 font-mono text-[10px] text-ink-tertiary select-none">
+          {language}
+        </div>
+      )}
+      <pre className="overflow-x-auto bg-surface-2 p-3 text-[12px] leading-relaxed">
+        <code className="hljs font-mono" dangerouslySetInnerHTML={{ __html: html }} />
+      </pre>
+    </div>
   );
 }
 
@@ -367,9 +393,15 @@ function Block({ b }: { b: SimpleBlock }) {
   if (b.type === 'toggle') {
     return (
       <details className="group">
-        <summary className="list-none marker:content-none">
-          <span className="text-ink-tertiary">▸ </span>
-          <Rich spans={b.rich} />
+        <summary className="flex cursor-pointer list-none items-start gap-1 select-none marker:content-none hover:text-ink">
+          <ChevronRight
+            size={14}
+            strokeWidth={2.25}
+            className="mt-[3px] shrink-0 text-ink-tertiary transition-transform duration-200 group-open:rotate-90"
+          />
+          <span className="min-w-0">
+            <Rich spans={b.rich} />
+          </span>
         </summary>
         {kids && <div className="mt-1.5">{kids}</div>}
       </details>
