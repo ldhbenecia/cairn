@@ -1,5 +1,6 @@
 import { BrowserWindow, shell } from 'electron';
-import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { writeFileAtomic } from './atomic-write';
 import { createServer, type Server } from 'node:http';
 import { dirname, join } from 'node:path';
 import { CAIRN_ROOT } from './setup';
@@ -88,7 +89,7 @@ async function completeSignIn(ott: string): Promise<void> {
     const u = data.user;
     if (!u?.email) return;
     mkdirSync(dirname(AUTH_PATH), { recursive: true });
-    writeFileSync(
+    writeFileAtomic(
       AUTH_PATH,
       `${JSON.stringify({ token, user: { name: u.name ?? u.email, email: u.email, image: u.image ?? null } }, null, 2)}\n`,
     );

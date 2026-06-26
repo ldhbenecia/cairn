@@ -1,7 +1,8 @@
 import { app } from 'electron';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
+import { writeFileAtomic } from './atomic-write';
 
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
@@ -111,7 +112,6 @@ export function writeSettings(patch: Partial<Settings>): Settings {
     prompts: { ...prev.prompts, ...(patch.prompts ?? {}) },
     export: { ...prev.export, ...(patch.export ?? {}) },
   };
-  mkdirSync(dirname(SETTINGS_PATH), { recursive: true });
-  writeFileSync(SETTINGS_PATH, `${JSON.stringify(next, null, 2)}\n`);
+  writeFileAtomic(SETTINGS_PATH, `${JSON.stringify(next, null, 2)}\n`);
   return next;
 }

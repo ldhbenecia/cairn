@@ -1,7 +1,8 @@
 import { BrowserWindow } from 'electron';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
+import { writeFileAtomic } from './atomic-write';
 import { cloudToken, WEB_BASE } from './cloud-auth';
 
 // core WorklogStatsService 와 같은 파일·포맷(`${category}:${date}` → 집계 수치). ADR 0027/0029
@@ -29,8 +30,7 @@ function readLocal(): StatsFile {
 }
 
 function writeLocal(f: StatsFile): void {
-  mkdirSync(dirname(STATS_PATH), { recursive: true });
-  writeFileSync(STATS_PATH, JSON.stringify(f), 'utf8');
+  writeFileAtomic(STATS_PATH, JSON.stringify(f));
 }
 
 // updatedAt 없으면 worklog 날짜를 보수적 기준으로(같은 날 충돌 first-wins)

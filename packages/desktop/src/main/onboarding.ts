@@ -1,6 +1,7 @@
 import { Client } from '@notionhq/client';
 import { execFile } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
+import { writeFileAtomic } from './atomic-write';
 import { dirname } from 'node:path';
 import { promisify } from 'node:util';
 import { findInPath, searchPathEnv } from './claude-path';
@@ -186,7 +187,7 @@ function writeEnvMerged(patch: Record<string, string>): void {
   });
   for (const [k, v] of Object.entries(remaining)) out.push(`${k}=${v}`);
   mkdirSync(dirname(ENV_PATH), { recursive: true });
-  writeFileSync(ENV_PATH, out.join('\n').replace(/\n+$/, '') + '\n');
+  writeFileAtomic(ENV_PATH, out.join('\n').replace(/\n+$/, '') + '\n');
 }
 
 type ExistingWs = {
@@ -249,7 +250,7 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
       notionWorkspaces,
     };
     mkdirSync(dirname(CONFIG_PATH), { recursive: true });
-    writeFileSync(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
+    writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
