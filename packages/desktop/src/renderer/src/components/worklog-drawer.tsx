@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import hljs from 'highlight.js/lib/common';
 import {
   Check,
+  ChevronRight,
   Copy,
   ExternalLink,
   FileDown,
@@ -345,7 +346,7 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
     ? hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
     : hljs.highlightAuto(code).value;
   return (
-    <pre className="overflow-x-auto rounded-md border border-hairline text-[12px] leading-relaxed">
+    <pre className="overflow-x-auto rounded-md border border-hairline bg-surface-2 p-3 text-[12px] leading-relaxed">
       <code className="hljs font-mono" dangerouslySetInnerHTML={{ __html: html }} />
     </pre>
   );
@@ -367,9 +368,15 @@ function Block({ b }: { b: SimpleBlock }) {
   if (b.type === 'toggle') {
     return (
       <details className="group">
-        <summary className="list-none marker:content-none">
-          <span className="text-ink-tertiary">▸ </span>
-          <Rich spans={b.rich} />
+        <summary className="flex cursor-pointer list-none items-start gap-1 select-none marker:content-none hover:text-ink">
+          <ChevronRight
+            size={14}
+            strokeWidth={2.25}
+            className="mt-[3px] shrink-0 text-ink-tertiary transition-transform duration-200 group-open:rotate-90"
+          />
+          <span className="min-w-0">
+            <Rich spans={b.rich} />
+          </span>
         </summary>
         {kids && <div className="mt-1.5">{kids}</div>}
       </details>

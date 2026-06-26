@@ -36,6 +36,13 @@
 /* 네이티브 컨트롤(시간 입력 스피너·달력 아이콘 등)이 테마에 맞게 렌더되도록 */
 :root {
   color-scheme: dark;
+  /* 코드블록 신택스 토큰 색 (다크 기본) */
+  --code-key: #7aa2f7;
+  --code-string: #9ece6a;
+  --code-number: #e0af68;
+  --code-keyword: #bb9af7;
+  --code-fn: #7dcfff;
+  --code-comment: #5c616b;
 }
 
 /* 라이트 모드 — 같은 토큰 override (다크는 @theme 기본값 사용).
@@ -62,6 +69,14 @@
   --color-accent: #5256dd;
   --color-accent-hover: #4a4ecf;
   --color-accent-focus: #3f43ba;
+
+  /* 코드블록 신택스 토큰 색 (라이트 — 밝은 배경 대비) */
+  --code-key: #2563eb;
+  --code-string: #15803d;
+  --code-number: #b45309;
+  --code-keyword: #7c3aed;
+  --code-fn: #0891b2;
+  --code-comment: #8b919c;
 }
 
 /* 키보드 포커스 링 — 전역 통일(accent). 없으면 Chromium 기본 링이 테마별로 다른 색으로 떠 어수선. */
@@ -500,4 +515,50 @@ button {
 .batch-count {
   display: inline-block;
   animation: batch-count 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 코드블록 신택스 하이라이트 — highlight.js 토큰을 타입별 색으로(테마 변수). 단색 방지 */
+.hljs {
+  color: var(--color-ink-muted);
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-variable,
+.hljs-template-variable {
+  color: var(--code-key);
+}
+.hljs-string,
+.hljs-symbol,
+.hljs-regexp,
+.hljs-addition {
+  color: var(--code-string);
+}
+.hljs-number,
+.hljs-literal,
+.hljs-deletion {
+  color: var(--code-number);
+}
+.hljs-keyword,
+.hljs-built_in,
+.hljs-type,
+.hljs-meta,
+.hljs-doctag {
+  color: var(--code-keyword);
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.function_,
+.hljs-section,
+.hljs-name,
+.hljs-selector-tag {
+  color: var(--code-fn);
+}
+.hljs-comment,
+.hljs-quote {
+  color: var(--code-comment);
+  font-style: italic;
+}
+.hljs-punctuation {
+  color: var(--color-ink-subtle);
 }
