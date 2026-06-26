@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { promisify } from 'node:util';
 import { findInPath, searchPathEnv } from './claude-path';
-import { CONFIG_PATH, ENV_PATH } from './setup';
+import { CONFIG_PATH, ENV_PATH, readEnvFile } from './setup';
 
 const execFileAsync = promisify(execFile);
 
@@ -169,18 +169,15 @@ export type ConnectionAccounts = {
   notion: { label: string; workspace?: string }[];
 };
 
-function readEnvMap(): Record<string, string> {
-  try {
-    const map: Record<string, string> = {};
-    for (const line of readFileSync(ENV_PATH, 'utf8').split('\n')) {
-      const eq = line.indexOf('=');
-      if (eq < 0 || line.trim().startsWith('#')) continue;
-      map[line.slice(0, eq).trim()] = line.slice(eq + 1);
-    }
-    return map;
-  } catch {
-    return {};
-  }
+const PROBE_TIMEOUT_MS = 6000;
+
+// 단일 느린 네트워크 호출이 연결 탭 응답 전체를 붙잡지 않도록 — 타임아웃 시 fallback 반환
+function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
 }
 
 async function notionWorkspaceName(token: string): Promise<string | undefined> {
@@ -204,13 +201,13 @@ export async function probeConnectionAccounts(): Promise<ConnectionAccounts> {
   } catch {
     config = {};
   }
-  const envMap = readEnvMap();
+  const envMap = readEnvFile();
   const github = await Promise.all(
     (config.githubAccounts ?? []).map(async (g) => {
       const token = envMap[g.tokenEnv];
       if (!token) return { label: g.label };
       try {
-        const probe = await probeGithub(token);
+        const probe = await withTimeout(probeGithub(token), PROBE_TIMEOUT_MS, { ok: false });
         return probe.ok ? { label: g.label, login: probe.login } : { label: g.label };
       } catch {
         return { label: g.label };
@@ -222,7 +219,12 @@ export async function probeConnectionAccounts(): Promise<ConnectionAccounts> {
       const token = envMap[w.tokenEnv ?? envKey('NOTION_TOKEN', w.label)];
       if (!token) return { label: w.label };
       try {
-        return { label: w.label, workspace: await notionWorkspaceName(token) };
+        const workspace = await withTimeout(
+          notionWorkspaceName(token),
+          PROBE_TIMEOUT_MS,
+          undefined,
+        );
+        return { label: w.label, workspace };
       } catch {
         return { label: w.label };
       }
