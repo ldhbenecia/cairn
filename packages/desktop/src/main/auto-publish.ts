@@ -1,3 +1,4 @@
+import { powerMonitor } from 'electron';
 import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { notifyAutoConfirm, notifyAutoStart } from './notifier';
 import { readSettings, type AutoPublish } from './settings';
@@ -38,6 +39,11 @@ function lastCompletedMonthAnchor(now: Date): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
+// 오늘 로컬 날짜 — daily anchor(하루 1회·절전 복귀 시 중복 방지)
+function localTodayIso(now: Date): string {
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+}
+
 const anyAutoOn = (cfg: AutoPublish): boolean => cfg.daily || cfg.weekly || cfg.monthly;
 
 export function isScheduledTimeReached(now: Date, time: string): boolean {
@@ -61,7 +67,17 @@ type DueRun = {
 function dueRuns(cfg: AutoPublish, state: AutoPublishState): DueRun[] {
   const now = new Date();
   const runs: DueRun[] = [];
-  if (cfg.daily) runs.push({ mode: 'daily', options: { backfillDays: cfg.backfillDays } });
+  if (cfg.daily) {
+    const today = localTodayIso(now);
+    if (state.daily !== today) {
+      runs.push({
+        mode: 'daily',
+        options: { backfillDays: cfg.backfillDays },
+        rollupField: 'daily',
+        anchor: today,
+      });
+    }
+  }
   if (cfg.weekly) {
     const anchor = lastCompletedWeekAnchor(now);
     if (state.weekly !== anchor) {
@@ -87,12 +103,22 @@ async function runAutoPublish(trigger: 'startup' | 'scheduled'): Promise<void> {
   if (runs.length === 0) return;
 
   if (cfg.confirmBeforeRun) {
-    notifyAutoConfirm(runs[0]!.mode);
+    // 알림 클릭 시 실제 발행 — 이전엔 알림만 띄우고 끝나 발행이 영영 안 됐음. 모든 due mode 함께
+    notifyAutoConfirm(
+      runs.map((r) => r.mode),
+      () => void executeRuns(runs),
+    );
     return;
   }
 
-  if (isRunning()) return;
+  await executeRuns(runs);
+}
 
+async function executeRuns(runs: DueRun[]): Promise<void> {
+  if (isRunning()) {
+    console.warn(`[auto-publish] busy — skipped: ${runs.map((r) => r.mode).join(', ')}`);
+    return;
+  }
   for (const { mode, options, rollupField, anchor } of runs) {
     notifyAutoStart(mode);
     try {
@@ -123,6 +149,11 @@ function scheduleDaily(): void {
 export function initAutoPublish(): void {
   void runAutoPublish('startup');
   scheduleDaily();
+  // 절전 복귀 시 타이머가 밀렸을 수 있으니 재스케줄 + 도래분 실행(daily/weekly/monthly anchor 로 중복 방지)
+  powerMonitor.on('resume', () => {
+    scheduleDaily();
+    void runAutoPublish('scheduled');
+  });
 }
 
 export function reconfigureAutoPublish(): void {
