@@ -47,7 +47,7 @@ export class RollupPublisherService {
 
   async precheck(
     period: 'weekly' | 'monthly',
-    kstDate: string,
+    localDate: string,
     force: boolean,
   ): Promise<PublishRollupResult | null> {
     const target = this.worklogConfig
@@ -61,7 +61,7 @@ export class RollupPublisherService {
     const dataSourceId = target.rollup?.dataSourceId;
     if (!dataSourceId) return null;
 
-    const { start, end } = periodRange(period, kstDate);
+    const { start, end } = periodRange(period, localDate);
     try {
       const existing = await this.rollupApi.findRollupPageByRange(
         token,
