@@ -338,7 +338,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   >
                     {ghImporting ? t('onb.github.ghImporting') : t('onb.github.ghImport')}
                   </button>
-                  {ghMsg && <p className="mt-2 text-[12px] text-[#f87171]">{t(ghMsg)}</p>}
+                  {ghMsg && <p className="mt-2 text-[12px] text-danger">{t(ghMsg)}</p>}
                 </div>
                 <div className="flex items-center gap-2.5 py-0.5">
                   <span className="h-px flex-1 bg-hairline" />
@@ -432,7 +432,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                     </span>
                   )}
                   {claudeStatus === 'err' && (
-                    <span className="text-[13px] text-[#f87171]">{t('onb.claude.failed')}</span>
+                    <span className="text-[13px] text-danger">{t('onb.claude.failed')}</span>
                   )}
                   {claudeStatus === 'testing' && (
                     <span className="text-[12px] text-ink-tertiary">{t('onb.claude.testing')}</span>
@@ -487,12 +487,12 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   </li>
                 </ul>
                 {claudeStatus !== 'ok' && !anthropicKey.trim() && (
-                  <div className="rounded-lg border border-[#fbbf24]/30 bg-[#fbbf24]/10 p-3 text-[12px] leading-relaxed text-[#fbbf24]">
+                  <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-[12px] leading-relaxed text-warning">
                     {t('onb.review.warnNoClaude')}
                   </div>
                 )}
                 {finishErr && (
-                  <p className="text-[13px] text-[#f87171]">
+                  <p className="text-[13px] text-danger">
                     {t('onb.review.failPrefix')}: {finishErr}
                   </p>
                 )}
@@ -747,7 +747,7 @@ function LabelToken({
           </button>
         )}
       </div>
-      {mismatchKey && <p className="text-[12px] text-[#fbbf24]">{t(mismatchKey)}</p>}
+      {mismatchKey && <p className="text-[12px] text-warning">{t(mismatchKey)}</p>}
     </>
   );
 }
@@ -779,7 +779,7 @@ function NotionCard({
         onTest={onTest}
         onRemove={onRemove}
       />
-      {e.status === 'err' && <p className="text-[12px] text-[#f87171]">{e.error}</p>}
+      {e.status === 'err' && <p className="text-[12px] text-danger">{e.error}</p>}
       {e.status === 'ok' && (
         <>
           {e.persons.length > 1 && (
@@ -907,7 +907,7 @@ function GithubCard({
         onTest={onTest}
         onRemove={onRemove}
       />
-      {e.status === 'err' && <p className="text-[12px] text-[#f87171]">{e.error}</p>}
+      {e.status === 'err' && <p className="text-[12px] text-danger">{e.error}</p>}
       {e.status === 'ok' && e.login && (
         <p className="text-[12px] text-ink-subtle">
           @{e.login} {t('onb.github.connected')}
