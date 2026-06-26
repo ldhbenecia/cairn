@@ -28,6 +28,7 @@ export type Settings = {
   liquidGlass: boolean;
   language: Language;
   notifications: boolean;
+  launchAtLogin: boolean;
   telemetry: boolean;
   installId: string;
   autoPublish: AutoPublish;
@@ -42,6 +43,7 @@ const DEFAULTS: Settings = {
   liquidGlass: false,
   language: 'en',
   notifications: true,
+  launchAtLogin: false,
   telemetry: true,
   installId: '',
   autoPublish: {

@@ -99,6 +99,13 @@ function createWindow(): BrowserWindow {
   return win;
 }
 
+// dev 바이너리(Electron.app)를 로그인 항목으로 등록하지 않도록 패키지 한정 — macOS·Windows 만 지원
+function applyLoginItem(enabled: boolean): void {
+  if (!app.isPackaged) return;
+  if (process.platform !== 'darwin' && process.platform !== 'win32') return;
+  app.setLoginItemSettings({ openAtLogin: enabled });
+}
+
 void app.whenReady().then(() => {
   if (!app.isPackaged && process.platform === 'darwin') {
     try {
@@ -143,6 +150,7 @@ void app.whenReady().then(() => {
     const next = writeSettings(patch);
     if (patch.autoPublish) reconfigureAutoPublish();
     if (patch.language) reconfigureTray();
+    if (patch.launchAtLogin !== undefined) applyLoginItem(next.launchAtLogin);
     return next;
   });
 
@@ -174,6 +182,7 @@ void app.whenReady().then(() => {
     app.quit();
   });
 
+  applyLoginItem(readSettings().launchAtLogin);
   initAutoPublish();
   initTelemetry();
   trackAppLaunched();
