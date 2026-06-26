@@ -260,6 +260,7 @@ export function App() {
 
   useEffect(() => {
     const off = window.cairn.onFocusMode((focused) => {
+      setPrefsOpen(false);
       setView('worklogs');
       setFilter(focused);
     });
@@ -284,17 +285,21 @@ export function App() {
     async (mode: CoreMode, options?: CoreRunOptions) => {
       const active = busyRef.current;
       if (active.busy) {
-        setSessions((prev) => ({
-          ...prev,
-          [mode]: {
-            state: 'done',
-            step: 'boot',
-            lines: [],
-            startedAt: Date.now(),
-            endedAt: Date.now(),
-            error: t('publish.busyMsg'),
-          },
-        }));
+        // 이미 그 mode 가 돌고 있으면 synthetic done/error 로 덮지 않음(진행 상태 보존)
+        setSessions((prev) => {
+          if (prev[mode]?.state === 'running') return prev;
+          return {
+            ...prev,
+            [mode]: {
+              state: 'done',
+              step: 'boot',
+              lines: [],
+              startedAt: Date.now(),
+              endedAt: Date.now(),
+              error: t('publish.busyMsg'),
+            },
+          };
+        });
         return;
       }
       setRunningMode(mode);
