@@ -48,6 +48,8 @@ export class GithubCollectorService {
     // 과거 (backfill) 만 widening 적용해서 updated_at 이 밀린 케이스 cover
     const isBackfill = date < todayLocalIsoDate();
     const effectiveLookback = isBackfill ? lookbackDays : 0;
+    // backfill 은 updated_at 이 D 이후로 밀린 PR 까지 잡으려 lower bound 만 둔다(상한 없음).
+    // 매우 활발한 계정의 오래된 날짜 backfill 은 updated-desc 1000 cap 에 잘릴 수 있음 — 페이징 재설계는 별도 과제.
     const widenedRange =
       effectiveLookback > 0 ? `>=${localDateStartIsoBefore(date, effectiveLookback)}` : range;
     const accounts = this.worklogConfig.getGithubAccounts();

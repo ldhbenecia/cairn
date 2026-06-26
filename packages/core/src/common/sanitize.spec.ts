@@ -46,6 +46,30 @@ describe('assertNoForbiddenPayload', () => {
     );
   });
 
+  it('throws on POSIX /home path (Linux)', () => {
+    expect(() => assertNoForbiddenPayload({ p: '/home/john/.cairn/.env' }, 'test')).toThrow(
+      /absolute-posix-home/,
+    );
+  });
+
+  it('throws on Windows user path', () => {
+    expect(() => assertNoForbiddenPayload({ p: 'C:\\Users\\john\\.cairn' }, 'test')).toThrow(
+      /absolute-windows-path/,
+    );
+  });
+
+  it('throws on any Windows drive path (not just Users)', () => {
+    expect(() => assertNoForbiddenPayload({ p: 'D:\\work\\repo\\secret.ts' }, 'test')).toThrow(
+      /absolute-windows-path/,
+    );
+  });
+
+  it('does not flag a URL as a Windows path', () => {
+    expect(() =>
+      assertNoForbiddenPayload({ url: 'https://example.com/path' }, 'test'),
+    ).not.toThrow();
+  });
+
   it('throws on Notion token prefix', () => {
     expect(() => assertNoForbiddenPayload({ token: `ntn_${'a'.repeat(40)}` }, 'test')).toThrow(
       /notion-token/,
