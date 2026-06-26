@@ -292,7 +292,7 @@ const STRINGS = {
     'prefs.autoPublish': '자동 발행',
     'prefs.launchAtLogin': '시스템 시작 시 자동 실행',
     'prefs.launchAtLogin.desc':
-      '맥 로그인 시 cairn 을 백그라운드(메뉴바)로 실행 — 예약 발행이 재시작 후에도 동작',
+      '시스템 로그인 시 cairn 을 백그라운드(메뉴바)로 실행 — 예약 발행이 재시작 후에도 동작',
     'prefs.autoPublish.daily': '일간 자동 발행',
     'prefs.autoPublish.dailyDesc': '매일 정해진 시각에 그날 일지를 발행',
     'prefs.autoPublish.weekly': '주간 자동 발행',
