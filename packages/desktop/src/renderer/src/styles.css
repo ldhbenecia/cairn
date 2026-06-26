@@ -73,6 +73,11 @@
   --color-accent-hover: #4a4ecf;
   --color-accent-focus: #3f43ba;
 
+  /* 다크의 밝은 색은 흰 배경서 대비가 낮아 안 보임 → 라이트용 진한 톤 */
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+  --color-notice: #b45309;
+
   /* 코드블록 신택스 토큰 색 (라이트 — 밝은 배경 대비) */
   --code-key: #2563eb;
   --code-string: #15803d;
