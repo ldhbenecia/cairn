@@ -412,13 +412,17 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
   const stderrLines: string[] = [];
   const stdoutLines: string[] = [];
   let stdoutAll = '';
+  let stdoutCarry = '';
   let noActivity = false;
 
   child.stdout?.on('data', (buf: Buffer) => {
     const text = stripAnsi(buf.toString('utf8'));
     stdoutAll += text;
     if (NO_ACTIVITY_REGEX.test(text)) noActivity = true;
-    for (const line of text.split('\n')) {
+    // 청크 경계에서 줄이 쪼개지지 않게 미완성 마지막 줄은 carry-over(완전한 줄만 파싱)
+    const lines = (stdoutCarry + text).split('\n');
+    stdoutCarry = lines.pop() ?? '';
+    for (const line of lines) {
       if (line.length === 0) continue;
       stdoutLines.push(line);
       emit('info', line);
