@@ -59,7 +59,7 @@ app.on('second-instance', () => {
   win.focus();
 });
 
-function createWindow(): BrowserWindow {
+function createWindow(startHidden: boolean): BrowserWindow {
   const win = new BrowserWindow({
     width: 1240,
     height: 760,
@@ -78,7 +78,10 @@ function createWindow(): BrowserWindow {
     },
   });
 
-  win.on('ready-to-show', () => win.show());
+  // 로그인 자동 실행으로 떴으면 창을 띄우지 않고 트레이에만 상주(백그라운드 시작)
+  win.on('ready-to-show', () => {
+    if (!startHidden) win.show();
+  });
 
   win.on('close', (e) => {
     if (allowQuit || !app.isPackaged) return;
@@ -98,6 +101,32 @@ function createWindow(): BrowserWindow {
   }
 
   return win;
+}
+
+// dev 바이너리(Electron.app)를 로그인 항목으로 등록하지 않도록 패키지 한정 — macOS·Windows 만 지원
+// openAsHidden/args: 로그인 자동 실행 시 백그라운드(트레이)로 뜨게. setLoginItemSettings 는
+// OS 권한/레지스트리 문제로 throw 할 수 있어 try-catch — 실패해도 앱 시작은 막지 않음
+function applyLoginItem(enabled: boolean): void {
+  if (!app.isPackaged) return;
+  if (process.platform !== 'darwin' && process.platform !== 'win32') return;
+  try {
+    app.setLoginItemSettings({ openAtLogin: enabled, openAsHidden: enabled, args: ['--hidden'] });
+  } catch (err) {
+    console.error('setLoginItemSettings failed:', err);
+  }
+}
+
+// 이번 실행이 로그인 자동 실행으로 떴는지 — 초기 창 표시를 건너뛰는 판단
+function launchedAtLogin(): boolean {
+  if (process.platform === 'darwin') {
+    try {
+      return app.getLoginItemSettings().wasOpenedAtLogin;
+    } catch {
+      return false;
+    }
+  }
+  if (process.platform === 'win32') return process.argv.includes('--hidden');
+  return false;
 }
 
 void app.whenReady().then(() => {
@@ -144,6 +173,7 @@ void app.whenReady().then(() => {
     const next = writeSettings(patch);
     if (patch.autoPublish) reconfigureAutoPublish();
     if (patch.language) reconfigureTray();
+    if (patch.launchAtLogin !== undefined) applyLoginItem(next.launchAtLogin);
     return next;
   });
 
@@ -170,12 +200,16 @@ void app.whenReady().then(() => {
     return r.canceled ? null : (r.filePaths[0] ?? null);
   });
 
-  const win = createWindow();
+  const startHidden = app.isPackaged && launchedAtLogin();
+  const win = createWindow(startHidden);
+  // 백그라운드 시작이면 Dock 아이콘도 빼서 순수 트레이로 — 트레이 클릭 시 win 'show' 가 Dock 복귀
+  if (startHidden && process.platform === 'darwin') app.dock?.hide();
   setupTray(win, () => {
     allowQuit = true;
     app.quit();
   });
 
+  applyLoginItem(readSettings().launchAtLogin);
   initAutoPublish();
   initTelemetry();
   trackAppLaunched();

@@ -29,6 +29,9 @@ export function AutoPublishTab() {
 
   return (
     <div className="divide-y divide-hairline">
+      <Field label={t('prefs.launchAtLogin')} desc={t('prefs.launchAtLogin.desc')}>
+        <Toggle checked={settings.launchAtLogin} onChange={(v) => update({ launchAtLogin: v })} />
+      </Field>
       <Field label={t('prefs.autoPublish.daily')} desc={t('prefs.autoPublish.dailyDesc')}>
         <Toggle checked={ap.daily} onChange={(v) => set({ daily: v })} />
       </Field>

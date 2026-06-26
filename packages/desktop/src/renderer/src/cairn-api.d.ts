@@ -133,6 +133,7 @@ export type Settings = {
   liquidGlass: boolean;
   language: Language;
   notifications: boolean;
+  launchAtLogin: boolean;
   telemetry: boolean;
   installId: string;
   autoPublish: AutoPublish;

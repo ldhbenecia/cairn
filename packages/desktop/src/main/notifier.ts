@@ -57,6 +57,8 @@ export function notifyAutoConfirm(mode: CoreMode): void {
 }
 
 // 명시적 요청이므로 설정 토글과 무관하게 항상 표시 시도 (권한 프롬프트 유도 포함)
+// 알려진 제약: dev 에선 번들 ID 없는 Electron 헬퍼라 macOS 가 알림을 억제해 안 뜸 —
+// 패키지(.app + Info.plist bundle id)에선 정상. 버그 아님, 패키지 빌드로 확인할 것
 export function sendTestNotification(): { supported: boolean } {
   if (!Notification.isSupported()) return { supported: false };
   new Notification({ title: mt('notify.testTitle'), body: mt('notify.testBody') }).show();

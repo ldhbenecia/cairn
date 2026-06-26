@@ -290,6 +290,9 @@ const STRINGS = {
       '알림을 보냈어요. cairn 이 앞에 떠 있으면 배너 대신 알림 센터에 들어가요 — 안 보이면 macOS 알림 설정에서 cairn 을 허용했는지 확인하세요.',
     'prefs.notifications.unsupported': '이 기기에서 시스템 알림을 지원하지 않아요.',
     'prefs.autoPublish': '자동 발행',
+    'prefs.launchAtLogin': '시스템 시작 시 자동 실행',
+    'prefs.launchAtLogin.desc':
+      '시스템 로그인 시 cairn 을 백그라운드(메뉴바)로 실행 — 예약 발행이 재시작 후에도 동작',
     'prefs.autoPublish.daily': '일간 자동 발행',
     'prefs.autoPublish.dailyDesc': '매일 정해진 시각에 그날 일지를 발행',
     'prefs.autoPublish.weekly': '주간 자동 발행',
@@ -650,6 +653,9 @@ const STRINGS = {
       'Notification sent. If cairn is in the foreground it goes to Notification Center instead of a banner — if you see nothing, check that cairn is allowed in macOS notification settings.',
     'prefs.notifications.unsupported': 'System notifications are not supported on this device.',
     'prefs.autoPublish': 'Auto-publish',
+    'prefs.launchAtLogin': 'Launch at login',
+    'prefs.launchAtLogin.desc':
+      'Start cairn in the background (menu bar) at login — scheduled publishing keeps working after a restart',
     'prefs.autoPublish.daily': 'Daily auto-publish',
     'prefs.autoPublish.dailyDesc': "Publish each day's worklog at a set time",
     'prefs.autoPublish.weekly': 'Weekly auto-publish',
