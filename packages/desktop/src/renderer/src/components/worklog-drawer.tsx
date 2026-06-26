@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import hljs from 'highlight.js/lib/common';
+import hljs from 'highlight.js';
 import {
   Check,
   ChevronRight,
@@ -349,8 +349,12 @@ const LANG_ALIAS: Record<string, string> = {
   'plain text': 'plaintext',
   shell: 'bash',
   html: 'xml',
+  markup: 'xml',
   docker: 'dockerfile',
+  'vb.net': 'vbnet',
   'visual basic': 'vbnet',
+  webassembly: 'wasm',
+  'llvm ir': 'llvm',
 };
 
 function CodeBlock({ code, language }: { code: string; language?: string }) {
