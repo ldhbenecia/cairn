@@ -102,24 +102,25 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   async function testNotion(i: number) {
     const e = notion[i]!;
     if (!e.token.trim()) return;
+    const uid = e.uid;
     patchNotion(i, { status: 'testing', error: undefined });
     const r = await window.cairn.onboarding.probeNotion(e.token.trim());
     if (!r.ok) {
-      patchNotion(i, { status: 'err', error: r.error });
+      patchNotionById(uid, { status: 'err', error: r.error });
       return;
     }
-    patchNotion(i, {
+    patchNotionById(uid, {
       status: 'ok',
       persons: r.persons,
       personId: r.persons.length === 1 ? r.persons[0]!.id : '',
     });
-    void searchPages(i);
+    void searchPages(uid);
   }
 
-  async function searchPages(i: number) {
-    const e = notion[i]!;
-    const uid = e.uid;
-    patchNotion(i, { searching: true });
+  async function searchPages(uid: string) {
+    const e = notion.find((n) => n.uid === uid);
+    if (!e) return;
+    patchNotionById(uid, { searching: true });
     try {
       const pages = await window.cairn.onboarding.searchNotion(e.token.trim(), e.query);
       patchNotionById(uid, { pages, searched: true });
@@ -130,8 +131,9 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
 
   async function loadDatabases(i: number, pageId: string) {
     const e = notion[i]!;
+    const uid = e.uid;
     const dbs = await window.cairn.onboarding.listDatabases(e.token.trim(), pageId);
-    patchNotion(i, { databases: dbs });
+    patchNotionById(uid, { databases: dbs });
   }
 
   async function testGithub(i: number) {
@@ -299,7 +301,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                     e={e}
                     onChange={(p) => patchNotion(i, p)}
                     onTest={() => void testNotion(i)}
-                    onSearch={() => void searchPages(i)}
+                    onSearch={() => void searchPages(e.uid)}
                     onSelectPage={(pageId) => {
                       patchNotion(i, { pageId, worklogDbId: '', rollupDbId: '' });
                       void loadDatabases(i, pageId);
