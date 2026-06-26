@@ -110,8 +110,18 @@ let cancelRequested = false;
 export function cancelRun(): boolean {
   if (!running) return false;
   cancelRequested = true;
-  running.kill('SIGTERM');
+  const child = running;
+  child.kill('SIGTERM');
+  // SIGTERM 무시(네트워크/요약 대기) 시 5초 후 강제 종료 — 영구 busy 방지(close 핸들러가 running=null)
+  setTimeout(() => {
+    if (running === child) child.kill('SIGKILL');
+  }, 5000);
   return true;
+}
+
+// 앱 종료 시 진행 중 core 자식을 즉시 정리(고아 방지) — graceful 불필요
+export function killRunning(): void {
+  if (running) running.kill('SIGKILL');
 }
 // 리로드/재부착 대비 — 진행 중 run 의 시작 시각·단계, 직전 완료 결과를 메인이 보관
 let runStartedAt = 0;

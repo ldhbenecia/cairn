@@ -8,6 +8,7 @@ import {
   busyState,
   cancelRun,
   isRunning,
+  killRunning,
   probeClaude,
   runCore,
   runSnapshot,
@@ -153,7 +154,16 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:export:save-pdf', (_e, defaultName: string, html: string) =>
     savePdf(defaultName, html),
   );
-  ipcMain.handle('cairn:open-external', (_e, url: string) => shell.openExternal(url));
+  ipcMain.handle('cairn:open-external', (_e, url: string) => {
+    // 스킴 화이트리스트 — Notion href 등 외부 통제 값이 file://·vbscript: 로 로컬 핸들러를 못 켜게
+    try {
+      const p = new URL(url).protocol;
+      if (p === 'https:' || p === 'http:' || p === 'mailto:') return shell.openExternal(url);
+    } catch {
+      // invalid URL → drop
+    }
+    return Promise.resolve();
+  });
   ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());
   ipcMain.handle('cairn:logs:tail', () => tailLatestLog());
@@ -230,6 +240,7 @@ app.on('before-quit', (e) => {
     if (process.platform === 'darwin') app.dock?.hide();
     return;
   }
+  killRunning(); // 진행 중 core 자식이 고아로 남지 않게 종료 전 정리
   void shutdownTelemetry();
 });
 
