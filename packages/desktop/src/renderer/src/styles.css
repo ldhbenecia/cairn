@@ -520,6 +520,9 @@ button {
 /* 코드블록 신택스 하이라이트 — highlight.js 토큰을 타입별 색으로(테마 변수). 단색 방지 */
 .hljs {
   color: var(--color-ink-muted);
+  /* bg·padding 은 부모 <pre> 담당 — hljs 기본값이 끼어 이중 적용되지 않게 */
+  background: transparent;
+  padding: 0;
 }
 .hljs-attr,
 .hljs-attribute,

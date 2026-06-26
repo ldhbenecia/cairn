@@ -365,7 +365,7 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
     : hljs.highlightAuto(code).value;
   return (
     <div className="overflow-hidden rounded-md border border-hairline">
-      {language && language !== 'plain text' && (
+      {language && mapped !== 'plaintext' && (
         <div className="border-b border-hairline bg-surface-3 px-3 py-1 font-mono text-[10px] text-ink-tertiary select-none">
           {language}
         </div>
