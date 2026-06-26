@@ -72,7 +72,8 @@ function stripAnsi(s: string): string {
 function appendRunLog(mode: CoreMode, level: 'info' | 'err' | 'meta', line: string): void {
   try {
     mkdirSync(LOGS_DIR, { recursive: true });
-    const day = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     appendFileSync(
       join(LOGS_DIR, `desktop-run.${day}.log`),
       `${new Date().toISOString()} [${mode}] [${level}] ${line}\n`,
