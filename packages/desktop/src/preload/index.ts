@@ -130,6 +130,13 @@ contextBridge.exposeInMainWorld('cairn', {
       ipcRenderer.invoke('cairn:onboarding:finish', payload) as Promise<unknown>,
     pickFolder: () => ipcRenderer.invoke('cairn:onboarding:pick-folder') as Promise<string | null>,
   },
+  connections: {
+    accounts: () =>
+      ipcRenderer.invoke('cairn:connections:accounts') as Promise<{
+        github: { label: string; login?: string }[];
+        notion: { label: string; workspace?: string }[];
+      }>,
+  },
   cloud: {
     state: () => ipcRenderer.invoke('cairn:auth:state') as Promise<CloudAuthState>,
     signIn: () => ipcRenderer.invoke('cairn:auth:sign-in') as Promise<void>,

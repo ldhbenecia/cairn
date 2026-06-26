@@ -22,6 +22,7 @@ import {
   finishOnboarding,
   githubAccountsFromGhCli,
   listNotionDatabases,
+  probeConnectionAccounts,
   probeGithub,
   probeNotion,
   searchNotionPages,
@@ -156,6 +157,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:onboarding:probe-github', (_e, token: string) => probeGithub(token));
   ipcMain.handle('cairn:onboarding:github-from-gh', () => githubAccountsFromGhCli());
   ipcMain.handle('cairn:onboarding:probe-claude', () => probeClaude());
+  ipcMain.handle('cairn:connections:accounts', () => probeConnectionAccounts());
   ipcMain.handle('cairn:onboarding:finish', (_e, payload: OnboardingPayload) =>
     finishOnboarding(payload),
   );

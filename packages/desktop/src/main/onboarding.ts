@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { promisify } from 'node:util';
 import { findInPath, searchPathEnv } from './claude-path';
-import { CONFIG_PATH, ENV_PATH } from './setup';
+import { CONFIG_PATH, ENV_PATH, readEnvFile } from './setup';
 
 const execFileAsync = promisify(execFile);
 
@@ -162,6 +162,75 @@ export async function probeGithub(token: string): Promise<GithubProbe> {
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
+}
+
+export type ConnectionAccounts = {
+  github: { label: string; login?: string }[];
+  notion: { label: string; workspace?: string }[];
+};
+
+const PROBE_TIMEOUT_MS = 6000;
+
+// 단일 느린 네트워크 호출이 연결 탭 응답 전체를 붙잡지 않도록 — 타임아웃 시 fallback 반환
+function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function notionWorkspaceName(token: string): Promise<string | undefined> {
+  const me = (await new Client({ auth: token }).users.me({})) as {
+    name?: string;
+    bot?: { workspace_name?: string };
+  };
+  return me.bot?.workspace_name ?? me.name ?? undefined;
+}
+
+type ConnConfig = {
+  githubAccounts?: { label: string; tokenEnv: string }[];
+  notionWorkspaces?: { label: string; tokenEnv?: string }[];
+};
+
+// 연결 탭용: config + .env 토큰으로 각 계정 식별자만 조회. 토큰은 renderer 로 내보내지 않는다.
+export async function probeConnectionAccounts(): Promise<ConnectionAccounts> {
+  let config: ConnConfig;
+  try {
+    config = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as ConnConfig;
+  } catch {
+    config = {};
+  }
+  const envMap = readEnvFile();
+  const github = await Promise.all(
+    (config.githubAccounts ?? []).map(async (g) => {
+      const token = envMap[g.tokenEnv];
+      if (!token) return { label: g.label };
+      try {
+        const probe = await withTimeout(probeGithub(token), PROBE_TIMEOUT_MS, { ok: false });
+        return probe.ok ? { label: g.label, login: probe.login } : { label: g.label };
+      } catch {
+        return { label: g.label };
+      }
+    }),
+  );
+  const notion = await Promise.all(
+    (config.notionWorkspaces ?? []).map(async (w) => {
+      const token = envMap[w.tokenEnv ?? envKey('NOTION_TOKEN', w.label)];
+      if (!token) return { label: w.label };
+      try {
+        const workspace = await withTimeout(
+          notionWorkspaceName(token),
+          PROBE_TIMEOUT_MS,
+          undefined,
+        );
+        return { label: w.label, workspace };
+      } catch {
+        return { label: w.label };
+      }
+    }),
+  );
+  return { github, notion };
 }
 
 // 기존 .env 의 주석/순서를 유지한 채 키만 교체·추가

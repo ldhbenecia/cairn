@@ -100,6 +100,10 @@ export type NotionProbe = { ok: boolean; persons: { id: string; name: string }[]
 export type NotionPage = { id: string; title: string };
 export type NotionDb = { databaseId: string; dataSourceId: string; title: string };
 export type GithubProbe = { ok: boolean; login?: string; error?: string };
+export type ConnectionAccounts = {
+  github: { label: string; login?: string }[];
+  notion: { label: string; workspace?: string }[];
+};
 export type DbRef = { databaseId: string; dataSourceId: string };
 export type OnboardingPayload = {
   notion: {
@@ -158,6 +162,9 @@ declare global {
         probeClaude: () => Promise<{ ok: boolean }>;
         finish: (payload: OnboardingPayload) => Promise<{ ok: boolean; error?: string }>;
         pickFolder: () => Promise<string | null>;
+      };
+      connections: {
+        accounts: () => Promise<ConnectionAccounts>;
       };
       cloud: {
         state: () => Promise<CloudAuthState>;
