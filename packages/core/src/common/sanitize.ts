@@ -20,6 +20,8 @@ const FORBIDDEN_PATTERNS: readonly { name: string; pattern: RegExp }[] = [
   { name: 'unified-diff-new', pattern: /^\+\+\+\s/m },
   { name: 'diff-git-header', pattern: /\bdiff --git\b/ },
   { name: 'absolute-mac-path', pattern: /\/Users\/[A-Za-z0-9._-]+/ },
+  { name: 'absolute-posix-home', pattern: /\/home\/[A-Za-z0-9._-]+/ },
+  { name: 'absolute-windows-path', pattern: /[A-Za-z]:[\\/]{1,2}Users[\\/]{1,2}[A-Za-z0-9._-]+/i },
   { name: 'notion-token', pattern: /\bntn_[A-Za-z0-9]{32,}/ },
   { name: 'anthropic-token', pattern: /\bsk-ant-[A-Za-z0-9_-]{20,}/ },
   { name: 'openai-token', pattern: /\bsk-(?!ant-)[A-Za-z0-9_-]{20,}/ },

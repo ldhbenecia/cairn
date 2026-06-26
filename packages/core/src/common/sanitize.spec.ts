@@ -46,6 +46,18 @@ describe('assertNoForbiddenPayload', () => {
     );
   });
 
+  it('throws on POSIX /home path (Linux)', () => {
+    expect(() => assertNoForbiddenPayload({ p: '/home/john/.cairn/.env' }, 'test')).toThrow(
+      /absolute-posix-home/,
+    );
+  });
+
+  it('throws on Windows user path', () => {
+    expect(() => assertNoForbiddenPayload({ p: 'C:\\Users\\john\\.cairn' }, 'test')).toThrow(
+      /absolute-windows-path/,
+    );
+  });
+
   it('throws on Notion token prefix', () => {
     expect(() => assertNoForbiddenPayload({ token: `ntn_${'a'.repeat(40)}` }, 'test')).toThrow(
       /notion-token/,
