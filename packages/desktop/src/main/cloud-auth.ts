@@ -1,5 +1,5 @@
 import { BrowserWindow, shell } from 'electron';
-import { chmodSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { writeFileAtomic } from './atomic-write';
 import { createServer, type Server } from 'node:http';
 import { dirname, join } from 'node:path';
@@ -92,8 +92,8 @@ async function completeSignIn(ott: string): Promise<void> {
     writeFileAtomic(
       AUTH_PATH,
       `${JSON.stringify({ token, user: { name: u.name ?? u.email, email: u.email, image: u.image ?? null } }, null, 2)}\n`,
+      0o600, // bearer 토큰 보호 — tmp 부터 0600 으로 생성(rename 후 노출 창 없음)
     );
-    chmodSync(AUTH_PATH, 0o600); // bearer 토큰 보호
     broadcastAuth();
     const win = BrowserWindow.getAllWindows()[0];
     win?.show();

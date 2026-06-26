@@ -187,7 +187,7 @@ function writeEnvMerged(patch: Record<string, string>): void {
   });
   for (const [k, v] of Object.entries(remaining)) out.push(`${k}=${v}`);
   mkdirSync(dirname(ENV_PATH), { recursive: true });
-  writeFileAtomic(ENV_PATH, out.join('\n').replace(/\n+$/, '') + '\n');
+  writeFileAtomic(ENV_PATH, out.join('\n').replace(/\n+$/, '') + '\n', 0o600); // 토큰 포함 — owner-only
 }
 
 type ExistingWs = {
