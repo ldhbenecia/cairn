@@ -27,6 +27,7 @@ function tokenMismatchKey(kind: TokenKind, token: string): I18nKey | null {
 }
 
 type NotionEntry = {
+  uid: string;
   label: string;
   token: string;
   status: Status;
@@ -56,7 +57,9 @@ const STEP_TITLE_KEY: Record<Step, I18nKey> = {
   review: 'onb.step.review',
 };
 
+let notionSeq = 0;
 const newNotion = (label: string): NotionEntry => ({
+  uid: `n${notionSeq++}`,
   label,
   token: '',
   status: 'idle',
@@ -90,41 +93,47 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
 
   const patchNotion = (i: number, p: Partial<NotionEntry>) =>
     setNotion((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
+  // 비동기 완료 후 패치는 uid 로 — 검색 중 카드 삭제/순서변경으로 인덱스가 다른 항목을 가리키는 것 방지
+  const patchNotionById = (uid: string, p: Partial<NotionEntry>) =>
+    setNotion((prev) => prev.map((e) => (e.uid === uid ? { ...e, ...p } : e)));
   const patchGithub = (i: number, p: Partial<GithubEntry>) =>
     setGithub((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
 
   async function testNotion(i: number) {
     const e = notion[i]!;
     if (!e.token.trim()) return;
+    const uid = e.uid;
     patchNotion(i, { status: 'testing', error: undefined });
     const r = await window.cairn.onboarding.probeNotion(e.token.trim());
     if (!r.ok) {
-      patchNotion(i, { status: 'err', error: r.error });
+      patchNotionById(uid, { status: 'err', error: r.error });
       return;
     }
-    patchNotion(i, {
+    patchNotionById(uid, {
       status: 'ok',
       persons: r.persons,
       personId: r.persons.length === 1 ? r.persons[0]!.id : '',
     });
-    void searchPages(i);
+    void searchPages(uid);
   }
 
-  async function searchPages(i: number) {
-    const e = notion[i]!;
-    patchNotion(i, { searching: true });
+  async function searchPages(uid: string) {
+    const e = notion.find((n) => n.uid === uid);
+    if (!e) return;
+    patchNotionById(uid, { searching: true });
     try {
       const pages = await window.cairn.onboarding.searchNotion(e.token.trim(), e.query);
-      patchNotion(i, { pages, searched: true });
+      patchNotionById(uid, { pages, searched: true });
     } finally {
-      patchNotion(i, { searching: false });
+      patchNotionById(uid, { searching: false });
     }
   }
 
   async function loadDatabases(i: number, pageId: string) {
     const e = notion[i]!;
+    const uid = e.uid;
     const dbs = await window.cairn.onboarding.listDatabases(e.token.trim(), pageId);
-    patchNotion(i, { databases: dbs });
+    patchNotionById(uid, { databases: dbs });
   }
 
   async function testGithub(i: number) {
@@ -212,8 +221,9 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   }
 
   useEffect(() => {
+    // claude 스텝 첫 진입 시 1회 자동 확인 (idle 가드로 멱등)
     if (step === 'claude' && claudeStatus === 'idle') void testClaude();
-  }, [step]);
+  }, [step, claudeStatus]);
 
   async function addRepo() {
     const p = await window.cairn.onboarding.pickFolder();
@@ -287,11 +297,11 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 </a>
                 {notion.map((e, i) => (
                   <NotionCard
-                    key={i}
+                    key={e.uid}
                     e={e}
                     onChange={(p) => patchNotion(i, p)}
                     onTest={() => void testNotion(i)}
-                    onSearch={() => void searchPages(i)}
+                    onSearch={() => void searchPages(e.uid)}
                     onSelectPage={(pageId) => {
                       patchNotion(i, { pageId, worklogDbId: '', rollupDbId: '' });
                       void loadDatabases(i, pageId);

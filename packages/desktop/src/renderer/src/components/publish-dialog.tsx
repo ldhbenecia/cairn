@@ -96,14 +96,23 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
   const [showProgress, setShowProgress] = useState(false);
   const isToday = date === todayIso();
 
-  // runningMode 만으론 시작 시 자동 발행이 도는 걸 모르므로 전역 busy 를 따로 확인
+  // runningMode 만으론 시작 시 자동 발행이 도는 걸 모르므로 전역 busy·mode 를 따로 확인
   const [externalBusy, setExternalBusy] = useState(false);
+  const [busyMode, setBusyMode] = useState<CoreMode | null>(null);
   useEffect(() => {
-    void window.cairn.busyState().then((s) => setExternalBusy(s.busy));
-    return window.cairn.onBusy((s) => setExternalBusy(s.busy));
+    void window.cairn.busyState().then((s) => {
+      setExternalBusy(s.busy);
+      setBusyMode(s.mode);
+    });
+    return window.cairn.onBusy((s) => {
+      setExternalBusy(s.busy);
+      setBusyMode(s.mode);
+    });
   }, []);
 
-  const session = sessions[mode];
+  // 외부(자동) 발행이 다른 mode 로 돌면 그 mode 세션을 보여줘야 진행 화면이 'boot' 에 고정 안 됨
+  const activeMode = externalBusy && busyMode ? busyMode : mode;
+  const session = sessions[activeMode];
   const busy = runningMode !== null || externalBusy;
   const isRunning = session?.state === 'running';
   const isDone = session?.state === 'done';
@@ -160,7 +169,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
               <Result
                 result={session.result}
                 elapsedSec={
-                  session.endedAt
+                  session.endedAt && session.startedAt > 0
                     ? Math.max(0, Math.floor((session.endedAt - session.startedAt) / 1000))
                     : null
                 }
