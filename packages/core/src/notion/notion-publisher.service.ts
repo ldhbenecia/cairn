@@ -247,7 +247,7 @@ export class NotionPublisherService {
       ? buildSummaryBlocks(input.summary, input)
       : buildFallbackBlocks(input);
     // fail-closed: 발행 직전 조립 블록에 금지 패턴이 섞이면(모델 입력은 pre-sanitize 되지만 방어선)
-    // 마스킹하지 말고 fallback 으로 degrade (egress enforcement#3)
+    // 마스킹하지 말고 fallback 으로 degrade (egress 규칙 — 자유텍스트엔 마스킹 금지)
     try {
       assertNoForbiddenPayload(children, `notion.publish.${input.date}`);
     } catch (err) {
