@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -18,7 +18,9 @@ export class WorklogStatsService {
       const all = this.readAll();
       all[`${category}:${date}`] = { ...stat, updatedAt: new Date().toISOString() };
       mkdirSync(STATS_DIR, { recursive: true });
-      writeFileSync(STATS_PATH, JSON.stringify(all), 'utf8');
+      const tmp = `${STATS_PATH}.${process.pid}.tmp`;
+      writeFileSync(tmp, JSON.stringify(all), 'utf8');
+      renameSync(tmp, STATS_PATH);
     } catch {
       // 통계 기록 실패가 발행을 막지 않음(best-effort)
     }
