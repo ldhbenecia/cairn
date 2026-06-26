@@ -105,14 +105,17 @@ export class GithubApiClient {
     authorLogin?: string,
   ): Promise<Array<{ shortSha: string; subject: string; authoredAt: string }>> {
     const all = await this.listPrCommitsCached(token, owner, repo, pullNumber);
+    // authoredAt 은 커미터 offset 을 보존한 ISO(예: +09:00), sinceIso/untilIso 는 Z 정규화 윈도우.
+    // 사전식 문자열 비교는 offset 차이로 어긋나므로 instant(Date.parse) 로 비교한다.
+    const since = Date.parse(sinceIso);
+    const until = Date.parse(untilIso);
     return all
-      .filter(
-        (c) =>
-          !c.isMerge &&
-          c.authoredAt >= sinceIso &&
-          c.authoredAt <= untilIso &&
-          (!authorLogin || !c.authorLogin || c.authorLogin === authorLogin),
-      )
+      .filter((c) => {
+        if (c.isMerge) return false;
+        if (authorLogin && c.authorLogin && c.authorLogin !== authorLogin) return false;
+        const t = Date.parse(c.authoredAt);
+        return t >= since && t <= until;
+      })
       .map(({ shortSha, subject, authoredAt }) => ({ shortSha, subject, authoredAt }));
   }
 
