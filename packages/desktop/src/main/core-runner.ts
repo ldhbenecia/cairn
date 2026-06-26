@@ -76,7 +76,7 @@ function appendRunLog(mode: CoreMode, level: 'info' | 'err' | 'meta', line: stri
     const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     appendFileSync(
       join(LOGS_DIR, `desktop-run.${day}.log`),
-      `${new Date().toISOString()} [${mode}] [${level}] ${line}\n`,
+      `${now.toISOString()} [${mode}] [${level}] ${line}\n`,
       'utf8',
     );
   } catch {
