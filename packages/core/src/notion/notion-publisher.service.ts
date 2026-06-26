@@ -243,9 +243,20 @@ export class NotionPublisherService {
     token: string,
     dataSourceId: string,
   ): Promise<{ id: string; url: string | null }> {
-    const children = input.summary
+    let children = input.summary
       ? buildSummaryBlocks(input.summary, input)
       : buildFallbackBlocks(input);
+    // fail-closed: 발행 직전 조립 블록에 금지 패턴이 섞이면(모델 입력은 pre-sanitize 되지만 방어선)
+    // 마스킹하지 말고 fallback 으로 degrade (egress enforcement#3)
+    try {
+      assertNoForbiddenPayload(children, `notion.publish.${input.date}`);
+    } catch (err) {
+      this.logger.warn(
+        { date: input.date, err: String(err) },
+        'publish blocks tripped forbidden pattern — degrading to fallback',
+      );
+      children = buildFallbackBlocks(input);
+    }
     this.logger.info(
       {
         date: input.date,
