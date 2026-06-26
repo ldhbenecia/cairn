@@ -37,17 +37,21 @@ function broadcastAuth(): void {
 const DONE_HTML = `<!doctype html><meta charset="utf-8"><title>cairn</title><body style="margin:0;display:flex;height:100vh;align-items:center;justify-content:center;background:#0a0a0a;color:#e5e5e5;font-family:system-ui,sans-serif"><div style="text-align:center"><p style="font-size:15px;font-weight:600">로그인 완료</p><p style="font-size:13px;color:#a3a3a3">이제 cairn 앱으로 돌아가세요.</p></div><script>setTimeout(()=>window.close(),1200)</script></body>`;
 
 let server: Server | null = null;
+let authTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function stopServer(): void {
   if (server) {
     server.close();
     server = null;
   }
+  if (authTimeout) {
+    clearTimeout(authTimeout);
+    authTimeout = null;
+  }
 }
 
 export function startCloudSignIn(): void {
   stopServer();
-  let idleTimer: ReturnType<typeof setTimeout> | null = null;
   const current = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     const ott = url.searchParams.get('token');
@@ -60,7 +64,10 @@ export function startCloudSignIn(): void {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     res.end(DONE_HTML);
     void completeSignIn(ott);
-    if (idleTimer) clearTimeout(idleTimer);
+    if (authTimeout) {
+      clearTimeout(authTimeout);
+      authTimeout = null;
+    }
     current.close();
     if (server === current) server = null;
   });
@@ -71,7 +78,7 @@ export function startCloudSignIn(): void {
     void shell.openExternal(`${WEB_BASE}/desktop-login?port=${port}`);
   });
   // 브라우저 로그인 플로우를 포기하면 포트가 무기한 점유되지 않도록 5분 후 정리
-  idleTimer = setTimeout(
+  authTimeout = setTimeout(
     () => {
       if (server === current) stopServer();
     },
