@@ -48,8 +48,11 @@ export class GithubCollectorService {
     // 과거 (backfill) 만 widening 적용해서 updated_at 이 밀린 케이스 cover
     const isBackfill = date < todayLocalIsoDate();
     const effectiveLookback = isBackfill ? lookbackDays : 0;
+    // 양쪽 bound — 상한 없는 >= 는 updated-desc 페이징(1000 cap)에서 오래된 날짜 backfill 을 잘라먹음
     const widenedRange =
-      effectiveLookback > 0 ? `>=${localDateStartIsoBefore(date, effectiveLookback)}` : range;
+      effectiveLookback > 0
+        ? `${localDateStartIsoBefore(date, effectiveLookback)}..${window.endIso}`
+        : range;
     const accounts = this.worklogConfig.getGithubAccounts();
 
     if (accounts.length === 0) {
