@@ -297,6 +297,7 @@ export function isRunning(): boolean {
 
 function broadcast(channel: string, payload: unknown): void {
   for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed() || win.webContents.isDestroyed()) continue;
     win.webContents.send(channel, payload);
   }
 }
@@ -466,26 +467,29 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
         summaryFailed: SUMMARY_FAILED_REGEX.test(stdoutAll),
         stderrTail: tail,
       };
-      const outcome = result.ok ? (finalNoActivity ? 'no-activity' : 'ok') : 'fail';
-      trackPublish(mode, outcome);
-      if (!cancelled) sendResultNotification(mode, result);
-      if (!cancelled && result.ok && lastPageId && !finalNoActivity) {
-        const pad = (n: number): string => String(n).padStart(2, '0');
-        const d = new Date();
-        const localDate =
-          options.date ?? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-        const fileBase = mode === 'daily' ? localDate : `${localDate}-${mode}`;
-        void syncWorklogToFolder({
-          pageId: lastPageId,
-          fileBase,
-          title: fileBase,
-          date: localDate,
-        }).catch((err: unknown) => {
-          emit('err', `[export] sync 실패: ${err instanceof Error ? err.message : String(err)}`);
-        });
+      try {
+        const outcome = result.ok ? (finalNoActivity ? 'no-activity' : 'ok') : 'fail';
+        trackPublish(mode, outcome);
+        if (!cancelled) sendResultNotification(mode, result);
+        if (!cancelled && result.ok && lastPageId && !finalNoActivity) {
+          const pad = (n: number): string => String(n).padStart(2, '0');
+          const d = new Date();
+          const localDate =
+            options.date ?? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          const fileBase = mode === 'daily' ? localDate : `${localDate}-${mode}`;
+          void syncWorklogToFolder({
+            pageId: lastPageId,
+            fileBase,
+            title: fileBase,
+            date: localDate,
+          }).catch((err: unknown) => {
+            emit('err', `[export] sync 실패: ${err instanceof Error ? err.message : String(err)}`);
+          });
+        }
+        broadcastRunDone(mode, result);
+      } finally {
+        resolvePromise(result);
       }
-      broadcastRunDone(mode, result);
-      resolvePromise(result);
     });
     child.on('error', (err) => {
       running = null;
