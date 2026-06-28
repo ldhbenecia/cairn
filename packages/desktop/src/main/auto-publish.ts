@@ -121,7 +121,7 @@ async function executeRuns(runs: DueRun[]): Promise<void> {
   for (const { mode, options, rollupField, anchor } of runs) {
     notifyAutoStart(mode);
     try {
-      const result = await runCore(mode, options);
+      const result = await runCore(mode, options, 'scheduled');
       // runCore 는 실패 시 throw 가 아니라 ok:false 를 반환 → 성공일 때만 anchor 기록(실패면 다음 실행에서 재시도)
       if (result.ok && rollupField && anchor) {
         writeAutoPublishState({ ...readAutoPublishState(), [rollupField]: anchor });
