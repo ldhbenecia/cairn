@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { isOperator } from '../common/operator.js';
+import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type { RollupActivity } from '../contracts/rollup-activity.types.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogLang } from '../cairn/run-options.js';
@@ -46,7 +47,7 @@ export class RollupPublisherService {
 
   async precheck(
     period: 'weekly' | 'monthly',
-    kstDate: string,
+    localDate: string,
     force: boolean,
   ): Promise<PublishRollupResult | null> {
     const target = this.worklogConfig
@@ -60,7 +61,7 @@ export class RollupPublisherService {
     const dataSourceId = target.rollup?.dataSourceId;
     if (!dataSourceId) return null;
 
-    const { start, end } = periodRange(period, kstDate);
+    const { start, end } = periodRange(period, localDate);
     try {
       const existing = await this.rollupApi.findRollupPageByRange(
         token,
@@ -215,9 +216,28 @@ export class RollupPublisherService {
   ): Promise<{ id: string; url: string | null }> {
     const { activity, summary, lang } = input;
     const title = buildTitle(activity, lang);
-    const children = summary
+    let children = summary
       ? buildRollupBlocks(summary, activity, lang)
       : buildRollupFallbackBlocks(activity, lang);
+    try {
+      assertNoForbiddenPayload(
+        children,
+        `rollup.publish.${activity.period}.${activity.rangeStart}`,
+      );
+    } catch {
+      this.logger.warn(
+        { period: activity.period, rangeStart: activity.rangeStart },
+        'rollup blocks tripped forbidden pattern — degrading to fallback',
+      );
+      children = buildRollupFallbackBlocks(activity, lang);
+      try {
+        assertNoForbiddenPayload(children, `rollup.publish.fallback.${activity.rangeStart}`);
+      } catch {
+        throw new Error(
+          `rollup.publish.${activity.period}.${activity.rangeStart}: fallback also tripped forbidden pattern`,
+        );
+      }
+    }
     const created = await this.rollupApi.createRollupPage({
       token,
       dataSourceId,

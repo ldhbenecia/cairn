@@ -1,3 +1,4 @@
+import { powerMonitor } from 'electron';
 import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { notifyAutoConfirm, notifyAutoStart } from './notifier';
 import { readSettings, type AutoPublish } from './settings';
@@ -38,6 +39,10 @@ function lastCompletedMonthAnchor(now: Date): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
+function localTodayIso(now: Date): string {
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+}
+
 const anyAutoOn = (cfg: AutoPublish): boolean => cfg.daily || cfg.weekly || cfg.monthly;
 
 export function isScheduledTimeReached(now: Date, time: string): boolean {
@@ -61,7 +66,17 @@ type DueRun = {
 function dueRuns(cfg: AutoPublish, state: AutoPublishState): DueRun[] {
   const now = new Date();
   const runs: DueRun[] = [];
-  if (cfg.daily) runs.push({ mode: 'daily', options: { backfillDays: cfg.backfillDays } });
+  if (cfg.daily) {
+    const today = localTodayIso(now);
+    if (state.daily !== today) {
+      runs.push({
+        mode: 'daily',
+        options: { backfillDays: cfg.backfillDays },
+        rollupField: 'daily',
+        anchor: today,
+      });
+    }
+  }
   if (cfg.weekly) {
     const anchor = lastCompletedWeekAnchor(now);
     if (state.weekly !== anchor) {
@@ -77,22 +92,32 @@ function dueRuns(cfg: AutoPublish, state: AutoPublishState): DueRun[] {
   return runs;
 }
 
-async function runAutoPublish(trigger: 'startup' | 'scheduled'): Promise<void> {
+async function runAutoPublish(): Promise<void> {
   const cfg = readSettings().autoPublish;
 
-  // 시작 시 백필은 예약 시각이 이미 지난 경우에만 — 아니면 앱을 켜는 순간 오늘치가 발행돼 버린다
-  if (trigger === 'startup' && !isScheduledTimeReached(new Date(), cfg.time)) return;
+  // 잠자기로 밀린 타이머가 깨어날 때 즉시 발화해도 예약 시각 전이면 발행 안 함
+  if (!isScheduledTimeReached(new Date(), cfg.time)) return;
 
   const runs = dueRuns(cfg, readAutoPublishState());
   if (runs.length === 0) return;
 
   if (cfg.confirmBeforeRun) {
-    notifyAutoConfirm(runs[0]!.mode);
+    const shown = notifyAutoConfirm(
+      runs.map((r) => r.mode),
+      () => void executeRuns(dueRuns(cfg, readAutoPublishState())),
+    );
+    if (!shown) await executeRuns(runs);
     return;
   }
 
-  if (isRunning()) return;
+  await executeRuns(runs);
+}
 
+async function executeRuns(runs: DueRun[]): Promise<void> {
+  if (isRunning()) {
+    console.warn(`[auto-publish] busy — skipped: ${runs.map((r) => r.mode).join(', ')}`);
+    return;
+  }
   for (const { mode, options, rollupField, anchor } of runs) {
     notifyAutoStart(mode);
     try {
@@ -115,14 +140,18 @@ function scheduleDaily(): void {
   const cfg = readSettings().autoPublish;
   if (!anyAutoOn(cfg)) return;
   dailyTimer = setTimeout(() => {
-    void runAutoPublish('scheduled');
+    void runAutoPublish();
     scheduleDaily();
   }, msUntilLocalTime(cfg.time));
 }
 
 export function initAutoPublish(): void {
-  void runAutoPublish('startup');
+  void runAutoPublish();
   scheduleDaily();
+  powerMonitor.on('resume', () => {
+    scheduleDaily();
+    void runAutoPublish();
+  });
 }
 
 export function reconfigureAutoPublish(): void {

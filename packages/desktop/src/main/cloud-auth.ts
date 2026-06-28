@@ -54,6 +54,11 @@ function stopServer(): void {
 export function startCloudSignIn(): void {
   stopServer();
   const current = createServer((req, res) => {
+    if (req.method !== 'GET') {
+      res.writeHead(405);
+      res.end();
+      return;
+    }
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     const ott = url.searchParams.get('token');
     // favicon 등 토큰 없는 부가 요청은 무시 — 세션 닫지 않음

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, Check, Copy, Info, Sparkles, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { pool, sectionBullets } from '../lib/blocks';
@@ -59,6 +59,13 @@ export function AchievementsDialog({
     null,
   );
   const [copied, setCopied] = useState(false);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const countInRange = (r: number): number =>
     (recent?.pages ?? []).filter(
@@ -80,16 +87,19 @@ export function AchievementsDialog({
     setScanTotal(target.length);
     const perDay = await pool(target, 4, async (p) => {
       const date = p.date as string;
+      if (!alive.current) return { date, bullets: [] as string[] };
       try {
         const content = await window.cairn.pageContent(p.pageId, p.workspaceLabel);
+        if (!alive.current) return { date, bullets: [] as string[] };
         const bullets = sectionBullets(content.blocks, 'done');
         setScanned((prev) => [...prev, { key: p.pageId, date, count: bullets.length }]);
         return { date, bullets };
       } catch {
-        setScanned((prev) => [...prev, { key: p.pageId, date, count: 0 }]);
+        if (alive.current) setScanned((prev) => [...prev, { key: p.pageId, date, count: 0 }]);
         return { date, bullets: [] as string[] };
       }
     });
+    if (!alive.current) return;
     const byMonth = new Map<string, string[]>();
     for (const d of perDay) {
       if (d.bullets.length === 0) continue;

@@ -72,7 +72,7 @@ export class GithubCollectorService {
 
     const settled = await Promise.allSettled(
       accounts.map((account) =>
-        this.collectAccount(account, range, widenedRange, window.startIso, window.endIso),
+        this.collectAccount(account, widenedRange, window.startIso, window.endIso),
       ),
     );
 
@@ -108,7 +108,6 @@ export class GithubCollectorService {
 
   private async collectAccount(
     account: GithubAccountConfig,
-    range: string,
     widenedRange: string,
     sinceIso: string,
     untilIso: string,

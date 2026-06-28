@@ -36,8 +36,8 @@ export class RollupCollectorService {
     private readonly logger: PinoLogger,
   ) {}
 
-  async collect(period: RollupPeriod, kstDate: string): Promise<RollupActivity> {
-    const { start, end } = periodRange(period, kstDate);
+  async collect(period: RollupPeriod, localDate: string): Promise<RollupActivity> {
+    const { start, end } = periodRange(period, localDate);
     const target = this.findTarget();
 
     if (!target) {

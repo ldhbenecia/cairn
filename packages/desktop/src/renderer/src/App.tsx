@@ -83,6 +83,7 @@ export function App() {
   const [busy, setBusy] = useState<BusyState>({ busy: false, mode: null });
   const busyRef = useRef(busy);
   busyRef.current = busy;
+  const signedInRef = useRef(false);
   const [recent, setRecent] = useState<RecentListResult | null>(readRecentCache);
   const { t } = useSettings();
 
@@ -121,6 +122,7 @@ export function App() {
 
   useEffect(() => {
     const trySync = (signedIn: boolean): void => {
+      signedInRef.current = signedIn;
       if (signedIn) void window.cairn.cloud.syncNow().catch(() => {});
     };
     void window.cairn.cloud
@@ -206,7 +208,7 @@ export function App() {
       });
       setRunningMode((rm) => (rm === mode ? null : rm));
       void loadRecent();
-      void window.cairn.cloud.syncNow().catch(() => {});
+      if (signedInRef.current) void window.cairn.cloud.syncNow().catch(() => {});
     });
     return off;
   }, [loadRecent]);
@@ -260,6 +262,7 @@ export function App() {
 
   useEffect(() => {
     const off = window.cairn.onFocusMode((focused) => {
+      setPrefsOpen(false);
       setView('worklogs');
       setFilter(focused);
     });
@@ -284,17 +287,20 @@ export function App() {
     async (mode: CoreMode, options?: CoreRunOptions) => {
       const active = busyRef.current;
       if (active.busy) {
-        setSessions((prev) => ({
-          ...prev,
-          [mode]: {
-            state: 'done',
-            step: 'boot',
-            lines: [],
-            startedAt: Date.now(),
-            endedAt: Date.now(),
-            error: t('publish.busyMsg'),
-          },
-        }));
+        setSessions((prev) => {
+          if (prev[mode]?.state === 'running' || active.mode === mode) return prev;
+          return {
+            ...prev,
+            [mode]: {
+              state: 'done',
+              step: 'boot',
+              lines: [],
+              startedAt: Date.now(),
+              endedAt: Date.now(),
+              error: t('publish.busyMsg'),
+            },
+          };
+        });
         return;
       }
       setRunningMode(mode);

@@ -195,15 +195,33 @@ export class NotionPublisherService {
     return { kind: 'created', pageId: created.id, url: created.url };
   }
 
+  private readonly dbInflight = new Map<
+    string,
+    Promise<{ databaseId: string; dataSourceId: string }>
+  >();
+
   private async ensureDatabaseAndDataSource(
     target: NotionWorkspaceConfig,
     token: string,
   ): Promise<{ databaseId: string; dataSourceId: string }> {
     const cached = target.worklog;
-
     if (cached?.databaseId && cached.dataSourceId) {
       return { databaseId: cached.databaseId, dataSourceId: cached.dataSourceId };
     }
+    const inflight = this.dbInflight.get(target.label);
+    if (inflight) return inflight;
+    const promise = this.resolveDatabaseAndDataSource(target, token).finally(() => {
+      this.dbInflight.delete(target.label);
+    });
+    this.dbInflight.set(target.label, promise);
+    return promise;
+  }
+
+  private async resolveDatabaseAndDataSource(
+    target: NotionWorkspaceConfig,
+    token: string,
+  ): Promise<{ databaseId: string; dataSourceId: string }> {
+    const cached = target.worklog;
 
     if (cached?.databaseId) {
       const dataSourceId = await this.client.getPrimaryDataSourceId(token, cached.databaseId);

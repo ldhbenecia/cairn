@@ -32,12 +32,13 @@ export function withFileLock<T>(targetPath: string, fn: () => T): T {
       sleepSync(RETRY_MS);
     }
   }
+  if (fd === null) {
+    throw new Error(`withFileLock: lock not acquired for ${targetPath} within ${MAX_WAIT_MS}ms`);
+  }
   try {
     return fn();
   } finally {
-    if (fd !== null) {
-      closeSync(fd);
-      rmSync(lockPath, { force: true });
-    }
+    closeSync(fd);
+    rmSync(lockPath, { force: true });
   }
 }

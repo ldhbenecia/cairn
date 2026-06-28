@@ -51,9 +51,35 @@ export function notifyAutoStart(mode: CoreMode): void {
   notify(mt('notify.autoTitle'), mt('notify.autoRunning', { mode: modeLabel(mode) }), mode);
 }
 
-export function notifyAutoConfirm(mode: CoreMode): void {
-  if (!readSettings().notifications) return;
-  notify(mt('notify.autoConfirmTitle'), mt('notify.autoConfirm', { mode: modeLabel(mode) }), mode);
+// 참조를 안 잡으면 GC 가 Notification 을 수거해 click 리스너가 죽는다(Electron) — click/close 시 해제
+const activeNotifications = new Set<Notification>();
+
+function notifyWithAction(title: string, body: string, onClick: () => void): boolean {
+  app.dock?.bounce('informational');
+  if (!Notification.isSupported()) return false;
+  const noti = new Notification({ title, body });
+  activeNotifications.add(noti);
+  noti.on('click', () => {
+    activeNotifications.delete(noti);
+    onClick();
+  });
+  noti.on('close', () => activeNotifications.delete(noti));
+  noti.show();
+  return true;
+}
+
+export function notifyAutoConfirm(modes: CoreMode[], onConfirm: () => void): boolean {
+  const primary = modes[0];
+  if (!primary) return false;
+  const label = modes.map((m) => modeLabel(m)).join(', ');
+  return notifyWithAction(
+    mt('notify.autoConfirmTitle'),
+    mt('notify.autoConfirm', { mode: label }),
+    () => {
+      focusModeInApp(primary);
+      onConfirm();
+    },
+  );
 }
 
 // 명시적 요청이므로 설정 토글과 무관하게 항상 표시 시도 (권한 프롬프트 유도 포함)

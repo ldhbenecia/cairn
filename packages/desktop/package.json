@@ -1,6 +1,6 @@
 {
   "name": "@cairn/desktop",
-  "version": "0.10.6",
+  "version": "0.10.7",
   "private": true,
   "description": "cairn desktop — Electron shell for cairn engine. menubar tray + manual triggers + native notifications.",
   "author": "Donghyeok Lim",

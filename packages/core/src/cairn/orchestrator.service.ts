@@ -393,6 +393,17 @@ export class OrchestratorService {
 
     const summary = await this.rollupSummarizer.summarize({ activity }, options.lang);
 
+    if (!summary) {
+      this.logger.warn(
+        { period: activity.period, rangeStart: activity.rangeStart },
+        'rollup: summary generation failed — aborting publish',
+      );
+      throw CairnError.from(
+        new Error('롤업 요약 생성 실패 — Claude 세션/쿼터를 확인한 뒤 다시 발행하세요'),
+        'summarizer',
+      );
+    }
+
     const result = await this.rollupPublisher.publish({
       activity,
       force: options.force,

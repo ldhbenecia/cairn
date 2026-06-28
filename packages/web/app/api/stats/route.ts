@@ -8,6 +8,7 @@ import { worklogStats } from '@/lib/schema';
 const CATEGORIES = new Set(['daily', 'weekly', 'monthly']);
 const MAX_COUNT = 100_000; // int4 overflow·과대값 차단 (도메인 상한)
 const HOURS_LEN = 24;
+const ISO_8601_OFFSET = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 type StatRow = {
   category: string;
@@ -53,7 +54,9 @@ function parseRows(input: unknown): StatRow[] | null {
     if (!Array.isArray(o.hours) || o.hours.length > HOURS_LEN) return null;
     if (o.hours.some((h) => !Number.isInteger(h) || (h as number) < 0 || (h as number) > MAX_COUNT))
       return null;
-    if (typeof o.updatedAt !== 'string' || Number.isNaN(Date.parse(o.updatedAt))) return null;
+    if (typeof o.updatedAt !== 'string' || !ISO_8601_OFFSET.test(o.updatedAt)) return null;
+    const updatedTs = Date.parse(o.updatedAt);
+    if (Number.isNaN(updatedTs) || updatedTs > Date.now() + 86_400_000) return null;
     // reader 가 hours[0..23] 인덱싱하므로 정확히 24칸 보장(부족분 0 패딩)
     const hours = o.hours as number[];
     const normalizedHours =

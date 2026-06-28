@@ -18,7 +18,3 @@ export function isOperator(): boolean {
   cached = hash === OPERATOR_SECRET_HASH;
   return cached;
 }
-
-export function resetOperatorCache(): void {
-  cached = undefined;
-}

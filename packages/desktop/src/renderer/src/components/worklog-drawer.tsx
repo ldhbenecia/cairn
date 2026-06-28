@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import hljs from 'highlight.js';
 import {
   Check,
@@ -165,6 +165,9 @@ export function WorklogDrawer({ page, onClose }: Props) {
     };
   }, [page.pageId, page.workspaceLabel]);
 
+  const resizeCleanup = useRef<(() => void) | null>(null);
+  useEffect(() => () => resizeCleanup.current?.(), []);
+
   function requestClose() {
     setClosing(true);
     setTimeout(onClose, 200);
@@ -175,12 +178,17 @@ export function WorklogDrawer({ page, onClose }: Props) {
     const max = Math.min(900, Math.round(window.innerWidth * 0.92));
     const onMove = (ev: MouseEvent) =>
       setWidth(Math.min(max, Math.max(360, window.innerWidth - ev.clientX)));
-    const onUp = () => {
+    function cleanup() {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-    };
+      resizeCleanup.current = null;
+    }
+    function onUp() {
+      cleanup();
+    }
+    resizeCleanup.current = cleanup; // 드래그 중 drawer 언마운트 시 리스너 정리(누수 방지)
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
     document.addEventListener('mousemove', onMove);

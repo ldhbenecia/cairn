@@ -239,7 +239,8 @@ function writeEnvMerged(patch: Record<string, string>): void {
   let lines: string[];
   try {
     lines = readFileSync(ENV_PATH, 'utf8').split('\n');
-  } catch {
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
     lines = [];
   }
   const remaining = { ...patch };

@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { AppConfigService } from '../config/app-config.service.js';
+import { withFileLock } from '../common/file-lock.js';
 import {
   worklogConfigSchema,
   type GithubAccountConfig,
@@ -67,26 +68,26 @@ export class WorklogConfigService {
     workspaceLabel: string,
     ids: { databaseId: string; dataSourceId: string },
   ): void {
-    const { config, path } = this.readForPersist('persistWorklogTarget');
-
-    let matched = false;
-    const next: WorklogConfig = {
-      ...config,
-      notionWorkspaces: config.notionWorkspaces.map((ws) => {
-        if (ws.label !== workspaceLabel) return ws;
-        matched = true;
-        return {
-          ...ws,
-          worklog: { ...ws.worklog, databaseId: ids.databaseId, dataSourceId: ids.dataSourceId },
-        };
-      }),
-    };
-
-    if (!matched) {
-      throw new Error(`persistWorklogTarget: workspace ${workspaceLabel} not found in config`);
-    }
-
-    this.writePersist(path, next);
+    const path = this.resolvePath();
+    withFileLock(path, () => {
+      const { config } = this.readForPersist('persistWorklogTarget');
+      let matched = false;
+      const next: WorklogConfig = {
+        ...config,
+        notionWorkspaces: config.notionWorkspaces.map((ws) => {
+          if (ws.label !== workspaceLabel) return ws;
+          matched = true;
+          return {
+            ...ws,
+            worklog: { ...ws.worklog, databaseId: ids.databaseId, dataSourceId: ids.dataSourceId },
+          };
+        }),
+      };
+      if (!matched) {
+        throw new Error(`persistWorklogTarget: workspace ${workspaceLabel} not found in config`);
+      }
+      this.writePersist(path, next);
+    });
     this.logger.info(
       { workspace: workspaceLabel, kind: 'worklog', ...ids, path },
       'worklog config: worklog.databaseId / dataSourceId 자동 저장',
@@ -97,26 +98,26 @@ export class WorklogConfigService {
     workspaceLabel: string,
     ids: { databaseId: string; dataSourceId: string },
   ): void {
-    const { config, path } = this.readForPersist('persistRollupTarget');
-
-    let matched = false;
-    const next: WorklogConfig = {
-      ...config,
-      notionWorkspaces: config.notionWorkspaces.map((ws) => {
-        if (ws.label !== workspaceLabel) return ws;
-        matched = true;
-        return {
-          ...ws,
-          rollup: { ...ws.rollup, databaseId: ids.databaseId, dataSourceId: ids.dataSourceId },
-        };
-      }),
-    };
-
-    if (!matched) {
-      throw new Error(`persistRollupTarget: workspace ${workspaceLabel} not found in config`);
-    }
-
-    this.writePersist(path, next);
+    const path = this.resolvePath();
+    withFileLock(path, () => {
+      const { config } = this.readForPersist('persistRollupTarget');
+      let matched = false;
+      const next: WorklogConfig = {
+        ...config,
+        notionWorkspaces: config.notionWorkspaces.map((ws) => {
+          if (ws.label !== workspaceLabel) return ws;
+          matched = true;
+          return {
+            ...ws,
+            rollup: { ...ws.rollup, databaseId: ids.databaseId, dataSourceId: ids.dataSourceId },
+          };
+        }),
+      };
+      if (!matched) {
+        throw new Error(`persistRollupTarget: workspace ${workspaceLabel} not found in config`);
+      }
+      this.writePersist(path, next);
+    });
     this.logger.info(
       { workspace: workspaceLabel, kind: 'rollup', ...ids, path },
       'worklog config: rollup.databaseId / dataSourceId 자동 저장',
@@ -134,7 +135,9 @@ export class WorklogConfigService {
   }
 
   private writePersist(path: string, next: WorklogConfig): void {
-    writeFileSync(path, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+    const tmp = `${path}.${process.pid}.tmp`;
+    writeFileSync(tmp, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+    renameSync(tmp, path);
     this.cached = next;
   }
 

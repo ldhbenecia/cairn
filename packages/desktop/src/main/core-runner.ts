@@ -110,8 +110,16 @@ let cancelRequested = false;
 export function cancelRun(): boolean {
   if (!running) return false;
   cancelRequested = true;
-  running.kill('SIGTERM');
+  const child = running;
+  child.kill('SIGTERM');
+  setTimeout(() => {
+    if (running === child) child.kill('SIGKILL');
+  }, 5000);
   return true;
+}
+
+export function killRunning(): void {
+  if (running) running.kill('SIGKILL');
 }
 // 리로드/재부착 대비 — 진행 중 run 의 시작 시각·단계, 직전 완료 결과를 메인이 보관
 let runStartedAt = 0;
@@ -402,13 +410,16 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
   const stderrLines: string[] = [];
   const stdoutLines: string[] = [];
   let stdoutAll = '';
+  let stdoutCarry = '';
   let noActivity = false;
 
   child.stdout?.on('data', (buf: Buffer) => {
     const text = stripAnsi(buf.toString('utf8'));
     stdoutAll += text;
     if (NO_ACTIVITY_REGEX.test(text)) noActivity = true;
-    for (const line of text.split('\n')) {
+    const lines = (stdoutCarry + text).split('\n');
+    stdoutCarry = lines.pop() ?? '';
+    for (const line of lines) {
       if (line.length === 0) continue;
       stdoutLines.push(line);
       emit('info', line);
