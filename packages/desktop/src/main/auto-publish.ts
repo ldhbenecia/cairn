@@ -92,11 +92,11 @@ function dueRuns(cfg: AutoPublish, state: AutoPublishState): DueRun[] {
   return runs;
 }
 
-async function runAutoPublish(trigger: 'startup' | 'scheduled'): Promise<void> {
+async function runAutoPublish(): Promise<void> {
   const cfg = readSettings().autoPublish;
 
-  // 시작 시 백필은 예약 시각이 이미 지난 경우에만 — 아니면 앱을 켜는 순간 오늘치가 발행돼 버린다
-  if (trigger === 'startup' && !isScheduledTimeReached(new Date(), cfg.time)) return;
+  // 잠자기로 밀린 타이머가 깨어날 때 즉시 발화해도 예약 시각 전이면 발행 안 함
+  if (!isScheduledTimeReached(new Date(), cfg.time)) return;
 
   const runs = dueRuns(cfg, readAutoPublishState());
   if (runs.length === 0) return;
@@ -140,17 +140,17 @@ function scheduleDaily(): void {
   const cfg = readSettings().autoPublish;
   if (!anyAutoOn(cfg)) return;
   dailyTimer = setTimeout(() => {
-    void runAutoPublish('scheduled');
+    void runAutoPublish();
     scheduleDaily();
   }, msUntilLocalTime(cfg.time));
 }
 
 export function initAutoPublish(): void {
-  void runAutoPublish('startup');
+  void runAutoPublish();
   scheduleDaily();
   powerMonitor.on('resume', () => {
     scheduleDaily();
-    void runAutoPublish('startup');
+    void runAutoPublish();
   });
 }
 
