@@ -94,7 +94,10 @@ export async function syncStats(): Promise<void> {
     });
 
     if (changed) {
-      for (const win of BrowserWindow.getAllWindows()) win.webContents.send('cairn:stats:synced');
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (win.isDestroyed() || win.webContents.isDestroyed()) continue;
+        win.webContents.send('cairn:stats:synced');
+      }
     }
 
     for (let i = 0; i < rows.length; i += BATCH) {

@@ -2,6 +2,7 @@ import { Client } from '@notionhq/client';
 import { execFile } from 'node:child_process';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { writeFileAtomic } from './atomic-write';
+import { withFileLock } from './file-lock';
 import { dirname } from 'node:path';
 import { promisify } from 'node:util';
 import { findInPath, searchPathEnv } from './claude-path';
@@ -267,61 +268,64 @@ type ExistingWs = {
 
 export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; error?: string } {
   try {
-    // 재실행 시 자동 생성된 DB id 보존을 위해 기존 config 를 먼저 읽음
-    let existing: Record<string, unknown> = {};
-    try {
-      existing = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as Record<string, unknown>;
-    } catch {
-      existing = {};
-    }
-    const prevWorkspaces = (existing.notionWorkspaces as ExistingWs[] | undefined) ?? [];
-
-    const env: Record<string, string> = {};
-    const notionWorkspaces = payload.notion.map((w) => {
-      const tokenEnv = envKey('NOTION_TOKEN', w.label);
-      env[tokenEnv] = w.token;
-      const prev = prevWorkspaces.find((p) => p.worklog?.pageId === w.pageId);
-      // 우선순위: 사용자가 고른 기존 DB > 기존 config 보존 > pageId 만(첫 발행 시 자동 생성)
-      const worklog: { pageId: string; databaseId?: string; dataSourceId?: string } = {
-        pageId: w.pageId,
-      };
-      if (w.worklogDb) {
-        worklog.databaseId = w.worklogDb.databaseId;
-        worklog.dataSourceId = w.worklogDb.dataSourceId;
-      } else if (prev?.worklog) {
-        if (prev.worklog.databaseId) worklog.databaseId = prev.worklog.databaseId;
-        if (prev.worklog.dataSourceId) worklog.dataSourceId = prev.worklog.dataSourceId;
+    // 재실행 시 자동 생성된 DB id 보존을 위해 기존 config 를 먼저 읽음.
+    // core(worklog-config) 가 첫 발행 후 같은 파일에 DB id 를 자동저장하므로 동일 락으로 직렬화.
+    return withFileLock(CONFIG_PATH, () => {
+      let existing: Record<string, unknown>;
+      try {
+        existing = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as Record<string, unknown>;
+      } catch {
+        existing = {};
       }
-      const ws: Record<string, unknown> = {
-        label: w.label,
-        tokenEnv,
-        myUserId: w.myUserId,
-        worklog,
+      const prevWorkspaces = (existing.notionWorkspaces as ExistingWs[] | undefined) ?? [];
+
+      const env: Record<string, string> = {};
+      const notionWorkspaces = payload.notion.map((w) => {
+        const tokenEnv = envKey('NOTION_TOKEN', w.label);
+        env[tokenEnv] = w.token;
+        const prev = prevWorkspaces.find((p) => p.worklog?.pageId === w.pageId);
+        // 우선순위: 사용자가 고른 기존 DB > 기존 config 보존 > pageId 만(첫 발행 시 자동 생성)
+        const worklog: { pageId: string; databaseId?: string; dataSourceId?: string } = {
+          pageId: w.pageId,
+        };
+        if (w.worklogDb) {
+          worklog.databaseId = w.worklogDb.databaseId;
+          worklog.dataSourceId = w.worklogDb.dataSourceId;
+        } else if (prev?.worklog) {
+          if (prev.worklog.databaseId) worklog.databaseId = prev.worklog.databaseId;
+          if (prev.worklog.dataSourceId) worklog.dataSourceId = prev.worklog.dataSourceId;
+        }
+        const ws: Record<string, unknown> = {
+          label: w.label,
+          tokenEnv,
+          myUserId: w.myUserId,
+          worklog,
+        };
+        if (w.rollupDb)
+          ws.rollup = { databaseId: w.rollupDb.databaseId, dataSourceId: w.rollupDb.dataSourceId };
+        else if (prev?.rollup) ws.rollup = prev.rollup;
+        return ws;
+      });
+      const githubAccounts = payload.github.map((g) => {
+        const tokenEnv = envKey('GITHUB_TOKEN', g.label);
+        env[tokenEnv] = g.token;
+        return { label: g.label, tokenEnv };
+      });
+      if (payload.anthropicApiKey?.trim()) env.ANTHROPIC_API_KEY = payload.anthropicApiKey.trim();
+
+      writeEnvMerged(env);
+      for (const [k, v] of Object.entries(env)) process.env[k] = v;
+
+      const config = {
+        ...existing,
+        localGitRepos: payload.localGitRepos,
+        githubAccounts,
+        notionWorkspaces,
       };
-      if (w.rollupDb)
-        ws.rollup = { databaseId: w.rollupDb.databaseId, dataSourceId: w.rollupDb.dataSourceId };
-      else if (prev?.rollup) ws.rollup = prev.rollup;
-      return ws;
+      mkdirSync(dirname(CONFIG_PATH), { recursive: true });
+      writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
+      return { ok: true };
     });
-    const githubAccounts = payload.github.map((g) => {
-      const tokenEnv = envKey('GITHUB_TOKEN', g.label);
-      env[tokenEnv] = g.token;
-      return { label: g.label, tokenEnv };
-    });
-    if (payload.anthropicApiKey?.trim()) env.ANTHROPIC_API_KEY = payload.anthropicApiKey.trim();
-
-    writeEnvMerged(env);
-    for (const [k, v] of Object.entries(env)) process.env[k] = v;
-
-    const config = {
-      ...existing,
-      localGitRepos: payload.localGitRepos,
-      githubAccounts,
-      notionWorkspaces,
-    };
-    mkdirSync(dirname(CONFIG_PATH), { recursive: true });
-    writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
-    return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }

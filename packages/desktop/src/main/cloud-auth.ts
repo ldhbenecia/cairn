@@ -31,8 +31,10 @@ export function cloudToken(): string | null {
 
 function broadcastAuth(): void {
   const state = cloudAuthState();
-  for (const win of BrowserWindow.getAllWindows())
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed() || win.webContents.isDestroyed()) continue;
     win.webContents.send('cairn:auth:changed', state);
+  }
 }
 
 const DONE_HTML = `<!doctype html><meta charset="utf-8"><title>cairn</title><body style="margin:0;display:flex;height:100vh;align-items:center;justify-content:center;background:#0a0a0a;color:#e5e5e5;font-family:system-ui,sans-serif"><div style="text-align:center"><p style="font-size:15px;font-weight:600">로그인 완료</p><p style="font-size:13px;color:#a3a3a3">이제 cairn 앱으로 돌아가세요.</p></div><script>setTimeout(()=>window.close(),1200)</script></body>`;
