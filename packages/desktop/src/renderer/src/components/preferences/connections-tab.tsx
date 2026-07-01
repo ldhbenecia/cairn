@@ -89,11 +89,11 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
   const repos = cfg.localGitRepos ?? [];
 
   const notionItems: Item[] = notion.map((w) => {
-    const acc = accounts?.notion.find((n) => n.label === w.label);
+    const acc = accounts?.notion?.find((n) => n.label === w.label);
     return { primary: w.label, secondary: acc?.workspace };
   });
   const githubItems: Item[] = github.map((g) => {
-    const acc = accounts?.github.find((a) => a.label === g.label);
+    const acc = accounts?.github?.find((a) => a.label === g.label);
     return { primary: g.label, secondary: acc?.login ? `@${acc.login}` : undefined };
   });
   const repoItems: Item[] = repos.map((p) => ({ primary: basename(p), secondary: p }));
@@ -187,6 +187,8 @@ function Row({
           <button
             type="button"
             onClick={onToggle}
+            aria-label={`${label}: ${summary}`}
+            aria-expanded={expanded}
             className="ml-auto flex items-center gap-1 rounded pl-3 text-[12px] text-ink-tertiary transition-colors hover:text-ink-muted"
           >
             <span>{summary}</span>
