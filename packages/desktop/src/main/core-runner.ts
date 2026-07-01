@@ -42,7 +42,7 @@ const CORE_ENTRY = app.isPackaged
 const CAIRN_ROOT = app.isPackaged
   ? (process.env.CAIRN_HOME ?? join(homedir(), '.cairn'))
   : resolve(__dirname, '../../../..');
-const LOGS_DIR = join(homedir(), '.cairn', 'logs');
+const LOGS_DIR = join(CAIRN_ROOT, 'logs');
 
 const STDERR_TAIL_LINES = 20;
 const NOTION_URL_REGEX = /https:\/\/www\.notion\.so\/\S+/g;
