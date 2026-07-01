@@ -10,10 +10,6 @@ export class AppConfigService {
     return this.config.get('NODE_ENV', { infer: true });
   }
 
-  get machineName(): string {
-    return this.config.get('MACHINE_NAME', { infer: true });
-  }
-
   get cairnConfigPath(): string | undefined {
     return this.config.get('CAIRN_CONFIG_PATH', { infer: true });
   }
