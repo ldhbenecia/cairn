@@ -80,7 +80,7 @@ export function parseOnboardingPayload(
     github.push({ label: gg.label, token: gg.token });
   }
 
-  if (!o.localGitRepos.every((r) => typeof r === 'string')) {
+  if (!o.localGitRepos.every((r) => isStr(r))) {
     return { ok: false, error: 'invalid-local-repos' };
   }
   if (o.anthropicApiKey !== undefined && typeof o.anthropicApiKey !== 'string') {
