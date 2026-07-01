@@ -57,13 +57,12 @@ const REDACT_PATHS = [
                   colorize: true,
                   singleLine: false,
                   translateTime: 'SYS:HH:MM:ss.l',
-                  ignore: 'pid,hostname,machine',
+                  ignore: 'pid,hostname',
                 },
               };
         return {
           pinoHttp: {
             level: 'info',
-            base: { machine: config.machineName },
             redact: { paths: REDACT_PATHS, censor: '[REDACTED]' },
             timestamp: () => `,"time":"${new Date().toISOString()}"`,
             transport,
