@@ -58,7 +58,7 @@ const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
 const STEP_ORDER: RunStep[] = ['boot', 'collect', 'summarize', 'publish', 'done'];
 const STEP_TRIGGERS: { regex: RegExp; step: RunStep }[] = [
   { regex: /Starting Nest application/, step: 'boot' },
-  { regex: /(github|notion|local-git) collect/i, step: 'collect' },
+  { regex: /(github|notion|local-git|rollup) collect/i, step: 'collect' },
   { regex: /summarizer (start|finished)|DailySummarizerService/i, step: 'summarize' },
   {
     regex: /notion publish start|worklog page (created|already exists)|publish done/i,

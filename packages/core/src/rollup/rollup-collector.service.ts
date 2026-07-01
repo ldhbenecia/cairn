@@ -80,6 +80,11 @@ export class RollupCollectorService {
       return { ...emptyActivity(period, start, end), error };
     }
 
+    this.logger.info(
+      { period, dailyCount: pages.length, dailyDates: pages.map((p) => p.date) },
+      'rollup dailies',
+    );
+
     const dailies: RollupDailyPageMeta[] = [];
     const summaries: RollupDailySummaryText[] = [];
     let prTotal = 0;
