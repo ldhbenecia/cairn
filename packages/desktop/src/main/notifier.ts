@@ -31,6 +31,10 @@ export function sendResultNotification(mode: CoreMode, result: CoreResult): void
     notify(`${label} ${mt('notify.failSuffix')}`, `exit ${result.exitCode ?? 'unknown'}`, mode);
     return;
   }
+  if (result.summaryFailed) {
+    notify(`${label} ${mt('notify.summaryFailedSuffix')}`, mt('notify.summaryFailedBody'), mode);
+    return;
+  }
   if (result.publishKind === 'no-target') {
     notify(label, mt('notify.noTarget'), mode);
     return;
