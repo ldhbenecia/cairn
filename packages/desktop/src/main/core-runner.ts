@@ -518,6 +518,11 @@ export async function runCore(
         stderrTail: err.message,
       };
       // spawn 실패(ENOENT 등)도 완료 알림을 띄운다 — close 가 안 오는 경로라 누락됐었음
+      trackPublish(mode, 'fail', {
+        trigger,
+        summaryFailed: false,
+        backfillDays: options.backfillDays,
+      });
       sendResultNotification(mode, failResult);
       broadcastRunDone(mode, failResult);
       resolvePromise(failResult);
