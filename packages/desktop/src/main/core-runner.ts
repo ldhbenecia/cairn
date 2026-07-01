@@ -8,7 +8,7 @@ import { claudeEnv } from './claude-path';
 import { syncWorklogToFolder } from './export';
 import { sendResultNotification } from './notifier';
 import { readSettings, type Settings } from './settings';
-import { trackPublish } from './telemetry';
+import { trackPublish, type PublishTrigger } from './telemetry';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 
@@ -356,7 +356,11 @@ export async function probeClaude(): Promise<{ ok: boolean }> {
   });
 }
 
-export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Promise<CoreResult> {
+export async function runCore(
+  mode: CoreMode,
+  options: CoreRunOptions = {},
+  trigger: PublishTrigger = 'manual',
+): Promise<CoreResult> {
   // 코드화된 에러 — 렌더러가 i18n 으로 매핑 (영어 사용자에게 한국어 새는 것 방지)
   if (running) throw new Error(`busy:${runningMode ?? mode}`);
 
@@ -469,7 +473,11 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
       };
       try {
         const outcome = result.ok ? (finalNoActivity ? 'no-activity' : 'ok') : 'fail';
-        trackPublish(mode, outcome);
+        trackPublish(mode, outcome, {
+          trigger,
+          summaryFailed: result.summaryFailed,
+          backfillDays: options.backfillDays,
+        });
         if (!cancelled) sendResultNotification(mode, result);
         if (!cancelled && result.ok && lastPageId && !finalNoActivity) {
           const pad = (n: number): string => String(n).padStart(2, '0');
@@ -510,6 +518,11 @@ export async function runCore(mode: CoreMode, options: CoreRunOptions = {}): Pro
         stderrTail: err.message,
       };
       // spawn 실패(ENOENT 등)도 완료 알림을 띄운다 — close 가 안 오는 경로라 누락됐었음
+      trackPublish(mode, 'fail', {
+        trigger,
+        summaryFailed: false,
+        backfillDays: options.backfillDays,
+      });
       sendResultNotification(mode, failResult);
       broadcastRunDone(mode, failResult);
       resolvePromise(failResult);

@@ -34,6 +34,70 @@ export type OnboardingPayload = {
   localGitRepos: string[];
 };
 
+const isStr = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
+const isDbRef = (v: unknown): v is DbRef =>
+  typeof v === 'object' &&
+  v !== null &&
+  isStr((v as Record<string, unknown>).databaseId) &&
+  isStr((v as Record<string, unknown>).dataSourceId);
+
+// 렌더러 IPC 입력은 신뢰 불가 — finishOnboarding 이 env/config 에 그대로 쓰기 전에 shape 검증.
+export function parseOnboardingPayload(
+  raw: unknown,
+): { ok: true; payload: OnboardingPayload } | { ok: false; error: string } {
+  if (typeof raw !== 'object' || raw === null) return { ok: false, error: 'invalid-payload' };
+  const o = raw as Record<string, unknown>;
+  if (!Array.isArray(o.notion) || !Array.isArray(o.github) || !Array.isArray(o.localGitRepos)) {
+    return { ok: false, error: 'invalid-payload-shape' };
+  }
+
+  const notion: OnboardingPayload['notion'] = [];
+  for (const w of o.notion) {
+    const n = w as Record<string, unknown>;
+    if (typeof w !== 'object' || w === null) return { ok: false, error: 'invalid-notion' };
+    if (!isStr(n.label) || !isStr(n.token) || !isStr(n.pageId) || !isStr(n.myUserId)) {
+      return { ok: false, error: 'invalid-notion' };
+    }
+    if (n.worklogDb !== undefined && !isDbRef(n.worklogDb))
+      return { ok: false, error: 'invalid-db' };
+    if (n.rollupDb !== undefined && !isDbRef(n.rollupDb)) return { ok: false, error: 'invalid-db' };
+    notion.push({
+      label: n.label,
+      token: n.token,
+      pageId: n.pageId,
+      myUserId: n.myUserId,
+      ...(n.worklogDb ? { worklogDb: n.worklogDb } : {}),
+      ...(n.rollupDb ? { rollupDb: n.rollupDb } : {}),
+    });
+  }
+
+  const github: OnboardingPayload['github'] = [];
+  for (const g of o.github) {
+    const gg = g as Record<string, unknown>;
+    if (typeof g !== 'object' || g === null || !isStr(gg.label) || !isStr(gg.token)) {
+      return { ok: false, error: 'invalid-github' };
+    }
+    github.push({ label: gg.label, token: gg.token });
+  }
+
+  if (!o.localGitRepos.every((r) => isStr(r))) {
+    return { ok: false, error: 'invalid-local-repos' };
+  }
+  if (o.anthropicApiKey !== undefined && typeof o.anthropicApiKey !== 'string') {
+    return { ok: false, error: 'invalid-anthropic-key' };
+  }
+
+  return {
+    ok: true,
+    payload: {
+      notion,
+      github,
+      localGitRepos: o.localGitRepos,
+      ...(typeof o.anthropicApiKey === 'string' ? { anthropicApiKey: o.anthropicApiKey } : {}),
+    },
+  };
+}
+
 export function envKey(prefix: string, label: string): string {
   const norm = label
     .trim()
