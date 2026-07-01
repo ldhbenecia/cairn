@@ -27,12 +27,18 @@ import {
   probeGithub,
   probeNotion,
   searchNotionPages,
-  type OnboardingPayload,
+  parseOnboardingPayload,
 } from './onboarding';
 import { fetchRepoStars } from './repo';
 import { readSettings, writeSettings, type Settings } from './settings';
 import { isSetupComplete } from './setup';
-import { initTelemetry, shutdownTelemetry, trackAppLaunched } from './telemetry';
+import {
+  initTelemetry,
+  shutdownTelemetry,
+  trackAppLaunched,
+  trackAutoPublishConfigured,
+  trackOnboardingCompleted,
+} from './telemetry';
 import { reconfigureTray, setupTray } from './tray';
 import { initUpdater } from './updater';
 
@@ -180,7 +186,14 @@ void app.whenReady().then(() => {
   });
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {
     const next = writeSettings(patch);
-    if (patch.autoPublish) reconfigureAutoPublish();
+    if (patch.autoPublish) {
+      reconfigureAutoPublish();
+      trackAutoPublishConfigured({
+        daily: next.autoPublish.daily,
+        weekly: next.autoPublish.weekly,
+        monthly: next.autoPublish.monthly,
+      });
+    }
     if (patch.language) reconfigureTray();
     if (patch.launchAtLogin !== undefined) applyLoginItem(next.launchAtLogin);
     return next;
@@ -197,9 +210,13 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:onboarding:github-from-gh', () => githubAccountsFromGhCli());
   ipcMain.handle('cairn:onboarding:probe-claude', () => probeClaude());
   ipcMain.handle('cairn:connections:accounts', () => probeConnectionAccounts());
-  ipcMain.handle('cairn:onboarding:finish', (_e, payload: OnboardingPayload) =>
-    finishOnboarding(payload),
-  );
+  ipcMain.handle('cairn:onboarding:finish', (_e, raw: unknown) => {
+    const parsed = parseOnboardingPayload(raw);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    const result = finishOnboarding(parsed.payload);
+    if (result.ok) trackOnboardingCompleted();
+    return result;
+  });
   ipcMain.handle('cairn:auth:state', () => cloudAuthState());
   ipcMain.handle('cairn:auth:sign-in', () => startCloudSignIn());
   ipcMain.handle('cairn:auth:sign-out', () => cloudSignOut());
