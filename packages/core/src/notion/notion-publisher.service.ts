@@ -439,36 +439,41 @@ export function buildDoneBlocks(
   const ACCT = /^\[([^\]]+)\]\s*/;
   const order: string[] = [];
   const groups = new Map<string, string[]>();
+  const origCase = new Map<string, string>();
   const ungrouped: string[] = [];
+  const titleCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
   for (const b of bullets) {
     const m = ACCT.exec(b);
     if (!m) {
       ungrouped.push(b);
       continue;
     }
-    const acct = m[1]!;
-    if (!groups.has(acct)) {
-      groups.set(acct, []);
-      order.push(acct);
+    // 대소문자 무시 그룹핑 — 모델이 [Work] 로 붙여도 설정 라벨 work 와 매칭되게
+    const key = m[1]!.toLowerCase();
+    if (!groups.has(key)) {
+      groups.set(key, []);
+      order.push(key);
+      origCase.set(key, m[1]!);
     }
-    groups.get(acct)!.push(b.slice(m[0].length));
+    groups.get(key)!.push(b.slice(m[0].length));
   }
 
   if (accountLabels.length >= 2) {
     const out: unknown[] = ungrouped.map((b) => bulletItem(b));
     const shown = new Set<string>();
     for (const acct of accountLabels) {
-      shown.add(acct);
-      out.push(heading3(acct));
-      const items = groups.get(acct) ?? [];
+      const key = acct.toLowerCase();
+      shown.add(key);
+      out.push(heading3(titleCase(acct)));
+      const items = groups.get(key) ?? [];
       if (items.length === 0) out.push(paragraph('None'));
       else for (const text of items) out.push(bulletItem(text));
     }
     // 모델이 설정 목록에 없는 라벨로 붙인 경우(예외)도 유지
-    for (const acct of order) {
-      if (shown.has(acct)) continue;
-      out.push(heading3(acct));
-      for (const text of groups.get(acct)!) out.push(bulletItem(text));
+    for (const key of order) {
+      if (shown.has(key)) continue;
+      out.push(heading3(titleCase(origCase.get(key)!)));
+      for (const text of groups.get(key)!) out.push(bulletItem(text));
     }
     return out;
   }
@@ -476,9 +481,9 @@ export function buildDoneBlocks(
   if (bullets.length === 0) return [paragraph('—')];
   if (groups.size === 0) return bullets.map((t) => bulletItem(t));
   const out: unknown[] = ungrouped.map((b) => bulletItem(b));
-  for (const acct of order) {
-    out.push(heading3(acct));
-    for (const text of groups.get(acct)!) out.push(bulletItem(text));
+  for (const key of order) {
+    out.push(heading3(titleCase(origCase.get(key)!)));
+    for (const text of groups.get(key)!) out.push(bulletItem(text));
   }
   return out;
 }
