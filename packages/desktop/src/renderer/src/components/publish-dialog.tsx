@@ -10,6 +10,8 @@ import {
   Circle,
   CircleDotDashed,
   ExternalLink,
+  GitCommitHorizontal,
+  GitPullRequest,
   type LucideIcon,
   Loader2,
   Plus,
@@ -302,6 +304,17 @@ function collectedCounts(lines: RunSession['lines']): { pr: number | null; commi
     if (mCommit) commit = Number(mCommit[1]);
   }
   return { pr, commit };
+}
+
+// rollup(주간/월간) 이 묶는 daily 일지 날짜들 — core 의 'rollup dailies' 로그에서 파싱
+function parseRollupDailies(lines: RunSession['lines']): string[] {
+  for (const l of lines) {
+    if (!/rollup dailies/.test(l.line)) continue;
+    const m = /"dailyDates"\s*:\s*\[([^\]]*)\]/.exec(l.line);
+    const dates = m?.[1]?.match(/\d{4}-\d{2}-\d{2}/g);
+    if (dates?.length) return [...dates].sort();
+  }
+  return [];
 }
 
 const SUMMARIZE_HINTS: I18nKey[] = [
@@ -801,6 +814,7 @@ function Progress({
   const ss = String(elapsed % 60).padStart(2, '0');
   const lines = session?.lines ?? [];
   const counts = useMemo(() => collectedCounts(lines), [lines]);
+  const rollupDailies = useMemo(() => parseRollupDailies(lines), [lines]);
   const backfill = session?.progress ?? null;
   const isBatch = session?.batch === true || backfill !== null;
   const hintIdx = step === 'summarize' ? Math.floor(elapsed / 8) % SUMMARIZE_HINTS.length : 0;
@@ -983,6 +997,23 @@ function Progress({
               );
             })}
           </ul>
+          {rollupDailies.length > 0 && (
+            <div className="flex flex-col gap-1.5 rounded-lg border border-hairline bg-surface-2 px-4 py-3">
+              <span className="text-[12px] font-medium text-ink-muted">
+                {t('publish.rollup.title')}
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {rollupDailies.map((d) => (
+                  <span
+                    key={d}
+                    className="rounded border border-hairline bg-surface-1 px-1.5 py-0.5 font-mono text-[10.5px] text-ink-tertiary"
+                  >
+                    {d.slice(5)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex justify-center pt-1">
             <CancelButton cancelling={cancelling} onClick={cancel} t={t} />
           </div>
@@ -1121,8 +1152,20 @@ function Result({
   }
   return (
     <div className="flex flex-col gap-5 py-2">
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         {body}
+        {isSuccess && (result.prCount > 0 || result.commitCount > 0) && (
+          <div className="flex items-center gap-3 text-[13px] text-ink-muted">
+            <span className="flex items-center gap-1.5">
+              <GitPullRequest size={13} strokeWidth={2} className="text-ink-tertiary" />
+              {result.prCount}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <GitCommitHorizontal size={13} strokeWidth={2} className="text-ink-tertiary" />
+              {result.commitCount}
+            </span>
+          </div>
+        )}
         {isSuccess && (modelLabel || elapsedSec !== null) && (
           <p className="text-[12px] text-ink-tertiary">
             {[modelLabel, elapsedSec !== null ? fmtElapsed(elapsedSec) : null]
