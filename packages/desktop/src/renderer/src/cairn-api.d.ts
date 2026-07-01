@@ -80,6 +80,8 @@ export type CoreResult = {
   noActivity: boolean;
   cancelled: boolean;
   summaryFailed: boolean;
+  prCount: number;
+  commitCount: number;
   stderrTail: string;
 };
 

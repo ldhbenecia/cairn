@@ -33,6 +33,8 @@ export type CoreResult = {
   noActivity: boolean;
   cancelled: boolean;
   summaryFailed: boolean;
+  prCount: number;
+  commitCount: number;
   stderrTail: string;
 };
 
@@ -460,6 +462,10 @@ export async function runCore(
       cancelRequested = false;
       emit('meta', `[exit] code=${exitCode ?? 'null'}${cancelled ? ' (cancelled)' : ''}`);
       if (exitCode === 0) emitStep('done');
+      const totals = Object.values(bfCountsByDate).reduce(
+        (a, c) => ({ pr: a.pr + c.pr, commit: a.commit + c.commit }),
+        { pr: 0, commit: 0 },
+      );
       const result: CoreResult = {
         ok: exitCode === 0,
         exitCode,
@@ -469,6 +475,8 @@ export async function runCore(
         noActivity: finalNoActivity,
         cancelled,
         summaryFailed: SUMMARY_FAILED_REGEX.test(stdoutAll),
+        prCount: totals.pr,
+        commitCount: totals.commit,
         stderrTail: tail,
       };
       try {
@@ -515,6 +523,8 @@ export async function runCore(
         noActivity: false,
         cancelled: false,
         summaryFailed: false,
+        prCount: 0,
+        commitCount: 0,
         stderrTail: err.message,
       };
       // spawn 실패(ENOENT 등)도 완료 알림을 띄운다 — close 가 안 오는 경로라 누락됐었음

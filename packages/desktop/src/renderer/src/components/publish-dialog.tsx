@@ -10,6 +10,8 @@ import {
   Circle,
   CircleDotDashed,
   ExternalLink,
+  GitCommitHorizontal,
+  GitPullRequest,
   type LucideIcon,
   Loader2,
   Plus,
@@ -1121,8 +1123,20 @@ function Result({
   }
   return (
     <div className="flex flex-col gap-5 py-2">
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         {body}
+        {isSuccess && (result.prCount > 0 || result.commitCount > 0) && (
+          <div className="flex items-center gap-3 text-[13px] text-ink-muted">
+            <span className="flex items-center gap-1.5">
+              <GitPullRequest size={13} strokeWidth={2} className="text-ink-tertiary" />
+              {result.prCount}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <GitCommitHorizontal size={13} strokeWidth={2} className="text-ink-tertiary" />
+              {result.commitCount}
+            </span>
+          </div>
+        )}
         {isSuccess && (modelLabel || elapsedSec !== null) && (
           <p className="text-[12px] text-ink-tertiary">
             {[modelLabel, elapsedSec !== null ? fmtElapsed(elapsedSec) : null]
