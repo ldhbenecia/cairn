@@ -27,7 +27,7 @@ import {
   probeGithub,
   probeNotion,
   searchNotionPages,
-  type OnboardingPayload,
+  parseOnboardingPayload,
 } from './onboarding';
 import { fetchRepoStars } from './repo';
 import { readSettings, writeSettings, type Settings } from './settings';
@@ -210,8 +210,10 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:onboarding:github-from-gh', () => githubAccountsFromGhCli());
   ipcMain.handle('cairn:onboarding:probe-claude', () => probeClaude());
   ipcMain.handle('cairn:connections:accounts', () => probeConnectionAccounts());
-  ipcMain.handle('cairn:onboarding:finish', (_e, payload: OnboardingPayload) => {
-    const result = finishOnboarding(payload);
+  ipcMain.handle('cairn:onboarding:finish', (_e, raw: unknown) => {
+    const parsed = parseOnboardingPayload(raw);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    const result = finishOnboarding(parsed.payload);
     if (result.ok) trackOnboardingCompleted();
     return result;
   });
