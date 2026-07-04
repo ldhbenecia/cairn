@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import type { KeyboardEvent, ReactNode } from 'react';
 
 export function Accordion({ children }: { children: ReactNode }) {
@@ -11,6 +11,7 @@ export function AccordionItem({
   onToggle,
   header,
   disabled,
+  icon = 'chevron',
   'aria-label': ariaLabel,
   children,
 }: {
@@ -18,6 +19,7 @@ export function AccordionItem({
   onToggle: () => void;
   header: ReactNode;
   disabled?: boolean;
+  icon?: 'chevron' | 'plus';
   'aria-label'?: string;
   children: ReactNode;
 }) {
@@ -46,13 +48,20 @@ export function AccordionItem({
         ].join(' ')}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">{header}</div>
-        {!disabled && (
-          <ChevronDown
-            size={13}
-            strokeWidth={2}
-            className={`ml-1 shrink-0 text-ink-tertiary transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-          />
-        )}
+        {!disabled &&
+          (icon === 'plus' ? (
+            <Plus
+              size={13}
+              strokeWidth={2}
+              className={`ml-1 shrink-0 text-ink-tertiary transition-transform duration-200 ${open ? 'rotate-45' : ''}`}
+            />
+          ) : (
+            <ChevronDown
+              size={13}
+              strokeWidth={2}
+              className={`ml-1 shrink-0 text-ink-tertiary transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            />
+          ))}
       </div>
       <AnimatePresence initial={false}>
         {open && !disabled && (
