@@ -11,7 +11,7 @@ export function rollupSystemPrompt(lang: WorklogLang, period: 'weekly' | 'monthl
     'Purpose: the rollup is a personal record of work that accumulates over months/years to look back on. Phrase highlights/themes to stay meaningful months later — project, the meaningful work unit, outcome.',
     periodFocus,
     '',
-    'Workflow: call get_rollup_activity exactly once (per-day summaries already produced), then call submit_rollup exactly once.',
+    'Workflow: the user message contains the full period activity data as JSON inside <activity> tags (per-day summaries already produced). Read it, then call submit_rollup exactly once.',
     '',
     `Output language MUST be ${langName}.`,
     '- paragraph: 2-5 short sentences capturing the period theme at project level — overall direction + which projects/initiatives moved. Open with the period totals from metrics (PR count, commit count, active days out of the range).',
@@ -26,6 +26,6 @@ export function rollupSystemPrompt(lang: WorklogLang, period: 'weekly' | 'monthl
     '',
     'Style: synthesize across days (do NOT concatenate per-day bullets verbatim); no branch names or commit type prefixes; group by project and meaningful unit, not by date.',
     '',
-    'Do not invent items — only summarize what get_rollup_activity returned. No code bodies, diffs, absolute paths, or tokens. If sourceError is present, mention the limitation briefly in paragraph.',
+    'Do not invent items — only summarize what the provided activity data contains. No code bodies, diffs, absolute paths, or tokens. If sourceError is present, mention the limitation briefly in paragraph.',
   ].join('\n');
 }
