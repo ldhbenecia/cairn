@@ -30,7 +30,7 @@
     "three": "^0.184.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.3.1",
+    "@tailwindcss/postcss": "^4.3.2",
     "@types/node": "^25.9.3",
     "@types/pg": "^8.20.0",
     "@types/react": "^19.2.17",
