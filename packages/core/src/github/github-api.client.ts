@@ -4,6 +4,7 @@ import { restEndpointMethods } from '@octokit/plugin-rest-endpoint-methods';
 import { retry } from '@octokit/plugin-retry';
 import { throttling } from '@octokit/plugin-throttling';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { canReusePrSearch, isPrSliceComplete, sliceUpdatedSince } from './pr-search-reuse.js';
 
 const CairnOctokit = Octokit.plugin(throttling, retry, restEndpointMethods);
 type CairnOctokit = InstanceType<typeof CairnOctokit>;
@@ -17,6 +18,16 @@ interface RawPrCommit {
   authoredAt: string;
   authorLogin: string | null;
   isMerge: boolean;
+}
+
+interface PrSearchFetchResult {
+  items: SearchPrItem[];
+  truncated: boolean;
+}
+
+interface PrSearchCacheEntry {
+  lowerBoundIso: string;
+  promise: Promise<PrSearchFetchResult>;
 }
 
 export interface SearchPrItem {
@@ -40,6 +51,7 @@ export class GithubApiClient {
   private readonly octokits = new Map<string, CairnOctokit>();
   private readonly loginCache = new Map<string, Promise<string>>();
   private readonly prCommitsCache = new Map<string, Promise<RawPrCommit[]>>();
+  private readonly prSearchCache = new Map<string, PrSearchCacheEntry>();
 
   constructor(
     @InjectPinoLogger(GithubApiClient.name)
@@ -58,8 +70,58 @@ export class GithubApiClient {
   }
 
   async searchPrs(token: string, query: string): Promise<SearchPrItem[]> {
+    const { items } = await this.fetchSearchPrs(token, query);
+    return items;
+  }
+
+  // backfill 전용: `updated:>=lowerBound` 검색을 (token, baseQuery) 단위로 캐시.
+  // 날짜별 backfill 은 lower bound 만 하루씩 다른 동일 검색을 반복하므로,
+  // 더 넓은(과거) lower bound 로 받아둔 결과를 client-side 필터로 재사용 (정당성: pr-search-reuse.ts)
+  async searchPrsUpdatedSince(
+    token: string,
+    baseQuery: string,
+    lowerBoundIso: string,
+  ): Promise<SearchPrItem[]> {
+    const key = `${token}:${baseQuery}`;
+    const cached = this.prSearchCache.get(key);
+    if (cached && canReusePrSearch(cached.lowerBoundIso, lowerBoundIso)) {
+      const { items, truncated } = await cached.promise;
+      const sliced = sliceUpdatedSince(items, lowerBoundIso);
+      this.logger.info(
+        {
+          baseQuery,
+          lowerBoundIso,
+          cachedLowerBoundIso: cached.lowerBoundIso,
+          cachedCount: items.length,
+          servedCount: sliced.length,
+          sliceComplete: isPrSliceComplete(
+            truncated,
+            items[items.length - 1]?.updatedAt,
+            lowerBoundIso,
+          ),
+        },
+        'github pr search served from cache',
+      );
+      return sliced;
+    }
+    // get→set 사이 await 없음 — 동시 호출자는 같은 entry 를 보고 같은 fetch 를 기다린다
+    const entry: PrSearchCacheEntry = {
+      lowerBoundIso,
+      promise: this.fetchSearchPrs(token, `${baseQuery} updated:>=${lowerBoundIso}`),
+    };
+    this.prSearchCache.set(key, entry);
+    entry.promise.catch(() => {
+      if (this.prSearchCache.get(key) === entry) this.prSearchCache.delete(key);
+    });
+    const { items } = await entry.promise;
+    return items;
+  }
+
+  private async fetchSearchPrs(token: string, query: string): Promise<PrSearchFetchResult> {
     const octokit = this.getOctokit(token);
     const out: SearchPrItem[] = [];
+    // 10 페이지 모두 가득 차면 GitHub 1000 cap 도달 가능성 → truncated 로 보수적 처리
+    let truncated = true;
     // 페이징 필수: 백필은 넓은 updated 범위라 첫 100건만 받으면 오래된 PR(2월 작성→3월 머지 등
     // updated_at 밀린 케이스)이 잘려 누락 — updated desc 로 결정적, GitHub 상한(1000)까지
     for (let page = 1; page <= 10; page += 1) {
@@ -90,9 +152,12 @@ export class GithubApiClient {
           updatedAt: item.updated_at,
         });
       }
-      if (data.items.length < 100) break;
+      if (data.items.length < 100) {
+        truncated = false;
+        break;
+      }
     }
-    return out;
+    return { items: out, truncated };
   }
 
   async listPrCommitsInRange(
