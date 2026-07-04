@@ -719,13 +719,17 @@ function LabelToken({
   const onTestRef = useRef(onTest);
   onTestRef.current = onTest;
   const first = useRef(true);
+  const manualEdit = useRef(false);
   useEffect(() => {
     if (first.current) {
       first.current = false;
       return;
     }
-    // gh import 는 token 과 status 'testing' 을 함께 세팅하고 스스로 probe — 자동 테스트가 겹치면 probe 중복
-    if (!token.trim() || mismatchKey || status === 'testing') return;
+    if (!token.trim() || mismatchKey) return;
+    // gh import 는 token 과 status 'testing' 을 함께 세팅하고 스스로 probe — 그 변경만 skip.
+    // probe 진행 중 사용자가 직접 타이핑한 경우는 최종 토큰 검증이 누락되지 않게 재장전 (#239 리뷰)
+    if (status === 'testing' && !manualEdit.current) return;
+    manualEdit.current = false;
     const id = setTimeout(() => onTestRef.current(), 800);
     return () => clearTimeout(id);
   }, [token]);
@@ -742,7 +746,10 @@ function LabelToken({
         <input
           type="password"
           value={token}
-          onChange={(e) => onChange({ token: e.target.value })}
+          onChange={(e) => {
+            manualEdit.current = true;
+            onChange({ token: e.target.value });
+          }}
           placeholder={t('onb.field.tokenPh')}
           className="flex-1 rounded-md border border-hairline bg-surface-1 px-2.5 py-2 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/60 focus:outline-none"
         />

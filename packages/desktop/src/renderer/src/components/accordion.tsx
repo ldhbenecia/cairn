@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import type { KeyboardEvent, ReactNode } from 'react';
 
 export function Accordion({ children }: { children: ReactNode }) {
@@ -11,6 +11,8 @@ export function AccordionItem({
   onToggle,
   header,
   disabled,
+  icon = 'chevron',
+  triggerClassName,
   'aria-label': ariaLabel,
   children,
 }: {
@@ -18,6 +20,8 @@ export function AccordionItem({
   onToggle: () => void;
   header: ReactNode;
   disabled?: boolean;
+  icon?: 'chevron' | 'plus';
+  triggerClassName?: string;
   'aria-label'?: string;
   children: ReactNode;
 }) {
@@ -31,6 +35,8 @@ export function AccordionItem({
               tabIndex: 0,
               onClick: onToggle,
               onKeyDown: (e: KeyboardEvent) => {
+                // header 안 버튼(refresh 등)에서 버블된 Enter/Space 가 행 토글·클릭 취소로 새지 않게 (#242 리뷰)
+                if (e.target !== e.currentTarget) return;
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   onToggle();
@@ -41,18 +47,26 @@ export function AccordionItem({
             }
           : {})}
         className={[
-          'flex items-center rounded-md px-2 py-1.5 text-[13px]',
-          disabled ? '' : 'cursor-pointer transition-colors hover:bg-surface-2/60',
+          'flex items-center rounded-md text-[13px]',
+          triggerClassName ?? 'px-2 py-1.5',
+          disabled ? '' : 'transition-colors hover:bg-surface-2/60',
         ].join(' ')}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">{header}</div>
-        {!disabled && (
-          <ChevronDown
-            size={13}
-            strokeWidth={2}
-            className={`ml-1 shrink-0 text-ink-tertiary transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-          />
-        )}
+        {!disabled &&
+          (icon === 'plus' ? (
+            <Plus
+              size={13}
+              strokeWidth={2}
+              className={`ml-1 shrink-0 text-ink-tertiary transition-transform duration-200 ${open ? 'rotate-45' : ''}`}
+            />
+          ) : (
+            <ChevronDown
+              size={13}
+              strokeWidth={2}
+              className={`ml-1 shrink-0 text-ink-tertiary transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            />
+          ))}
       </div>
       <AnimatePresence initial={false}>
         {open && !disabled && (

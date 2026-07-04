@@ -12,6 +12,7 @@ import {
   ExternalLink,
   GitCommitHorizontal,
   GitPullRequest,
+  Inbox,
   type LucideIcon,
   Loader2,
   Plus,
@@ -20,7 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RunSession } from '../App';
 import type {
   CoreMode,
@@ -95,6 +96,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<CoreMode>('daily');
   const [date, setDate] = useState<string>(todayIso);
+  const dateTouched = useRef(false);
   const [includeBackfill, setIncludeBackfill] = useState(false);
   const [force, setForce] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
@@ -137,8 +139,8 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
         setOpen(o);
         if (o) {
           setShowProgress(busy);
-          // 자정을 넘겨 열면 mount 시점의 어제 날짜가 남아 있음
-          setDate((prev) => (prev === todayIso() ? prev : todayIso()));
+          // 자정을 넘겨 열면 mount 시점의 어제 날짜가 남아 있음 — 사용자가 직접 고른 날짜는 유지 (#236 리뷰)
+          if (!dateTouched.current) setDate((prev) => (prev === todayIso() ? prev : todayIso()));
         }
       }}
     >
@@ -249,7 +251,15 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                     <span className="text-[13px] font-medium text-ink">{t('publish.date')}</span>
                     <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
                   </div>
-                  <DatePicker value={date} max={todayIso()} disabled={busy} onChange={setDate} />
+                  <DatePicker
+                    value={date}
+                    max={todayIso()}
+                    disabled={busy}
+                    onChange={(iso) => {
+                      dateTouched.current = true;
+                      setDate(iso);
+                    }}
+                  />
                 </div>
 
                 <div className="mb-5 flex flex-col divide-y divide-hairline overflow-hidden rounded-lg border border-hairline">
@@ -275,6 +285,8 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                   type="button"
                   disabled={busy}
                   onClick={() => {
+                    // 이전 외부 발행에서 latch 된 mode 가 새 수동 발행 화면을 끌고 가지 않게 (#236 리뷰)
+                    setWatchedExternal(null);
                     setShowProgress(true);
                     void onTrigger(mode, {
                       backfillDays:
@@ -1161,7 +1173,22 @@ function Result({
   } else if (result.publishKind === 'no-target') {
     body = <p className="text-notice">{t('publish.result.noTarget')}</p>;
   } else if (result.noActivity) {
-    body = <p className="text-ink-muted">{t('publish.result.noActivity')}</p>;
+    body = (
+      <div className="flex flex-col items-center gap-2 pt-3 pb-1 text-center">
+        <motion.span
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 20, delay: 0.05 }}
+          className="flex size-12 items-center justify-center rounded-full bg-surface-2 text-ink-tertiary"
+        >
+          <Inbox size={22} strokeWidth={2} />
+        </motion.span>
+        <p className="text-[15px] font-semibold text-ink">{t('publish.result.noActivity')}</p>
+        <p className="mx-auto max-w-[320px] text-[12px] leading-relaxed text-ink-muted">
+          {t('publish.result.noActivityDesc')}
+        </p>
+      </div>
+    );
   } else if (result.publishKind === 'skipped') {
     body = <p className="text-ink-muted">{t('publish.result.skipped')}</p>;
   } else {

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { pool, sectionBullets } from '../lib/blocks';
-import { DatePicker } from './date-picker';
+import { DateRangePicker } from './date-picker';
 import { useSettings } from '../settings-context';
 
 const RANGES = [30, 90] as const;
@@ -135,7 +135,8 @@ export function AchievementsDialog({
       .replace('{pr}', String(pr))
       .replace('{commit}', String(commit))}`;
     setStats({ worklogs: target.length, done: doneTotal, pr, commit });
-    setMarkdown(md ? `${header}\n\n${md}` : md);
+    // Done 항목이 없어도 기간·수치 헤더는 보여준다 (#239 리뷰)
+    setMarkdown(md ? `${header}\n\n${md}` : header);
     setPhase('result');
   }
 
@@ -176,6 +177,8 @@ export function AchievementsDialog({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-6 [-webkit-app-region:no-drag]"
     >
       <motion.div
@@ -286,18 +289,12 @@ export function AchievementsDialog({
                     className="mt-2.5 flex items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <DatePicker
-                      value={customFrom}
-                      max={customTo}
-                      onChange={(iso) => setCustomFrom(iso > customTo ? customTo : iso)}
-                    />
-                    <span className="text-[12px] text-ink-tertiary">~</span>
-                    <DatePicker
-                      value={customTo}
+                    <DateRangePicker
+                      value={{ from: customFrom, to: customTo }}
                       max={todayLocal()}
-                      onChange={(iso) => {
-                        setCustomTo(iso);
-                        if (iso < customFrom) setCustomFrom(iso);
+                      onChange={(r) => {
+                        setCustomFrom(r.from);
+                        setCustomTo(r.to);
                       }}
                     />
                     <span className="ml-1 font-mono text-[12px] text-ink-tertiary tabular-nums">

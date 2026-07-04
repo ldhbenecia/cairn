@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSettings } from '../../settings-context';
 import { Toggle } from '../toggle';
 import { Field } from './field';
@@ -44,7 +45,7 @@ export function AutoPublishTab() {
           options={TIME_SLOTS}
           disabled={!anyOn}
           format={fmtTime}
-          menuWidth="w-40"
+          menuWidthPx={160}
           onChange={(mins) => set({ time: fmtTime(mins) })}
         />
       </Field>
@@ -88,17 +89,19 @@ function Select({
   onChange,
   disabled,
   format,
-  menuWidth = 'w-full',
+  menuWidthPx,
 }: {
   value: number;
   options: number[];
   onChange: (v: number) => void;
   disabled?: boolean;
   format: (v: number) => string;
-  menuWidth?: string;
+  menuWidthPx?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const close = (): void => {
@@ -109,54 +112,86 @@ function Select({
     }, 120);
   };
 
+  // 스크롤 컨테이너(설정 내용 영역) 안 absolute 메뉴가 스크롤 범위를 늘려 화면이 밀리던 문제 —
+  // DatePicker 와 동일하게 body 포털 + fixed 로 띄운다
+  const place = (): void => {
+    const r = triggerRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const width = menuWidthPx ?? r.width;
+    const h = listRef.current?.offsetHeight ?? 256;
+    let top = r.bottom + 6;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    const left = Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8));
+    setPos({ top, left, width });
+  };
+
   useEffect(() => {
     if (!open || closing) return;
     listRef.current?.querySelector('[data-selected="true"]')?.scrollIntoView({ block: 'center' });
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
+    const onDown = (e: MouseEvent): void => {
+      if (!triggerRef.current?.contains(e.target as Node)) close();
+    };
+    document.addEventListener('mousedown', onDown);
+    // 뒤 컨테이너가 스크롤되면 fixed 메뉴가 트리거와 분리되므로 닫는다
+    window.addEventListener('scroll', close, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', close, true);
+    };
   }, [open, closing]);
 
+  useLayoutEffect(() => {
+    if (!open) return;
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [open]);
+
   return (
-    <div className="relative" onMouseDown={(e) => e.stopPropagation()}>
+    <>
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
-        onClick={() => (open ? close() : setOpen(true))}
+        onClick={() => (open ? close() : (place(), setOpen(true)))}
         className="flex min-w-20 items-center justify-between gap-1.5 rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink hover:bg-surface-3 focus:outline-none disabled:cursor-not-allowed"
       >
         <span className="font-mono">{format(value)}</span>
         <ChevronDown size={13} strokeWidth={2} className="text-ink-subtle" />
       </button>
-      {open && !disabled && (
-        <div
-          ref={listRef}
-          className={[
-            closing ? 'popover-out' : 'popover-in',
-            'glass-panel absolute right-0 z-10 mt-1.5 max-h-64 overflow-y-auto rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40',
-            menuWidth,
-          ].join(' ')}
-        >
-          {options.map((o) => (
-            <button
-              key={o}
-              type="button"
-              data-selected={o === value}
-              onClick={() => {
-                onChange(o);
-                close();
-              }}
-              className={[
-                'flex w-full rounded-md px-3 py-2 font-mono text-[13px]',
-                o === value
-                  ? 'bg-accent/25 font-medium text-ink'
-                  : 'text-ink-muted hover:bg-surface-2',
-              ].join(' ')}
-            >
-              {format(o)}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+      {open &&
+        !disabled &&
+        createPortal(
+          <div
+            ref={listRef}
+            style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
+            className={[
+              closing ? 'popover-out' : 'popover-in',
+              'glass-panel pointer-events-auto z-[70] max-h-64 overflow-y-auto rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40',
+            ].join(' ')}
+          >
+            {options.map((o) => (
+              <button
+                key={o}
+                type="button"
+                data-selected={o === value}
+                onClick={() => {
+                  onChange(o);
+                  close();
+                }}
+                className={[
+                  'flex w-full rounded-md px-3 py-2 font-mono text-[13px]',
+                  o === value
+                    ? 'bg-accent/25 font-medium text-ink'
+                    : 'text-ink-muted hover:bg-surface-2',
+                ].join(' ')}
+              >
+                {format(o)}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }

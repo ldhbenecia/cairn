@@ -16,6 +16,7 @@ import type {
   RunProgress,
   RunStep,
 } from './cairn-api';
+import { AnimatePresence } from 'framer-motion';
 import { resetRunLines } from './lib/run-line-store';
 import { RunToast, type RunToastData } from './components/run-toast';
 import { useSettings } from './settings-context';
@@ -277,6 +278,8 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === ',') {
         e.preventDefault();
+        // 팔레트를 열어둔 채 환경설정(radix modal)이 뜨면 body pointer-events 가 죽어 팔레트가 안 닫힘
+        setCmdkOpen(false);
         setPrefsOpen(true);
       } else if (e.metaKey && e.key === 'k') {
         e.preventDefault();
@@ -407,17 +410,19 @@ export function App() {
         />
       )}
       {selectedPage && <WorklogDrawer page={selectedPage} onClose={() => setSelectedPage(null)} />}
-      {cmdkOpen && (
-        <CommandPalette
-          recent={recent}
-          onClose={() => setCmdkOpen(false)}
-          onView={setView}
-          onPreferences={() => setPrefsOpen(true)}
-          onPublish={(mode) => void trigger(mode)}
-          onOpenPage={setSelectedPage}
-          onAchievements={() => setAchvOpen(true)}
-        />
-      )}
+      <AnimatePresence>
+        {cmdkOpen && (
+          <CommandPalette
+            recent={recent}
+            onClose={() => setCmdkOpen(false)}
+            onView={setView}
+            onPreferences={() => setPrefsOpen(true)}
+            onPublish={(mode) => void trigger(mode)}
+            onOpenPage={setSelectedPage}
+            onAchievements={() => setAchvOpen(true)}
+          />
+        )}
+      </AnimatePresence>
       {achvOpen && <AchievementsDialog recent={recent} onClose={() => setAchvOpen(false)} />}
       <RunToast toast={toast} onClose={() => setToast(null)} />
       <PreferencesDialog

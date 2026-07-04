@@ -59,7 +59,7 @@ export function IntegrationsTab() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-2 text-[13.5px] font-medium text-ink">
-                {isVault ? 'Obsidian' : t('integrations.markdown.title')}
+                {isVault ? t('integrations.obsidian') : t('integrations.markdown.title')}
                 {isVault && (
                   <span className="rounded-full bg-violet-500/12 px-2 py-0.5 text-[10.5px] font-medium text-violet-400">
                     {t('integrations.vaultDetected')}

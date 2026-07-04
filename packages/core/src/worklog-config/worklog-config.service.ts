@@ -69,7 +69,8 @@ export class WorklogConfigService {
 
   findRollupWorkspace(): NotionWorkspaceConfig | undefined {
     return this.getNotionWorkspaces().find(
-      (ws) => ws.rollup?.pageId ?? ws.worklog?.pageId ?? ws.worklog?.databaseId,
+      (ws) =>
+        ws.rollup?.pageId ?? ws.rollup?.databaseId ?? ws.worklog?.pageId ?? ws.worklog?.databaseId,
     );
   }
 

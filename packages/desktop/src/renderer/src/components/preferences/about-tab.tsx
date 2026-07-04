@@ -1,13 +1,18 @@
 import { ExternalLink, Github, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSettings } from '../../settings-context';
+import type { I18nKey } from '../../i18n';
+import { Accordion, AccordionItem } from '../accordion';
 import { Toggle } from '../toggle';
 import { REPO_URL } from './constants';
 import { Field } from './field';
 
+const FAQ_COUNT = 6;
+
 export function AboutTab() {
   const { settings, update, t } = useSettings();
   const [stars, setStars] = useState<number | null>(null);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -52,6 +57,26 @@ export function AboutTab() {
           </span>
         )}
       </button>
+
+      <div className="py-1">
+        <p className="mb-3 text-[13px] font-medium text-ink">{t('faq.title')}</p>
+        <Accordion>
+          {Array.from({ length: FAQ_COUNT }, (_, i) => (
+            <AccordionItem
+              key={i}
+              icon="plus"
+              open={openFaq === i}
+              onToggle={() => setOpenFaq((cur) => (cur === i ? null : i))}
+              triggerClassName="px-2 py-3.5"
+              header={<span className="text-ink-muted">{t(`faq.q${i + 1}` as I18nKey)}</span>}
+            >
+              <p className="max-w-[560px] px-2 pt-0.5 pb-4 text-[12.5px] leading-relaxed text-ink-tertiary">
+                {t(`faq.a${i + 1}` as I18nKey)}
+              </p>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </div>
 
       <div className="divide-y divide-hairline">
         <Field label={t('prefs.telemetry')} desc={t('prefs.telemetry.desc')}>
