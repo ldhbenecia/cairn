@@ -58,8 +58,8 @@ export function AboutTab() {
         )}
       </button>
 
-      <div>
-        <p className="mb-2 text-[13px] font-medium text-ink">{t('faq.title')}</p>
+      <div className="py-1">
+        <p className="mb-3 text-[13px] font-medium text-ink">{t('faq.title')}</p>
         <Accordion>
           {Array.from({ length: FAQ_COUNT }, (_, i) => (
             <AccordionItem
@@ -67,9 +67,10 @@ export function AboutTab() {
               icon="plus"
               open={openFaq === i}
               onToggle={() => setOpenFaq((cur) => (cur === i ? null : i))}
+              triggerClassName="px-2 py-3.5"
               header={<span className="text-ink-muted">{t(`faq.q${i + 1}` as I18nKey)}</span>}
             >
-              <p className="px-2 pb-2.5 text-[12px] leading-relaxed text-ink-tertiary">
+              <p className="max-w-[560px] px-2 pt-0.5 pb-4 text-[12.5px] leading-relaxed text-ink-tertiary">
                 {t(`faq.a${i + 1}` as I18nKey)}
               </p>
             </AccordionItem>

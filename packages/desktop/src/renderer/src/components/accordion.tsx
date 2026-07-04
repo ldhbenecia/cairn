@@ -12,6 +12,7 @@ export function AccordionItem({
   header,
   disabled,
   icon = 'chevron',
+  triggerClassName,
   'aria-label': ariaLabel,
   children,
 }: {
@@ -20,6 +21,7 @@ export function AccordionItem({
   header: ReactNode;
   disabled?: boolean;
   icon?: 'chevron' | 'plus';
+  triggerClassName?: string;
   'aria-label'?: string;
   children: ReactNode;
 }) {
@@ -45,7 +47,8 @@ export function AccordionItem({
             }
           : {})}
         className={[
-          'flex items-center rounded-md px-2 py-1.5 text-[13px]',
+          'flex items-center rounded-md text-[13px]',
+          triggerClassName ?? 'px-2 py-1.5',
           disabled ? '' : 'transition-colors hover:bg-surface-2/60',
         ].join(' ')}
       >
