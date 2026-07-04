@@ -1,6 +1,7 @@
 import {
   BarChart3,
   FileText,
+  Orbit,
   Plus,
   Search,
   Settings,
@@ -17,7 +18,7 @@ type Cmd = { id: string; label: string; hint?: string; icon: React.ReactNode; ru
 type Props = {
   recent: RecentListResult | null;
   onClose: () => void;
-  onView: (v: 'stats' | 'worklogs') => void;
+  onView: (v: 'stats' | 'worklogs' | 'graph') => void;
   onPreferences: () => void;
   onPublish: (mode: CoreMode) => void;
   onOpenPage: (page: RecentPage) => void;
@@ -74,6 +75,12 @@ export function CommandPalette({
         label: t('cmd.worklogs'),
         icon: <FileText size={12} strokeWidth={2} />,
         run: () => onView('worklogs'),
+      },
+      {
+        id: 'view-graph',
+        label: t('cmd.graph'),
+        icon: <Orbit size={12} strokeWidth={2} />,
+        run: () => onView('graph'),
       },
       {
         id: 'achievements',
