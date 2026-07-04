@@ -16,6 +16,7 @@ import type {
   RunProgress,
   RunStep,
 } from './cairn-api';
+import { AnimatePresence } from 'framer-motion';
 import { resetRunLines } from './lib/run-line-store';
 import { RunToast, type RunToastData } from './components/run-toast';
 import { useSettings } from './settings-context';
@@ -409,17 +410,19 @@ export function App() {
         />
       )}
       {selectedPage && <WorklogDrawer page={selectedPage} onClose={() => setSelectedPage(null)} />}
-      {cmdkOpen && (
-        <CommandPalette
-          recent={recent}
-          onClose={() => setCmdkOpen(false)}
-          onView={setView}
-          onPreferences={() => setPrefsOpen(true)}
-          onPublish={(mode) => void trigger(mode)}
-          onOpenPage={setSelectedPage}
-          onAchievements={() => setAchvOpen(true)}
-        />
-      )}
+      <AnimatePresence>
+        {cmdkOpen && (
+          <CommandPalette
+            recent={recent}
+            onClose={() => setCmdkOpen(false)}
+            onView={setView}
+            onPreferences={() => setPrefsOpen(true)}
+            onPublish={(mode) => void trigger(mode)}
+            onOpenPage={setSelectedPage}
+            onAchievements={() => setAchvOpen(true)}
+          />
+        )}
+      </AnimatePresence>
       {achvOpen && <AchievementsDialog recent={recent} onClose={() => setAchvOpen(false)} />}
       <RunToast toast={toast} onClose={() => setToast(null)} />
       <PreferencesDialog

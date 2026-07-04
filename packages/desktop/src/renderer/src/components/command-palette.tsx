@@ -139,13 +139,16 @@ export function CommandPalette({
       onMouseDown={onClose}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       transition={{ duration: 0.15 }}
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 pt-[14vh] [-webkit-app-region:no-drag]"
+      // pointer-events-auto: radix modal(환경설정) 이 body 에 none 을 걸어도 팔레트가 마우스를 받게
+      className="pointer-events-auto fixed inset-0 z-[60] flex items-start justify-center bg-black/40 pt-[14vh] [-webkit-app-region:no-drag]"
     >
       <motion.div
         onMouseDown={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.97, y: -8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.98, y: -4 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         className="glass-panel w-[560px] max-w-[92vw] overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50"
       >
