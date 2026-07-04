@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { isOperator } from '../common/operator.js';
-import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type { RollupActivity } from '../contracts/rollup-activity.types.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogLang } from '../cairn/run-options.js';
+import { enforceBlockEgress } from '../notion/block-egress.js';
 import { NotionApiClient } from '../notion/notion-api.client.js';
 import {
   bulletsOrEmpty,
@@ -209,28 +209,15 @@ export class RollupPublisherService {
   ): Promise<{ id: string; url: string | null }> {
     const { activity, summary, lang } = input;
     const title = buildTitle(activity, lang);
-    let children = summary
-      ? buildRollupBlocks(summary, activity, lang)
-      : buildRollupFallbackBlocks(activity, lang);
-    try {
-      assertNoForbiddenPayload(
-        children,
-        `rollup.publish.${activity.period}.${activity.rangeStart}`,
-      );
-    } catch {
-      this.logger.warn(
-        { period: activity.period, rangeStart: activity.rangeStart },
-        'rollup blocks tripped forbidden pattern — degrading to fallback',
-      );
-      children = buildRollupFallbackBlocks(activity, lang);
-      try {
-        assertNoForbiddenPayload(children, `rollup.publish.fallback.${activity.rangeStart}`);
-      } catch {
-        throw new Error(
-          `rollup.publish.${activity.period}.${activity.rangeStart}: fallback also tripped forbidden pattern`,
-        );
-      }
-    }
+    // 위반 블록만 drop 하고 발행 계속 — 전부 drop 이면 fallback 으로 degrade (ADR 0021 item-drop)
+    const children = enforceBlockEgress(
+      summary
+        ? buildRollupBlocks(summary, activity, lang)
+        : buildRollupFallbackBlocks(activity, lang),
+      () => buildRollupFallbackBlocks(activity, lang),
+      `rollup.publish.${activity.period}.${activity.rangeStart}`,
+      this.logger,
+    );
     const created = await this.rollupApi.createRollupPage({
       token,
       dataSourceId,
