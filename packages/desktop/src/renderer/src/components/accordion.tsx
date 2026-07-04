@@ -42,7 +42,7 @@ export function AccordionItem({
           : {})}
         className={[
           'flex items-center rounded-md px-2 py-1.5 text-[13px]',
-          disabled ? '' : 'cursor-pointer transition-colors hover:bg-surface-2/60',
+          disabled ? '' : 'transition-colors hover:bg-surface-2/60',
         ].join(' ')}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">{header}</div>

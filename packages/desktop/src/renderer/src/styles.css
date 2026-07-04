@@ -87,19 +87,10 @@
   --code-comment: #8b919c;
 }
 
-/* 키보드 포커스 링 — 전역 통일(accent). 없으면 Chromium 기본 링이 테마별로 다른 색으로 떠 어수선. */
-:focus {
-  outline: none;
-}
+/* 포커스 링 비노출 — 스크린샷 단축키 등 modifier 키 입력만으로 링이 떠 어수선하다는 피드백 반복.
+   마우스 중심 데스크톱 앱이라 전역 제거 (이전: accent 링) */
+:focus,
 :focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 60%, transparent);
-  outline-offset: 1px;
-}
-/* 다이얼로그·드로어 컨테이너는 포커스 트랩으로 포커스를 받지만 링은 불필요(키 입력 시 보라 테두리 방지) */
-.dialog-content:focus-visible,
-.dialog-content:focus,
-[role='dialog']:focus-visible,
-[role='dialog']:focus {
   outline: none;
 }
 
@@ -113,6 +104,8 @@ body,
   font-family: var(--font-text);
   font-size: 14px;
   font-weight: 400;
+  /* 한국어 어절 단위 줄바꿈 — "있습니 / 다." 같은 어색한 꺾임 방지 */
+  word-break: keep-all;
   line-height: 1.5;
   letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
