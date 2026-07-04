@@ -268,34 +268,37 @@ export async function probeConnectionAccounts(): Promise<ConnectionAccounts> {
     config = {};
   }
   const envMap = readEnvFile();
-  const github = await Promise.all(
-    (config.githubAccounts ?? []).map(async (g) => {
-      const token = envMap[g.tokenEnv];
-      if (!token) return { label: g.label };
-      try {
-        const probe = await withTimeout(probeGithub(token), PROBE_TIMEOUT_MS, { ok: false });
-        return probe.ok ? { label: g.label, login: probe.login } : { label: g.label };
-      } catch {
-        return { label: g.label };
-      }
-    }),
-  );
-  const notion = await Promise.all(
-    (config.notionWorkspaces ?? []).map(async (w) => {
-      const token = envMap[w.tokenEnv ?? envKey('NOTION_TOKEN', w.label)];
-      if (!token) return { label: w.label };
-      try {
-        const workspace = await withTimeout(
-          notionWorkspaceName(token),
-          PROBE_TIMEOUT_MS,
-          undefined,
-        );
-        return { label: w.label, workspace };
-      } catch {
-        return { label: w.label };
-      }
-    }),
-  );
+  // GitHub·Notion probe 를 동시에 — 순차 대기하면 연결 탭 최악 지연이 2배
+  const [github, notion] = await Promise.all([
+    Promise.all(
+      (config.githubAccounts ?? []).map(async (g) => {
+        const token = envMap[g.tokenEnv];
+        if (!token) return { label: g.label };
+        try {
+          const probe = await withTimeout(probeGithub(token), PROBE_TIMEOUT_MS, { ok: false });
+          return probe.ok ? { label: g.label, login: probe.login } : { label: g.label };
+        } catch {
+          return { label: g.label };
+        }
+      }),
+    ),
+    Promise.all(
+      (config.notionWorkspaces ?? []).map(async (w) => {
+        const token = envMap[w.tokenEnv ?? envKey('NOTION_TOKEN', w.label)];
+        if (!token) return { label: w.label };
+        try {
+          const workspace = await withTimeout(
+            notionWorkspaceName(token),
+            PROBE_TIMEOUT_MS,
+            undefined,
+          );
+          return { label: w.label, workspace };
+        } catch {
+          return { label: w.label };
+        }
+      }),
+    ),
+  ]);
   return { github, notion };
 }
 

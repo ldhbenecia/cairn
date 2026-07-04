@@ -112,8 +112,16 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
     });
   }, []);
 
-  // 외부(자동) 발행이 다른 mode 로 돌면 그 mode 세션을 보여줘야 진행 화면이 'boot' 에 고정 안 됨
-  const activeMode = externalBusy && busyMode ? busyMode : mode;
+  // 외부(자동) 발행이 다른 mode 로 돌면 그 mode 세션을 보여줘야 진행 화면이 'boot' 에 고정 안 됨.
+  // 종료 시 busy=false 가 run-done 보다 먼저 오므로, 보던 mode 를 latch 해 결과 화면이 폼으로 튕기지 않게.
+  const [watchedExternal, setWatchedExternal] = useState<CoreMode | null>(null);
+  useEffect(() => {
+    if (externalBusy && busyMode) setWatchedExternal(busyMode);
+  }, [externalBusy, busyMode]);
+  useEffect(() => {
+    if (!showProgress) setWatchedExternal(null);
+  }, [showProgress]);
+  const activeMode = externalBusy && busyMode ? busyMode : (watchedExternal ?? mode);
   const session = sessions[activeMode];
   const busy = runningMode !== null || externalBusy;
   const isRunning = session?.state === 'running';
@@ -125,7 +133,11 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
       open={open}
       onOpenChange={(o) => {
         setOpen(o);
-        if (o) setShowProgress(busy);
+        if (o) {
+          setShowProgress(busy);
+          // 자정을 넘겨 열면 mount 시점의 어제 날짜가 남아 있음
+          setDate((prev) => (prev === todayIso() ? prev : todayIso()));
+        }
       }}
     >
       <Dialog.Trigger asChild>

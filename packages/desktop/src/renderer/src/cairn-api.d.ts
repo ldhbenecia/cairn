@@ -32,7 +32,6 @@ export type RunSnapshot = {
 export type SaveResult = { saved: boolean; path?: string; error?: string };
 
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
-export type LogTailResult = { lines: string[]; path: string | null };
 
 export type RecentCategory = 'daily' | 'weekly' | 'monthly';
 
@@ -195,7 +194,6 @@ declare global {
       onRunProgress: (cb: (p: { mode: CoreMode } & RunProgress) => void) => () => void;
       onRunDone: (cb: (p: { mode: CoreMode; result: CoreResult }) => void) => () => void;
       readConfig: () => Promise<ConfigResult>;
-      tailLogs: () => Promise<LogTailResult>;
       listRecent: () => Promise<RecentListResult>;
       pageContent: (pageId: string, workspaceLabel: string) => Promise<PageContent>;
     };

@@ -11,7 +11,7 @@ function sleepSync(ms: number): void {
 
 // 같은 파일을 여러 프로세스(desktop main + forked core)가 read-modify-write 할 때 직렬화한다.
 // `${target}.lock` 을 O_EXCL 로 잡아 임계구역을 보호. 보유 프로세스가 크래시하면 stale(mtime)
-// 로 회수. 경합이 지속돼 못 잡으면 MAX_WAIT 후 그냥 진행 — best-effort(교착 방지).
+// 로 회수. 경합이 지속돼 MAX_WAIT 안에 못 잡으면 throw — 호출자가 실패를 처리해야 한다.
 export function withFileLock<T>(targetPath: string, fn: () => T): T {
   const lockPath = `${targetPath}.lock`;
   const deadline = Date.now() + MAX_WAIT_MS;

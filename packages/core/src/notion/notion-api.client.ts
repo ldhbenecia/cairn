@@ -7,33 +7,9 @@ import type {
   CreateWorklogPageInput,
   ExistingWorklogPage,
   ExtractedBlock,
-  RawNotionPage,
-  SearchPagesResult,
   WorklogPageInRange,
 } from './notion-api.types.js';
 import { appendChildrenInBatches, NOTION_MAX_CHILDREN } from './notion-page-create.js';
-
-interface NotionTitleProperty {
-  type: 'title';
-  title: readonly { plain_text: string }[];
-}
-
-type SearchPageParent =
-  | { type: 'database_id'; database_id: string }
-  | { type: 'data_source_id'; data_source_id: string }
-  | { type: 'page_id'; page_id: string }
-  | { type: 'workspace'; workspace: true }
-  | { type: 'block_id'; block_id: string };
-
-interface SearchPageItem {
-  object: 'page';
-  id: string;
-  url: string;
-  last_edited_time: string;
-  last_edited_by: { id: string };
-  parent: SearchPageParent;
-  properties: Record<string, { type: string } & Partial<NotionTitleProperty>>;
-}
 
 @Injectable()
 export class NotionApiClient {
@@ -44,27 +20,6 @@ export class NotionApiClient {
     @InjectPinoLogger(NotionApiClient.name)
     private readonly logger: PinoLogger,
   ) {}
-
-  async searchPages(
-    token: string,
-    opts: { startCursor?: string; pageSize?: number } = {},
-  ): Promise<SearchPagesResult> {
-    const client = this.getClient(token);
-    const res = await client.search({
-      sort: { direction: 'descending', timestamp: 'last_edited_time' },
-      filter: { value: 'page', property: 'object' },
-      start_cursor: opts.startCursor,
-      page_size: opts.pageSize ?? 100,
-    });
-
-    const pages: RawNotionPage[] = [];
-    for (const item of res.results) {
-      if (!isFullPage(item)) continue;
-      pages.push(toRawPage(item));
-    }
-
-    return { pages, nextCursor: res.has_more ? res.next_cursor : null };
-  }
 
   async createWorklogDatabase(
     input: CreateWorklogDatabaseInput,
@@ -235,61 +190,6 @@ export class NotionApiClient {
     }
     return client;
   }
-}
-
-function isFullPage(item: unknown): item is SearchPageItem {
-  if (!item || typeof item !== 'object') return false;
-  const obj = item as Record<string, unknown>;
-  return (
-    obj.object === 'page' &&
-    typeof obj.id === 'string' &&
-    typeof obj.url === 'string' &&
-    typeof obj.last_edited_time === 'string' &&
-    typeof obj.last_edited_by === 'object' &&
-    obj.last_edited_by !== null &&
-    'properties' in obj &&
-    'parent' in obj
-  );
-}
-
-function toRawPage(page: SearchPageItem): RawNotionPage {
-  return {
-    id: page.id,
-    url: page.url,
-    lastEditedTime: page.last_edited_time,
-    lastEditedById: page.last_edited_by.id,
-    parentType: page.parent.type,
-    parentId: extractParentId(page.parent),
-    title: extractTitle(page),
-  };
-}
-
-function extractParentId(parent: SearchPageParent): string | null {
-  switch (parent.type) {
-    case 'database_id':
-      return parent.database_id;
-    case 'data_source_id':
-      return parent.data_source_id;
-    case 'page_id':
-      return parent.page_id;
-    case 'block_id':
-      return parent.block_id;
-    case 'workspace':
-      return null;
-  }
-}
-
-function extractTitle(page: SearchPageItem): string {
-  for (const prop of Object.values(page.properties)) {
-    if (prop.type === 'title' && prop.title) {
-      const text = prop.title
-        .map((t) => t.plain_text)
-        .join('')
-        .trim();
-      if (text) return text;
-    }
-  }
-  return '(untitled)';
 }
 
 function plainTextFromRichText(rt: unknown): string {

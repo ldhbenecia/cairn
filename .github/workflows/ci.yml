@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
 
+# 같은 브랜치에 커밋 연속 push 시 이전 실행 취소 (main 은 push 마다 온전히 검증)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 permissions:
   contents: read
 

@@ -12,7 +12,6 @@ import { WorklogConfigService } from '../worklog-config/worklog-config.service.j
 import { NotionApiClient } from './notion-api.client.js';
 import {
   bulletItem,
-  bulletsOrEmpty,
   callout,
   claudeCallout,
   codeBlock,
@@ -51,7 +50,7 @@ export class NotionPublisherService {
   ) {}
 
   async findPublishedDates(rangeStart: string, rangeEnd: string): Promise<Set<string>> {
-    const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
+    const target = this.worklogConfig.findWorklogWorkspace();
     if (!target) return new Set();
 
     const token = this.secrets.getEnv(target.tokenEnv);
@@ -77,8 +76,9 @@ export class NotionPublisherService {
     }
   }
 
-  async precheckDaily(date: string, force: boolean): Promise<PublishWorklogResult | null> {
-    const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
+  // force 실행에선 orchestrator 가 precheck 자체를 건너뛴다 — 여기선 non-force 만 가정
+  async precheckDaily(date: string): Promise<PublishWorklogResult | null> {
+    const target = this.worklogConfig.findWorklogWorkspace();
     if (!target) return { kind: 'no-target' };
 
     const token = this.secrets.getEnv(target.tokenEnv);
@@ -93,10 +93,7 @@ export class NotionPublisherService {
       if (existing.status === 'final') {
         return { kind: 'skipped', reason: 'final-protected', pageId: existing.pageId };
       }
-      if (!force) {
-        return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
-      }
-      return null;
+      return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
     } catch (err) {
       this.logger.warn({ date, err: String(err) }, 'precheckDaily failed — proceeding normally');
       return null;
@@ -104,14 +101,14 @@ export class NotionPublisherService {
   }
 
   async publish(input: PublishWorklogInput): Promise<PublishWorklogResult> {
-    const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
+    const target = this.worklogConfig.findWorklogWorkspace();
     const startedAt = Date.now();
 
     this.logger.info({ date: input.date, force: input.force }, 'notion publish start');
 
     if (!target) {
       this.logger.warn(
-        'no notionWorkspace with worklog.pageId — publisher skipped (set worklog.pageId in worklog.config.json)',
+        'no notionWorkspace with worklog target — publisher skipped (set worklog.pageId or worklog.databaseId in worklog.config.json)',
       );
       return { kind: 'no-target' };
     }
@@ -268,18 +265,24 @@ export class NotionPublisherService {
     // 마스킹하지 말고 fallback 으로 degrade (egress 규칙 — 자유텍스트엔 마스킹 금지)
     try {
       assertNoForbiddenPayload(children, `notion.publish.${input.date}`);
-    } catch {
-      // 에러 메시지엔 매칭 snippet 이 들어 있어 로그로 내보내지 않는다(날짜만)
+    } catch (err) {
+      // sanitize 에러 메시지엔 매칭된 패턴 이름만 들어 있다(snippet 없음) — 로그로 안전
       this.logger.warn(
-        { date: input.date },
+        { date: input.date, err: String(err) },
         'publish blocks tripped forbidden pattern — degrading to fallback',
       );
       children = buildFallbackBlocks(input);
       try {
         assertNoForbiddenPayload(children, `notion.publish.fallback.${input.date}`);
-      } catch {
-        // fallback 도 걸리면 외부 송신을 막기 위해 발행 중단 (snippet 은 메시지에 담지 않음)
-        throw new Error(`notion.publish.${input.date}: fallback also tripped forbidden pattern`);
+      } catch (fallbackErr) {
+        // fallback 도 걸리면 외부 송신을 막기 위해 발행 중단
+        this.logger.warn(
+          { date: input.date, err: String(fallbackErr) },
+          'fallback blocks also tripped forbidden pattern — aborting publish',
+        );
+        throw new Error(`notion.publish.${input.date}: fallback also tripped forbidden pattern`, {
+          cause: fallbackErr,
+        });
       }
     }
     this.logger.info(
@@ -338,7 +341,7 @@ function buildSummaryBlocks(
 
   if (summary.shareBullets.length > 0) {
     blocks.push(heading2('Share'));
-    blocks.push(...bulletsOrEmpty(summary.shareBullets));
+    blocks.push(...summary.shareBullets.map((t) => bulletItem(t)));
   }
 
   blocks.push(heading2('Done'));
@@ -346,7 +349,7 @@ function buildSummaryBlocks(
 
   if (summary.reviewedBullets.length > 0) {
     blocks.push(heading2('Reviewed'));
-    blocks.push(...bulletsOrEmpty(summary.reviewedBullets));
+    blocks.push(...summary.reviewedBullets.map((t) => bulletItem(t)));
   }
 
   if (summary.inProgressBullets.length > 0) {
@@ -442,13 +445,15 @@ export function buildDoneBlocks(
   const origCase = new Map<string, string>();
   const ungrouped: string[] = [];
   const titleCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+  // multi-account 에선 설정된 계정 라벨만 그룹 — [project] 프리픽스(local-git bullet)가
+  // 가짜 계정 heading 으로 렌더되지 않게. 대소문자 무시 매칭.
+  const accountKeys = new Set(accountLabels.map((a) => a.toLowerCase()));
   for (const b of bullets) {
     const m = ACCT.exec(b);
-    if (!m) {
+    if (!m || (accountLabels.length >= 2 && !accountKeys.has(m[1]!.toLowerCase()))) {
       ungrouped.push(b);
       continue;
     }
-    // 대소문자 무시 그룹핑 — 모델이 [Work] 로 붙여도 설정 라벨 work 와 매칭되게
     const key = m[1]!.toLowerCase();
     if (!groups.has(key)) {
       groups.set(key, []);
@@ -460,20 +465,11 @@ export function buildDoneBlocks(
 
   if (accountLabels.length >= 2) {
     const out: unknown[] = ungrouped.map((b) => bulletItem(b));
-    const shown = new Set<string>();
     for (const acct of accountLabels) {
-      const key = acct.toLowerCase();
-      shown.add(key);
       out.push(heading3(titleCase(acct)));
-      const items = groups.get(key) ?? [];
+      const items = groups.get(acct.toLowerCase()) ?? [];
       if (items.length === 0) out.push(paragraph('None'));
       else for (const text of items) out.push(bulletItem(text));
-    }
-    // 모델이 설정 목록에 없는 라벨로 붙인 경우(예외)도 유지
-    for (const key of order) {
-      if (shown.has(key)) continue;
-      out.push(heading3(titleCase(origCase.get(key)!)));
-      for (const text of groups.get(key)!) out.push(bulletItem(text));
     }
     return out;
   }

@@ -51,4 +51,20 @@ describe('buildDoneBlocks', () => {
     expect(textOf(blocks[2])).toBe('Personal');
     expect(textOf(blocks[3])).toBe('None');
   });
+
+  it('multi-account 에서 계정 라벨이 아닌 [project] 프리픽스는 가짜 계정 heading 이 되지 않는다', () => {
+    const blocks = buildDoneBlocks(
+      ['[Work] team-api — fix', '[cairn] streak 계산 수정'],
+      ['Work', 'Personal'],
+    );
+    expect(blocks.map(typeOf)).toEqual([
+      'bulleted_list_item', // [cairn] — 프리픽스 유지한 채 계정 섹션 밖 평문 bullet
+      'heading_3',
+      'bulleted_list_item',
+      'heading_3',
+      'paragraph',
+    ]);
+    expect(textOf(blocks[0])).toBe('[cairn] streak 계산 수정');
+    expect(textOf(blocks[1])).toBe('Work');
+  });
 });

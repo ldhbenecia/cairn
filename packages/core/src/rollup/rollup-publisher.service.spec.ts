@@ -34,15 +34,15 @@ function setup(opts: { archiveFails?: boolean } = {}) {
 
   const rollupApi = { findRollupPageByRange, createRollupPage } as unknown as NotionRollupApiClient;
   const api = { archivePage } as unknown as NotionApiClient;
+  const workspace = {
+    label: 'Personal',
+    tokenEnv: 'NOTION_TOKEN_PERSONAL',
+    rollup: { pageId: 'parent', databaseId: 'db', dataSourceId: 'ds' },
+    worklog: { pageId: 'parent' },
+  };
   const worklogConfig = {
-    getNotionWorkspaces: () => [
-      {
-        label: 'Personal',
-        tokenEnv: 'NOTION_TOKEN_PERSONAL',
-        rollup: { pageId: 'parent', databaseId: 'db', dataSourceId: 'ds' },
-        worklog: { pageId: 'parent' },
-      },
-    ],
+    getNotionWorkspaces: () => [workspace],
+    findRollupWorkspace: () => workspace,
     persistRollupTarget: vi.fn(),
   } as unknown as WorklogConfigService;
   const secrets = { getEnv: () => 'tok' } as unknown as SecretsService;

@@ -107,6 +107,7 @@ export function App() {
     const onUp = () => {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      window.removeEventListener('blur', onUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
@@ -114,6 +115,8 @@ export function App() {
     document.body.style.userSelect = 'none';
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
+    // 창 밖에서 버튼을 놓으면 mouseup 이 안 옴 — blur 로도 종료
+    window.addEventListener('blur', onUp);
   }, []);
 
   useEffect(() => {

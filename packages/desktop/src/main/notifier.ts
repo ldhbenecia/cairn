@@ -5,6 +5,9 @@ import { readSettings } from './settings';
 
 const modeLabel = (mode: CoreMode): string => mt(`mode.${mode}`);
 
+// 참조를 안 잡으면 GC 가 Notification 을 수거해 click 리스너가 죽는다(Electron) — click/close 시 해제
+const activeNotifications = new Set<Notification>();
+
 function focusModeInApp(mode: CoreMode): void {
   const win = BrowserWindow.getAllWindows()[0];
   if (!win) return;
@@ -19,7 +22,12 @@ function notify(title: string, body: string, mode: CoreMode): void {
   app.dock?.bounce('informational');
   if (!Notification.isSupported()) return;
   const noti = new Notification({ title, body });
-  noti.on('click', () => focusModeInApp(mode));
+  activeNotifications.add(noti);
+  noti.on('click', () => {
+    activeNotifications.delete(noti);
+    focusModeInApp(mode);
+  });
+  noti.on('close', () => activeNotifications.delete(noti));
   noti.show();
 }
 
@@ -55,10 +63,12 @@ export function notifyAutoStart(mode: CoreMode): void {
   notify(mt('notify.autoTitle'), mt('notify.autoRunning', { mode: modeLabel(mode) }), mode);
 }
 
-// 참조를 안 잡으면 GC 가 Notification 을 수거해 click 리스너가 죽는다(Electron) — click/close 시 해제
-const activeNotifications = new Set<Notification>();
-
-function notifyWithAction(title: string, body: string, onClick: () => void): boolean {
+function notifyWithAction(
+  title: string,
+  body: string,
+  onClick: () => void,
+  onClose?: () => void,
+): boolean {
   app.dock?.bounce('informational');
   if (!Notification.isSupported()) return false;
   const noti = new Notification({ title, body });
@@ -67,23 +77,37 @@ function notifyWithAction(title: string, body: string, onClick: () => void): boo
     activeNotifications.delete(noti);
     onClick();
   });
-  noti.on('close', () => activeNotifications.delete(noti));
+  noti.on('close', () => {
+    activeNotifications.delete(noti);
+    onClose?.();
+  });
   noti.show();
   return true;
 }
 
+// notifications 토글과 무관하게 항상 표시 — 억제하면 confirmBeforeRun 사용자의 발행이 영영 안 됨
+let confirmActive = false;
+
 export function notifyAutoConfirm(modes: CoreMode[], onConfirm: () => void): boolean {
   const primary = modes[0];
   if (!primary) return false;
+  // resume 직후 타이머·resume 핸들러가 연달아 불러도 confirm 배너는 한 장만
+  if (confirmActive) return true;
   const label = modes.map((m) => modeLabel(m)).join(', ');
-  return notifyWithAction(
+  const shown = notifyWithAction(
     mt('notify.autoConfirmTitle'),
     mt('notify.autoConfirm', { mode: label }),
     () => {
+      confirmActive = false;
       focusModeInApp(primary);
       onConfirm();
     },
+    () => {
+      confirmActive = false;
+    },
   );
+  confirmActive = shown;
+  return shown;
 }
 
 // 명시적 요청이므로 설정 토글과 무관하게 항상 표시 시도 (권한 프롬프트 유도 포함)

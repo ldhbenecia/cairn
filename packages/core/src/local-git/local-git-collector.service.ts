@@ -101,11 +101,13 @@ export class LocalGitCollectorService {
       this.client.remoteBranchesContaining(repoPath, raw.shortSha),
     ]);
 
+    const branch = pickBranch(localBranches);
     return {
       shortSha: raw.shortSha,
       subject: raw.subject,
       authoredAt: raw.authoredAt,
-      branch: pickBranch(localBranches),
+      // branch 명에 금지 패턴이 있으면 그 필드만 비움 (commit 은 유지)
+      branch: branch && isForbiddenSubject(branch) ? null : branch,
       pushed: remoteBranches.length > 0,
     };
   }

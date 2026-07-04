@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import type { PageContent, RecentPage, RichSpan, SimpleBlock } from '../cairn-api';
 import { sectionBullets } from '../lib/blocks';
-import { blocksToMarkdown } from '../lib/markdown';
+import { blocksToMarkdown } from '../../../shared/markdown';
 import { blocksToHtml } from '../../../shared/html';
 import { useSettings } from '../settings-context';
 
@@ -181,6 +181,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
     function cleanup() {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      window.removeEventListener('blur', onUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       resizeCleanup.current = null;
@@ -193,6 +194,8 @@ export function WorklogDrawer({ page, onClose }: Props) {
     document.body.style.userSelect = 'none';
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
+    // 창 밖에서 버튼을 놓으면 mouseup 이 안 옴 — blur 로도 종료
+    window.addEventListener('blur', onUp);
   }
 
   return (

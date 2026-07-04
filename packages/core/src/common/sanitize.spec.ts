@@ -122,4 +122,10 @@ describe('assertNoForbiddenPayload', () => {
     const dirty = '## 변경\n\n```\n@@ -1,2 +1,2 @@\n- old\n+ new\n```';
     expect(() => assertNoForbiddenPayload(dirty, 'pr-body')).toThrow(/unified-diff-hunk/);
   });
+
+  it('객체 payload — JSON.stringify 로 이스케이프된 개행 뒤 diff 헤더도 차단', () => {
+    expect(() => assertNoForbiddenPayload({ text: 'x\n--- a/file\n+++ b/file' }, 'test')).toThrow(
+      /unified-diff-old/,
+    );
+  });
 });

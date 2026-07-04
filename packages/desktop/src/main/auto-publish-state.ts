@@ -1,6 +1,7 @@
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
+import { writeFileAtomic } from './atomic-write';
 
 const STATE_PATH = join(homedir(), '.cairn', 'auto-publish-state.json');
 
@@ -16,10 +17,7 @@ export function readAutoPublishState(): AutoPublishState {
 
 export function writeAutoPublishState(state: AutoPublishState): void {
   try {
-    mkdirSync(dirname(STATE_PATH), { recursive: true });
-    const tmp = `${STATE_PATH}.${process.pid}.tmp`;
-    writeFileSync(tmp, JSON.stringify(state), 'utf8');
-    renameSync(tmp, STATE_PATH);
+    writeFileAtomic(STATE_PATH, JSON.stringify(state));
   } catch {
     // best-effort — 상태 기록 실패가 발행을 막지 않음
   }
