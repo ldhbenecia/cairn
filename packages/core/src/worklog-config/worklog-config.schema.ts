@@ -19,10 +19,15 @@ export const githubAccountConfigSchema = z.object({
   tokenEnv: z.string().min(1),
 });
 
+export const vaultConfigSchema = z.object({
+  folder: z.string().min(1),
+});
+
 export const worklogConfigSchema = z.object({
   localGitRepos: z.array(z.string().min(1)).default([]),
   notionWorkspaces: z.array(notionWorkspaceConfigSchema).default([]),
   githubAccounts: z.array(githubAccountConfigSchema).default([]),
+  vault: vaultConfigSchema.optional(),
 });
 
 export type NotionWorkspaceConfig = z.infer<typeof notionWorkspaceConfigSchema>;
