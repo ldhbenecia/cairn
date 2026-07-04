@@ -130,6 +130,9 @@ export function WorklogList({
     if (drawerOpen) return;
     const onKey = (e: KeyboardEvent): void => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // CommandPalette·AchievementsDialog 등 App 소유 오버레이 상태는 prop 으로 안 내려옴 —
+      // 열린 오버레이는 전부 role="dialog"(radix) 또는 fixed inset-0 레이어로만 마운트되므로 DOM 으로 감지
+      if (document.querySelector('[role="dialog"], .fixed.inset-0')) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSel((i) => Math.min(i + 1, navItems.length - 1));

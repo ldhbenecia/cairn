@@ -57,6 +57,9 @@ const STEP_TITLE_KEY: Record<Step, I18nKey> = {
   review: 'onb.step.review',
 };
 
+// finish() 저장 필터와 동일 조건 — 리뷰 카운트가 실제 저장될 워크스페이스 수와 어긋나지 않게
+const notionComplete = (e: NotionEntry): boolean => e.status === 'ok' && !!e.pageId && !!e.personId;
+
 let notionSeq = 0;
 const newNotion = (label: string): NotionEntry => ({
   uid: `n${notionSeq++}`,
@@ -186,30 +189,28 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     }
   }
 
-  const notionValid = notion.some((e) => e.status === 'ok' && e.pageId && e.personId);
+  const notionValid = notion.some(notionComplete);
 
   async function finish() {
     setFinishing(true);
     setFinishErr(null);
     const r = await window.cairn.onboarding.finish({
-      notion: notion
-        .filter((e) => e.status === 'ok' && e.pageId && e.personId)
-        .map((e) => {
-          const worklogDb = e.databases.find((d) => d.databaseId === e.worklogDbId);
-          const rollupDb = e.databases.find((d) => d.databaseId === e.rollupDbId);
-          return {
-            label: e.label,
-            token: e.token.trim(),
-            pageId: e.pageId,
-            myUserId: e.personId,
-            worklogDb: worklogDb
-              ? { databaseId: worklogDb.databaseId, dataSourceId: worklogDb.dataSourceId }
-              : undefined,
-            rollupDb: rollupDb
-              ? { databaseId: rollupDb.databaseId, dataSourceId: rollupDb.dataSourceId }
-              : undefined,
-          };
-        }),
+      notion: notion.filter(notionComplete).map((e) => {
+        const worklogDb = e.databases.find((d) => d.databaseId === e.worklogDbId);
+        const rollupDb = e.databases.find((d) => d.databaseId === e.rollupDbId);
+        return {
+          label: e.label,
+          token: e.token.trim(),
+          pageId: e.pageId,
+          myUserId: e.personId,
+          worklogDb: worklogDb
+            ? { databaseId: worklogDb.databaseId, dataSourceId: worklogDb.dataSourceId }
+            : undefined,
+          rollupDb: rollupDb
+            ? { databaseId: rollupDb.databaseId, dataSourceId: rollupDb.dataSourceId }
+            : undefined,
+        };
+      }),
       github: github
         .filter((e) => e.status === 'ok' && e.token.trim())
         .map((e) => ({ label: e.label, token: e.token.trim() })),
@@ -487,8 +488,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
               <Section desc={t('onb.review.desc')}>
                 <ul className="flex flex-col gap-1.5 text-[13px] text-ink-muted">
                   <li>
-                    {t('onb.review.notion')}{' '}
-                    {notion.filter((e) => e.status === 'ok' && e.pageId).length}
+                    {t('onb.review.notion')} {notion.filter(notionComplete).length}
                   </li>
                   <li>
                     {t('onb.review.github')} {github.filter((e) => e.status === 'ok').length}
@@ -724,7 +724,8 @@ function LabelToken({
       first.current = false;
       return;
     }
-    if (!token.trim() || mismatchKey) return;
+    // gh import 는 token 과 status 'testing' 을 함께 세팅하고 스스로 probe — 자동 테스트가 겹치면 probe 중복
+    if (!token.trim() || mismatchKey || status === 'testing') return;
     const id = setTimeout(() => onTestRef.current(), 800);
     return () => clearTimeout(id);
   }, [token]);
