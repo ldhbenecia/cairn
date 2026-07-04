@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog } from 'electron';
-import { existsSync, readdirSync, statSync } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { readdir, stat, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { blocksToMarkdown } from '../shared/markdown';
@@ -38,17 +38,18 @@ export type ExportStatus = {
   lastSyncAt: number | null;
 };
 
-// 연동 탭 표시용 — .obsidian 존재로 vault 감지, YYYY-MM-DD*.md 만 집계(다른 노트 미포함)
-export function exportStatus(): ExportStatus {
+// 연동 탭 표시용 — .obsidian 존재로 vault 감지, YYYY-MM-DD*.md 만 집계(다른 노트 미포함).
+// 대형 vault 에서 메인 프로세스가 얼지 않게 비동기 fs 사용 (#242 리뷰)
+export async function exportStatus(): Promise<ExportStatus> {
   const folder = readSettings().export.folder;
   if (!folder) return { folder: null, isVault: false, fileCount: 0, lastSyncAt: null };
   try {
     const isVault = existsSync(join(folder, '.obsidian'));
-    const files = readdirSync(folder).filter((f) => /^\d{4}-\d{2}-\d{2}.*\.md$/.test(f));
+    const files = (await readdir(folder)).filter((f) => /^\d{4}-\d{2}-\d{2}.*\.md$/.test(f));
+    const stats = await Promise.all(files.map((f) => stat(join(folder, f))));
     let last: number | null = null;
-    for (const f of files) {
-      const m = statSync(join(folder, f)).mtimeMs;
-      if (last === null || m > last) last = m;
+    for (const st of stats) {
+      if (last === null || st.mtimeMs > last) last = st.mtimeMs;
     }
     return { folder, isVault, fileCount: files.length, lastSyncAt: last };
   } catch {
