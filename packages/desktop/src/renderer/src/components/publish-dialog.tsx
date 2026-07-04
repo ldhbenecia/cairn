@@ -27,11 +27,13 @@ import type {
   CoreResult,
   CoreRunOptions,
   DateStep,
+  RunLine,
   RunProgress,
   RunStep,
   SummaryModel,
 } from '../cairn-api';
 import type { I18nKey } from '../i18n';
+import { useRunLines } from '../lib/run-line-store';
 import { useSettings } from '../settings-context';
 import { BrandMark } from './brand-mark';
 import { DatePicker } from './date-picker';
@@ -192,7 +194,12 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                 onClose={() => setOpen(false)}
               />
             ) : showProgress && (isRunning || busy) ? (
-              <Progress session={session} t={t} onCancel={() => void window.cairn.cancelRun()} />
+              <Progress
+                session={session}
+                mode={activeMode}
+                t={t}
+                onCancel={() => void window.cairn.cancelRun()}
+              />
             ) : (
               <>
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
@@ -296,7 +303,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
 }
 
 // raw 로그는 UI 에 노출하지 않고, 수집 중인 소스 판단에만 내부 사용
-function collectHintKey(lines: RunSession['lines']): I18nKey {
+function collectHintKey(lines: RunLine[]): I18nKey {
   for (let i = lines.length - 1; i >= 0; i--) {
     const t = lines[i]?.line.toLowerCase();
     if (!t) continue;
@@ -306,7 +313,7 @@ function collectHintKey(lines: RunSession['lines']): I18nKey {
   return 'publish.hint.collect';
 }
 
-function collectedCounts(lines: RunSession['lines']): { pr: number | null; commit: number | null } {
+function collectedCounts(lines: RunLine[]): { pr: number | null; commit: number | null } {
   let pr: number | null = null;
   let commit: number | null = null;
   for (const l of lines) {
@@ -319,7 +326,7 @@ function collectedCounts(lines: RunSession['lines']): { pr: number | null; commi
 }
 
 // rollup(주간/월간) 이 묶는 daily 일지 날짜들 — core 의 'rollup dailies' 로그에서 파싱
-function parseRollupDailies(lines: RunSession['lines']): string[] {
+function parseRollupDailies(lines: RunLine[]): string[] {
   for (const l of lines) {
     if (!/rollup dailies/.test(l.line)) continue;
     const m = /"dailyDates"\s*:\s*\[([^\]]*)\]/.exec(l.line);
@@ -782,10 +789,12 @@ function CancelButton({
 
 function Progress({
   session,
+  mode,
   t,
   onCancel,
 }: {
   session: RunSession | null;
+  mode: CoreMode;
   t: T;
   onCancel: () => void;
 }) {
@@ -824,7 +833,7 @@ function Progress({
   const elapsed = startedAt ? Math.max(0, Math.floor((end - startedAt) / 1000)) : 0;
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
   const ss = String(elapsed % 60).padStart(2, '0');
-  const lines = session?.lines ?? [];
+  const lines = useRunLines(mode);
   const counts = useMemo(() => collectedCounts(lines), [lines]);
   const rollupDailies = useMemo(() => parseRollupDailies(lines), [lines]);
   const backfill = session?.progress ?? null;

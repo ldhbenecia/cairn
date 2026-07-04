@@ -20,7 +20,7 @@ function makeActivity(): RollupActivity {
 
 function setup(opts: { archiveFails?: boolean } = {}) {
   const calls: string[] = [];
-  const createRollupPage = vi.fn(() => {
+  const createRollupPage = vi.fn((_args: { children: readonly unknown[] }) => {
     calls.push('create');
     return Promise.resolve({ id: 'new-page', url: 'https://notion/new' });
   });
@@ -85,5 +85,31 @@ describe('RollupPublisherService --force recreate', () => {
     expect(createRollupPage).not.toHaveBeenCalled();
     expect(archivePage).not.toHaveBeenCalled();
     expect(res).toMatchObject({ kind: 'skipped', reason: 'already-published' });
+  });
+});
+
+describe('RollupPublisherService egress item-drop (ADR 0021)', () => {
+  it('drops only the violating summary block and still publishes the rest', async () => {
+    const { service, createRollupPage } = setup();
+    const summary = {
+      paragraph: 'clean rollup paragraph',
+      themes: [],
+      highlights: ['clean highlight', 'leaked path /Users/leak/wip.ts'],
+    };
+
+    const res = await service.publish({
+      activity: makeActivity(),
+      force: true,
+      summary,
+      lang: 'ko',
+    });
+
+    expect(res).toMatchObject({ kind: 'recreated', pageId: 'new-page' });
+    const json = JSON.stringify(createRollupPage.mock.calls[0]![0].children);
+    expect(json).toContain('clean highlight');
+    expect(json).toContain('clean rollup paragraph');
+    expect(json).not.toContain('/Users/');
+    // 위반 블록 1개 때문에 통짜 fallback 으로 degrade 되면 안 된다
+    expect(json).not.toContain('Summarizer 미실행');
   });
 });

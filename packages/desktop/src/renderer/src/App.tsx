@@ -13,10 +13,10 @@ import type {
   CoreRunOptions,
   RecentListResult,
   RecentPage,
-  RunLine,
   RunProgress,
   RunStep,
 } from './cairn-api';
+import { resetRunLines } from './lib/run-line-store';
 import { useSettings } from './settings-context';
 import { Dashboard } from './components/dashboard';
 import { Onboarding } from './components/onboarding';
@@ -35,7 +35,6 @@ import { WorklogList } from './components/worklog-list';
 export type RunSession = {
   state: 'running' | 'done';
   step: RunStep;
-  lines: RunLine[];
   result?: CoreResult;
   error?: string;
   startedAt: number;
@@ -43,8 +42,6 @@ export type RunSession = {
   batch?: boolean;
   progress?: RunProgress;
 };
-
-const TAIL_MAX = 200;
 
 const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
   daily: null,
@@ -141,34 +138,11 @@ export function App() {
   }, [loadRecent]);
 
   useEffect(() => {
-    const off = window.cairn.onRunLine((l) => {
-      setSessions((prev) => {
-        const current = prev[l.mode] ?? {
-          state: 'running',
-          step: 'boot',
-          lines: [],
-          startedAt: Date.now(),
-        };
-        const next: RunSession = {
-          ...current,
-          lines:
-            current.lines.length >= TAIL_MAX
-              ? [...current.lines.slice(1), l]
-              : [...current.lines, l],
-        };
-        return { ...prev, [l.mode]: next };
-      });
-    });
-    return off;
-  }, []);
-
-  useEffect(() => {
     const off = window.cairn.onRunStep(({ mode, step }) => {
       setSessions((prev) => {
         const current = prev[mode] ?? {
           state: 'running',
           step: 'boot',
-          lines: [],
           startedAt: Date.now(),
         };
         return { ...prev, [mode]: { ...current, step } };
@@ -183,7 +157,6 @@ export function App() {
         const current = prev[mode] ?? {
           state: 'running' as const,
           step: 'boot' as const,
-          lines: [],
           startedAt: Date.now(),
         };
         return {
@@ -201,7 +174,6 @@ export function App() {
         const current = prev[mode] ?? {
           state: 'running' as const,
           step: 'done' as const,
-          lines: [],
           startedAt: Date.now(),
         };
         return {
@@ -235,7 +207,6 @@ export function App() {
                 [s.mode!]: {
                   state: 'running',
                   step: s.step,
-                  lines: [],
                   startedAt: s.startedAt,
                   batch: s.progress !== null,
                   progress: s.progress ?? undefined,
@@ -252,7 +223,6 @@ export function App() {
                 [mode]: {
                   state: 'done',
                   step: 'done',
-                  lines: [],
                   startedAt: 0, // 복원 시 실제 시작 시각 미상 → elapsed 표시 숨김
                   result,
                   endedAt,
@@ -290,6 +260,8 @@ export function App() {
     async (mode: CoreMode, options?: CoreRunOptions) => {
       const active = busyRef.current;
       if (active.busy) {
+        // 라이브 run 의 라인은 지우면 안 됨 — 다른 mode 가 busy 일 때만 리셋 (기존 lines: [] 동작 유지)
+        if (active.mode !== mode) resetRunLines(mode);
         setSessions((prev) => {
           if (prev[mode]?.state === 'running' || active.mode === mode) return prev;
           return {
@@ -297,7 +269,6 @@ export function App() {
             [mode]: {
               state: 'done',
               step: 'boot',
-              lines: [],
               startedAt: Date.now(),
               endedAt: Date.now(),
               error: t('publish.busyMsg'),
@@ -307,10 +278,11 @@ export function App() {
         return;
       }
       setRunningMode(mode);
+      resetRunLines(mode);
       const batch = (options?.backfillDays ?? 0) > 0;
       setSessions((prev) => ({
         ...prev,
-        [mode]: { state: 'running', step: 'boot', lines: [], startedAt: Date.now(), batch },
+        [mode]: { state: 'running', step: 'boot', startedAt: Date.now(), batch },
       }));
       try {
         await window.cairn.run(mode, options);
@@ -321,7 +293,6 @@ export function App() {
           const current = prev[mode] ?? {
             state: 'running',
             step: 'boot',
-            lines: [],
             startedAt: Date.now(),
           };
           return {

@@ -18,6 +18,7 @@ import type {
   RecentCategory,
   RecentListResult,
   RecentPage,
+  RecentWarning,
 } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
@@ -67,6 +68,23 @@ export function WorklogList({
   drawerOpen,
 }: Props) {
   const { t } = useSettings();
+
+  // 메인 프로세스는 경고를 코드로만 보냄 — 여기서 i18n 매핑. string 은 구버전 로컬 캐시 호환
+  const warningText = (w: RecentWarning | string): string => {
+    if (typeof w === 'string') return w;
+    switch (w.code) {
+      case 'no-workspaces':
+        return t('list.warn.noWorkspaces');
+      case 'token-missing':
+        return t('list.warn.tokenMissing')
+          .replace('{ws}', w.workspace)
+          .replace('{env}', w.tokenEnv);
+      case 'no-data-source':
+        return t('list.warn.noDataSource').replace('{ws}', w.workspace);
+      case 'fetch-failed':
+        return t('list.warn.fetchFailed').replace('{ws}', w.workspace).replace('{kind}', w.kind);
+    }
+  };
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [desc, setDesc] = useState(true);
@@ -283,7 +301,7 @@ export function WorklogList({
               <p className="mb-1 font-medium text-ink-subtle">{t('list.warnings')}</p>
               {recent.warnings.map((w, i) => (
                 <p key={i} className="font-mono">
-                  {w}
+                  {warningText(w)}
                 </p>
               ))}
             </div>

@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
+import { warmClaudePath } from './claude-path';
 import { pickExportFolder, saveMarkdown, savePdf } from './export';
 import { sendTestNotification } from './notifier';
 import {
@@ -137,6 +138,8 @@ function launchedAtLogin(): boolean {
 }
 
 void app.whenReady().then(() => {
+  // 로그인 셸 PATH 캡처를 미리 비동기로 — 첫 발행/probe 의 UI 프리즈 방지
+  void warmClaudePath();
   if (!app.isPackaged && process.platform === 'darwin') {
     try {
       app.dock?.setIcon(join(__dirname, '../../resources/icon.png'));

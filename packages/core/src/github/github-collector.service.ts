@@ -50,8 +50,9 @@ export class GithubCollectorService {
     const effectiveLookback = isBackfill ? lookbackDays : 0;
     // backfill 은 updated_at 이 D 이후로 밀린 PR 까지 잡으려 lower bound 만 둔다(상한 없음).
     // 매우 활발한 계정의 오래된 날짜 backfill 은 updated-desc 1000 cap 에 잘릴 수 있음 — 페이징 재설계는 별도 과제.
-    const widenedRange =
-      effectiveLookback > 0 ? `>=${localDateStartIsoBefore(date, effectiveLookback)}` : range;
+    const backfillLowerBoundIso =
+      effectiveLookback > 0 ? localDateStartIsoBefore(date, effectiveLookback) : null;
+    const widenedRange = backfillLowerBoundIso ? `>=${backfillLowerBoundIso}` : range;
     const accounts = this.worklogConfig.getGithubAccounts();
 
     if (accounts.length === 0) {
@@ -72,7 +73,13 @@ export class GithubCollectorService {
 
     const settled = await Promise.allSettled(
       accounts.map((account) =>
-        this.collectAccount(account, widenedRange, window.startIso, window.endIso),
+        this.collectAccount(
+          account,
+          widenedRange,
+          backfillLowerBoundIso,
+          window.startIso,
+          window.endIso,
+        ),
       ),
     );
 
@@ -109,6 +116,7 @@ export class GithubCollectorService {
   private async collectAccount(
     account: GithubAccountConfig,
     widenedRange: string,
+    backfillLowerBoundIso: string | null,
     sinceIso: string,
     untilIso: string,
   ): Promise<GithubPrSummary[]> {
@@ -118,7 +126,10 @@ export class GithubCollectorService {
     }
 
     const loginPromise = this.client.getAuthenticatedLogin(token);
-    const involved = await this.client.searchPrs(token, `involves:@me updated:${widenedRange}`);
+    // backfill 은 캐시 경로 — 동시 backfill 날짜들이 lower bound 만 다른 동일 검색을 공유
+    const involved = backfillLowerBoundIso
+      ? await this.client.searchPrsUpdatedSince(token, 'involves:@me', backfillLowerBoundIso)
+      : await this.client.searchPrs(token, `involves:@me updated:${widenedRange}`);
     const myLogin = await loginPromise;
 
     const buckets = new Map<string, PrBucket>();

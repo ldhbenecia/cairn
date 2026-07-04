@@ -9,6 +9,7 @@ import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
+import { enforceBlockEgress } from './block-egress.js';
 import { NotionApiClient } from './notion-api.client.js';
 import {
   bulletItem,
@@ -258,33 +259,14 @@ export class NotionPublisherService {
     token: string,
     dataSourceId: string,
   ): Promise<{ id: string; url: string | null }> {
-    let children = input.summary
-      ? buildSummaryBlocks(input.summary, input)
-      : buildFallbackBlocks(input);
     // fail-closed: 발행 직전 조립 블록에 금지 패턴이 섞이면(모델 입력은 pre-sanitize 되지만 방어선)
-    // 마스킹하지 말고 fallback 으로 degrade (egress 규칙 — 자유텍스트엔 마스킹 금지)
-    try {
-      assertNoForbiddenPayload(children, `notion.publish.${input.date}`);
-    } catch (err) {
-      // sanitize 에러 메시지엔 매칭된 패턴 이름만 들어 있다(snippet 없음) — 로그로 안전
-      this.logger.warn(
-        { date: input.date, err: String(err) },
-        'publish blocks tripped forbidden pattern — degrading to fallback',
-      );
-      children = buildFallbackBlocks(input);
-      try {
-        assertNoForbiddenPayload(children, `notion.publish.fallback.${input.date}`);
-      } catch (fallbackErr) {
-        // fallback 도 걸리면 외부 송신을 막기 위해 발행 중단
-        this.logger.warn(
-          { date: input.date, err: String(fallbackErr) },
-          'fallback blocks also tripped forbidden pattern — aborting publish',
-        );
-        throw new Error(`notion.publish.${input.date}: fallback also tripped forbidden pattern`, {
-          cause: fallbackErr,
-        });
-      }
-    }
+    // 위반 블록만 drop 하고 발행 계속 — 전부 drop 이면 fallback 으로 degrade (ADR 0021 item-drop)
+    const children = enforceBlockEgress(
+      input.summary ? buildSummaryBlocks(input.summary, input) : buildFallbackBlocks(input),
+      () => buildFallbackBlocks(input),
+      `notion.publish.${input.date}`,
+      this.logger,
+    );
     this.logger.info(
       {
         date: input.date,

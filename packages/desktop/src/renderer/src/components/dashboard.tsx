@@ -1,6 +1,7 @@
 import {
   Activity,
   CalendarCheck,
+  CalendarDays,
   CalendarRange,
   Clock,
   Flame,
@@ -114,7 +115,13 @@ function computeStreak(byDate: Map<string, DayActivity>): { current: number; lon
   return { current, longest };
 }
 
-const HUE = { teal: '#14b8a6', violet: '#8b5cf6', amber: '#f59e0b', rose: '#f43f5e' } as const;
+const HUE = {
+  teal: '#14b8a6',
+  violet: '#8b5cf6',
+  amber: '#f59e0b',
+  rose: '#f43f5e',
+  sky: '#0ea5e9',
+} as const;
 
 type CumPoint = { date: string; value: number };
 
@@ -145,6 +152,8 @@ function cumulativeSeries(byDate: Map<string, DayActivity>): CumPoint[] | null {
 type Insights = {
   busiest: DayActivity | null;
   dailyAvg: number;
+  thisWeek: number;
+  weekDelta: number | null;
   thisMonth: number;
   monthDelta: number | null;
   peak: { key: I18nKey; count: number } | null;
@@ -171,6 +180,24 @@ function computeInsights(data: Agg): Insights {
   const lastMonth = monthTotal(prevKey);
   const monthDelta = lastMonth > 0 ? Math.round(((thisMonth - lastMonth) / lastMonth) * 100) : null;
 
+  // 주간 리듬 — 이번 주(월요일 시작, 로컬 TZ)와 직전 주 비교. 월간 카드와 동일하게 부분 주 vs 온전한 주
+  const monday = new Date(now);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const sumRange = (from: Date, days: number): number => {
+    let sum = 0;
+    for (let i = 0; i < days; i++) {
+      const d = new Date(from);
+      d.setDate(d.getDate() + i);
+      sum += data.byDate.get(isoDay(d))?.total ?? 0;
+    }
+    return sum;
+  };
+  const thisWeek = sumRange(monday, 7);
+  const prevMonday = new Date(monday);
+  prevMonday.setDate(prevMonday.getDate() - 7);
+  const lastWeek = sumRange(prevMonday, 7);
+  const weekDelta = lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : null;
+
   let peak: { key: I18nKey; count: number } | null = null;
   if (data.hours.some((h) => h > 0)) {
     for (const p of TOD_PERIODS) {
@@ -180,7 +207,7 @@ function computeInsights(data: Agg): Insights {
     }
   }
 
-  return { busiest, dailyAvg, thisMonth, monthDelta, peak };
+  return { busiest, dailyAvg, thisWeek, weekDelta, thisMonth, monthDelta, peak };
 }
 
 const HEATMAP_WEEKS = 53;
@@ -361,13 +388,18 @@ function StatCard({
 }
 
 function InsightCards({ insights, t }: { insights: Insights; t: T }) {
-  const { busiest, dailyAvg, thisMonth, monthDelta, peak } = insights;
+  const { busiest, dailyAvg, thisWeek, weekDelta, thisMonth, monthDelta, peak } = insights;
   const suffix = t('stats.countSuffix');
   const up = monthDelta !== null && monthDelta >= 0;
   const deltaText =
     monthDelta === null
       ? t('stats.vsLastMonth')
       : `${up ? '+' : ''}${monthDelta}% · ${t('stats.vsLastMonth')}`;
+  const weekUp = weekDelta !== null && weekDelta >= 0;
+  const weekDeltaText =
+    weekDelta === null
+      ? t('stats.vsLastWeek')
+      : `${weekUp ? '+' : ''}${weekDelta}% · ${t('stats.vsLastWeek')}`;
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -385,6 +417,21 @@ function InsightCards({ insights, t }: { insights: Insights; t: T }) {
         icon={<Activity size={14} strokeWidth={2} />}
         label={t('stats.dailyAvg')}
         value={dailyAvg.toFixed(1)}
+      />
+      <InsightCard
+        hue={HUE.sky}
+        icon={<CalendarDays size={14} strokeWidth={2} />}
+        label={t('stats.thisWeek')}
+        value={`${thisWeek}${suffix}`}
+        sub={weekDeltaText}
+        subColor={weekDelta === null ? undefined : weekUp ? '#10b981' : HUE.rose}
+        subIcon={
+          weekDelta === null ? null : weekUp ? (
+            <TrendingUp size={11} strokeWidth={2.2} />
+          ) : (
+            <TrendingDown size={11} strokeWidth={2.2} />
+          )
+        }
       />
       <InsightCard
         hue={HUE.violet}
