@@ -60,6 +60,19 @@ export class WorklogConfigService {
     return this.load().notionWorkspaces;
   }
 
+  // target 워크스페이스 선택은 여기 한 곳으로 — 수집/발행이 서로 다른 predicate 로
+  // 다른 워크스페이스를 고르면 교차 발행이 생긴다. databaseId 만 설정한 구성도 유효
+  // (resolveDatabaseAndDataSource 가 databaseId-only 를 지원).
+  findWorklogWorkspace(): NotionWorkspaceConfig | undefined {
+    return this.getNotionWorkspaces().find((ws) => ws.worklog?.pageId ?? ws.worklog?.databaseId);
+  }
+
+  findRollupWorkspace(): NotionWorkspaceConfig | undefined {
+    return this.getNotionWorkspaces().find(
+      (ws) => ws.rollup?.pageId ?? ws.worklog?.pageId ?? ws.worklog?.databaseId,
+    );
+  }
+
   getGithubAccounts(): readonly GithubAccountConfig[] {
     return this.load().githubAccounts;
   }
@@ -68,39 +81,25 @@ export class WorklogConfigService {
     workspaceLabel: string,
     ids: { databaseId: string; dataSourceId: string },
   ): void {
-    const path = this.resolvePath();
-    withFileLock(path, () => {
-      const { config } = this.readForPersist('persistWorklogTarget');
-      let matched = false;
-      const next: WorklogConfig = {
-        ...config,
-        notionWorkspaces: config.notionWorkspaces.map((ws) => {
-          if (ws.label !== workspaceLabel) return ws;
-          matched = true;
-          return {
-            ...ws,
-            worklog: { ...ws.worklog, databaseId: ids.databaseId, dataSourceId: ids.dataSourceId },
-          };
-        }),
-      };
-      if (!matched) {
-        throw new Error(`persistWorklogTarget: workspace ${workspaceLabel} not found in config`);
-      }
-      this.writePersist(path, next);
-    });
-    this.logger.info(
-      { workspace: workspaceLabel, kind: 'worklog', ...ids, path },
-      'worklog config: worklog.databaseId / dataSourceId 자동 저장',
-    );
+    this.persistTarget('worklog', workspaceLabel, ids);
   }
 
   persistRollupTarget(
     workspaceLabel: string,
     ids: { databaseId: string; dataSourceId: string },
   ): void {
+    this.persistTarget('rollup', workspaceLabel, ids);
+  }
+
+  private persistTarget(
+    kind: 'worklog' | 'rollup',
+    workspaceLabel: string,
+    ids: { databaseId: string; dataSourceId: string },
+  ): void {
+    const caller = `persistTarget(${kind})`;
     const path = this.resolvePath();
     withFileLock(path, () => {
-      const { config } = this.readForPersist('persistRollupTarget');
+      const { config } = this.readForPersist(caller);
       let matched = false;
       const next: WorklogConfig = {
         ...config,
@@ -109,29 +108,29 @@ export class WorklogConfigService {
           matched = true;
           return {
             ...ws,
-            rollup: { ...ws.rollup, databaseId: ids.databaseId, dataSourceId: ids.dataSourceId },
+            [kind]: { ...ws[kind], databaseId: ids.databaseId, dataSourceId: ids.dataSourceId },
           };
         }),
       };
       if (!matched) {
-        throw new Error(`persistRollupTarget: workspace ${workspaceLabel} not found in config`);
+        throw new Error(`${caller}: workspace ${workspaceLabel} not found in config`);
       }
       this.writePersist(path, next);
     });
     this.logger.info(
-      { workspace: workspaceLabel, kind: 'rollup', ...ids, path },
-      'worklog config: rollup.databaseId / dataSourceId 자동 저장',
+      { workspace: workspaceLabel, kind, ...ids, path },
+      `worklog config: ${kind}.databaseId / dataSourceId 자동 저장`,
     );
   }
 
-  private readForPersist(caller: string): { config: WorklogConfig; path: string } {
+  private readForPersist(caller: string): { config: WorklogConfig } {
     const path = this.resolvePath();
     if (!existsSync(path)) {
       throw new Error(`${caller}: config not found at ${path}`);
     }
     const raw = readFileSync(path, 'utf8');
     const parsed: unknown = JSON.parse(raw);
-    return { config: worklogConfigSchema.parse(parsed), path };
+    return { config: worklogConfigSchema.parse(parsed) };
   }
 
   private writePersist(path: string, next: WorklogConfig): void {

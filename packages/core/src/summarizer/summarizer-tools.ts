@@ -30,13 +30,13 @@ export type SubmitSummaryInput = z.infer<typeof submitSummarySchema>;
 
 interface DonePrItem {
   source: 'github';
-  kind: 'pr_merged';
+  kind: 'pr_merged' | 'pr_closed';
   account: string;
   repo: string;
   number: number;
   title: string;
   state: GithubPrState;
-  mergedAt: string;
+  mergedAt: string | null;
   categories: readonly GithubActivityCategory[];
   htmlUrl: string;
   body: string | null;
@@ -162,10 +162,12 @@ export function buildSummarizerTools(input: SummarizerInput): SummarizerToolsBun
 function computeDonePrs(input: SummarizerInput): DonePrItem[] {
   const out: DonePrItem[] = [];
   for (const pr of input.github?.prs ?? []) {
-    if (pr.mergedAt && isMyWork(pr)) {
+    // closed-unmerged 도 포함 — prCount 에는 잡히는데 done/inProgress 어디에도 없으면
+    // 요약이 "N개 PR" 과 본문이 어긋난다
+    if ((pr.mergedAt || pr.state === 'closed') && isMyWork(pr)) {
       out.push({
         source: 'github',
-        kind: 'pr_merged',
+        kind: pr.mergedAt ? 'pr_merged' : 'pr_closed',
         account: pr.account,
         repo: pr.repo,
         number: pr.number,

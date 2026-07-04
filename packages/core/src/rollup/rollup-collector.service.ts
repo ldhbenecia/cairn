@@ -139,7 +139,8 @@ export class RollupCollectorService {
   }
 
   private findTarget(): NotionWorkspaceConfig | undefined {
-    return this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.dataSourceId);
+    // 발행 target 과 같은 워크스페이스에서 daily 를 읽는다 (dataSourceId 미보유 시 빈 수집)
+    return this.worklogConfig.findRollupWorkspace();
   }
 }
 

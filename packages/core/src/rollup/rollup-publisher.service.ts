@@ -45,14 +45,12 @@ export class RollupPublisherService {
     private readonly logger: PinoLogger,
   ) {}
 
+  // force 실행에선 orchestrator 가 precheck 자체를 건너뛴다 — 여기선 non-force 만 가정
   async precheck(
     period: 'weekly' | 'monthly',
     localDate: string,
-    force: boolean,
   ): Promise<PublishRollupResult | null> {
-    const target = this.worklogConfig
-      .getNotionWorkspaces()
-      .find((ws) => ws.rollup?.pageId ?? ws.worklog?.pageId);
+    const target = this.worklogConfig.findRollupWorkspace();
     if (!target) return { kind: 'no-target' };
 
     const token = this.secrets.getEnv(target.tokenEnv);
@@ -74,10 +72,7 @@ export class RollupPublisherService {
       if (existing.status === 'final') {
         return { kind: 'skipped', reason: 'final-protected', pageId: existing.pageId };
       }
-      if (!force) {
-        return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
-      }
-      return null;
+      return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
     } catch (err) {
       this.logger.warn(
         { period, err: String(err) },
@@ -88,9 +83,7 @@ export class RollupPublisherService {
   }
 
   async publish(input: PublishRollupInput): Promise<PublishRollupResult> {
-    const target = this.worklogConfig
-      .getNotionWorkspaces()
-      .find((ws) => ws.rollup?.pageId ?? ws.worklog?.pageId);
+    const target = this.worklogConfig.findRollupWorkspace();
 
     if (!target) {
       this.logger.warn(
