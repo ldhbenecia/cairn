@@ -40,6 +40,9 @@ export class LocalGitClient {
     // 벌려 후보를 받고, GitHub PR commit 경로와 동일하게 author date instant 로 필터.
     const sinceMs = Date.parse(since);
     const untilMs = Date.parse(until);
+    if (Number.isNaN(sinceMs) || Number.isNaN(untilMs)) {
+      throw new Error(`invalid commit window: since=${since}, until=${until}`);
+    }
     const slackMs = 30 * 24 * 60 * 60 * 1000;
     const out = await this.git(repoPath).raw([
       'log',
