@@ -332,6 +332,7 @@ const STRINGS = {
     'toast.fail': '발행 실패',
     'prefs.integrations': '연동',
     'prefs.integrations.desc': '발행한 일지를 다른 도구로 흘려보내요',
+    'integrations.obsidian': 'Obsidian',
     'integrations.markdown.title': 'Markdown 폴더',
     'integrations.vaultDetected': 'Obsidian vault 감지됨',
     'integrations.noFolder':
@@ -731,6 +732,7 @@ const STRINGS = {
     'toast.fail': 'publish failed',
     'prefs.integrations': 'Integrations',
     'prefs.integrations.desc': 'Send published worklogs to your other tools',
+    'integrations.obsidian': 'Obsidian',
     'integrations.markdown.title': 'Markdown folder',
     'integrations.vaultDetected': 'Obsidian vault detected',
     'integrations.noFolder':

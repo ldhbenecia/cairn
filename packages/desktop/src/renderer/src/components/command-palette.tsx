@@ -142,6 +142,8 @@ export function CommandPalette({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.15 }}
       // pointer-events-auto: radix modal(환경설정) 이 body 에 none 을 걸어도 팔레트가 마우스를 받게
+      role="dialog"
+      aria-modal="true"
       className="pointer-events-auto fixed inset-0 z-[60] flex items-start justify-center bg-black/40 pt-[14vh] [-webkit-app-region:no-drag]"
     >
       <motion.div

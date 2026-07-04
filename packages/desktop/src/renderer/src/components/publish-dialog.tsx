@@ -21,7 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RunSession } from '../App';
 import type {
   CoreMode,
@@ -96,6 +96,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<CoreMode>('daily');
   const [date, setDate] = useState<string>(todayIso);
+  const dateTouched = useRef(false);
   const [includeBackfill, setIncludeBackfill] = useState(false);
   const [force, setForce] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
@@ -138,8 +139,8 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
         setOpen(o);
         if (o) {
           setShowProgress(busy);
-          // 자정을 넘겨 열면 mount 시점의 어제 날짜가 남아 있음
-          setDate((prev) => (prev === todayIso() ? prev : todayIso()));
+          // 자정을 넘겨 열면 mount 시점의 어제 날짜가 남아 있음 — 사용자가 직접 고른 날짜는 유지 (#236 리뷰)
+          if (!dateTouched.current) setDate((prev) => (prev === todayIso() ? prev : todayIso()));
         }
       }}
     >
@@ -250,7 +251,15 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                     <span className="text-[13px] font-medium text-ink">{t('publish.date')}</span>
                     <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
                   </div>
-                  <DatePicker value={date} max={todayIso()} disabled={busy} onChange={setDate} />
+                  <DatePicker
+                    value={date}
+                    max={todayIso()}
+                    disabled={busy}
+                    onChange={(iso) => {
+                      dateTouched.current = true;
+                      setDate(iso);
+                    }}
+                  />
                 </div>
 
                 <div className="mb-5 flex flex-col divide-y divide-hairline overflow-hidden rounded-lg border border-hairline">
@@ -276,6 +285,8 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                   type="button"
                   disabled={busy}
                   onClick={() => {
+                    // 이전 외부 발행에서 latch 된 mode 가 새 수동 발행 화면을 끌고 가지 않게 (#236 리뷰)
+                    setWatchedExternal(null);
                     setShowProgress(true);
                     void onTrigger(mode, {
                       backfillDays:

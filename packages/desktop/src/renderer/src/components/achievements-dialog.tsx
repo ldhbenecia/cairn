@@ -135,7 +135,8 @@ export function AchievementsDialog({
       .replace('{pr}', String(pr))
       .replace('{commit}', String(commit))}`;
     setStats({ worklogs: target.length, done: doneTotal, pr, commit });
-    setMarkdown(md ? `${header}\n\n${md}` : md);
+    // Done 항목이 없어도 기간·수치 헤더는 보여준다 (#239 리뷰)
+    setMarkdown(md ? `${header}\n\n${md}` : header);
     setPhase('result');
   }
 
@@ -176,6 +177,8 @@ export function AchievementsDialog({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-6 [-webkit-app-region:no-drag]"
     >
       <motion.div
