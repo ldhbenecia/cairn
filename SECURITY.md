@@ -17,9 +17,9 @@ cairn is local-first by design. The following are **never** sent to any external
 - Absolute file paths
 - Tokens, API keys, email addresses
 
-Only a whitelist egresses: PR titles, file names (basename only), commit subjects, and Notion page titles/URLs. This is enforced with fail-closed payload assertions (`assertNoForbiddenPayload`) and unit tests — see the `packages/core/src/common/sanitize` module.
+Only a whitelist egresses: PR titles and first-line descriptions, changed file names (basename only), commit subjects and short SHAs, repo basenames, and Notion page titles/URLs/last-edited times. This is enforced with fail-closed payload assertions (`assertNoForbiddenPayload`) and unit tests — see the `packages/core/src/common/sanitize` module.
 
-Tokens you connect during onboarding are stored in a plaintext `.env` under `~/.cairn/` on your machine only. cairn has no server that receives them; optional cross-device sync uploads aggregate daily counts only.
+Tokens you connect during onboarding are stored in a `.env` under `~/.cairn/` with owner-only file permissions (0600), on your machine only — exclude `~/.cairn/` from cloud backups if that matters to you. cairn has no server that receives them; optional cross-device sync uploads aggregate daily counts only. OS keychain storage is under consideration as a future hardening.
 
 ## Scope
 
