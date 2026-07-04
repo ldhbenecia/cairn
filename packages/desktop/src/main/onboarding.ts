@@ -1,6 +1,7 @@
 import { Client } from '@notionhq/client';
 import { execFile } from 'node:child_process';
 import { mkdirSync, readFileSync } from 'node:fs';
+import { errorMessage } from './error-message';
 import { writeFileAtomic } from './atomic-write';
 import { withFileLock } from './file-lock';
 import { dirname } from 'node:path';
@@ -116,7 +117,7 @@ export async function probeNotion(token: string): Promise<NotionProbe> {
       .map((u) => ({ id: u.id, name: u.name ?? '(unnamed)' }));
     return { ok: true, persons };
   } catch (err) {
-    return { ok: false, persons: [], error: err instanceof Error ? err.message : String(err) };
+    return { ok: false, persons: [], error: errorMessage(err) };
   }
 }
 
@@ -226,7 +227,7 @@ export async function probeGithub(token: string): Promise<GithubProbe> {
     const body = (await res.json()) as { login?: string };
     return { ok: true, login: body.login };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    return { ok: false, error: errorMessage(err) };
   }
 }
 
@@ -394,6 +395,6 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
       return { ok: true };
     });
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    return { ok: false, error: errorMessage(err) };
   }
 }

@@ -3,6 +3,7 @@ import { fork, type ChildProcess } from 'node:child_process';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { errorMessage } from './error-message';
 import { claudeEnv } from './claude-path';
 import { syncWorklogToFolder } from './export';
 import { sendResultNotification } from './notifier';
@@ -563,10 +564,7 @@ export async function runCore(
               title: t.fileBase,
               date: t.date,
             }).catch((err: unknown) => {
-              emit(
-                'err',
-                `[export] sync 실패: ${err instanceof Error ? err.message : String(err)}`,
-              );
+              emit('err', `[export] sync 실패: ${errorMessage(err)}`);
             });
           }
         }

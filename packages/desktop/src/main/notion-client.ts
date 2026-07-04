@@ -2,6 +2,7 @@ import { Client } from '@notionhq/client';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { errorMessage } from './error-message';
 import { readConfig } from './files';
 import { CAIRN_ROOT } from './setup';
 
@@ -176,7 +177,7 @@ async function listWorkspacePages(
             code: 'fetch-failed',
             workspace: ws.label,
             kind: 'worklog',
-            detail: err instanceof Error ? err.message : String(err),
+            detail: errorMessage(err),
           });
         }),
     );
@@ -194,7 +195,7 @@ async function listWorkspacePages(
             code: 'fetch-failed',
             workspace: ws.label,
             kind: 'rollup',
-            detail: err instanceof Error ? err.message : String(err),
+            detail: errorMessage(err),
           });
         }),
     );
@@ -375,7 +376,7 @@ export async function fetchPageContent(
     const notion = getNotion(token);
     return { blocks: await fetchBlocks(notion, pageId, 0) };
   } catch (err) {
-    return { blocks: [], warning: err instanceof Error ? err.message : String(err) };
+    return { blocks: [], warning: errorMessage(err) };
   }
 }
 
