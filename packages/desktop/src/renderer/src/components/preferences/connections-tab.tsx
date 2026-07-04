@@ -1,9 +1,9 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, Loader2, RotateCw } from 'lucide-react';
+import { Loader2, RotateCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ConnectionAccounts } from '../../cairn-api';
 import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';
+import { AccordionItem } from '../accordion';
 import { Field } from './field';
 
 type ParsedConfig = {
@@ -172,88 +172,53 @@ function Row({
         ? t('prefs.conn.connected')
         : t('prefs.conn.missing');
 
+  const header = (
+    <>
+      {pending ? (
+        <Loader2 className="size-3.5 shrink-0 animate-spin text-ink-tertiary" />
+      ) : (
+        <span
+          className={`size-1.5 shrink-0 rounded-full ${connected ? 'bg-emerald-500' : 'bg-ink-tertiary'}`}
+        />
+      )}
+      <span className="text-ink-muted">{label}</span>
+      <span className="ml-auto truncate pl-3 text-[12px] text-ink-tertiary">{summary}</span>
+      {onRefresh && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRefresh();
+          }}
+          aria-label={t('prefs.conn.recheck')}
+          className="shrink-0 rounded p-0.5 text-ink-tertiary transition-colors hover:text-ink-muted"
+        >
+          <RotateCw size={12} strokeWidth={2} />
+        </button>
+      )}
+    </>
+  );
+
   return (
-    <div className="rounded-md">
-      {/* 행 전체가 클릭 영역 — 우측 숫자/화살표만 눌러야 펼쳐지던 불편 해소. refresh 버튼 중첩 때문에 div+role */}
-      <div
-        {...(canExpand
-          ? {
-              role: 'button' as const,
-              tabIndex: 0,
-              onClick: onToggle,
-              onKeyDown: (e: React.KeyboardEvent) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onToggle();
-                }
-              },
-              'aria-expanded': expanded,
-              'aria-label': `${label}: ${summary}`,
-            }
-          : {})}
-        className={[
-          'flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px]',
-          canExpand ? 'cursor-pointer transition-colors hover:bg-surface-2/60' : '',
-        ].join(' ')}
-      >
-        {pending ? (
-          <Loader2 className="size-3.5 shrink-0 animate-spin text-ink-tertiary" />
-        ) : (
-          <span
-            className={`size-1.5 shrink-0 rounded-full ${connected ? 'bg-emerald-500' : 'bg-ink-tertiary'}`}
-          />
-        )}
-        <span className="text-ink-muted">{label}</span>
-        {canExpand ? (
-          <span className="ml-auto flex items-center gap-1 pl-3 text-[12px] text-ink-tertiary">
-            <span>{summary}</span>
-            <ChevronDown
-              size={13}
-              strokeWidth={2}
-              className={`transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
-            />
-          </span>
-        ) : (
-          <span className="ml-auto truncate pl-3 text-[12px] text-ink-tertiary">{summary}</span>
-        )}
-        {onRefresh && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRefresh();
-            }}
-            aria-label={t('prefs.conn.recheck')}
-            className="shrink-0 rounded p-0.5 text-ink-tertiary transition-colors hover:text-ink-muted"
-          >
-            <RotateCw size={12} strokeWidth={2} />
-          </button>
-        )}
+    <AccordionItem
+      open={!!expanded && canExpand}
+      onToggle={onToggle ?? (() => {})}
+      header={header}
+      disabled={!canExpand}
+      aria-label={`${label}: ${summary}`}
+    >
+      <div className="space-y-1 py-1 pl-4.5 pr-2">
+        {(items ?? []).map((it, i) => (
+          <div key={`${it.primary}-${i}`} className="flex items-baseline gap-2 text-[12px]">
+            <span className="text-ink-muted">{it.primary}</span>
+            {it.secondary && (
+              <span className="truncate text-ink-tertiary" title={it.secondary}>
+                {it.secondary}
+              </span>
+            )}
+          </div>
+        ))}
       </div>
-      <AnimatePresence initial={false}>
-        {expanded && canExpand && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="space-y-1 py-1 pl-4.5 pr-2">
-              {(items ?? []).map((it, i) => (
-                <div key={`${it.primary}-${i}`} className="flex items-baseline gap-2 text-[12px]">
-                  <span className="text-ink-muted">{it.primary}</span>
-                  {it.secondary && (
-                    <span className="truncate text-ink-tertiary" title={it.secondary}>
-                      {it.secondary}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    </AccordionItem>
   );
 }
