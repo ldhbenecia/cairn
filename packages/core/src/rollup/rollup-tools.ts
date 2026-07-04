@@ -1,6 +1,6 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
-import { assertNoForbiddenPayload, sanitizeCairnError } from '../common/sanitize.js';
+import { sanitizeCairnError } from '../common/sanitize.js';
 import type { RollupActivity } from '../contracts/rollup-activity.types.js';
 
 export interface RollupSummarizerInput {
@@ -82,24 +82,13 @@ export interface RollupToolsBundle {
   getSubmission: () => SubmitRollupInput | null;
 }
 
-export function buildRollupTools(input: RollupSummarizerInput): RollupToolsBundle {
+// 활동 데이터는 user 프롬프트에 인라인 — get_rollup_activity 도구 왕복 제거 (daily 와 동일 근거)
+export function buildRollupTools(): RollupToolsBundle {
   let submission: SubmitRollupInput | null = null;
-
-  const getRollupActivity = tool(
-    'get_rollup_activity',
-    'Returns the period activity in one call: metrics totals, per-day daily metadata, and per-day summary text already produced for daily worklogs. Call this exactly once, then call submit_rollup.',
-    {},
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async () => {
-      const payload = buildRollupActivityPayload(input);
-      assertNoForbiddenPayload(payload, 'tool.get_rollup_activity');
-      return { content: [{ type: 'text', text: JSON.stringify(payload) }] };
-    },
-  );
 
   const submitRollup = tool(
     'submit_rollup',
-    'Submit the rollup summary and exit. Call exactly once after get_rollup_activity has provided context. paragraph + themes + highlights MUST use the output language set in the system prompt.',
+    'Submit the rollup summary and exit. Call exactly once after reading the period activity data in the user message. paragraph + themes + highlights MUST use the output language set in the system prompt.',
     submitRollupSchema.shape,
     // eslint-disable-next-line @typescript-eslint/require-await
     async (raw) => {
@@ -110,7 +99,7 @@ export function buildRollupTools(input: RollupSummarizerInput): RollupToolsBundl
 
   const server = createSdkMcpServer({
     name: 'cairn-rollup',
-    tools: [getRollupActivity, submitRollup],
+    tools: [submitRollup],
   });
 
   return {

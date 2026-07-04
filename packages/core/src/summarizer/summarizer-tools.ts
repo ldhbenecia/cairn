@@ -1,7 +1,7 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { computeDayTotals } from '../common/day-totals.js';
-import { assertNoForbiddenPayload, sanitizeCairnError } from '../common/sanitize.js';
+import { sanitizeCairnError } from '../common/sanitize.js';
 import type {
   GithubActivity,
   GithubActivityCategory,
@@ -122,24 +122,14 @@ export interface SummarizerToolsBundle {
   getSubmission: () => SubmitSummaryInput | null;
 }
 
-export function buildSummarizerTools(input: SummarizerInput): SummarizerToolsBundle {
+// 활동 데이터는 user 프롬프트에 인라인 — get_activity 도구 왕복(모델 턴 1회)을 없애 지연 단축.
+// payload 는 인라인 전에 동일한 assertNoForbiddenPayload 를 통과한다 (egress 불변)
+export function buildSummarizerTools(): SummarizerToolsBundle {
   let submission: SubmitSummaryInput | null = null;
-
-  const getActivity = tool(
-    'get_activity',
-    "Returns today's activity in one call: done (authored/assigned merged PRs + pushed commits), inProgress (authored/assigned open PRs + unpushed commits), and sourceErrors. Call this exactly once, then call submit_summary.",
-    {},
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async () => {
-      const payload = buildActivityPayload(input);
-      assertNoForbiddenPayload(payload, 'tool.get_activity');
-      return { content: [{ type: 'text', text: JSON.stringify(payload) }] };
-    },
-  );
 
   const submitSummary = tool(
     'submit_summary',
-    'Submit the worklog summary and exit. Call exactly once after get_activity has provided context. All text fields must follow the requested output language.',
+    'Submit the worklog summary and exit. Call exactly once after reading the activity data in the user message. All text fields must follow the requested output language.',
     submitSummarySchema.shape,
     // eslint-disable-next-line @typescript-eslint/require-await
     async (raw) => {
@@ -150,7 +140,7 @@ export function buildSummarizerTools(input: SummarizerInput): SummarizerToolsBun
 
   const server = createSdkMcpServer({
     name: 'cairn-summarizer',
-    tools: [getActivity, submitSummary],
+    tools: [submitSummary],
   });
 
   return {
