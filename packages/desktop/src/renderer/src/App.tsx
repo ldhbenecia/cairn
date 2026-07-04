@@ -277,6 +277,8 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === ',') {
         e.preventDefault();
+        // 팔레트를 열어둔 채 환경설정(radix modal)이 뜨면 body pointer-events 가 죽어 팔레트가 안 닫힘
+        setCmdkOpen(false);
         setPrefsOpen(true);
       } else if (e.metaKey && e.key === 'k') {
         e.preventDefault();
