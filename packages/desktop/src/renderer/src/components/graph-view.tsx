@@ -135,6 +135,7 @@ export function GraphView({
     let lastX = 0;
     let lastY = 0;
     let raf = 0;
+    const fontFamily = getComputedStyle(document.body).fontFamily;
 
     const resize = (): void => {
       const rect = canvas.getBoundingClientRect();
@@ -247,7 +248,7 @@ export function GraphView({
         if (!(n.kind === 'monthly' || isHover || isNeighbor || showAll)) continue;
         if (hover !== -1 && !isHover && !isNeighbor && n.kind !== 'monthly') continue;
         const size = n.kind === 'monthly' ? 11 : 9.5;
-        ctx.font = `500 ${size / zoom}px ${getComputedStyle(document.body).fontFamily}`;
+        ctx.font = `500 ${size / zoom}px ${fontFamily}`;
         ctx.fillStyle = isHover ? LABEL_HI : LABEL_COLOR;
         ctx.globalAlpha = hover !== -1 && !isHover && !isNeighbor ? 0.4 : 0.95;
         const label = n.kind === 'daily' ? (n.page.date ?? n.page.title) : n.page.title;
