@@ -134,7 +134,7 @@ export const content = {
       items: [
         {
           q: 'Is it free?',
-          a: 'Yes. cairn is open source (AGPL-3.0) and runs entirely on your machine — collecting, summarizing, and publishing are free and will stay that way. The only thing that may become paid later is optional cloud sync.',
+          a: 'Yes. cairn is open source (AGPL-3.0) and runs entirely on your machine — collecting, summarizing, and publishing are all free.',
         },
         {
           q: 'Does my code leave my machine?',
@@ -149,8 +149,8 @@ export const content = {
           a: 'Summaries run on your own Claude account: install Claude Code and sign in (Pro/Max) and cairn inherits that auth, or paste an Anthropic API key. Either works.',
         },
         {
-          q: 'Does it work with Obsidian?',
-          a: 'Yes. Pick a folder and every publish also lands as a .md file — point it at an Obsidian vault and it syncs right in. cairn detects vaults automatically.',
+          q: 'Can I keep worklogs outside Notion too?',
+          a: 'Yes. Pick a folder and every publish also lands there as a .md file — so any Markdown-based tool can pick it up. More integrations are on the way.',
         },
         {
           q: 'Where is my data stored?',
@@ -292,7 +292,7 @@ export const content = {
       items: [
         {
           q: '무료인가요?',
-          a: '네. cairn 은 오픈소스(AGPL-3.0)이고 전부 내 기기에서 실행됩니다 — 수집·요약·발행은 무료이며 앞으로도 그렇습니다. 향후 유료가 될 수 있는 건 선택 기능인 클라우드 동기화뿐입니다.',
+          a: '네. cairn 은 오픈소스(AGPL-3.0)이고 전부 내 기기에서 실행됩니다 — 수집·요약·발행 모두 무료입니다.',
         },
         {
           q: '내 코드가 외부로 전송되나요?',
@@ -307,8 +307,8 @@ export const content = {
           a: '요약은 본인의 Claude 계정으로 동작합니다: Claude Code 를 설치·로그인해 두면(Pro/Max) cairn 이 그 인증을 인계받고, 또는 Anthropic API 키를 붙여넣어도 됩니다. 둘 다 됩니다.',
         },
         {
-          q: 'Obsidian 이랑 연동되나요?',
-          a: '네. 폴더를 지정하면 발행마다 일지가 .md 파일로도 기록됩니다 — Obsidian vault 를 지정하면 그대로 연동되고, vault 는 자동으로 감지됩니다.',
+          q: '노션 밖에도 일지를 남길 수 있나요?',
+          a: '네. 폴더를 지정하면 발행마다 일지가 .md 파일로도 기록됩니다 — 마크다운을 읽는 도구라면 무엇이든 그대로 쓸 수 있어요. 연동은 계속 늘려갈 예정입니다.',
         },
         {
           q: '데이터는 어디에 저장되나요?',

@@ -260,8 +260,7 @@ const STRINGS = {
     'achv.mdHeader': '일지 {n} · PR {pr} · 커밋 {commit}',
     'faq.title': '자주 묻는 질문',
     'faq.q1': '무료인가요?',
-    'faq.a1':
-      '완전 로컬로 동작하는 오픈소스예요. 지금은 전부 무료고, 유료가 생기더라도 관리형 클라우드 동기화 같은 부가 서비스에만 붙어요.',
+    'faq.a1': '완전 로컬로 동작하는 오픈소스예요. 수집·요약·발행 모두 무료예요.',
     'faq.q2': '내 코드가 외부로 전송되나요?',
     'faq.a2':
       '아니요. 코드 본문·diff 는 절대 밖으로 내보내지 않아요. 요약에는 PR 제목·커밋 제목 수준의 메타데이터만 쓰고, 화이트리스트 검사로 강제돼요.',
@@ -270,9 +269,9 @@ const STRINGS = {
       '내가 만들었거나 할당된 GitHub PR·커밋, 그리고 로컬 Git 커밋이요. 전부 내 토큰으로 내 기기에서 수집돼요 — 별도 서버가 없어요.',
     'faq.q4': 'Claude 구독이 필요한가요?',
     'faq.a4': '요약 생성에 내 Claude 계정(Claude Code 로그인 또는 API 키)을 사용해요.',
-    'faq.q5': 'Obsidian 이랑 연동되나요?',
+    'faq.q5': '노션 밖에도 일지를 남길 수 있나요?',
     'faq.a5':
-      '연동 탭에서 폴더를 지정하면 발행할 때마다 .md 로 동기화돼요. Obsidian vault 는 자동으로 감지돼요.',
+      '연동 탭에서 폴더를 지정하면 발행할 때마다 .md 로도 기록돼요. 마크다운을 읽는 도구라면 무엇이든 그대로 쓸 수 있고, 연동은 계속 늘려갈 예정이에요.',
     'faq.q6': '데이터는 어디에 저장되나요?',
     'faq.a6': '일지는 내 노션 워크스페이스에, 통계는 이 기기의 로컬 파일에 저장돼요.',
     'range.pickStart': '시작일을 선택하세요',
@@ -661,7 +660,7 @@ const STRINGS = {
     'faq.title': 'FAQ',
     'faq.q1': 'Is it free?',
     'faq.a1':
-      'It is open source and runs fully local. Everything is free today; if paid plans ever appear they will only cover extras like managed cloud sync.',
+      'It is open source and runs fully local. Collecting, summarizing, and publishing are all free.',
     'faq.q2': 'Does my code leave my machine?',
     'faq.a2':
       'No. Code bodies and diffs are never sent anywhere. Summaries only use metadata like PR titles and commit subjects, enforced by an allowlist check.',
@@ -670,9 +669,9 @@ const STRINGS = {
       'GitHub PRs and commits you authored or were assigned, plus local Git commits — all on your machine with your own tokens. There is no server.',
     'faq.q4': 'Do I need a Claude subscription?',
     'faq.a4': 'Summaries use your own Claude account (Claude Code login or an API key).',
-    'faq.q5': 'Does it sync with Obsidian?',
+    'faq.q5': 'Can I keep worklogs outside Notion too?',
     'faq.a5':
-      'Pick a folder in the Integrations tab and every publish lands there as .md. Obsidian vaults are detected automatically.',
+      'Pick a folder in the Integrations tab and every publish also lands there as .md — any Markdown-based tool can pick it up. More integrations are on the way.',
     'faq.q6': 'Where is my data stored?',
     'faq.a6': 'Worklogs live in your Notion workspace; stats live in a local file on this machine.',
     'range.pickStart': 'Pick a start date',
