@@ -17,7 +17,7 @@ import {
 } from './core-runner';
 import { cloudAuthState, cloudSignOut, startCloudSignIn } from './cloud-auth';
 import { syncStats } from './cloud-sync';
-import { readConfig, tailLatestLog } from './files';
+import { readConfig } from './files';
 import { fetchPageContent, listRecentPages } from './notion-client';
 import {
   finishOnboarding,
@@ -171,7 +171,6 @@ void app.whenReady().then(() => {
   });
   ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());
-  ipcMain.handle('cairn:logs:tail', () => tailLatestLog());
   ipcMain.handle('cairn:recent:list', () => listRecentPages());
   ipcMain.handle('cairn:notion:page-content', (_e, pageId: string, workspaceLabel: string) =>
     fetchPageContent(pageId, workspaceLabel),

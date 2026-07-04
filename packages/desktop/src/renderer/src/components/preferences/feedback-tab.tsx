@@ -8,7 +8,7 @@ export function FeedbackTab() {
   const [feedback, setFeedback] = useState('');
 
   function send() {
-    const subject = `cairn 피드백 (v${window.cairn.version})`;
+    const subject = `${t('prefs.feedback.subject')} (v${window.cairn.version})`;
     const url = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(feedback)}`;
     void window.cairn.openExternal(url);
     setFeedback('');

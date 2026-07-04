@@ -1,16 +1,9 @@
 import { Client } from '@notionhq/client';
-import { app } from 'electron';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { readConfig } from './files';
-
-const __dirname = resolve(fileURLToPath(import.meta.url), '..');
-
-const CAIRN_ROOT = app.isPackaged
-  ? (process.env.CAIRN_HOME ?? join(homedir(), '.cairn'))
-  : resolve(__dirname, '../../../..');
+import { CAIRN_ROOT } from './setup';
 
 let envLoaded = false;
 function ensureEnvLoaded(): void {

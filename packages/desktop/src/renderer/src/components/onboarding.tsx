@@ -124,6 +124,9 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     try {
       const pages = await window.cairn.onboarding.searchNotion(e.token.trim(), e.query);
       patchNotionById(uid, { pages, searched: true });
+    } catch {
+      // 네트워크/API 실패 시 스피너만 멈추고 조용히 죽던 경로 — 빈 결과로 확정 표시
+      patchNotionById(uid, { pages: [], searched: true });
     } finally {
       patchNotionById(uid, { searching: false });
     }
@@ -132,8 +135,12 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   async function loadDatabases(i: number, pageId: string) {
     const e = notion[i]!;
     const uid = e.uid;
-    const dbs = await window.cairn.onboarding.listDatabases(e.token.trim(), pageId);
-    patchNotionById(uid, { databases: dbs });
+    try {
+      const dbs = await window.cairn.onboarding.listDatabases(e.token.trim(), pageId);
+      patchNotionById(uid, { databases: dbs });
+    } catch {
+      patchNotionById(uid, { databases: [] });
+    }
   }
 
   async function testGithub(i: number) {
