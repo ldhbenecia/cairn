@@ -32,6 +32,22 @@ function scheduleRetry(): void {
   }, RETRY_DELAY_MS);
 }
 
+const MAX_FAILURE_RETRIES_PER_DAY = 2;
+let failureRetries = 0;
+let failureRetriesDay = '';
+
+// 일시 실패(Claude 세션 만료·네트워크 등)는 재시도로 살아나는 경우가 많음 — 반복 실패 무한루프는 하루 2회 캡
+function scheduleFailureRetry(): void {
+  const today = localTodayIso(new Date());
+  if (failureRetriesDay !== today) {
+    failureRetriesDay = today;
+    failureRetries = 0;
+  }
+  if (failureRetries >= MAX_FAILURE_RETRIES_PER_DAY) return;
+  failureRetries += 1;
+  scheduleRetry();
+}
+
 const anyAutoOn = (cfg: AutoPublish): boolean => cfg.daily || cfg.weekly || cfg.monthly;
 
 type DueRun = {
@@ -108,6 +124,8 @@ async function executeRuns(runs: DueRun[]): Promise<void> {
       // runCore 는 실패 시 throw 가 아니라 ok:false 를 반환 → 성공일 때만 anchor 기록(실패면 다음 실행에서 재시도)
       if (result.ok && rollupField && anchor) {
         writeAutoPublishState({ ...readAutoPublishState(), [rollupField]: anchor });
+      } else if (!result.ok && !result.cancelled) {
+        scheduleFailureRetry();
       }
     } catch {
       // busy 레이스(루프 도중 수동 실행 시작) — anchor 미기록 상태라 재시도에서 다시 due
