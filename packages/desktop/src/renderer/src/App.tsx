@@ -21,6 +21,7 @@ import { resetRunLines } from './lib/run-line-store';
 import { RunToast, type RunToastData } from './components/run-toast';
 import { useSettings } from './settings-context';
 import { Dashboard } from './components/dashboard';
+import { GraphView } from './components/graph-view';
 import { Onboarding } from './components/onboarding';
 import { PreferencesDialog } from './components/preferences-dialog';
 import { AchievementsDialog } from './components/achievements-dialog';
@@ -400,6 +401,10 @@ export function App() {
           setPrefsOpen(false);
           setView('stats');
         }}
+        onOpenGraph={() => {
+          setPrefsOpen(false);
+          setView('graph');
+        }}
         onOpenPreferences={() => setPrefsOpen(true)}
       />
       <div
@@ -415,6 +420,8 @@ export function App() {
           }}
           onGoToWorklogs={() => setView('worklogs')}
         />
+      ) : view === 'graph' ? (
+        <GraphView recent={recent} onOpen={setSelectedPage} />
       ) : (
         <WorklogList
           recent={recent}
