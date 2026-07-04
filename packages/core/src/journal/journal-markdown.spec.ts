@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   dailyFileName,
-  renderDailyVaultMarkdown,
-  renderRollupVaultMarkdown,
+  renderDailyJournalMarkdown,
+  renderRollupJournalMarkdown,
   rollupFileName,
-} from './vault-markdown.js';
+} from './journal-markdown.js';
 
 const SUMMARY = {
   paragraph: '오늘은 수집기를 정리했다.',
@@ -15,7 +15,7 @@ const SUMMARY = {
   notesBullets: ['내일 롤업 확인'],
 };
 
-describe('vault file names', () => {
+describe('journal file names', () => {
   it('daily = date.md', () => {
     expect(dailyFileName('2026-07-05')).toBe('2026-07-05.md');
   });
@@ -26,8 +26,8 @@ describe('vault file names', () => {
   });
 });
 
-describe('renderDailyVaultMarkdown', () => {
-  const md = renderDailyVaultMarkdown({
+describe('renderDailyJournalMarkdown', () => {
+  const md = renderDailyJournalMarkdown({
     date: '2026-07-05',
     lang: 'ko',
     summary: SUMMARY,
@@ -56,7 +56,7 @@ describe('renderDailyVaultMarkdown', () => {
 
   it('notion 참조는 있을 때만 frontmatter 에 추가된다', () => {
     expect(md).not.toContain('notion:');
-    const withRef = renderDailyVaultMarkdown({
+    const withRef = renderDailyJournalMarkdown({
       date: '2026-07-05',
       lang: 'ko',
       summary: SUMMARY,
@@ -69,8 +69,8 @@ describe('renderDailyVaultMarkdown', () => {
   });
 });
 
-describe('renderRollupVaultMarkdown', () => {
-  const md = renderRollupVaultMarkdown({
+describe('renderRollupJournalMarkdown', () => {
+  const md = renderRollupJournalMarkdown({
     period: 'weekly',
     rangeStart: '2026-06-29',
     rangeEnd: '2026-07-05',

@@ -3,7 +3,7 @@ import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
 import { isoWeekLabel, monthLabel } from '../rollup/period-range.js';
 
-export interface DailyVaultInput {
+export interface DailyJournalInput {
   date: string;
   lang: 'ko' | 'en';
   summary: WorklogSummary;
@@ -13,7 +13,7 @@ export interface DailyVaultInput {
   notionPageId?: string | null;
 }
 
-export interface RollupVaultInput {
+export interface RollupJournalInput {
   period: RollupPeriod;
   rangeStart: string;
   rangeEnd: string;
@@ -33,7 +33,7 @@ export function rollupFileName(period: RollupPeriod, rangeStart: string): string
   return period === 'weekly' ? `${isoWeekLabel(rangeStart)}.md` : `${monthLabel(rangeStart)}.md`;
 }
 
-export function renderDailyVaultMarkdown(input: DailyVaultInput): string {
+export function renderDailyJournalMarkdown(input: DailyJournalInput): string {
   const title = `${input.date} ${input.lang === 'en' ? 'Worklog' : '작업 일지'}`;
   const fm = frontmatter([
     ['date', input.date],
@@ -54,7 +54,7 @@ export function renderDailyVaultMarkdown(input: DailyVaultInput): string {
   return `${fm}\n# ${title}\n\n${body.join('\n').trimEnd()}\n`;
 }
 
-export function renderRollupVaultMarkdown(input: RollupVaultInput): string {
+export function renderRollupJournalMarkdown(input: RollupJournalInput): string {
   const label =
     input.period === 'weekly' ? isoWeekLabel(input.rangeStart) : monthLabel(input.rangeStart);
   const title = `${label} ${

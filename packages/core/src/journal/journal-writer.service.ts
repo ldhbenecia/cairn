@@ -7,14 +7,14 @@ import type { RollupPeriod } from '../contracts/rollup-activity.types.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
 import {
   dailyFileName,
-  renderDailyVaultMarkdown,
-  renderRollupVaultMarkdown,
+  renderDailyJournalMarkdown,
+  renderRollupJournalMarkdown,
   rollupFileName,
-  type DailyVaultInput,
-  type RollupVaultInput,
-} from './vault-markdown.js';
+  type DailyJournalInput,
+  type RollupJournalInput,
+} from './journal-markdown.js';
 
-export interface VaultWriteResult {
+export interface JournalWriteResult {
   fileName: string;
   path: string;
 }
@@ -22,26 +22,26 @@ export interface VaultWriteResult {
 const DEFAULT_FOLDER = join('Documents', 'cairn');
 
 @Injectable()
-export class VaultWriterService {
+export class JournalWriterService {
   constructor(
     private readonly worklogConfig: WorklogConfigService,
-    @InjectPinoLogger(VaultWriterService.name)
+    @InjectPinoLogger(JournalWriterService.name)
     private readonly logger: PinoLogger,
   ) {}
 
-  writeDaily(input: DailyVaultInput): VaultWriteResult {
-    return this.write(dailyFileName(input.date), renderDailyVaultMarkdown(input));
+  writeDaily(input: DailyJournalInput): JournalWriteResult {
+    return this.write(dailyFileName(input.date), renderDailyJournalMarkdown(input));
   }
 
-  writeRollup(input: RollupVaultInput): VaultWriteResult {
+  writeRollup(input: RollupJournalInput): JournalWriteResult {
     return this.write(
       rollupFileName(input.period, input.rangeStart),
-      renderRollupVaultMarkdown(input),
+      renderRollupJournalMarkdown(input),
     );
   }
 
   folder(): string {
-    const configured = this.worklogConfig.load().vault?.folder;
+    const configured = this.worklogConfig.load().journal?.folder;
     return configured ? resolve(configured) : join(homedir(), DEFAULT_FOLDER);
   }
 
@@ -53,14 +53,14 @@ export class VaultWriterService {
     return existsSync(join(this.folder(), rollupFileName(period, rangeStart)));
   }
 
-  private write(fileName: string, content: string): VaultWriteResult {
+  private write(fileName: string, content: string): JournalWriteResult {
     const folder = this.folder();
     mkdirSync(folder, { recursive: true });
     const path = join(folder, fileName);
     const tmp = `${path}.${process.pid}.tmp`;
     writeFileSync(tmp, content, 'utf8');
     renameSync(tmp, path);
-    this.logger.info({ fileName }, 'vault write done');
+    this.logger.info({ fileName }, 'journal write done');
     return { fileName, path };
   }
 }
