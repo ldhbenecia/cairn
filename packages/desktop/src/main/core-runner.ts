@@ -1,13 +1,13 @@
 import { app, BrowserWindow } from 'electron';
 import { fork, type ChildProcess } from 'node:child_process';
 import { appendFileSync, mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { claudeEnv } from './claude-path';
 import { syncWorklogToFolder } from './export';
 import { sendResultNotification } from './notifier';
 import { readSettings, type Settings } from './settings';
+import { CAIRN_ROOT } from './setup';
 import { trackPublish, type PublishTrigger } from './telemetry';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
@@ -41,9 +41,6 @@ export type CoreResult = {
 const CORE_ENTRY = app.isPackaged
   ? resolve(process.resourcesPath, 'core/bundle/index.js')
   : resolve(__dirname, '../../../core/dist/main.js');
-const CAIRN_ROOT = app.isPackaged
-  ? (process.env.CAIRN_HOME ?? join(homedir(), '.cairn'))
-  : resolve(__dirname, '../../../..');
 const LOGS_DIR = join(CAIRN_ROOT, 'logs');
 
 const STDERR_TAIL_LINES = 20;
@@ -153,6 +150,7 @@ let bfStepBlock: { date?: string; step?: DateStep } | null = null;
 let bfCountsByDate: Record<string, DateCounts> = {};
 let bfCountBlock: { date?: string; pr?: number; commit?: number; noActivity?: boolean } | null =
   null;
+let bfLastPublishedDate: string | null = null;
 
 function resetBackfillTracking(): void {
   runProgress = null;
@@ -167,6 +165,7 @@ function resetBackfillTracking(): void {
   bfStepBlock = null;
   bfCountsByDate = {};
   bfCountBlock = null;
+  bfLastPublishedDate = null;
 }
 
 // 'backfill date step' 블록에서 날짜별 단계(수집/요약/발행) 추출 — JSON 한 줄·pino-pretty 멀티라인 모두 대응
@@ -207,6 +206,7 @@ function flushCountBlock(): void {
     bfCountBlock = null;
   } else if (b.pr !== undefined && b.commit !== undefined) {
     bfCountsByDate = { ...bfCountsByDate, [b.date]: { pr: b.pr, commit: b.commit } };
+    bfLastPublishedDate = b.date;
     bfCountBlock = null;
   }
 }
@@ -444,11 +444,14 @@ export async function runCore(
   });
 
   return new Promise<CoreResult>((resolvePromise) => {
+    // 'error' 후에도 'close' 가 또 올 수 있음(Node) — 완료 처리(알림·텔레메트리·run-done)는 1회만
+    let settled = false;
     child.on('close', (exitCode) => {
+      if (settled) return;
+      settled = true;
       running = null;
       runningMode = null;
       broadcastBusy();
-      resetBackfillTracking();
       const tailSource = stderrLines.length > 0 ? stderrLines : stdoutLines;
       const tail = tailSource.slice(-STDERR_TAIL_LINES).join('\n');
       const urlMatches = stdoutAll.match(NOTION_URL_REGEX) ?? [];
@@ -462,10 +465,13 @@ export async function runCore(
       cancelRequested = false;
       emit('meta', `[exit] code=${exitCode ?? 'null'}${cancelled ? ' (cancelled)' : ''}`);
       if (exitCode === 0) emitStep('done');
+      // totals·발행 날짜는 reset 전에 스냅샷 — reset 을 먼저 하면 항상 0/null 이 된다
       const totals = Object.values(bfCountsByDate).reduce(
         (a, c) => ({ pr: a.pr + c.pr, commit: a.commit + c.commit }),
         { pr: 0, commit: 0 },
       );
+      const lastPublishedDate = bfLastPublishedDate;
+      resetBackfillTracking();
       const result: CoreResult = {
         ok: exitCode === 0,
         exitCode,
@@ -490,8 +496,11 @@ export async function runCore(
         if (!cancelled && result.ok && lastPageId && !finalNoActivity) {
           const pad = (n: number): string => String(n).padStart(2, '0');
           const d = new Date();
+          // 백필 catch-up 으로 오늘이 아닌 날이 발행됐을 수 있음 — 실제 발행된 날짜를 우선
           const localDate =
-            options.date ?? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+            options.date ??
+            lastPublishedDate ??
+            `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
           const fileBase = mode === 'daily' ? localDate : `${localDate}-${mode}`;
           void syncWorklogToFolder({
             pageId: lastPageId,
@@ -508,6 +517,8 @@ export async function runCore(
       }
     });
     child.on('error', (err) => {
+      if (settled) return;
+      settled = true;
       running = null;
       runningMode = null;
       broadcastBusy();

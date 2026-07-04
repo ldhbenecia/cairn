@@ -70,7 +70,6 @@ export type RunSnapshot = {
 export type SaveResult = { saved: boolean; path?: string; error?: string };
 
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
-export type LogTailResult = { lines: string[]; path: string | null };
 
 export type RecentPage = {
   pageId: string;
@@ -78,6 +77,10 @@ export type RecentPage = {
   title: string;
   date: string | null;
   status: string | null;
+  category: 'daily' | 'weekly' | 'monthly';
+  pr: number | null;
+  commit: number | null;
+  hours: number[] | null;
   workspaceLabel: string;
 };
 
@@ -95,6 +98,8 @@ export type CoreResult = {
   noActivity: boolean;
   cancelled: boolean;
   summaryFailed: boolean;
+  prCount: number;
+  commitCount: number;
   stderrTail: string;
 };
 
@@ -214,8 +219,6 @@ contextBridge.exposeInMainWorld('cairn', {
   },
   readConfig: (): Promise<ConfigResult> =>
     ipcRenderer.invoke('cairn:config:read') as Promise<ConfigResult>,
-  tailLogs: (): Promise<LogTailResult> =>
-    ipcRenderer.invoke('cairn:logs:tail') as Promise<LogTailResult>,
   listRecent: (): Promise<RecentListResult> =>
     ipcRenderer.invoke('cairn:recent:list') as Promise<RecentListResult>,
   pageContent: (pageId: string, workspaceLabel: string): Promise<unknown> =>
