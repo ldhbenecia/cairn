@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { pool, sectionBullets } from '../lib/blocks';
-import { DatePicker } from './date-picker';
+import { DateRangePicker } from './date-picker';
 import { useSettings } from '../settings-context';
 
 const RANGES = [30, 90] as const;
@@ -286,18 +286,12 @@ export function AchievementsDialog({
                     className="mt-2.5 flex items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <DatePicker
-                      value={customFrom}
-                      max={customTo}
-                      onChange={(iso) => setCustomFrom(iso > customTo ? customTo : iso)}
-                    />
-                    <span className="text-[12px] text-ink-tertiary">~</span>
-                    <DatePicker
-                      value={customTo}
+                    <DateRangePicker
+                      value={{ from: customFrom, to: customTo }}
                       max={todayLocal()}
-                      onChange={(iso) => {
-                        setCustomTo(iso);
-                        if (iso < customFrom) setCustomFrom(iso);
+                      onChange={(r) => {
+                        setCustomFrom(r.from);
+                        setCustomTo(r.to);
                       }}
                     />
                     <span className="ml-1 font-mono text-[12px] text-ink-tertiary tabular-nums">
