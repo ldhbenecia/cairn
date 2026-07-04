@@ -168,6 +168,7 @@ export function App() {
     return off;
   }, []);
 
+  const recentRetryTimer = useRef<number | null>(null);
   useEffect(() => {
     const off = window.cairn.onRunDone(({ mode, result }) => {
       setSessions((prev) => {
@@ -184,10 +185,15 @@ export function App() {
       setRunningMode((rm) => (rm === mode ? null : rm));
       void loadRecent();
       // 노션 인덱싱 지연으로 방금 발행한 페이지가 첫 조회에 안 잡히는 경우 — 잠시 뒤 재조회
-      window.setTimeout(() => void loadRecent(), 5000);
+      // (연속 run-done 시 타이머 중첩 방지·cleanup 정리 — #241 리뷰)
+      if (recentRetryTimer.current) window.clearTimeout(recentRetryTimer.current);
+      recentRetryTimer.current = window.setTimeout(() => void loadRecent(), 5000);
       if (signedInRef.current) void window.cairn.cloud.syncNow().catch(() => {});
     });
-    return off;
+    return () => {
+      off();
+      if (recentRetryTimer.current) window.clearTimeout(recentRetryTimer.current);
+    };
   }, [loadRecent]);
 
   // 창을 다시 볼 때 목록 최신화(자동 발행 등 외부 변화 인지) — 과호출 방지 60초 스로틀

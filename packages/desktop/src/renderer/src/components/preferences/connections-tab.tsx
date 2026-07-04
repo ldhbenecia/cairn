@@ -174,7 +174,28 @@ function Row({
 
   return (
     <div className="rounded-md">
-      <div className="flex items-center gap-2 px-2 py-1.5 text-[13px]">
+      {/* 행 전체가 클릭 영역 — 우측 숫자/화살표만 눌러야 펼쳐지던 불편 해소. refresh 버튼 중첩 때문에 div+role */}
+      <div
+        {...(canExpand
+          ? {
+              role: 'button' as const,
+              tabIndex: 0,
+              onClick: onToggle,
+              onKeyDown: (e: React.KeyboardEvent) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onToggle();
+                }
+              },
+              'aria-expanded': expanded,
+              'aria-label': `${label}: ${summary}`,
+            }
+          : {})}
+        className={[
+          'flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px]',
+          canExpand ? 'cursor-pointer transition-colors hover:bg-surface-2/60' : '',
+        ].join(' ')}
+      >
         {pending ? (
           <Loader2 className="size-3.5 shrink-0 animate-spin text-ink-tertiary" />
         ) : (
@@ -184,27 +205,24 @@ function Row({
         )}
         <span className="text-ink-muted">{label}</span>
         {canExpand ? (
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-label={`${label}: ${summary}`}
-            aria-expanded={expanded}
-            className="ml-auto flex items-center gap-1 rounded pl-3 text-[12px] text-ink-tertiary transition-colors hover:text-ink-muted"
-          >
+          <span className="ml-auto flex items-center gap-1 pl-3 text-[12px] text-ink-tertiary">
             <span>{summary}</span>
             <ChevronDown
               size={13}
               strokeWidth={2}
               className={`transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
             />
-          </button>
+          </span>
         ) : (
           <span className="ml-auto truncate pl-3 text-[12px] text-ink-tertiary">{summary}</span>
         )}
         {onRefresh && (
           <button
             type="button"
-            onClick={onRefresh}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRefresh();
+            }}
             aria-label={t('prefs.conn.recheck')}
             className="shrink-0 rounded p-0.5 text-ink-tertiary transition-colors hover:text-ink-muted"
           >

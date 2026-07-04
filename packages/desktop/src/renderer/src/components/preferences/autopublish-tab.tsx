@@ -1,4 +1,4 @@
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useSettings } from '../../settings-context';
 import { Toggle } from '../toggle';
@@ -18,14 +18,6 @@ export function AutoPublishTab() {
   const ap = settings.autoPublish;
   const anyOn = ap.daily || ap.weekly || ap.monthly;
   const set = (patch: Partial<typeof ap>): void => update({ autoPublish: { ...ap, ...patch } });
-
-  const exp = settings.export;
-  const setExp = (patch: Partial<typeof exp>): void => update({ export: { ...exp, ...patch } });
-  const pickFolder = async (): Promise<void> => {
-    const f = await window.cairn.pickExportFolder();
-    if (f) setExp({ folder: f });
-  };
-  const clearFolder = (): void => setExp({ folder: null, autoSync: false });
 
   return (
     <div className="divide-y divide-hairline">
@@ -80,41 +72,6 @@ export function AutoPublishTab() {
           checked={ap.confirmBeforeRun}
           disabled={!anyOn}
           onChange={(v) => set({ confirmBeforeRun: v })}
-        />
-      </Field>
-
-      <Field label={t('prefs.export.folder')} desc={t('prefs.export.folderDesc')}>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => void pickFolder()}
-            title={exp.folder ?? undefined}
-            className="max-w-44 truncate rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink transition-colors hover:bg-surface-3"
-          >
-            {exp.folder ? exp.folder.split('/').pop() : t('prefs.export.pick')}
-          </button>
-          {exp.folder && (
-            <button
-              type="button"
-              onClick={clearFolder}
-              title={t('prefs.export.clear')}
-              className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
-            >
-              <X size={14} strokeWidth={2} />
-            </button>
-          )}
-        </div>
-      </Field>
-
-      <Field
-        label={t('prefs.export.autoSync')}
-        desc={t('prefs.export.autoSyncDesc')}
-        dim={!exp.folder}
-      >
-        <Toggle
-          checked={exp.autoSync && !!exp.folder}
-          disabled={!exp.folder}
-          onChange={(v) => setExp({ autoSync: v })}
         />
       </Field>
 

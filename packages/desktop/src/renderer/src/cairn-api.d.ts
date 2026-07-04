@@ -31,6 +31,13 @@ export type RunSnapshot = {
 
 export type SaveResult = { saved: boolean; path?: string; error?: string };
 
+export type ExportStatus = {
+  folder: string | null;
+  isVault: boolean;
+  fileCount: number;
+  lastSyncAt: number | null;
+};
+
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 
 export type RecentCategory = 'daily' | 'weekly' | 'monthly';
@@ -191,6 +198,8 @@ declare global {
       openExternal: (url: string) => Promise<void>;
       exportMarkdown: (defaultName: string, content: string) => Promise<SaveResult>;
       pickExportFolder: () => Promise<string | null>;
+      exportStatus: () => Promise<ExportStatus>;
+      revealExportFolder: () => Promise<string>;
       testNotification: () => Promise<{ supported: boolean }>;
       exportPdf: (defaultName: string, html: string) => Promise<SaveResult>;
       repoStars: () => Promise<number | null>;
