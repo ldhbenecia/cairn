@@ -12,6 +12,7 @@ import {
   ExternalLink,
   GitCommitHorizontal,
   GitPullRequest,
+  Inbox,
   type LucideIcon,
   Loader2,
   Plus,
@@ -1161,7 +1162,22 @@ function Result({
   } else if (result.publishKind === 'no-target') {
     body = <p className="text-notice">{t('publish.result.noTarget')}</p>;
   } else if (result.noActivity) {
-    body = <p className="text-ink-muted">{t('publish.result.noActivity')}</p>;
+    body = (
+      <div className="flex flex-col items-center gap-2 pt-3 pb-1 text-center">
+        <motion.span
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 20, delay: 0.05 }}
+          className="flex size-12 items-center justify-center rounded-full bg-surface-2 text-ink-tertiary"
+        >
+          <Inbox size={22} strokeWidth={2} />
+        </motion.span>
+        <p className="text-[15px] font-semibold text-ink">{t('publish.result.noActivity')}</p>
+        <p className="mx-auto max-w-[320px] text-[12px] leading-relaxed text-ink-muted">
+          {t('publish.result.noActivityDesc')}
+        </p>
+      </div>
+    );
   } else if (result.publishKind === 'skipped') {
     body = <p className="text-ink-muted">{t('publish.result.skipped')}</p>;
   } else {

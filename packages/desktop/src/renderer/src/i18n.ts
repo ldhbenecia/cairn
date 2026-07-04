@@ -218,6 +218,8 @@ const STRINGS = {
     'publish.cancelled.partial': '발행 후 중단',
     'publish.result.summaryFailed': '요약 생성 실패 — Claude 세션·쿼터 확인 후 다시 발행하세요',
     'publish.result.noActivity': '활동 없음 — 발행 안 함',
+    'publish.result.noActivityDesc':
+      '이 날짜엔 수집된 PR·커밋이 없어요. 날짜를 바꿔 다시 발행할 수 있어요.',
     'publish.result.skipped': '이미 발행됨 — skip',
     'publish.result.noTarget': '발행 대상 없음 — Preferences 에서 설정 확인',
     'publish.result.fail': '실패',
@@ -256,6 +258,8 @@ const STRINGS = {
     'achv.saved': '저장됨',
     'achv.commits': '커밋',
     'achv.mdHeader': '일지 {n} · PR {pr} · 커밋 {commit}',
+    'range.pickStart': '시작일을 선택하세요',
+    'range.pickEnd': '종료일을 선택하세요',
     'achv.empty': '이 기간엔 Done 항목이 없어요',
     'achv.scanning': '일지 스캔 중',
     'achv.done': 'Done',
@@ -596,6 +600,8 @@ const STRINGS = {
     'publish.result.summaryFailed':
       'Summary generation failed — check your Claude session/quota and publish again',
     'publish.result.noActivity': 'No activity — nothing published',
+    'publish.result.noActivityDesc':
+      'No PRs or commits were collected for this date. Pick another date and publish again.',
     'publish.result.skipped': 'Already published — skipped',
     'publish.result.noTarget': 'No publish target — check Preferences',
     'publish.result.fail': 'Failed',
@@ -634,6 +640,8 @@ const STRINGS = {
     'achv.saved': 'Saved',
     'achv.commits': 'commits',
     'achv.mdHeader': 'Worklogs {n} · PR {pr} · Commits {commit}',
+    'range.pickStart': 'Pick a start date',
+    'range.pickEnd': 'Pick an end date',
     'achv.empty': 'No Done items in this range',
     'achv.scanning': 'Scanning worklogs',
     'achv.done': 'Done',
