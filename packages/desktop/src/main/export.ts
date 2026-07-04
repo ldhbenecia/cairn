@@ -1,4 +1,5 @@
 import { BrowserWindow, dialog } from 'electron';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -28,6 +29,31 @@ export async function syncWorklogToFolder(opts: {
     workspace: 'cairn',
   });
   await writeFile(join(cfg.folder, `${opts.fileBase}.md`), md, 'utf8');
+}
+
+export type ExportStatus = {
+  folder: string | null;
+  isVault: boolean;
+  fileCount: number;
+  lastSyncAt: number | null;
+};
+
+// 연동 탭 표시용 — .obsidian 존재로 vault 감지, YYYY-MM-DD*.md 만 집계(다른 노트 미포함)
+export function exportStatus(): ExportStatus {
+  const folder = readSettings().export.folder;
+  if (!folder) return { folder: null, isVault: false, fileCount: 0, lastSyncAt: null };
+  try {
+    const isVault = existsSync(join(folder, '.obsidian'));
+    const files = readdirSync(folder).filter((f) => /^\d{4}-\d{2}-\d{2}.*\.md$/.test(f));
+    let last: number | null = null;
+    for (const f of files) {
+      const m = statSync(join(folder, f)).mtimeMs;
+      if (last === null || m > last) last = m;
+    }
+    return { folder, isVault, fileCount: files.length, lastSyncAt: last };
+  } catch {
+    return { folder, isVault: false, fileCount: 0, lastSyncAt: null };
+  }
 }
 
 export async function pickExportFolder(): Promise<string | null> {

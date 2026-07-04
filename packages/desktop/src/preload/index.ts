@@ -68,6 +68,12 @@ export type RunSnapshot = {
 };
 
 export type SaveResult = { saved: boolean; path?: string; error?: string };
+export type ExportStatus = {
+  folder: string | null;
+  isVault: boolean;
+  fileCount: number;
+  lastSyncAt: number | null;
+};
 
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 
@@ -183,6 +189,10 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:export:save-markdown', defaultName, content) as Promise<SaveResult>,
   pickExportFolder: (): Promise<string | null> =>
     ipcRenderer.invoke('cairn:export:pick-folder') as Promise<string | null>,
+  exportStatus: (): Promise<ExportStatus> =>
+    ipcRenderer.invoke('cairn:export:status') as Promise<ExportStatus>,
+  revealExportFolder: (): Promise<string> =>
+    ipcRenderer.invoke('cairn:export:reveal') as Promise<string>,
   testNotification: (): Promise<{ supported: boolean }> =>
     ipcRenderer.invoke('cairn:notify:test') as Promise<{ supported: boolean }>,
   exportPdf: (defaultName: string, html: string): Promise<SaveResult> =>

@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
 import { warmClaudePath } from './claude-path';
-import { pickExportFolder, saveMarkdown, savePdf } from './export';
+import { exportStatus, pickExportFolder, saveMarkdown, savePdf } from './export';
 import { sendTestNotification } from './notifier';
 import {
   busyState,
@@ -159,6 +159,12 @@ void app.whenReady().then(() => {
     saveMarkdown(defaultName, content),
   );
   ipcMain.handle('cairn:export:pick-folder', () => pickExportFolder());
+  ipcMain.handle('cairn:export:status', () => exportStatus());
+  // 폴더 경로는 renderer 인자가 아니라 설정에서 읽는다 (임의 경로 열기 방지)
+  ipcMain.handle('cairn:export:reveal', () => {
+    const folder = readSettings().export.folder;
+    return folder ? shell.openPath(folder) : Promise.resolve('');
+  });
   ipcMain.handle('cairn:notify:test', () => sendTestNotification());
   ipcMain.handle('cairn:export:save-pdf', (_e, defaultName: string, html: string) =>
     savePdf(defaultName, html),
@@ -166,7 +172,9 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:open-external', (_e, url: string) => {
     try {
       const p = new URL(url).protocol;
-      if (p === 'https:' || p === 'http:' || p === 'mailto:') return shell.openExternal(url);
+      // obsidian: 은 연동 탭의 vault 딥링크 용도로만 허용
+      if (p === 'https:' || p === 'http:' || p === 'mailto:' || p === 'obsidian:')
+        return shell.openExternal(url);
     } catch {
       return Promise.resolve();
     }

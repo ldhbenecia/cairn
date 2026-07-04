@@ -2,6 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import type { LucideIcon } from 'lucide-react';
 import {
   Bell,
+  Blocks,
   CalendarClock,
   CreditCard,
   Info,
@@ -20,6 +21,7 @@ import { AutoPublishTab } from './preferences/autopublish-tab';
 import { BillingTab } from './preferences/billing-tab';
 import { ConnectionsTab } from './preferences/connections-tab';
 import { FeedbackTab } from './preferences/feedback-tab';
+import { IntegrationsTab } from './preferences/integrations-tab';
 import { NotificationsTab } from './preferences/notifications-tab';
 import { PromptsTab } from './preferences/prompts-tab';
 
@@ -29,6 +31,7 @@ type TabId =
   | 'autopublish'
   | 'prompts'
   | 'connections'
+  | 'integrations'
   | 'billing'
   | 'feedback'
   | 'about';
@@ -39,6 +42,7 @@ const TABS: { id: TabId; icon: LucideIcon; labelKey: I18nKey }[] = [
   { id: 'autopublish', icon: CalendarClock, labelKey: 'prefs.autoPublish' },
   { id: 'prompts', icon: SquarePen, labelKey: 'prefs.prompts' },
   { id: 'connections', icon: Link2, labelKey: 'prefs.connections' },
+  { id: 'integrations', icon: Blocks, labelKey: 'prefs.integrations' },
   { id: 'billing', icon: CreditCard, labelKey: 'prefs.billing' },
   { id: 'feedback', icon: MessageSquare, labelKey: 'prefs.feedback' },
   { id: 'about', icon: Info, labelKey: 'prefs.about' },
@@ -109,6 +113,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
                     }}
                   />
                 )}
+                {tab === 'integrations' && <IntegrationsTab />}
                 {tab === 'billing' && <BillingTab />}
                 {tab === 'feedback' && <FeedbackTab />}
                 {tab === 'about' && <AboutTab />}
