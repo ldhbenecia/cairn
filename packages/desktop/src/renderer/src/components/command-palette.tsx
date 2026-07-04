@@ -7,6 +7,7 @@ import {
   Sparkles,
   SquareArrowOutUpRight,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CoreMode, RecentListResult, RecentPage } from '../cairn-api';
 import { useSettings } from '../settings-context';
@@ -134,12 +135,18 @@ export function CommandPalette({
   }
 
   return (
-    <div
+    <motion.div
       onMouseDown={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15 }}
       className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 pt-[14vh] [-webkit-app-region:no-drag]"
     >
-      <div
+      <motion.div
         onMouseDown={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.97, y: -8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         className="glass-panel w-[560px] max-w-[92vw] overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50"
       >
         <div className="flex items-center gap-2.5 border-b border-hairline px-4 py-3">
@@ -150,7 +157,8 @@ export function CommandPalette({
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKey}
             placeholder={t('cmd.placeholder')}
-            className="w-full bg-transparent text-[14px] text-ink placeholder:text-ink-tertiary focus:outline-none"
+            // Chromium 이 프로그램적 포커스에 그리는 파란 focus ring 억제
+            className="w-full appearance-none bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-tertiary focus:outline-none focus-visible:outline-none"
           />
         </div>
         <div className="max-h-[52vh] overflow-y-auto p-1.5">
@@ -180,7 +188,7 @@ export function CommandPalette({
             ))
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
