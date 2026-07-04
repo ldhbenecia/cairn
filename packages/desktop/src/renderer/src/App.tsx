@@ -17,6 +17,7 @@ import type {
   RunStep,
 } from './cairn-api';
 import { resetRunLines } from './lib/run-line-store';
+import { RunToast, type RunToastData } from './components/run-toast';
 import { useSettings } from './settings-context';
 import { Dashboard } from './components/dashboard';
 import { Onboarding } from './components/onboarding';
@@ -168,6 +169,9 @@ export function App() {
     return off;
   }, []);
 
+  const [toast, setToast] = useState<RunToastData | null>(null);
+  const toastTimer = useRef<number | null>(null);
+
   const recentRetryTimer = useRef<number | null>(null);
   useEffect(() => {
     const off = window.cairn.onRunDone(({ mode, result }) => {
@@ -183,6 +187,11 @@ export function App() {
         };
       });
       setRunningMode((rm) => (rm === mode ? null : rm));
+      if (!result.cancelled) {
+        setToast({ mode, result, at: Date.now() });
+        if (toastTimer.current) window.clearTimeout(toastTimer.current);
+        toastTimer.current = window.setTimeout(() => setToast(null), 6000);
+      }
       void loadRecent();
       // 노션 인덱싱 지연으로 방금 발행한 페이지가 첫 조회에 안 잡히는 경우 — 잠시 뒤 재조회
       // (연속 run-done 시 타이머 중첩 방지·cleanup 정리 — #241 리뷰)
@@ -193,6 +202,7 @@ export function App() {
     return () => {
       off();
       if (recentRetryTimer.current) window.clearTimeout(recentRetryTimer.current);
+      if (toastTimer.current) window.clearTimeout(toastTimer.current);
     };
   }, [loadRecent]);
 
@@ -409,6 +419,7 @@ export function App() {
         />
       )}
       {achvOpen && <AchievementsDialog recent={recent} onClose={() => setAchvOpen(false)} />}
+      <RunToast toast={toast} onClose={() => setToast(null)} />
       <PreferencesDialog
         open={prefsOpen}
         onOpenChange={setPrefsOpen}
