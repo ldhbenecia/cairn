@@ -49,6 +49,8 @@ const STRINGS = {
     'stats.busiestDay': '가장 바쁜 날',
     'stats.peakTime': '주력 시간대',
     'stats.dailyAvg': '하루 평균',
+    'stats.thisWeek': '이번 주',
+    'stats.vsLastWeek': '지난주 대비',
     'stats.thisMonth': '이번 달',
     'stats.vsLastMonth': '지난 달 대비',
 
@@ -151,6 +153,10 @@ const STRINGS = {
     'list.empty': '발행된 일지 없음',
     'list.emptyFiltered': '조건에 맞는 일지 없음',
     'list.warnings': '경고',
+    'list.warn.noWorkspaces': 'worklog.config.json 에 notionWorkspaces 가 없어요',
+    'list.warn.tokenMissing': '{ws}: 토큰 환경변수 {env} 가 없어요',
+    'list.warn.noDataSource': '{ws}: worklog.dataSourceId 가 없어요 (첫 발행 시 자동 생성)',
+    'list.warn.fetchFailed': '{ws} ({kind}) 목록을 불러오지 못했어요',
     'list.statusNone': '상태 없음',
 
     'publish.button': '발행',
@@ -403,6 +409,8 @@ const STRINGS = {
     'stats.busiestDay': 'Busiest day',
     'stats.peakTime': 'Peak time',
     'stats.dailyAvg': 'Daily average',
+    'stats.thisWeek': 'This week',
+    'stats.vsLastWeek': 'vs last week',
     'stats.thisMonth': 'This month',
     'stats.vsLastMonth': 'vs last month',
 
@@ -506,6 +514,10 @@ const STRINGS = {
     'list.empty': 'No published worklogs',
     'list.emptyFiltered': 'No worklogs match',
     'list.warnings': 'Warnings',
+    'list.warn.noWorkspaces': 'No notionWorkspaces in worklog.config.json',
+    'list.warn.tokenMissing': '{ws}: token env {env} is not set',
+    'list.warn.noDataSource': '{ws}: worklog.dataSourceId missing (created on first publish)',
+    'list.warn.fetchFailed': '{ws} ({kind}) list could not be loaded',
     'list.statusNone': 'No status',
 
     'publish.button': 'Publish',

@@ -87,7 +87,13 @@ export type RecentPage = {
 export type CloudUser = { name: string; email: string; image: string | null };
 export type CloudAuthState = { signedIn: boolean; user: CloudUser | null };
 
-export type RecentListResult = { pages: RecentPage[]; warnings: string[] };
+export type RecentWarning =
+  | { code: 'no-workspaces' }
+  | { code: 'token-missing'; workspace: string; tokenEnv: string }
+  | { code: 'no-data-source'; workspace: string }
+  | { code: 'fetch-failed'; workspace: string; kind: 'worklog' | 'rollup'; detail: string };
+
+export type RecentListResult = { pages: RecentPage[]; warnings: RecentWarning[] };
 
 export type CoreResult = {
   ok: boolean;
