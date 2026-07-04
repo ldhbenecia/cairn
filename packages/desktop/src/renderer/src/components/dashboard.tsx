@@ -808,7 +808,10 @@ function TimeOfDayChart({ hours, t }: { hours: number[]; t: T }) {
       <div className="mt-3 flex flex-col gap-1.5">
         {TOD_PERIODS.map((p, i) => (
           <div key={i} className="flex items-center gap-2">
-            <span className="w-12 shrink-0 text-[11px] text-ink-tertiary">{t(p.key)}</span>
+            {/* EN 라벨(Late night·Afternoon)이 안 들어가던 폭 — nowrap + 여유 폭 */}
+            <span className="w-[4.5rem] shrink-0 text-[11px] whitespace-nowrap text-ink-tertiary">
+              {t(p.key)}
+            </span>
             <div className="h-3 flex-1 overflow-hidden rounded-sm bg-surface-2">
               <div
                 className="bar-h h-full rounded-sm"
