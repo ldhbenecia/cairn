@@ -153,7 +153,7 @@ export class OrchestratorService {
     }
 
     if (!options.dryRun && !options.force && opts.precheck !== false) {
-      const pre = await this.notionPublisher.precheckDaily(date, options.force);
+      const pre = await this.notionPublisher.precheckDaily(date);
       if (pre) {
         this.logger.info(
           { date, publishResult: pre },
@@ -356,7 +356,7 @@ export class OrchestratorService {
 
   private async runRollup(period: 'weekly' | 'monthly', options: RunOptions): Promise<void> {
     if (!options.dryRun && !options.force) {
-      const pre = await this.rollupPublisher.precheck(period, options.date, options.force);
+      const pre = await this.rollupPublisher.precheck(period, options.date);
       if (pre) {
         const { start, end } = periodRange(period, options.date);
         this.logger.info(

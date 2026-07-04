@@ -67,15 +67,20 @@ export class DailySummarizerService {
       'summarizer finished',
     );
 
-    if (resultSubtype !== 'success') {
-      this.logger.warn({ date: input.date, resultSubtype }, 'summarizer non-success — fallback');
-      return null;
-    }
-
     const submission = getSubmission();
     if (!submission) {
-      this.logger.warn({ date: input.date }, 'summarizer ended without submit_summary — fallback');
+      this.logger.warn(
+        { date: input.date, resultSubtype },
+        'summarizer ended without submit_summary — fallback',
+      );
       return null;
+    }
+    if (resultSubtype !== 'success') {
+      // submit_summary 는 이미 도착 — maxTurns 등 비정상 종료여도 유료 실행 결과를 버리지 않는다
+      this.logger.warn(
+        { date: input.date, resultSubtype },
+        'summarizer non-success but submission present — using it',
+      );
     }
 
     const usage: WorklogSummaryUsage | undefined = isOperator()
