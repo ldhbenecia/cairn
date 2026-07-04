@@ -3,7 +3,7 @@ import { writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { blocksToMarkdown } from '../shared/markdown';
-import { fetchPageContent } from './notion-client';
+import { fetchPageContentAnyWorkspace } from './notion-client';
 import { readSettings } from './settings';
 
 export interface SaveResult {
@@ -20,7 +20,7 @@ export async function syncWorklogToFolder(opts: {
 }): Promise<void> {
   const cfg = readSettings().export;
   if (!cfg.autoSync || !cfg.folder) return;
-  const content = await fetchPageContent(opts.pageId, '');
+  const content = await fetchPageContentAnyWorkspace(opts.pageId);
   if (content.blocks.length === 0) return;
   const md = blocksToMarkdown(content.blocks, {
     title: opts.title,

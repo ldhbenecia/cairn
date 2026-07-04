@@ -151,6 +151,34 @@ let bfCountsByDate: Record<string, DateCounts> = {};
 let bfCountBlock: { date?: string; pr?: number; commit?: number; noActivity?: boolean } | null =
   null;
 let bfLastPublishedDate: string | null = null;
+let bfPagesByDate: Record<string, string> = {};
+let bfPendingPage: { date: string | null } | null = null;
+
+// 'daily: publish done' 블록에서 date↔pageId 쌍 추출 — 백필 다건 발행 시 export 가
+// 마지막 페이지만 sync 하던 문제의 재료. JSON 한 줄·pino-pretty 멀티라인 모두 대응.
+function trackPublishedPage(line: string): void {
+  const pidOf = (l: string): string | undefined =>
+    /pageId["':\s]+["']?([0-9a-f-]{32,36})/.exec(l)?.[1];
+  if (/daily: publish done/.test(line)) {
+    const d = /date["':\s]+["']?(\d{4}-\d{2}-\d{2})/.exec(line)?.[1];
+    const pid = pidOf(line);
+    if (d && pid) {
+      bfPagesByDate = { ...bfPagesByDate, [d]: pid };
+      bfPendingPage = null;
+    } else {
+      bfPendingPage = { date: d ?? null };
+    }
+    return;
+  }
+  if (!bfPendingPage) return;
+  const d = /date["':\s]+["']?(\d{4}-\d{2}-\d{2})/.exec(line)?.[1];
+  if (d) bfPendingPage.date = d;
+  const pid = pidOf(line);
+  if (pid && bfPendingPage.date) {
+    bfPagesByDate = { ...bfPagesByDate, [bfPendingPage.date]: pid };
+    bfPendingPage = null;
+  }
+}
 
 function resetBackfillTracking(): void {
   runProgress = null;
@@ -166,6 +194,8 @@ function resetBackfillTracking(): void {
   bfCountsByDate = {};
   bfCountBlock = null;
   bfLastPublishedDate = null;
+  bfPagesByDate = {};
+  bfPendingPage = null;
 }
 
 // 'backfill date step' 블록에서 날짜별 단계(수집/요약/발행) 추출 — JSON 한 줄·pino-pretty 멀티라인 모두 대응
@@ -246,6 +276,7 @@ function trackBackfill(line: string, mode: CoreMode): void {
   if (line.includes('backfill date start')) bfStarted += 1;
   trackDateStep(line);
   trackDateCounts(line);
+  trackPublishedPage(line);
   // 배치 시작 시 1회 찍히는 날짜 목록(쉼표 join) — 헤더/블록 어느 라인에 있어도 잡히게 무조건 검사
   // 음수 lookbehind 로 'doneDates' 는 제외(전체 대상 목록만)
   const mDates = /(?<![a-zA-Z])dates["':\s]+["']?([\d,-]+)/.exec(line);
@@ -471,6 +502,7 @@ export async function runCore(
         { pr: 0, commit: 0 },
       );
       const lastPublishedDate = bfLastPublishedDate;
+      const publishedPages = bfPagesByDate;
       resetBackfillTracking();
       const result: CoreResult = {
         ok: exitCode === 0,
@@ -493,23 +525,44 @@ export async function runCore(
           backfillDays: options.backfillDays,
         });
         if (!cancelled) sendResultNotification(mode, result);
-        if (!cancelled && result.ok && lastPageId && !finalNoActivity) {
+        if (!cancelled && result.ok && !finalNoActivity) {
           const pad = (n: number): string => String(n).padStart(2, '0');
           const d = new Date();
           // 백필 catch-up 으로 오늘이 아닌 날이 발행됐을 수 있음 — 실제 발행된 날짜를 우선
-          const localDate =
+          const fallbackDate =
             options.date ??
             lastPublishedDate ??
             `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-          const fileBase = mode === 'daily' ? localDate : `${localDate}-${mode}`;
-          void syncWorklogToFolder({
-            pageId: lastPageId,
-            fileBase,
-            title: fileBase,
-            date: localDate,
-          }).catch((err: unknown) => {
-            emit('err', `[export] sync 실패: ${err instanceof Error ? err.message : String(err)}`);
-          });
+          // daily 백필 다건이면 발행된 날짜 전부 sync (기존엔 마지막 페이지만 나가던 문제)
+          const targets =
+            mode === 'daily' && Object.keys(publishedPages).length > 0
+              ? Object.entries(publishedPages).map(([date, pageId]) => ({
+                  pageId,
+                  fileBase: date,
+                  date,
+                }))
+              : lastPageId
+                ? [
+                    {
+                      pageId: lastPageId,
+                      fileBase: mode === 'daily' ? fallbackDate : `${fallbackDate}-${mode}`,
+                      date: fallbackDate,
+                    },
+                  ]
+                : [];
+          for (const t of targets) {
+            void syncWorklogToFolder({
+              pageId: t.pageId,
+              fileBase: t.fileBase,
+              title: t.fileBase,
+              date: t.date,
+            }).catch((err: unknown) => {
+              emit(
+                'err',
+                `[export] sync 실패: ${err instanceof Error ? err.message : String(err)}`,
+              );
+            });
+          }
         }
         broadcastRunDone(mode, result);
       } finally {
