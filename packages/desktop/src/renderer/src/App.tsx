@@ -183,9 +183,24 @@ export function App() {
       });
       setRunningMode((rm) => (rm === mode ? null : rm));
       void loadRecent();
+      // 노션 인덱싱 지연으로 방금 발행한 페이지가 첫 조회에 안 잡히는 경우 — 잠시 뒤 재조회
+      window.setTimeout(() => void loadRecent(), 5000);
       if (signedInRef.current) void window.cairn.cloud.syncNow().catch(() => {});
     });
     return off;
+  }, [loadRecent]);
+
+  // 창을 다시 볼 때 목록 최신화(자동 발행 등 외부 변화 인지) — 과호출 방지 60초 스로틀
+  const lastFocusLoad = useRef(0);
+  useEffect(() => {
+    const onFocus = (): void => {
+      const now = Date.now();
+      if (now - lastFocusLoad.current < 60_000) return;
+      lastFocusLoad.current = now;
+      void loadRecent();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, [loadRecent]);
 
   useEffect(() => {

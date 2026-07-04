@@ -724,24 +724,25 @@ function CompactRow({ d, i, t }: { d: PanelDate; i: number; t: T }) {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.2, delay: Math.min(i * 0.012, 0.15) }}
       className={[
-        'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5',
+        // 트리 행과 동일 메트릭 — 레이아웃 전환 시 모달 크기가 출렁이지 않게
+        'flex items-center gap-2.5 rounded-lg px-2 py-2',
         d.status === 'active' ? 'bg-accent/[0.06]' : '',
       ].join(' ')}
     >
-      <span className="flex size-[16px] shrink-0 items-center justify-center">
-        <StatusIcon status={d.status} size={16} />
+      <span className="flex size-[18px] shrink-0 items-center justify-center">
+        <StatusIcon status={d.status} size={18} />
       </span>
       <span
         className={[
-          'font-mono text-[12.5px]',
+          'font-mono text-[13px]',
           d.status === 'pending' ? 'text-ink-tertiary' : 'text-ink-muted',
         ].join(' ')}
       >
         {d.date}
       </span>
-      <span className="text-[11px] text-ink-tertiary">{d.dow}</span>
+      <span className="text-[12px] text-ink-tertiary">{d.dow}</span>
       {d.counts && (
-        <span className="font-mono text-[10.5px] text-ink-tertiary tabular-nums">
+        <span className="font-mono text-[11px] text-ink-tertiary tabular-nums">
           PR {d.counts.pr} · {t('publish.collected.commits')} {d.counts.commit}
         </span>
       )}
