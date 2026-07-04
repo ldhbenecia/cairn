@@ -16,8 +16,9 @@ export function sanitizeCairnError(e: CairnError): CairnErrorExternal {
 
 const FORBIDDEN_PATTERNS: readonly { name: string; pattern: RegExp }[] = [
   { name: 'unified-diff-hunk', pattern: /@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@/ },
-  { name: 'unified-diff-old', pattern: /^---\s/m },
-  { name: 'unified-diff-new', pattern: /^\+\+\+\s/m },
+  // JSON.stringify 된 객체 payload 는 개행이 \n 리터럴로 이스케이프됨 — 그 형태도 잡는다
+  { name: 'unified-diff-old', pattern: /(?:^|\n|\\n)---\s/ },
+  { name: 'unified-diff-new', pattern: /(?:^|\n|\\n)\+\+\+\s/ },
   { name: 'diff-git-header', pattern: /\bdiff --git\b/ },
   { name: 'absolute-mac-path', pattern: /\/Users\/[A-Za-z0-9._-]+/ },
   { name: 'absolute-posix-home', pattern: /\/home\/[A-Za-z0-9._-]+/ },

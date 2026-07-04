@@ -146,10 +146,9 @@ export class GithubCollectorService {
     // GitHub API secondary rate limit 회피를 위해 token 당 동시 호출 5 개로 제한
     const phase1 = await withConcurrency([...buckets.values()], 5, async (bucket) => {
       const { item, categories } = bucket;
-      const skipCommitsOnDate = categories.has('authored_merged') && item.createdAt < sinceIso;
       const createdInDay = item.createdAt >= sinceIso && item.createdAt <= untilIso;
       const hasAuthoredMerged = categories.has('authored_merged');
-      const needsCommitsForEligibility = !skipCommitsOnDate && !hasAuthoredMerged && !createdInDay;
+      const needsCommitsForEligibility = !hasAuthoredMerged && !createdInDay;
       const commitsOnDate = needsCommitsForEligibility
         ? await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin)
         : [];
@@ -172,6 +171,16 @@ export class GithubCollectorService {
     let summaryCommitLookupCount = 0;
     const summaries = await withConcurrency(eligible, 5, async ({ bucket, commitsOnDate }) => {
       const { account: acc, item, categories } = bucket;
+      // title 은 필수 필드라 null 화 불가 — 금지 패턴이면 PR 만 drop (전체 payload 백스톱이 하루치 발행을 막지 않게)
+      try {
+        assertNoForbiddenPayload(item.title, `github.pr-title.${item.repo}#${item.number}`);
+      } catch {
+        this.logger.warn(
+          { repo: item.repo, number: item.number },
+          'pr title contains forbidden pattern — pr dropped',
+        );
+        return null;
+      }
       const shouldFetchCommitsForSummary = commitsOnDate.length === 0;
       const summaryCommitsOnDate = shouldFetchCommitsForSummary
         ? await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin)
@@ -200,7 +209,7 @@ export class GithubCollectorService {
       { account: account.label, summaryCommitLookupCount },
       'github collect account summarized',
     );
-    return summaries;
+    return summaries.filter((s) => s !== null);
   }
 
   private async fetchSafeCommitsOnDate(
