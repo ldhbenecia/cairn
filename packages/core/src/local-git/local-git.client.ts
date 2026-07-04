@@ -69,26 +69,27 @@ export class LocalGitClient {
       });
   }
 
-  async localBranchesContaining(repoPath: string, sha: string): Promise<string[]> {
-    return this.branchesContaining(repoPath, sha, false);
-  }
-
-  async remoteBranchesContaining(repoPath: string, sha: string): Promise<string[]> {
-    return this.branchesContaining(repoPath, sha, true);
-  }
-
-  private async branchesContaining(
+  // local·remote 를 한 번의 git 스폰으로 조회 (커밋당 프로세스 2회 → 1회)
+  async branchesContaining(
     repoPath: string,
     sha: string,
-    remote: boolean,
-  ): Promise<string[]> {
-    const args = ['branch', '--contains', sha, '--format=%(refname:short)'];
-    if (remote) args.splice(1, 0, '-r');
-    const out = await this.git(repoPath).raw(args);
-    return out
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
+  ): Promise<{ local: string[]; remote: string[] }> {
+    const out = await this.git(repoPath).raw([
+      'for-each-ref',
+      'refs/heads',
+      'refs/remotes',
+      '--contains',
+      sha,
+      '--format=%(refname)',
+    ]);
+    const local: string[] = [];
+    const remote: string[] = [];
+    for (const line of out.split('\n')) {
+      const ref = line.trim();
+      if (ref.startsWith('refs/heads/')) local.push(ref.slice('refs/heads/'.length));
+      else if (ref.startsWith('refs/remotes/')) remote.push(ref.slice('refs/remotes/'.length));
+    }
+    return { local, remote };
   }
 
   private git(repoPath: string): SimpleGit {

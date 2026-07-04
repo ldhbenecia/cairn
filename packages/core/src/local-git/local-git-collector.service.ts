@@ -96,19 +96,16 @@ export class LocalGitCollectorService {
   }
 
   private async enrich(repoPath: string, raw: RawLocalCommit): Promise<LocalGitCommitSummary> {
-    const [localBranches, remoteBranches] = await Promise.all([
-      this.client.localBranchesContaining(repoPath, raw.shortSha),
-      this.client.remoteBranchesContaining(repoPath, raw.shortSha),
-    ]);
+    const { local, remote } = await this.client.branchesContaining(repoPath, raw.shortSha);
 
-    const branch = pickBranch(localBranches);
+    const branch = pickBranch(local);
     return {
       shortSha: raw.shortSha,
       subject: raw.subject,
       authoredAt: raw.authoredAt,
       // branch 명에 금지 패턴이 있으면 그 필드만 비움 (commit 은 유지)
       branch: branch && isForbiddenSubject(branch) ? null : branch,
-      pushed: remoteBranches.length > 0,
+      pushed: remote.length > 0,
     };
   }
 }
