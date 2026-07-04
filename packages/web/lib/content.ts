@@ -127,6 +127,37 @@ export const content = {
         "the app isn't code-signed yet, so the first launch is blocked by Gatekeeper. Right-click the app → Open, or run ",
       gatekeeperPost: ' once.',
     },
+    faq: {
+      eyebrow: 'FAQ',
+      title: 'Frequently asked questions',
+      lead: 'The short answers — the source is open if you want the long ones.',
+      items: [
+        {
+          q: 'Is it free?',
+          a: 'Yes. cairn is open source (AGPL-3.0) and runs entirely on your machine — collecting, summarizing, and publishing are free and will stay that way. The only thing that may become paid later is optional cloud sync.',
+        },
+        {
+          q: 'Does my code leave my machine?',
+          a: 'No. Code bodies and diffs never leave your machine — this is enforced with a whitelist. Summaries only use metadata like PR titles and commit subjects.',
+        },
+        {
+          q: 'What does it collect?',
+          a: 'Your authored and assigned GitHub PRs plus local Git commits for the day, across multiple accounts and repos. Collection runs on your machine with your own tokens — there is no server in between.',
+        },
+        {
+          q: 'Do I need a Claude subscription?',
+          a: 'Summaries run on your own Claude account: install Claude Code and sign in (Pro/Max) and cairn inherits that auth, or paste an Anthropic API key. Either works.',
+        },
+        {
+          q: 'Does it work with Obsidian?',
+          a: 'Yes. Pick a folder and every publish also lands as a .md file — point it at an Obsidian vault and it syncs right in. cairn detects vaults automatically.',
+        },
+        {
+          q: 'Where is my data stored?',
+          a: 'Worklogs publish to the Notion page you connect; stats live in a local file on your machine. Tokens and secrets stay machine-local too — they are only sent to the services you configure.',
+        },
+      ],
+    },
     cta: { title: 'Start stacking your worklog', button: 'Download for macOS' },
     footer: { docs: 'Docs', privacy: 'Privacy Policy', terms: 'Terms of Service' },
   },
@@ -253,6 +284,37 @@ export const content = {
       gatekeeper:
         '아직 코드 서명이 안 돼 있어 첫 실행은 Gatekeeper 에 막힙니다. 앱 우클릭 → 열기, 또는 아래를 한 번 실행하세요 ',
       gatekeeperPost: '.',
+    },
+    faq: {
+      eyebrow: 'FAQ',
+      title: '자주 묻는 질문',
+      lead: '짧은 답만 모았습니다 — 긴 답이 궁금하면 소스가 열려 있습니다.',
+      items: [
+        {
+          q: '무료인가요?',
+          a: '네. cairn 은 오픈소스(AGPL-3.0)이고 전부 내 기기에서 실행됩니다 — 수집·요약·발행은 무료이며 앞으로도 그렇습니다. 향후 유료가 될 수 있는 건 선택 기능인 클라우드 동기화뿐입니다.',
+        },
+        {
+          q: '내 코드가 외부로 전송되나요?',
+          a: '아니요. 코드 본문과 diff 는 절대 기기를 떠나지 않으며, 화이트리스트 방식으로 강제됩니다. 요약에는 PR 제목·커밋 제목 수준의 메타데이터만 사용합니다.',
+        },
+        {
+          q: '어떤 걸 수집하나요?',
+          a: '그날 내가 작성·할당된 GitHub PR 과 로컬 Git 커밋을 여러 계정·레포에 걸쳐 모읍니다. 수집은 본인 토큰으로 내 기기에서 실행됩니다 — 중간에 서버가 없습니다.',
+        },
+        {
+          q: 'Claude 구독이 필요한가요?',
+          a: '요약은 본인의 Claude 계정으로 동작합니다: Claude Code 를 설치·로그인해 두면(Pro/Max) cairn 이 그 인증을 인계받고, 또는 Anthropic API 키를 붙여넣어도 됩니다. 둘 다 됩니다.',
+        },
+        {
+          q: 'Obsidian 이랑 연동되나요?',
+          a: '네. 폴더를 지정하면 발행마다 일지가 .md 파일로도 기록됩니다 — Obsidian vault 를 지정하면 그대로 연동되고, vault 는 자동으로 감지됩니다.',
+        },
+        {
+          q: '데이터는 어디에 저장되나요?',
+          a: '일지는 내가 연결한 Notion 페이지에 발행되고, 통계는 기기의 로컬 파일에 쌓입니다. 토큰·시크릿도 전부 기기에만 저장되며, 내가 설정한 서비스로만 전송됩니다.',
+        },
+      ],
     },
     cta: { title: '오늘부터 일지를 쌓아보세요', button: 'macOS 다운로드' },
     footer: { docs: '문서', privacy: '개인정보 처리방침', terms: '서비스 약관' },

@@ -11,6 +11,7 @@ import { LangSwitcher } from './lang-switcher';
 import { Nav } from './nav';
 import { Reveal } from './reveal';
 import { Screenshot } from './screenshot';
+import { Accordion } from './ui/accordion';
 import { BentoGrid, type BentoItem } from './ui/bento-grid';
 
 const HL_ICONS = [GitPullRequest, Sparkles, CalendarDays, LayoutDashboard, ShieldCheck];
@@ -257,6 +258,13 @@ export async function Landing({ lang }: { lang: Lang }) {
             {c.setup.gatekeeperPost}
           </p>
         </div>
+      </section>
+
+      <section id="faq" className="mx-auto max-w-6xl px-6 pb-24">
+        <SectionHead eyebrow={c.faq.eyebrow} title={c.faq.title} lead={c.faq.lead} />
+        <Reveal delay={0.06} className="mx-auto mt-12 max-w-2xl">
+          <Accordion items={c.faq.items} idPrefix="faq" />
+        </Reveal>
       </section>
 
       <section className="px-6 pb-24">
