@@ -1166,10 +1166,24 @@ function Result({
     body = <p className="text-ink-muted">{t('publish.result.skipped')}</p>;
   } else {
     body = (
-      <p className="flex items-center gap-2 text-[15px] text-success">
-        <Check size={18} strokeWidth={2.5} />
-        {t('publish.result.done')}
-      </p>
+      <div className="flex flex-col items-center gap-2 pt-3 pb-1 text-center">
+        <motion.span
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 20, delay: 0.05 }}
+          className="flex size-12 items-center justify-center rounded-full bg-emerald-500/12 text-emerald-400"
+        >
+          <Check size={22} strokeWidth={2.5} />
+        </motion.span>
+        <p className="text-[15px] font-semibold text-ink">{t('publish.result.done')}</p>
+        {(modelLabel || elapsedSec !== null) && (
+          <p className="text-[12px] text-ink-tertiary">
+            {[modelLabel, elapsedSec !== null ? fmtElapsed(elapsedSec) : null]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        )}
+      </div>
     );
   }
   return (
@@ -1202,20 +1216,17 @@ function Result({
             </div>
           </div>
         )}
-        {isSuccess && (modelLabel || elapsedSec !== null) && (
-          <p className="text-[12px] text-ink-tertiary">
-            {[modelLabel, elapsedSec !== null ? fmtElapsed(elapsedSec) : null]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-        )}
       </div>
-      <div className="flex items-center gap-3">
+      <div
+        className={
+          isSuccess ? 'flex items-center justify-center gap-2.5' : 'flex items-center gap-3'
+        }
+      >
         {url && (
           <button
             type="button"
             onClick={() => void window.cairn.openExternal(url)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-2 text-[13px] font-medium text-white hover:bg-accent-hover"
+            className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3.5 py-2 text-[13px] font-medium text-white hover:bg-accent-hover"
           >
             <ExternalLink size={14} strokeWidth={2} />
             {t('publish.openNotion')}
@@ -1224,7 +1235,7 @@ function Result({
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink"
+          className={`rounded-md border border-hairline px-3.5 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink ${isSuccess ? '' : 'ml-auto'}`}
         >
           {t('publish.close')}
         </button>

@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSettings } from '../settings-context';
 import type { I18nKey } from '../i18n';
@@ -77,18 +77,31 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
     return () => document.removeEventListener('mousedown', onDown);
   }, [open, closing]);
 
+  // 트리거에 붙여 배치 — 아래 공간이 없으면 위로. 예상치(POP_H) 대신 열린 뒤 실측 높이로
+  // 재배치해야 day/month 뷰 높이 차이·모달 안 트리거에서도 어긋나지 않는다
+  const place = (): void => {
+    const r = triggerRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const h = popRef.current?.offsetHeight ?? POP_H;
+    let top = r.bottom + 6;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - POP_W - 8));
+    setPos({ top, left });
+  };
+
   const openPicker = (): void => {
     setView({ y: sel.y, m: sel.m });
     setPicking('day');
-    const r = triggerRef.current?.getBoundingClientRect();
-    if (r) {
-      let top = r.bottom + 6;
-      if (top + POP_H > window.innerHeight) top = Math.max(8, r.top - POP_H - 6);
-      const left = Math.max(8, Math.min(r.right - POP_W, window.innerWidth - POP_W - 8));
-      setPos({ top, left });
-    }
+    place();
     setOpen(true);
   };
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [open, picking]);
 
   const maxMonthIndex = maxD.y * 12 + maxD.m;
   const viewMonthIndex = view.y * 12 + view.m;
