@@ -83,6 +83,7 @@ function TimeField({
   disabled?: boolean;
   onChange: (v: string) => void;
 }) {
+  const { t } = useSettings();
   const [text, setText] = useState(value);
   useEffect(() => setText(value), [value]);
 
@@ -99,10 +100,15 @@ function TimeField({
     if (next !== value) onChange(next);
   };
 
+  // blur 커밋 직후 클로저의 value 가 stale 할 수 있어(#245 리뷰) 스텝 기준은 현재 입력 텍스트
   const step = (deltaMin: number): void => {
-    const cur = timeToMinutes(value);
-    const next = (((cur + deltaMin) % 1440) + 1440) % 1440;
-    onChange(fmtTime(next));
+    const m = /^(\d{1,2}):(\d{2})$/.exec(text.trim());
+    const base = m
+      ? Math.min(23, Number(m[1])) * 60 + Math.min(59, Number(m[2]))
+      : timeToMinutes(value);
+    const next = fmtTime((((base + deltaMin) % 1440) + 1440) % 1440);
+    setText(next);
+    onChange(next);
   };
 
   const stepBtn =
@@ -110,7 +116,13 @@ function TimeField({
 
   return (
     <div className="flex items-center gap-1.5">
-      <button type="button" disabled={disabled} onClick={() => step(-30)} className={stepBtn}>
+      <button
+        type="button"
+        aria-label={t('prefs.autoPublish.time.minus')}
+        disabled={disabled}
+        onClick={() => step(-30)}
+        className={stepBtn}
+      >
         <Minus size={13} strokeWidth={2} />
       </button>
       <input
@@ -123,7 +135,13 @@ function TimeField({
         }}
         className="w-[4.5rem] rounded-md border border-hairline bg-surface-2 px-2 py-1.5 text-center font-mono text-[13px] text-ink outline-none focus:border-accent/50 disabled:cursor-not-allowed disabled:opacity-40"
       />
-      <button type="button" disabled={disabled} onClick={() => step(30)} className={stepBtn}>
+      <button
+        type="button"
+        aria-label={t('prefs.autoPublish.time.plus')}
+        disabled={disabled}
+        onClick={() => step(30)}
+        className={stepBtn}
+      >
         <Plus size={13} strokeWidth={2} />
       </button>
     </div>
@@ -147,6 +165,7 @@ function ChipGroup({
         <button
           key={o}
           type="button"
+          aria-pressed={o === value}
           disabled={disabled}
           onClick={() => onChange(o)}
           className={[
