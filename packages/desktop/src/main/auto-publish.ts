@@ -11,6 +11,19 @@ import {
 // 발화 시각은 사용자 로컬 TZ(rules/timezone.md)
 
 let dailyTimer: ReturnType<typeof setTimeout> | null = null;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+const RETRY_DELAY_MS = 5 * 60_000;
+
+// 예약 시각에 다른 실행이 점유 중이면 그날 발행이 통째로 누락되던 문제 — 잠시 뒤 재시도.
+// runAutoPublish 가 시각 게이트·dueRuns 를 재평가하므로 중복 발행 없음.
+function scheduleRetry(): void {
+  if (retryTimer) return;
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    void runAutoPublish();
+  }, RETRY_DELAY_MS);
+}
 
 function msUntilLocalTime(time: string): number {
   const parts = time.split(':');
@@ -115,7 +128,10 @@ async function runAutoPublish(): Promise<void> {
 
 async function executeRuns(runs: DueRun[]): Promise<void> {
   if (isRunning()) {
-    console.warn(`[auto-publish] busy — skipped: ${runs.map((r) => r.mode).join(', ')}`);
+    console.warn(
+      `[auto-publish] busy — retry in ${RETRY_DELAY_MS / 60_000}m: ${runs.map((r) => r.mode).join(', ')}`,
+    );
+    scheduleRetry();
     return;
   }
   for (const { mode, options, rollupField, anchor } of runs) {
@@ -127,7 +143,8 @@ async function executeRuns(runs: DueRun[]): Promise<void> {
         writeAutoPublishState({ ...readAutoPublishState(), [rollupField]: anchor });
       }
     } catch {
-      // 결과 알림은 runCore 내부 처리
+      // busy 레이스(루프 도중 수동 실행 시작) — anchor 미기록 상태라 재시도에서 다시 due
+      scheduleRetry();
     }
   }
 }
@@ -156,4 +173,6 @@ export function initAutoPublish(): void {
 
 export function reconfigureAutoPublish(): void {
   scheduleDaily();
+  // 예약 시각을 이미 지난 시각으로 바꾸면 타이머는 내일로 잡힘 — 오늘치는 즉시 catch-up
+  void runAutoPublish();
 }
