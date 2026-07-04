@@ -43,6 +43,8 @@ function scheduleFailureRetry(): void {
     failureRetriesDay = today;
     failureRetries = 0;
   }
+  // 같은 사이클에서 여러 모드가 실패해도 타이머는 1개 — 예약 안 될 호출이 예산을 소비하지 않게
+  if (retryTimer) return;
   if (failureRetries >= MAX_FAILURE_RETRIES_PER_DAY) return;
   failureRetries += 1;
   scheduleRetry();

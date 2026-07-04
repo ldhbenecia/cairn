@@ -152,7 +152,7 @@ let bfCountBlock: { date?: string; pr?: number; commit?: number; noActivity?: bo
   null;
 let bfLastPublishedDate: string | null = null;
 let bfPagesByDate: Record<string, string> = {};
-let bfPendingPage: { date: string | null } | null = null;
+let bfPendingPage: { date: string | null; pageId: string | null } | null = null;
 
 // 'daily: publish done' 블록에서 date↔pageId 쌍 추출 — 백필 다건 발행 시 export 가
 // 마지막 페이지만 sync 하던 문제의 재료. JSON 한 줄·pino-pretty 멀티라인 모두 대응.
@@ -166,16 +166,22 @@ function trackPublishedPage(line: string): void {
       bfPagesByDate = { ...bfPagesByDate, [d]: pid };
       bfPendingPage = null;
     } else {
-      bfPendingPage = { date: d ?? null };
+      bfPendingPage = { date: d ?? null, pageId: pid ?? null };
     }
     return;
   }
   if (!bfPendingPage) return;
+  // trackDateCounts 와 동일 — 새 블록 헤더가 나오면 pending 폐기 (무관 블록의 date/pageId 오염 방지)
+  if (/^\[\d{2}:\d{2}:\d{2}/.test(line) || /"msg"\s*:/.test(line)) {
+    bfPendingPage = null;
+    return;
+  }
   const d = /date["':\s]+["']?(\d{4}-\d{2}-\d{2})/.exec(line)?.[1];
   if (d) bfPendingPage.date = d;
   const pid = pidOf(line);
-  if (pid && bfPendingPage.date) {
-    bfPagesByDate = { ...bfPagesByDate, [bfPendingPage.date]: pid };
+  if (pid) bfPendingPage.pageId = pid;
+  if (bfPendingPage.date && bfPendingPage.pageId) {
+    bfPagesByDate = { ...bfPagesByDate, [bfPendingPage.date]: bfPendingPage.pageId };
     bfPendingPage = null;
   }
 }
