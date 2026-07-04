@@ -9,7 +9,7 @@ import {
   ChevronRight,
   Circle,
   CircleDotDashed,
-  ExternalLink,
+  BookOpen,
   GitCommitHorizontal,
   GitPullRequest,
   Inbox,
@@ -46,6 +46,7 @@ type Props = {
   sessions: Record<CoreMode, RunSession | null>;
   runningMode: CoreMode | null;
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
+  onOpenPublished: (pageId: string, url: string | null) => void;
 };
 
 const MODE_OPTIONS: { mode: CoreMode; key: I18nKey; sub: I18nKey; icon: LucideIcon }[] = [
@@ -91,7 +92,7 @@ const MODEL_NAME: Record<SummaryModel, string> = {
   opus: 'Opus',
 };
 
-export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
+export function PublishDialog({ sessions, runningMode, onTrigger, onOpenPublished }: Props) {
   const { t, settings } = useSettings();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<CoreMode>('daily');
@@ -162,7 +163,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50 [-webkit-app-region:no-drag]" />
         <Dialog.Content
           onOpenAutoFocus={(e) => e.preventDefault()}
-          className={`dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] [-webkit-app-region:no-drag] ${
+          className={`dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex max-h-[82vh] max-w-[92vw] flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] [-webkit-app-region:no-drag] ${
             wide ? 'w-[560px]' : 'w-[440px]'
           }`}
         >
@@ -194,6 +195,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger }: Props) {
                 modelLabel={MODEL_NAME[settings.summaryModel] || t('prefs.prompts.model.default')}
                 t={t}
                 onClose={() => setOpen(false)}
+                onOpenPublished={onOpenPublished}
               />
             ) : showProgress && (isRunning || busy) ? (
               <Progress
@@ -1143,12 +1145,14 @@ function Result({
   modelLabel,
   t,
   onClose,
+  onOpenPublished,
 }: {
   result: CoreResult;
   elapsedSec: number | null;
   modelLabel: string;
   t: T;
   onClose: () => void;
+  onOpenPublished: (pageId: string, url: string | null) => void;
 }) {
   const url = result.notionUrl ?? pageIdToUrl(result.publishPageId);
   const isSuccess =
@@ -1249,14 +1253,17 @@ function Result({
           isSuccess ? 'flex items-center justify-center gap-2.5' : 'flex items-center gap-3'
         }
       >
-        {url && (
+        {result.publishPageId && (
           <button
             type="button"
-            onClick={() => void window.cairn.openExternal(url)}
+            onClick={() => {
+              onOpenPublished(result.publishPageId!, url);
+              onClose();
+            }}
             className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3.5 py-2 text-[13px] font-medium text-white hover:bg-accent-hover"
           >
-            <ExternalLink size={14} strokeWidth={2} />
-            {t('publish.openNotion')}
+            <BookOpen size={14} strokeWidth={2} />
+            {t('publish.viewInApp')}
           </button>
         )}
         <button

@@ -35,7 +35,8 @@ type Props = {
   sessions: Record<CoreMode, RunSession | null>;
   runningMode: CoreMode | null;
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
-  onReload: () => Promise<void>;
+  onOpenPublished: (pageId: string, url: string | null) => void;
+  onReload: () => Promise<unknown>;
   onOpen: (page: RecentPage) => void;
   onAchievements: () => void;
   drawerOpen: boolean;
@@ -62,6 +63,7 @@ export function WorklogList({
   sessions,
   runningMode,
   onTrigger,
+  onOpenPublished,
   onReload,
   onOpen,
   onAchievements,
@@ -227,7 +229,12 @@ export function WorklogList({
               <Sparkles size={12} strokeWidth={2} />
               {t('list.achievements')}
             </button>
-            <PublishDialog sessions={sessions} runningMode={runningMode} onTrigger={onTrigger} />
+            <PublishDialog
+              sessions={sessions}
+              runningMode={runningMode}
+              onTrigger={onTrigger}
+              onOpenPublished={onOpenPublished}
+            />
           </div>
         </div>
       </header>

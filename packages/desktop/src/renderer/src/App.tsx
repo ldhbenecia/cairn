@@ -84,6 +84,8 @@ export function App() {
   busyRef.current = busy;
   const signedInRef = useRef(false);
   const [recent, setRecent] = useState<RecentListResult | null>(readRecentCache);
+  const recentRef = useRef(recent);
+  recentRef.current = recent;
   const { t } = useSettings();
 
   const loadRecent = useCallback(async () => {
@@ -94,7 +96,24 @@ export function App() {
     } catch {
       /* empty */
     }
+    return r;
   }, []);
+
+  // 발행 완료 CTA — 노션으로 내보내지 않고 앱 안 드로어로 (목록에 없으면 갱신 후 재탐색)
+  const openPublishedPage = useCallback(
+    async (pageId: string, url: string | null) => {
+      const inState = recentRef.current?.pages.find((p) => p.pageId === pageId);
+      const page =
+        inState ?? (await loadRecent().catch(() => null))?.pages.find((p) => p.pageId === pageId);
+      if (page) {
+        setView('worklogs');
+        setSelectedPage(page);
+      } else if (url) {
+        void window.cairn.openExternal(url);
+      }
+    },
+    [loadRecent],
+  );
 
   useEffect(() => {
     localStorage.setItem('cairn:sidebarWidth', String(sidebarWidth));
@@ -403,6 +422,7 @@ export function App() {
           sessions={sessions}
           runningMode={runningMode}
           onTrigger={trigger}
+          onOpenPublished={(pageId, url) => void openPublishedPage(pageId, url)}
           onReload={loadRecent}
           onOpen={setSelectedPage}
           onAchievements={() => setAchvOpen(true)}
@@ -424,7 +444,14 @@ export function App() {
         )}
       </AnimatePresence>
       {achvOpen && <AchievementsDialog recent={recent} onClose={() => setAchvOpen(false)} />}
-      <RunToast toast={toast} onClose={() => setToast(null)} />
+      <RunToast
+        toast={toast}
+        onClose={() => setToast(null)}
+        onOpenPage={(pageId, url) => {
+          void openPublishedPage(pageId, url);
+          setToast(null);
+        }}
+      />
       <PreferencesDialog
         open={prefsOpen}
         onOpenChange={setPrefsOpen}
