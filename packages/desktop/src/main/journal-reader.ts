@@ -24,7 +24,7 @@ export async function journalFolder(): Promise<string> {
   const cfg = await readConfig();
   const parsed = cfg.parsed as { journal?: { folder?: string } } | null;
   const configured = parsed?.journal?.folder;
-  if (!configured) return join(homedir(), 'Documents', 'cairn');
+  if (!configured) return join(homedir(), 'Documents', 'Cairn Journal');
   // resolve() 는 '~' 를 확장하지 않는다 — cwd 아래 '~/...' 로 새는 것 방지
   const expanded = configured.startsWith('~/') ? join(homedir(), configured.slice(2)) : configured;
   return resolve(expanded);
