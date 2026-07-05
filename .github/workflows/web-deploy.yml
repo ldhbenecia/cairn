@@ -1,0 +1,62 @@
+name: Web Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/web/**'
+      - '.github/workflows/web-deploy.yml'
+  pull_request:
+    paths:
+      - 'packages/web/**'
+      - '.github/workflows/web-deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: web-deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # fork PR 은 secrets 미제공 → 스킵
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install Vercel CLI
+        run: npm i -g vercel@54.20.1
+      - name: Pull Vercel project settings
+        run: vercel pull --yes --environment=${{ github.event_name == 'pull_request' && 'preview' || 'production' }} --token=${{ secrets.VERCEL_TOKEN }}
+      # Sensitive env(DATABASE_URL 등)는 Vercel 밖으로 내려받을 수 없어 로컬 빌드(--prebuilt)가 불가 —
+      # 소스만 올리고 Vercel 인프라에서 원격 빌드한다
+      - name: Deploy
+        id: deploy
+        run: |
+          url=$(vercel deploy ${{ github.event_name != 'pull_request' && '--prod' || '' }} --yes --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployed: $url"
+      - name: Comment preview URL
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          gh pr comment "${{ github.event.number }}" --repo "${{ github.repository }}" \
+            --edit-last --body "Vercel Preview: $PREVIEW_URL" \
+          || gh pr comment "${{ github.event.number }}" --repo "${{ github.repository }}" \
+            --body "Vercel Preview: $PREVIEW_URL"
