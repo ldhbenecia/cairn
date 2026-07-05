@@ -10,6 +10,7 @@ export type RunProgress = {
   active: number;
   dates: string[];
   doneDates: string[];
+  failedDates: string[];
   stepByDate: Record<string, DateStep>;
   countsByDate: Record<string, DateCounts>;
 };
@@ -21,6 +22,7 @@ let bfInStat = false;
 let bfLastKey = '';
 let bfDates: string[] = [];
 let bfDoneDates: string[] = [];
+let bfFailedDates: string[] = [];
 let bfStepByDate: Record<string, DateStep> = {};
 let bfStepBlock: { date?: string; step?: DateStep } | null = null;
 let bfCountsByDate: Record<string, DateCounts> = {};
@@ -71,6 +73,7 @@ export function resetBackfillTracking(): void {
   bfLastKey = '';
   bfDates = [];
   bfDoneDates = [];
+  bfFailedDates = [];
   bfStepByDate = {};
   bfStepBlock = null;
   bfCountsByDate = {};
@@ -172,6 +175,12 @@ export function trackBackfill(line: string, mode: CoreMode): void {
     const parsed = mDone[1].split(',').filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
     if (parsed.length >= bfDoneDates.length) bfDoneDates = parsed;
   }
+  // 실패한 날짜 누적 목록 — done 에도 포함되므로 UI 가 ✓ 대신 실패 표시로 구분
+  const mFailed = /failedDates["':\s]+["']?([\d,-]+)/.exec(line);
+  if (mFailed?.[1]) {
+    const parsed = mFailed[1].split(',').filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+    if (parsed.length >= bfFailedDates.length) bfFailedDates = parsed;
+  }
   const isHeader = /^\[\d{2}:\d{2}:\d{2}/.test(line) || /"msg"\s*:/.test(line);
   if (isHeader) bfInStat = /backfill batch start|backfill progress/.test(line);
   else if (/backfill batch start|backfill progress/.test(line)) bfInStat = true;
@@ -191,7 +200,7 @@ export function trackBackfill(line: string, mode: CoreMode): void {
     .map(([d, v]) => `${d}:${v.pr}:${v.commit}`)
     .sort()
     .join(',');
-  const key = `${bfDone}/${bfTotal}/${active}/${bfDates.length}/${bfDoneDates.length}/${stepSig}/${countSig}`;
+  const key = `${bfDone}/${bfTotal}/${active}/${bfDates.length}/${bfDoneDates.length}/${bfFailedDates.length}/${stepSig}/${countSig}`;
   if (key === bfLastKey) return;
   bfLastKey = key;
   runProgress = {
@@ -200,6 +209,7 @@ export function trackBackfill(line: string, mode: CoreMode): void {
     active,
     dates: bfDates,
     doneDates: bfDoneDates,
+    failedDates: bfFailedDates,
     stepByDate: bfStepByDate,
     countsByDate: bfCountsByDate,
   };

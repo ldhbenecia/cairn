@@ -94,13 +94,17 @@ export function parseOnboardingPayload(
     if (typeof g !== 'object' || g === null || !isStr(gg.label) || !isStr(gg.token)) {
       return { ok: false, error: 'invalid-github' };
     }
+    if (hasCtl(gg.label) || hasCtl(gg.token)) return { ok: false, error: 'invalid-github' };
     github.push({ label: gg.label, token: gg.token });
   }
 
   if (!o.localGitRepos.every((r) => isStr(r))) {
     return { ok: false, error: 'invalid-local-repos' };
   }
-  if (o.anthropicApiKey !== undefined && typeof o.anthropicApiKey !== 'string') {
+  if (
+    o.anthropicApiKey !== undefined &&
+    (typeof o.anthropicApiKey !== 'string' || hasCtl(o.anthropicApiKey))
+  ) {
     return { ok: false, error: 'invalid-anthropic-key' };
   }
 

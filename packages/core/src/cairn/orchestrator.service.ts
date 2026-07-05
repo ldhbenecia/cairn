@@ -106,6 +106,7 @@ export class OrchestratorService {
 
     let backfillDone = 0;
     const completedDates: string[] = [];
+    const failedDates: string[] = [];
     const backfillTotal = missingDates.length;
     // 데스크톱 배치 진행 UI 가 시작 즉시 총개수·날짜 목록을 알도록(완료 로그 전부터 날짜별 행 렌더링)
     this.logger.info(
@@ -130,12 +131,20 @@ export class OrchestratorService {
         const error = CairnError.from(err, 'config');
         this.logger.error({ date, error }, 'daily: backfill date failed — continuing batch');
         result = { date, kind: 'failed' };
+        failedDates.push(date);
       }
       backfillDone += 1;
       completedDates.push(date);
       // doneDates: 완료 순서가 날짜 순서와 달라도 UI 가 멤버십으로 정확히 상태 판정하도록 누적 목록 전달
+      // failedDates: 실패 날짜도 done 에 포함되므로, UI 가 ✓ 대신 실패로 구분 표시할 수 있게 별도 누적
       this.logger.info(
-        { date, done: backfillDone, total: backfillTotal, doneDates: completedDates.join(',') },
+        {
+          date,
+          done: backfillDone,
+          total: backfillTotal,
+          doneDates: completedDates.join(','),
+          failedDates: failedDates.join(','),
+        },
         'daily: backfill progress',
       );
       return result;
@@ -176,7 +185,11 @@ export class OrchestratorService {
       }
       // 노션 미연동이어도 journal 에 이미 기록된 날짜는 재요약하지 않는다 (요약 비용 보호)
       if (pre?.kind === 'no-target' && this.journalWriter.hasDaily(date)) {
-        this.logger.info({ date }, 'daily: journal file exists — skip collect/summarize');
+        // 데스크톱이 precheck 단락과 동일한 publishResult 모양으로 skip 을 판정하도록 구조화 필드 포함
+        this.logger.info(
+          { date, publishResult: { kind: 'skipped', reason: 'already-published' } },
+          'daily: journal file exists — skip collect/summarize',
+        );
         if (!opts.silent) {
           await this.notification.notify(
             'cairn 일지',
@@ -429,7 +442,12 @@ export class OrchestratorService {
         const { start, end } = periodRange(period, options.date);
         if (this.journalWriter.hasRollup(period, start)) {
           this.logger.info(
-            { period, rangeStart: start, rangeEnd: end },
+            {
+              period,
+              rangeStart: start,
+              rangeEnd: end,
+              publishResult: { kind: 'skipped', reason: 'already-published' },
+            },
             'rollup: journal file exists — skip collect/summarize',
           );
           await this.notification.notify(

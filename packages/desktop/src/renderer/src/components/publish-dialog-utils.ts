@@ -39,7 +39,7 @@ export function parseRollupDailies(lines: RunLine[]): string[] {
 
 const STEP_SEQ: DateStep[] = ['collect', 'summarize', 'publish'];
 
-export type DStatus = 'done' | 'active' | 'pending';
+export type DStatus = 'done' | 'active' | 'pending' | 'failed';
 
 export type PanelDate = {
   date: string;
@@ -61,16 +61,26 @@ function weekdayLabel(date: string, lang: string): string {
 export function buildPanelDates(
   dates: string[],
   doneDates: string[],
+  failedDates: string[],
   stepByDate: Record<string, DateStep>,
   countsByDate: Record<string, { pr: number; commit: number }>,
   lang: string,
 ): PanelDate[] {
   // 멤버십 기반 — 동시 완료 순서가 날짜 순서와 달라도 정확(인덱스 가정 제거)
   const doneSet = new Set(doneDates);
+  // 실패 날짜는 doneDates 에도 포함 — failed 판정이 우선
+  const failedSet = new Set(failedDates);
   return dates.map((date) => {
-    const status: DStatus = doneSet.has(date) ? 'done' : stepByDate[date] ? 'active' : 'pending';
+    const status: DStatus = failedSet.has(date)
+      ? 'failed'
+      : doneSet.has(date)
+        ? 'done'
+        : stepByDate[date]
+          ? 'active'
+          : 'pending';
     const sub = status === 'active' ? (stepByDate[date] ?? 'collect') : null;
-    const subIdx = sub ? STEP_SEQ.indexOf(sub) : -1;
+    const failedIdx = status === 'failed' ? STEP_SEQ.indexOf(stepByDate[date] ?? 'collect') : -1;
+    const subIdx = sub ? STEP_SEQ.indexOf(sub) : failedIdx;
     const steps = STEP_SEQ.map((step, j) => {
       const sStatus: DStatus =
         status === 'done'
@@ -80,7 +90,9 @@ export function buildPanelDates(
             : j < subIdx
               ? 'done'
               : j === subIdx
-                ? 'active'
+                ? status === 'failed'
+                  ? 'failed'
+                  : 'active'
                 : 'pending';
       return { step, status: sStatus };
     });
