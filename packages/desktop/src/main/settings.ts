@@ -23,6 +23,17 @@ export type ExportConfig = {
   autoSync: boolean;
 };
 
+export type GraphLabels = 'auto' | 'always' | 'hover';
+
+export type GraphConfig = {
+  enabled: boolean;
+  nodeScale: number;
+  spread: number;
+  gravity: number;
+  labels: GraphLabels;
+  showRollups: boolean;
+};
+
 export type Settings = {
   theme: Theme;
   accent: string;
@@ -36,6 +47,7 @@ export type Settings = {
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
   summaryModel: SummaryModel;
   export: ExportConfig;
+  graph: GraphConfig;
 };
 
 const DEFAULTS: Settings = {
@@ -58,6 +70,7 @@ const DEFAULTS: Settings = {
   prompts: { daily: null, weekly: null, monthly: null },
   summaryModel: 'sonnet',
   export: { folder: null, autoSync: false },
+  graph: { enabled: true, nodeScale: 1, spread: 1, gravity: 1, labels: 'auto', showRollups: true },
 };
 
 const SETTINGS_PATH = join(homedir(), '.cairn', 'settings.json');
@@ -99,6 +112,7 @@ export function readSettings(): Settings {
       },
       prompts: { ...DEFAULTS.prompts, ...(parsed.prompts ?? {}) },
       export: { ...DEFAULTS.export, ...(parsed.export ?? {}) },
+      graph: { ...DEFAULTS.graph, ...(parsed.graph ?? {}) },
     };
   } catch {
     return { ...DEFAULTS, language: machineLanguage() };
@@ -113,6 +127,7 @@ export function writeSettings(patch: Partial<Settings>): Settings {
     autoPublish: { ...prev.autoPublish, ...(patch.autoPublish ?? {}) },
     prompts: { ...prev.prompts, ...(patch.prompts ?? {}) },
     export: { ...prev.export, ...(patch.export ?? {}) },
+    graph: { ...prev.graph, ...(patch.graph ?? {}) },
   };
   writeFileAtomic(SETTINGS_PATH, `${JSON.stringify(next, null, 2)}\n`);
   return next;

@@ -1,8 +1,10 @@
 import {
   ArrowDownUp,
   ChevronDown,
+  Cloud,
   GitCommitHorizontal,
   GitPullRequest,
+  HardDrive,
   ListTree,
   Loader2,
   RefreshCw,
@@ -431,8 +433,22 @@ function PageRow({
           {page.status}
         </span>
       )}
-      <span className="hidden w-16 shrink-0 text-right text-[12px] text-ink-subtle sm:inline">
-        {page.workspaceLabel}
+      <span
+        className="hidden w-20 shrink-0 items-center justify-end gap-1 text-[11.5px] text-ink-subtle sm:flex"
+        title={
+          page.workspaceLabel === 'local'
+            ? t('source.localDesc')
+            : `Notion · ${page.workspaceLabel}`
+        }
+      >
+        {page.workspaceLabel === 'local' ? (
+          <HardDrive size={11} strokeWidth={2} className="shrink-0" />
+        ) : (
+          <Cloud size={11} strokeWidth={2} className="shrink-0" />
+        )}
+        <span className="truncate">
+          {page.workspaceLabel === 'local' ? t('source.local') : page.workspaceLabel}
+        </span>
       </span>
     </button>
   );

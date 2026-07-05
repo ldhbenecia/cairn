@@ -34,7 +34,7 @@ export function CommandPalette({
   onOpenPage,
   onAchievements,
 }: Props) {
-  const { t } = useSettings();
+  const { t, settings } = useSettings();
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -76,12 +76,16 @@ export function CommandPalette({
         icon: <FileText size={12} strokeWidth={2} />,
         run: () => onView('worklogs'),
       },
-      {
-        id: 'view-graph',
-        label: t('cmd.graph'),
-        icon: <Orbit size={12} strokeWidth={2} />,
-        run: () => onView('graph'),
-      },
+      ...(settings.graph.enabled
+        ? [
+            {
+              id: 'view-graph',
+              label: t('cmd.graph'),
+              icon: <Orbit size={12} strokeWidth={2} />,
+              run: () => onView('graph'),
+            },
+          ]
+        : []),
       {
         id: 'achievements',
         label: t('cmd.achievements'),
@@ -95,7 +99,7 @@ export function CommandPalette({
         run: onPreferences,
       },
     ];
-  }, [t, onPublish, onView, onPreferences, onAchievements]);
+  }, [t, settings.graph.enabled, onPublish, onView, onPreferences, onAchievements]);
 
   const items = useMemo(() => {
     const query = q.trim().toLowerCase();

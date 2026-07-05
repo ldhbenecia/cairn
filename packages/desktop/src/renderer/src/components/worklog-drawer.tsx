@@ -229,7 +229,10 @@ export function WorklogDrawer({ page, onClose }: Props) {
           <div className="min-w-0 flex-1 cursor-text select-text [-webkit-app-region:no-drag]">
             <p className="truncate text-[15px] font-semibold text-ink">{page.title}</p>
             <p className="mt-0.5 font-mono text-[12px] text-ink-tertiary">
-              {page.date ?? '—'} · {page.workspaceLabel}
+              {page.date ?? '—'} ·{' '}
+              {page.workspaceLabel === 'local'
+                ? t('source.localDesc')
+                : `Notion · ${page.workspaceLabel}`}
             </p>
           </div>
           {actions.length > 0 && (

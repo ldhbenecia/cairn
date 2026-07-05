@@ -87,7 +87,9 @@ export function App() {
   const [recent, setRecent] = useState<RecentListResult | null>(readRecentCache);
   const recentRef = useRef(recent);
   recentRef.current = recent;
-  const { t } = useSettings();
+  const { t, settings } = useSettings();
+  // 그래프 뷰를 설정에서 끈 상태로 view 가 graph 에 남아 있으면 목록으로 폴백
+  const activeView = view === 'graph' && !settings.graph.enabled ? 'worklogs' : view;
 
   const loadRecent = useCallback(async () => {
     const r = await window.cairn.listRecent();
@@ -388,7 +390,7 @@ export function App() {
     <div className="flex h-screen w-screen bg-canvas text-ink">
       <Sidebar
         width={sidebarWidth}
-        view={view}
+        view={activeView}
         filter={filter}
         counts={counts}
         preferencesActive={prefsOpen}
@@ -411,7 +413,7 @@ export function App() {
         onMouseDown={startResize}
         className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/40 [-webkit-app-region:no-drag]"
       />
-      {view === 'stats' ? (
+      {activeView === 'stats' ? (
         <Dashboard
           recent={recent}
           onPickDate={(date) => {
@@ -420,7 +422,7 @@ export function App() {
           }}
           onGoToWorklogs={() => setView('worklogs')}
         />
-      ) : view === 'graph' ? (
+      ) : activeView === 'graph' ? (
         <GraphView recent={recent} onOpen={setSelectedPage} />
       ) : (
         <WorklogList
@@ -463,6 +465,7 @@ export function App() {
         open={prefsOpen}
         onOpenChange={setPrefsOpen}
         onRerunSetup={() => setSetupComplete(false)}
+        blockEscape={cmdkOpen}
       />
     </div>
   );
