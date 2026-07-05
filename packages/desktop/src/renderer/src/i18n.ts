@@ -226,7 +226,7 @@ const STRINGS = {
     'publish.dstep.collect.desc': 'GitHub PR · 로컬 Git 커밋을 모읍니다',
     'publish.dstep.summarize.desc': 'Claude 가 활동을 일지로 요약합니다',
     'publish.dstep.publish.desc': '로컬 일지에 기록하고 연동된 곳(Notion·폴더)으로 발행합니다',
-    'publish.hint.publish': '노션에 발행하는 중',
+    'publish.hint.publish': '일지를 기록하는 중',
     'publish.result.done': '발행 완료',
     'publish.result.doneLocal': '로컬 일지 저장 완료',
     'publish.result.cancelled': '발행 취소됨',
@@ -655,7 +655,7 @@ const STRINGS = {
     'publish.dstep.summarize.desc': 'Claude summarizes the activity into a worklog',
     'publish.dstep.publish.desc':
       'Writes the local journal and publishes to connected integrations',
-    'publish.hint.publish': 'Publishing to Notion',
+    'publish.hint.publish': 'Recording the worklog',
     'publish.result.done': 'Published',
     'publish.result.doneLocal': 'Saved to local journal',
     'publish.result.cancelled': 'Publish cancelled',
