@@ -108,9 +108,9 @@ function NotionIntegrationCard() {
 
   const patch = (p: Partial<NotionEntry>): void => setEntry((prev) => ({ ...prev, ...p }));
 
-  // 재연결 시 기존 워크스페이스 라벨을 프리필 — 라벨이 달라지면 교체가 아닌 추가가 되므로
-  const openForm = (): void => {
-    setEntry({ ...emptyNotionEntry(), label: labels[0] ?? 'Personal' });
+  // 재연결은 대상 라벨을 명시해 프리필 — 라벨이 달라지면 교체가 아닌 추가가 되므로
+  const openForm = (target?: string): void => {
+    setEntry({ ...emptyNotionEntry(), label: target ?? labels[0] ?? 'Personal' });
     setOpen(true);
   };
 
@@ -208,17 +208,24 @@ function NotionIntegrationCard() {
       action={
         !open ? (
           connected ? (
-            <button
-              type="button"
-              onClick={openForm}
-              className="rounded-md border border-hairline px-2.5 py-1.5 text-[12px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
-            >
-              {t('integrations.notion.reconnect')}
-            </button>
+            <span className="flex flex-wrap justify-end gap-1.5">
+              {labels.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => openForm(l)}
+                  className="rounded-md border border-hairline px-2.5 py-1.5 text-[12px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+                >
+                  {labels.length > 1
+                    ? `${t('integrations.notion.reconnect')} · ${l}`
+                    : t('integrations.notion.reconnect')}
+                </button>
+              ))}
+            </span>
           ) : (
             <button
               type="button"
-              onClick={openForm}
+              onClick={() => openForm()}
               className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white transition-colors hover:bg-accent-hover"
             >
               {t('integrations.notion.connect')}
