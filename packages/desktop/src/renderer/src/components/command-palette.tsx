@@ -48,6 +48,8 @@ export function CommandPalette({
   useEffect(() => {
     const onKeyCapture = (e: KeyboardEvent): void => {
       if (e.key !== 'Escape') return;
+      // IME 조합 취소(ESC)는 팔레트 닫기가 아니다
+      if (e.isComposing || e.keyCode === 229) return;
       e.preventDefault();
       e.stopPropagation();
       onClose();

@@ -164,6 +164,8 @@ export function GraphView({
   cfgRef.current = cfg;
   const accentRef = useRef(settings.accent);
   accentRef.current = settings.accent;
+  const themeRef = useRef(settings.theme);
+  themeRef.current = settings.theme;
   const kickRef = useRef<() => void>(() => {});
   const [panelOpen, setPanelOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -218,7 +220,9 @@ export function GraphView({
     let raf = 0;
     const fontFamily = getComputedStyle(document.body).fontFamily;
     let palette = buildPalette(accentRef.current);
-    let paletteAccent = accentRef.current;
+    let paletteKey = `${accentRef.current}|${themeRef.current}`;
+    // 테마 전환은 CSS 변수(ink 계열) 반영 후에 읽어야 해서 한 프레임 지연 후 재생성
+    let pendingKey: string | null = null;
     const scaleOf = (n: GraphNode): number => n.r * cfgRef.current.nodeScale;
     kickRef.current = () => {
       alpha = Math.max(alpha, 0.4);
@@ -359,9 +363,17 @@ export function GraphView({
     };
 
     const loop = (): void => {
-      if (paletteAccent !== accentRef.current) {
-        paletteAccent = accentRef.current;
-        palette = buildPalette(paletteAccent);
+      const key = `${accentRef.current}|${themeRef.current}`;
+      if (key !== paletteKey) {
+        if (pendingKey === key) {
+          palette = buildPalette(accentRef.current);
+          paletteKey = key;
+          pendingKey = null;
+        } else {
+          pendingKey = key;
+        }
+      } else {
+        pendingKey = null;
       }
       if (alpha > 0.02) tick();
       draw();
