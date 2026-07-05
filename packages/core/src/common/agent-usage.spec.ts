@@ -32,6 +32,7 @@ describe('accumulateAgentUsage', () => {
       inputTokens: 118, // 100 + 5 + 3 + 10
       outputTokens: 22,
       costUsd: 0.42,
+      model: 'claude-x', // 출력 토큰이 가장 많은 모델이 대표
     });
   });
 
