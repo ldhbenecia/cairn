@@ -1,7 +1,7 @@
 import { Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GraphConfig, GraphLabels, RecentListResult, RecentPage } from '../cairn-api';
-import { useSettings } from '../settings-context';
+import { ACCENTS, useSettings } from '../settings-context';
 import type { I18nKey } from '../i18n';
 
 type Kind = 'daily' | 'weekly' | 'monthly';
@@ -18,15 +18,60 @@ type GraphNode = {
 
 type Graph = { nodes: GraphNode[]; edges: [number, number][]; neighbors: Set<number>[] };
 
-const COLOR: Record<Kind, string> = {
-  daily: '#8a8f98',
-  weekly: '#757bf0',
-  monthly: '#5b61e6',
-};
 const EDGE_COLOR = 'rgba(98, 102, 109, 0.28)';
-const EDGE_HI = 'rgba(117, 123, 240, 0.75)';
-const LABEL_COLOR = '#8a8f98';
-const LABEL_HI = '#f7f8f8';
+
+const LEGEND_CSS: Record<Kind, string> = {
+  daily: 'var(--color-ink-subtle)',
+  weekly: 'color-mix(in srgb, var(--color-accent) 62%, white)',
+  monthly: 'var(--color-accent)',
+};
+
+// canvas 는 var() 를 못 쓰므로 ink 계열만 probe 로 해석 (테마 의존)
+function resolveColor(css: string): string {
+  const probe = document.createElement('span');
+  probe.style.color = css;
+  probe.style.display = 'none';
+  document.body.appendChild(probe);
+  const rgb = getComputedStyle(probe).color;
+  probe.remove();
+  return rgb || css;
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function mixWithWhite(hex: string, keep: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  const m = (c: number): number => Math.round(c * keep + 255 * (1 - keep));
+  return `rgb(${m(r)}, ${m(g)}, ${m(b)})`;
+}
+
+type Palette = {
+  node: Record<Kind, string>;
+  edgeHi: string;
+  hoverFill: string;
+  label: string;
+  labelHi: string;
+};
+
+// 강조색은 설정값(hex)에서 직접 파생 — CSS 변수 갱신 타이밍과 무관하게 즉시 반영
+function buildPalette(accentId: string): Palette {
+  const accent = ACCENTS.find((a) => a.id === accentId)?.color ?? '#5b61e6';
+  const [r, g, b] = hexToRgb(accent);
+  return {
+    node: {
+      daily: resolveColor('var(--color-ink-subtle)'),
+      weekly: mixWithWhite(accent, 0.62),
+      monthly: accent,
+    },
+    edgeHi: `rgba(${r}, ${g}, ${b}, 0.75)`,
+    hoverFill: mixWithWhite(accent, 0.45),
+    label: resolveColor('var(--color-ink-subtle)'),
+    labelHi: resolveColor('var(--color-ink)'),
+  };
+}
 
 // 날짜 문자열(YYYY-MM-DD) 달력 산술 — core period-range 와 동일하게 파싱값을 UTC 로만 계산
 // (로컬 TZ 무관: 문자열 in → 문자열 out)
@@ -57,7 +102,7 @@ function buildGraph(pages: RecentPage[], showRollups: boolean): Graph {
   const monthlyIdx = new Map<string, number>();
   nodes.forEach((n, i) => {
     const date = n.page.date!;
-    if (n.kind === 'weekly') weeklyIdx.set(`${n.page.workspaceLabel}|${date}`, i);
+    if (n.kind === 'weekly') weeklyIdx.set(`${n.page.workspaceLabel}|${isoWeekEnd(date)}`, i);
     if (n.kind === 'monthly') monthlyIdx.set(`${n.page.workspaceLabel}|${date.slice(0, 7)}`, i);
   });
 
@@ -117,6 +162,8 @@ export function GraphView({
   // 슬라이더 조절이 시뮬레이션 재구성 없이 즉시 반영되도록 ref 로 전달
   const cfgRef = useRef(cfg);
   cfgRef.current = cfg;
+  const accentRef = useRef(settings.accent);
+  accentRef.current = settings.accent;
   const kickRef = useRef<() => void>(() => {});
   const [panelOpen, setPanelOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -170,6 +217,8 @@ export function GraphView({
     let lastY = 0;
     let raf = 0;
     const fontFamily = getComputedStyle(document.body).fontFamily;
+    let palette = buildPalette(accentRef.current);
+    let paletteAccent = accentRef.current;
     const scaleOf = (n: GraphNode): number => n.r * cfgRef.current.nodeScale;
     kickRef.current = () => {
       alpha = Math.max(alpha, 0.4);
@@ -254,7 +303,7 @@ export function GraphView({
         const a = nodes[ai]!;
         const b = nodes[bi]!;
         const hi = hover !== -1 && (ai === hover || bi === hover);
-        ctx.strokeStyle = hi ? EDGE_HI : EDGE_COLOR;
+        ctx.strokeStyle = hi ? palette.edgeHi : EDGE_COLOR;
         ctx.lineWidth = (hi ? 1.4 : 0.7) / zoom;
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
@@ -273,9 +322,9 @@ export function GraphView({
         const isNeighbor = hover !== -1 && neighbors[hover]!.has(i);
         const dim = (dimOthers && !isHover && !isNeighbor) || (!isHover && !matches(n));
         ctx.globalAlpha = dim ? 0.25 : 1;
-        ctx.shadowColor = COLOR[n.kind];
+        ctx.shadowColor = palette.node[n.kind];
         ctx.shadowBlur = (isHover ? r * 4 : r * 2.2) * zoom;
-        ctx.fillStyle = isHover ? '#a5a9ff' : COLOR[n.kind];
+        ctx.fillStyle = isHover ? palette.hoverFill : palette.node[n.kind];
         ctx.beginPath();
         ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
         ctx.fill();
@@ -300,7 +349,7 @@ export function GraphView({
         if (q.length > 0 && !matches(n)) continue;
         const size = n.kind === 'monthly' ? 11 : 9.5;
         ctx.font = `500 ${size / zoom}px ${fontFamily}`;
-        ctx.fillStyle = isHover ? LABEL_HI : LABEL_COLOR;
+        ctx.fillStyle = isHover ? palette.labelHi : palette.label;
         ctx.globalAlpha = hover !== -1 && !isHover && !isNeighbor ? 0.4 : 0.95;
         const label = n.kind === 'daily' ? (n.page.date ?? n.page.title) : n.page.title;
         ctx.fillText(label, n.x, n.y + scaleOf(n) + 14 / zoom);
@@ -310,6 +359,10 @@ export function GraphView({
     };
 
     const loop = (): void => {
+      if (paletteAccent !== accentRef.current) {
+        paletteAccent = accentRef.current;
+        palette = buildPalette(paletteAccent);
+      }
       if (alpha > 0.02) tick();
       draw();
       raf = requestAnimationFrame(loop);
@@ -521,10 +574,10 @@ export function GraphView({
                 <span
                   className="inline-block rounded-full"
                   style={{
-                    background: COLOR[k],
+                    background: LEGEND_CSS[k],
                     width: k === 'monthly' ? 9 : k === 'weekly' ? 7 : 5,
                     height: k === 'monthly' ? 9 : k === 'weekly' ? 7 : 5,
-                    boxShadow: `0 0 6px ${COLOR[k]}`,
+                    boxShadow: `0 0 6px ${LEGEND_CSS[k]}`,
                   }}
                 />
                 {t(`nav.${k}`)}

@@ -725,7 +725,10 @@ function MonthlyChart({ months, t }: { months: MonthBucket[]; t: T }) {
           {t('stats.totalPr')}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-sm" style={{ background: HUE.teal }} />
+          <span
+            className="size-2.5 rounded-sm"
+            style={{ background: 'var(--color-chart-companion)' }}
+          />
           {t('stats.totalCommit')}
         </span>
       </div>
@@ -767,7 +770,7 @@ function MonthlyChart({ months, t }: { months: MonthBucket[]; t: T }) {
                 width={barW}
                 height={commitH}
                 rx={2}
-                fill={HUE.teal}
+                fill="var(--color-chart-companion)"
               >
                 <title>{`${m.month} · commit ${m.commit}`}</title>
               </rect>
@@ -818,7 +821,7 @@ function TimeOfDayChart({ hours, t }: { hours: number[]; t: T }) {
                 style={{
                   width: `${(buckets[i]! / max) * 100}%`,
                   animationDelay: `${i * 50}ms`,
-                  background: HUE.violet,
+                  background: 'var(--color-accent)',
                 }}
               />
             </div>
