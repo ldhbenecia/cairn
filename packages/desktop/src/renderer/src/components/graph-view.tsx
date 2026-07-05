@@ -1,5 +1,5 @@
 import { Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GraphConfig, GraphLabels, RecentListResult, RecentPage } from '../cairn-api';
 import { useSettings } from '../settings-context';
 import type { I18nKey } from '../i18n';
@@ -123,6 +123,16 @@ export function GraphView({
   const queryRef = useRef('');
   queryRef.current = query.trim().toLowerCase();
   const pages = recent?.pages;
+  const pagesRef = useRef(pages);
+  pagesRef.current = pages;
+  // 백그라운드 목록 갱신(포커스 재조회 등)마다 배열 참조가 바뀌어도 내용이 같으면 재구성하지 않고,
+  // 재구성하더라도 카메라·기존 노드 위치는 이어받는다
+  const signature = useMemo(
+    () => (pages ?? []).map((p) => `${p.pageId}:${p.pr}:${p.commit}:${p.date}`).join('|'),
+    [pages],
+  );
+  const cameraRef = useRef({ zoom: 1, panX: 0, panY: 0 });
+  const posRef = useRef(new Map<string, { x: number; y: number }>());
 
   useEffect(() => {
     kickRef.current();
@@ -130,6 +140,7 @@ export function GraphView({
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    const pages = pagesRef.current;
     if (!canvas || !pages || pages.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -138,12 +149,20 @@ export function GraphView({
     const { nodes, edges, neighbors } = graph;
     if (nodes.length === 0) return;
 
+    let seeded = 0;
+    for (const n of nodes) {
+      const prev = posRef.current.get(n.page.pageId);
+      if (prev) {
+        n.x = prev.x;
+        n.y = prev.y;
+        seeded += 1;
+      }
+    }
+
     let width = 0;
     let height = 0;
-    let zoom = 1;
-    let panX = 0;
-    let panY = 0;
-    let alpha = 1;
+    let { zoom, panX, panY } = cameraRef.current;
+    let alpha = seeded === nodes.length ? 0.1 : 1;
     let hover = -1;
     let dragging: { idx: number } | { pan: true } | null = null;
     let moved = 0;
@@ -361,21 +380,32 @@ export function GraphView({
       zoom = next;
     };
 
+    const onPointerLeave = (): void => {
+      if (dragging) return;
+      if (hover !== -1) {
+        hover = -1;
+        canvas.style.cursor = 'grab';
+      }
+    };
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointerleave', onPointerLeave);
     canvas.addEventListener('wheel', onWheel, { passive: false });
     canvas.style.cursor = 'grab';
 
     return () => {
+      cameraRef.current = { zoom, panX, panY };
+      for (const n of nodes) posRef.current.set(n.page.pageId, { x: n.x, y: n.y });
       cancelAnimationFrame(raf);
       ro.disconnect();
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointerleave', onPointerLeave);
       canvas.removeEventListener('wheel', onWheel);
     };
-  }, [pages, cfg.showRollups]);
+  }, [signature, cfg.showRollups]);
 
   const empty = !pages || pages.filter((p) => p.date !== null).length === 0;
   const setGraph = (patch: Partial<GraphConfig>): void => update({ graph: { ...cfg, ...patch } });
