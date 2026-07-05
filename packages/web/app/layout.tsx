@@ -7,9 +7,9 @@ import { headers } from 'next/headers';
 import { REPO_URL } from '../lib/github';
 import { SITE_URL } from '../lib/site';
 
-const TITLE = 'cairn — your daily dev work, as a Notion worklog';
+const TITLE = 'cairn — your daily dev work, stacked into a worklog';
 const DESC =
-  'cairn collects your GitHub PRs and commits, summarizes them with Claude, and publishes a daily worklog to Notion — your work, documented automatically and ready to look back on.';
+  'cairn collects your GitHub PRs and commits, summarizes them with Claude, and writes a daily worklog to a local Markdown journal — publish to Notion and more with integrations.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -20,6 +20,7 @@ export const metadata: Metadata = {
     'developer worklog',
     'dev journal',
     'GitHub activity',
+    'local-first',
     'Notion',
     'Claude',
     'standup notes',
