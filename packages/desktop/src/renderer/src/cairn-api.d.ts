@@ -42,6 +42,8 @@ export type ConfigResult = { raw: string | null; parsed: unknown; path: string }
 
 export type RecentCategory = 'daily' | 'weekly' | 'monthly';
 
+export type WorklogSink = 'journal' | 'notion' | 'obsidian';
+
 export type RecentPage = {
   pageId: string;
   url: string;
@@ -53,6 +55,8 @@ export type RecentPage = {
   commit: number | null;
   hours: number[] | null;
   workspaceLabel: string;
+  // 구버전 로컬 캐시에는 없음 — optional
+  sinks?: WorklogSink[];
 };
 
 export type RecentWarning =

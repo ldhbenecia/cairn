@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { PageContent, RecentPage, RichSpan, SimpleBlock } from '../cairn-api';
 import { sectionBullets } from '../lib/blocks';
+import { pageSinks, sinkLabel } from '../lib/sinks';
 import { blocksToMarkdown } from '../../../shared/markdown';
 import { blocksToHtml } from '../../../shared/html';
 import { useSettings } from '../settings-context';
@@ -228,11 +229,11 @@ export function WorklogDrawer({ page, onClose }: Props) {
         <div className="flex items-start gap-3 border-b border-hairline px-5 py-4 [-webkit-app-region:drag]">
           <div className="min-w-0 flex-1 cursor-text select-text [-webkit-app-region:no-drag]">
             <p className="truncate text-[15px] font-semibold text-ink">{page.title}</p>
-            <p className="mt-0.5 font-mono text-[12px] text-ink-tertiary">
+            <p className="mt-0.5 truncate font-mono text-[12px] text-ink-tertiary">
               {page.date ?? '—'} ·{' '}
-              {page.workspaceLabel === 'local'
-                ? t('source.localDesc')
-                : `Notion · ${page.workspaceLabel}`}
+              {pageSinks(page)
+                .map((s) => sinkLabel(s, page, t('source.localDesc')))
+                .join(' · ')}
             </p>
           </div>
           {actions.length > 0 && (
