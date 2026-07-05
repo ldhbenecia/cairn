@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { isOperator } from '../common/operator.js';
+import { summaryModelLabel } from '../common/summary-model.js';
 import type { RollupActivity } from '../contracts/rollup-activity.types.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogLang } from '../cairn/run-options.js';
@@ -267,11 +268,12 @@ function buildRollupBlocks(
         ? 'monthly'
         : '월간';
 
+  const modelLabel = summaryModelLabel(summary.usage?.model);
   blocks.push(
     claudeCallout(
       lang === 'en'
-        ? `Auto-generated ${period} rollup by cairn (${activity.rangeStart} ~ ${activity.rangeEnd}).`
-        : `cairn 이 자동 생성한 ${period} 롤업입니다 (${activity.rangeStart} ~ ${activity.rangeEnd}).`,
+        ? `Auto-generated ${period} rollup by cairn (${activity.rangeStart} ~ ${activity.rangeEnd}) · ${modelLabel}`
+        : `cairn 이 자동 생성한 ${period} 롤업입니다 (${activity.rangeStart} ~ ${activity.rangeEnd}) · ${modelLabel}`,
     ),
   );
 

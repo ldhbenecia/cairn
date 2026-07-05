@@ -42,6 +42,7 @@ export function renderDailyJournalMarkdown(input: DailyJournalInput): string {
     ['pr', input.prCount],
     ['commit', input.commitCount],
     ['hours', [...input.hours]],
+    ['model', input.summary.usage?.model ?? null],
     ['notion', input.notionPageId ?? null],
   ]);
   const s = input.summary;
@@ -74,6 +75,7 @@ export function renderRollupJournalMarkdown(input: RollupJournalInput): string {
     ['rangeEnd', input.rangeEnd],
     ['pr', input.prCount],
     ['commit', input.commitCount],
+    ['model', input.summary.usage?.model ?? null],
     ['notion', input.notionPageId ?? null],
   ]);
   const s = input.summary;
