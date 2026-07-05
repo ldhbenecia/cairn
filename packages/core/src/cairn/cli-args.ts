@@ -76,8 +76,17 @@ function assertMode(value: unknown): RunMode {
 }
 
 function assertIsoDate(value: string): void {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+  const matched = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!matched) {
     throw new Error(`--date must be YYYY-MM-DD (got: ${value})`);
+  }
+  // 2026-02-30 같은 불가능한 날짜는 Date 가 롤오버시키므로 probe 로 검증 (period-range 와 동일 패턴)
+  const y = Number(matched[1]);
+  const m = Number(matched[2]);
+  const d = Number(matched[3]);
+  const probe = new Date(Date.UTC(y, m - 1, d));
+  if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== m - 1 || probe.getUTCDate() !== d) {
+    throw new Error(`--date must be a valid calendar date (got: ${value})`);
   }
 }
 

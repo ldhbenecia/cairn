@@ -18,8 +18,13 @@
   --color-accent: #5b61e6;
   --color-accent-hover: #757bf0;
   --color-accent-focus: #474dcc;
+  /* 차트 보조색 — accent 파생이라 강조색을 바꿔도 짝이 유지됨 */
+  --color-chart-companion: color-mix(in srgb, var(--color-accent) 42%, var(--color-ink-tertiary));
 
   --color-success: #27a644;
+  --color-danger: #f87171;
+  --color-warning: #fbbf24;
+  --color-notice: #d4a574;
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -36,6 +41,13 @@
 /* 네이티브 컨트롤(시간 입력 스피너·달력 아이콘 등)이 테마에 맞게 렌더되도록 */
 :root {
   color-scheme: dark;
+  /* 코드블록 신택스 토큰 색 (다크 기본) */
+  --code-key: #7aa2f7;
+  --code-string: #9ece6a;
+  --code-number: #e0af68;
+  --code-keyword: #bb9af7;
+  --code-fn: #7dcfff;
+  --code-comment: #5c616b;
 }
 
 /* 라이트 모드 — 같은 토큰 override (다크는 @theme 기본값 사용).
@@ -62,21 +74,25 @@
   --color-accent: #5256dd;
   --color-accent-hover: #4a4ecf;
   --color-accent-focus: #3f43ba;
+
+  /* 다크의 밝은 색은 흰 배경서 대비가 낮아 안 보임 → 라이트용 진한 톤 */
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+  --color-notice: #b45309;
+
+  /* 코드블록 신택스 토큰 색 (라이트 — 밝은 배경 대비) */
+  --code-key: #2563eb;
+  --code-string: #15803d;
+  --code-number: #b45309;
+  --code-keyword: #7c3aed;
+  --code-fn: #0891b2;
+  --code-comment: #8b919c;
 }
 
-/* 키보드 포커스 링 — 전역 통일(accent). 없으면 Chromium 기본 링이 테마별로 다른 색으로 떠 어수선. */
-:focus {
-  outline: none;
-}
+/* 포커스 링 비노출 — 스크린샷 단축키 등 modifier 키 입력만으로 링이 떠 어수선하다는 피드백 반복.
+   마우스 중심 데스크톱 앱이라 전역 제거 (이전: accent 링) */
+:focus,
 :focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 60%, transparent);
-  outline-offset: 1px;
-}
-/* 다이얼로그·드로어 컨테이너는 포커스 트랩으로 포커스를 받지만 링은 불필요(키 입력 시 보라 테두리 방지) */
-.dialog-content:focus-visible,
-.dialog-content:focus,
-[role='dialog']:focus-visible,
-[role='dialog']:focus {
   outline: none;
 }
 
@@ -90,6 +106,8 @@ body,
   font-family: var(--font-text);
   font-size: 14px;
   font-weight: 400;
+  /* 한국어 어절 단위 줄바꿈 — "있습니 / 다." 같은 어색한 꺾임 방지 */
+  word-break: keep-all;
   line-height: 1.5;
   letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
@@ -500,4 +518,53 @@ button {
 .batch-count {
   display: inline-block;
   animation: batch-count 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 코드블록 신택스 하이라이트 — highlight.js 토큰을 타입별 색으로(테마 변수). 단색 방지 */
+.hljs {
+  color: var(--color-ink-muted);
+  /* bg·padding 은 부모 <pre> 담당 — hljs 기본값이 끼어 이중 적용되지 않게 */
+  background: transparent;
+  padding: 0;
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-variable,
+.hljs-template-variable {
+  color: var(--code-key);
+}
+.hljs-string,
+.hljs-symbol,
+.hljs-regexp,
+.hljs-addition {
+  color: var(--code-string);
+}
+.hljs-number,
+.hljs-literal,
+.hljs-deletion {
+  color: var(--code-number);
+}
+.hljs-keyword,
+.hljs-built_in,
+.hljs-type,
+.hljs-meta,
+.hljs-doctag {
+  color: var(--code-keyword);
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.function_,
+.hljs-section,
+.hljs-name,
+.hljs-selector-tag {
+  color: var(--code-fn);
+}
+.hljs-comment,
+.hljs-quote {
+  color: var(--code-comment);
+  font-style: italic;
+}
+.hljs-punctuation {
+  color: var(--color-ink-subtle);
 }

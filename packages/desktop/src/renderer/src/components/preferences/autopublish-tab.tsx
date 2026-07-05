@@ -1,10 +1,9 @@
-import { ChevronDown, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Minus, Plus } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useSettings } from '../../settings-context';
 import { Toggle } from '../toggle';
 import { Field } from './field';
 
-const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => i * 30);
 const BACKFILL_DAYS = [0, 1, 2, 3, 5, 7, 10, 14, 30];
 const pad2 = (n: number): string => String(n).padStart(2, '0');
 const fmtTime = (mins: number): string => `${pad2(Math.floor(mins / 60))}:${pad2(mins % 60)}`;
@@ -19,16 +18,11 @@ export function AutoPublishTab() {
   const anyOn = ap.daily || ap.weekly || ap.monthly;
   const set = (patch: Partial<typeof ap>): void => update({ autoPublish: { ...ap, ...patch } });
 
-  const exp = settings.export;
-  const setExp = (patch: Partial<typeof exp>): void => update({ export: { ...exp, ...patch } });
-  const pickFolder = async (): Promise<void> => {
-    const f = await window.cairn.pickExportFolder();
-    if (f) setExp({ folder: f });
-  };
-  const clearFolder = (): void => setExp({ folder: null, autoSync: false });
-
   return (
     <div className="divide-y divide-hairline">
+      <Field label={t('prefs.launchAtLogin')} desc={t('prefs.launchAtLogin.desc')}>
+        <Toggle checked={settings.launchAtLogin} onChange={(v) => update({ launchAtLogin: v })} />
+      </Field>
       <Field label={t('prefs.autoPublish.daily')} desc={t('prefs.autoPublish.dailyDesc')}>
         <Toggle checked={ap.daily} onChange={(v) => set({ daily: v })} />
       </Field>
@@ -44,14 +38,7 @@ export function AutoPublishTab() {
         desc={t('prefs.autoPublish.timeDesc')}
         dim={!anyOn}
       >
-        <Select
-          value={timeToMinutes(ap.time)}
-          options={TIME_SLOTS}
-          disabled={!anyOn}
-          format={fmtTime}
-          menuWidth="w-40"
-          onChange={(mins) => set({ time: fmtTime(mins) })}
-        />
+        <TimeField value={ap.time} disabled={!anyOn} onChange={(v) => set({ time: v })} />
       </Field>
 
       <Field
@@ -59,11 +46,10 @@ export function AutoPublishTab() {
         desc={t('prefs.autoPublish.backfillDesc')}
         dim={!ap.daily}
       >
-        <Select
+        <ChipGroup
           value={ap.backfillDays}
           options={BACKFILL_DAYS}
           disabled={!ap.daily}
-          format={(d) => String(d)}
           onChange={(d) => set({ backfillDays: d })}
         />
       </Field>
@@ -80,41 +66,6 @@ export function AutoPublishTab() {
         />
       </Field>
 
-      <Field label={t('prefs.export.folder')} desc={t('prefs.export.folderDesc')}>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => void pickFolder()}
-            title={exp.folder ?? undefined}
-            className="max-w-44 truncate rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink transition-colors hover:bg-surface-3"
-          >
-            {exp.folder ? exp.folder.split('/').pop() : t('prefs.export.pick')}
-          </button>
-          {exp.folder && (
-            <button
-              type="button"
-              onClick={clearFolder}
-              title={t('prefs.export.clear')}
-              className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
-            >
-              <X size={14} strokeWidth={2} />
-            </button>
-          )}
-        </div>
-      </Field>
-
-      <Field
-        label={t('prefs.export.autoSync')}
-        desc={t('prefs.export.autoSyncDesc')}
-        dim={!exp.folder}
-      >
-        <Toggle
-          checked={exp.autoSync && !!exp.folder}
-          disabled={!exp.folder}
-          onChange={(v) => setExp({ autoSync: v })}
-        />
-      </Field>
-
       <p className="pt-5 text-[12px] leading-relaxed text-ink-tertiary">
         {t('prefs.autoPublish.credit')}
       </p>
@@ -122,81 +73,111 @@ export function AutoPublishTab() {
   );
 }
 
-function Select({
+// 환경설정 안 긴 세로 드롭다운 대체 — 오버레이 없이 인라인으로 완결
+function TimeField({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  disabled?: boolean;
+  onChange: (v: string) => void;
+}) {
+  const { t } = useSettings();
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+
+  const commit = (raw: string): void => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(raw.trim());
+    if (!m) {
+      setText(value);
+      return;
+    }
+    const h = Math.min(23, Math.max(0, Number(m[1])));
+    const min = Math.min(59, Math.max(0, Number(m[2])));
+    const next = `${pad2(h)}:${pad2(min)}`;
+    setText(next);
+    if (next !== value) onChange(next);
+  };
+
+  // blur 커밋 직후 클로저의 value 가 stale 할 수 있어(#245 리뷰) 스텝 기준은 현재 입력 텍스트
+  const step = (deltaMin: number): void => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(text.trim());
+    const base = m
+      ? Math.min(23, Number(m[1])) * 60 + Math.min(59, Number(m[2]))
+      : timeToMinutes(value);
+    const next = fmtTime((((base + deltaMin) % 1440) + 1440) % 1440);
+    setText(next);
+    onChange(next);
+  };
+
+  const stepBtn =
+    'flex size-7 items-center justify-center rounded-md border border-hairline text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent';
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        aria-label={t('prefs.autoPublish.time.minus')}
+        disabled={disabled}
+        onClick={() => step(-30)}
+        className={stepBtn}
+      >
+        <Minus size={13} strokeWidth={2} />
+      </button>
+      <input
+        value={text}
+        disabled={disabled}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit((e.target as HTMLInputElement).value);
+        }}
+        className="w-[4.5rem] rounded-md border border-hairline bg-surface-2 px-2 py-1.5 text-center font-mono text-[13px] text-ink outline-none focus:border-accent/50 disabled:cursor-not-allowed disabled:opacity-40"
+      />
+      <button
+        type="button"
+        aria-label={t('prefs.autoPublish.time.plus')}
+        disabled={disabled}
+        onClick={() => step(30)}
+        className={stepBtn}
+      >
+        <Plus size={13} strokeWidth={2} />
+      </button>
+    </div>
+  );
+}
+
+function ChipGroup({
   value,
   options,
-  onChange,
   disabled,
-  format,
-  menuWidth = 'w-full',
+  onChange,
 }: {
   value: number;
   options: number[];
-  onChange: (v: number) => void;
   disabled?: boolean;
-  format: (v: number) => string;
-  menuWidth?: string;
+  onChange: (v: number) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [closing, setClosing] = useState(false);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  const close = (): void => {
-    setClosing(true);
-    setTimeout(() => {
-      setOpen(false);
-      setClosing(false);
-    }, 120);
-  };
-
-  useEffect(() => {
-    if (!open || closing) return;
-    listRef.current?.querySelector('[data-selected="true"]')?.scrollIntoView({ block: 'center' });
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open, closing]);
-
   return (
-    <div className="relative" onMouseDown={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => (open ? close() : setOpen(true))}
-        className="flex min-w-20 items-center justify-between gap-1.5 rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink hover:bg-surface-3 focus:outline-none disabled:cursor-not-allowed"
-      >
-        <span className="font-mono">{format(value)}</span>
-        <ChevronDown size={13} strokeWidth={2} className="text-ink-subtle" />
-      </button>
-      {open && !disabled && (
-        <div
-          ref={listRef}
+    <div className="flex max-w-[340px] flex-wrap justify-end gap-1.5">
+      {options.map((o) => (
+        <button
+          key={o}
+          type="button"
+          aria-pressed={o === value}
+          disabled={disabled}
+          onClick={() => onChange(o)}
           className={[
-            closing ? 'popover-out' : 'popover-in',
-            'glass-panel absolute right-0 z-10 mt-1.5 max-h-64 overflow-y-auto rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40',
-            menuWidth,
+            'rounded-md border px-2.5 py-1 font-mono text-[12px] transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+            o === value
+              ? 'border-accent/50 bg-accent/15 text-ink'
+              : 'border-hairline text-ink-muted hover:bg-surface-2 hover:text-ink',
           ].join(' ')}
         >
-          {options.map((o) => (
-            <button
-              key={o}
-              type="button"
-              data-selected={o === value}
-              onClick={() => {
-                onChange(o);
-                close();
-              }}
-              className={[
-                'flex w-full rounded-md px-3 py-2 font-mono text-[13px]',
-                o === value
-                  ? 'bg-accent/25 font-medium text-ink'
-                  : 'text-ink-muted hover:bg-surface-2',
-              ].join(' ')}
-            >
-              {format(o)}
-            </button>
-          ))}
-        </div>
-      )}
+          {o}
+        </button>
+      ))}
     </div>
   );
 }

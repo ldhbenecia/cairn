@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, Check, Copy, Info, Sparkles, X } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, CalendarRange, Check, Copy, FileDown, Info, Sparkles, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { pool, sectionBullets } from '../lib/blocks';
+import { DateRangePicker } from './date-picker';
 import { useSettings } from '../settings-context';
 
 const RANGES = [30, 90] as const;
@@ -50,15 +51,28 @@ export function AchievementsDialog({
   onClose: () => void;
 }) {
   const { t } = useSettings();
-  const [days, setDays] = useState<number>(90);
+  const [days, setDays] = useState<number | 'custom'>(90);
+  const [customFrom, setCustomFrom] = useState<string>(localDateDaysAgo(30));
+  const [customTo, setCustomTo] = useState<string>(todayLocal());
   const [phase, setPhase] = useState<Phase>('select');
   const [scanTotal, setScanTotal] = useState(0);
   const [scanned, setScanned] = useState<Scanned[]>([]);
   const [markdown, setMarkdown] = useState<string | null>(null);
-  const [stats, setStats] = useState<{ worklogs: number; done: number; months: number } | null>(
-    null,
-  );
+  const [stats, setStats] = useState<{
+    worklogs: number;
+    done: number;
+    pr: number;
+    commit: number;
+  } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const countInRange = (r: number): number =>
     (recent?.pages ?? []).filter(
@@ -66,9 +80,10 @@ export function AchievementsDialog({
     ).length;
   const maxCount = Math.max(1, countInRange(90));
 
-  const since = localDateDaysAgo(days);
+  const since = days === 'custom' ? customFrom : localDateDaysAgo(days);
+  const until = days === 'custom' ? customTo : todayLocal();
   const pages = (recent?.pages ?? []).filter(
-    (p) => p.category === 'daily' && p.date != null && p.date >= since,
+    (p) => p.category === 'daily' && p.date != null && p.date >= since && p.date <= until,
   );
 
   async function compile() {
@@ -80,16 +95,19 @@ export function AchievementsDialog({
     setScanTotal(target.length);
     const perDay = await pool(target, 4, async (p) => {
       const date = p.date as string;
+      if (!alive.current) return { date, bullets: [] as string[] };
       try {
         const content = await window.cairn.pageContent(p.pageId, p.workspaceLabel);
+        if (!alive.current) return { date, bullets: [] as string[] };
         const bullets = sectionBullets(content.blocks, 'done');
         setScanned((prev) => [...prev, { key: p.pageId, date, count: bullets.length }]);
         return { date, bullets };
       } catch {
-        setScanned((prev) => [...prev, { key: p.pageId, date, count: 0 }]);
+        if (alive.current) setScanned((prev) => [...prev, { key: p.pageId, date, count: 0 }]);
         return { date, bullets: [] as string[] };
       }
     });
+    if (!alive.current) return;
     const byMonth = new Map<string, string[]>();
     for (const d of perDay) {
       if (d.bullets.length === 0) continue;
@@ -109,8 +127,16 @@ export function AchievementsDialog({
       )
       .join('\n\n');
     const doneTotal = perDay.reduce((n, d) => n + d.bullets.length, 0);
-    setStats({ worklogs: target.length, done: doneTotal, months: months.length });
-    setMarkdown(md);
+    // PR·커밋 수치는 로컬 통계(RecentPage.pr/commit) 합산 — 추가 노션 호출 없음
+    const pr = target.reduce((n, p) => n + (p.pr ?? 0), 0);
+    const commit = target.reduce((n, p) => n + (p.commit ?? 0), 0);
+    const header = `# ${since} ~ ${until}\n\n${t('achv.mdHeader')
+      .replace('{n}', String(target.length))
+      .replace('{pr}', String(pr))
+      .replace('{commit}', String(commit))}`;
+    setStats({ worklogs: target.length, done: doneTotal, pr, commit });
+    // Done 항목이 없어도 기간·수치 헤더는 보여준다 (#239 리뷰)
+    setMarkdown(md ? `${header}\n\n${md}` : header);
     setPhase('result');
   }
 
@@ -129,11 +155,20 @@ export function AchievementsDialog({
     });
   }
 
+  function saveMd() {
+    if (!markdown) return;
+    void window.cairn.exportMarkdown(filename, markdown).then((r) => {
+      if (!r.saved) return;
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    });
+  }
+
   const scanDone = scanned.length;
   const ringPct = scanTotal > 0 ? Math.round((scanDone / scanTotal) * 100) : 0;
   const ringOffset = RING_C * (1 - (scanTotal > 0 ? scanDone / scanTotal : 0));
   const recentScan = scanned.slice(-5);
-  const filename = `worklog-last-${days}d.md`;
+  const filename = days === 'custom' ? `worklog-${since}-${until}.md` : `worklog-last-${days}d.md`;
   const wide = phase === 'result';
 
   return (
@@ -142,6 +177,8 @@ export function AchievementsDialog({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-6 [-webkit-app-region:no-drag]"
     >
       <motion.div
@@ -149,7 +186,7 @@ export function AchievementsDialog({
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        className={`glass-panel flex max-h-[80vh] max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`glass-panel flex max-h-[80vh] max-w-[92vw] flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           wide ? 'w-[560px]' : 'w-[440px]'
         }`}
       >
@@ -219,6 +256,57 @@ export function AchievementsDialog({
                     </button>
                   );
                 })}
+              </div>
+
+              {/* DatePicker(button)를 품어야 해서 button 중첩 대신 div */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setDays('custom')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') setDays('custom');
+                }}
+                className={[
+                  'relative flex cursor-pointer flex-col items-start rounded-xl border px-4 py-3.5 text-left transition-all active:scale-[0.99]',
+                  days === 'custom'
+                    ? 'border-accent bg-accent/10 shadow-sm shadow-accent/15'
+                    : 'border-hairline hover:border-hairline-strong hover:bg-surface-2/60',
+                ].join(' ')}
+              >
+                {days === 'custom' && (
+                  <span className="batch-pop absolute top-3 right-3 flex size-4 items-center justify-center rounded-full bg-accent text-white">
+                    <Check size={11} strokeWidth={3} />
+                  </span>
+                )}
+                <span
+                  className={`flex items-center gap-1.5 text-[13px] font-medium ${days === 'custom' ? 'text-ink' : 'text-ink-muted'}`}
+                >
+                  <CalendarRange size={13} strokeWidth={2} />
+                  {t('achv.range.custom')}
+                </span>
+                {days === 'custom' ? (
+                  <span
+                    className="mt-2.5 flex items-center gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <DateRangePicker
+                      value={{ from: customFrom, to: customTo }}
+                      max={todayLocal()}
+                      onChange={(r) => {
+                        setCustomFrom(r.from);
+                        setCustomTo(r.to);
+                      }}
+                    />
+                    <span className="ml-1 font-mono text-[12px] text-ink-tertiary tabular-nums">
+                      {pages.length}
+                      {t('achv.worklogs')}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="mt-1 font-mono text-[10.5px] tracking-wide text-ink-tertiary">
+                    {fmtMD(customFrom)} — {fmtMD(customTo)}
+                  </span>
+                )}
               </div>
 
               <div className="flex items-start gap-2.5 rounded-xl border border-hairline bg-surface-2/40 px-3.5 py-3">
@@ -310,8 +398,8 @@ export function AchievementsDialog({
                   {stats && (
                     <span className="rounded-md bg-accent/10 px-2.5 py-1 font-mono text-[11.5px] text-accent-hover">
                       {stats.worklogs}
-                      {t('achv.worklogs')} · {stats.done} {t('achv.done')} · {stats.months}
-                      {t('achv.months')}
+                      {t('achv.worklogs')} · {stats.done} {t('achv.done')} · PR {stats.pr} ·{' '}
+                      {t('achv.commits')} {stats.commit}
                     </span>
                   )}
                 </div>
@@ -326,8 +414,24 @@ export function AchievementsDialog({
                     </span>
                     <button
                       type="button"
-                      onClick={copy}
+                      onClick={saveMd}
                       className={`ml-auto flex h-7 items-center gap-1.5 rounded-md px-2 text-[11.5px] font-medium transition-colors ${
+                        saved
+                          ? 'bg-success/15 text-success'
+                          : 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
+                      }`}
+                    >
+                      {saved ? (
+                        <Check size={13} strokeWidth={2.5} />
+                      ) : (
+                        <FileDown size={13} strokeWidth={2} />
+                      )}
+                      {saved ? t('achv.saved') : t('achv.save')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={copy}
+                      className={`flex h-7 items-center gap-1.5 rounded-md px-2 text-[11.5px] font-medium transition-colors ${
                         copied
                           ? 'bg-success/15 text-success'
                           : 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
@@ -356,6 +460,20 @@ export function AchievementsDialog({
                       if (line.startsWith('- ')) {
                         return (
                           <div key={i} className="text-[12px] leading-relaxed text-ink-muted">
+                            {line}
+                          </div>
+                        );
+                      }
+                      if (line.startsWith('# ')) {
+                        return (
+                          <div key={i} className="text-[13px] font-semibold text-ink">
+                            {line}
+                          </div>
+                        );
+                      }
+                      if (line.trim().length > 0) {
+                        return (
+                          <div key={i} className="text-[12px] text-ink-tertiary">
                             {line}
                           </div>
                         );

@@ -7,6 +7,7 @@ import type {
   CreateRollupPageInput,
   ExistingRollupPage,
 } from './notion-api.types.js';
+import { appendChildrenInBatches, NOTION_MAX_CHILDREN } from './notion-page-create.js';
 
 @Injectable()
 export class NotionRollupApiClient {
@@ -84,6 +85,7 @@ export class NotionRollupApiClient {
           { property: 'Range end', date: { equals: rangeEnd } },
         ],
       },
+      sorts: [{ timestamp: 'created_time', direction: 'descending' }],
       page_size: 1,
     });
     const first = res.results[0];
@@ -99,6 +101,7 @@ export class NotionRollupApiClient {
   ): Promise<{ id: string; url: string | null }> {
     const client = this.api.getClient(input.token);
     const tags = input.tags ?? ['auto', 'rollup'];
+    const children = input.children ?? [];
     const res = await client.pages.create({
       parent: { type: 'data_source_id', data_source_id: input.dataSourceId },
       properties: {
@@ -109,8 +112,11 @@ export class NotionRollupApiClient {
         Tags: { multi_select: tags.map((t) => ({ name: t })) },
         Status: { select: { name: 'draft' } },
       },
-      ...(input.children ? { children: input.children as never } : {}),
+      ...(children.length ? { children: children.slice(0, NOTION_MAX_CHILDREN) as never } : {}),
     });
+    if (children.length > NOTION_MAX_CHILDREN) {
+      await appendChildrenInBatches(client, res.id, children.slice(NOTION_MAX_CHILDREN));
+    }
     const url = 'url' in res && typeof res.url === 'string' ? res.url : null;
     return { id: res.id, url };
   }

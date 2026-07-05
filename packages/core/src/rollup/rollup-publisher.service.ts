@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { isOperator } from '../common/operator.js';
+import { summaryModelLabel } from '../common/summary-model.js';
 import type { RollupActivity } from '../contracts/rollup-activity.types.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogLang } from '../cairn/run-options.js';
+import { enforceBlockEgress } from '../notion/block-egress.js';
 import { NotionApiClient } from '../notion/notion-api.client.js';
 import {
   bulletsOrEmpty,
@@ -44,14 +46,12 @@ export class RollupPublisherService {
     private readonly logger: PinoLogger,
   ) {}
 
+  // force 실행에선 orchestrator 가 precheck 자체를 건너뛴다 — 여기선 non-force 만 가정
   async precheck(
     period: 'weekly' | 'monthly',
-    kstDate: string,
-    force: boolean,
+    localDate: string,
   ): Promise<PublishRollupResult | null> {
-    const target = this.worklogConfig
-      .getNotionWorkspaces()
-      .find((ws) => ws.rollup?.pageId ?? ws.worklog?.pageId);
+    const target = this.worklogConfig.findRollupWorkspace();
     if (!target) return { kind: 'no-target' };
 
     const token = this.secrets.getEnv(target.tokenEnv);
@@ -60,7 +60,7 @@ export class RollupPublisherService {
     const dataSourceId = target.rollup?.dataSourceId;
     if (!dataSourceId) return null;
 
-    const { start, end } = periodRange(period, kstDate);
+    const { start, end } = periodRange(period, localDate);
     try {
       const existing = await this.rollupApi.findRollupPageByRange(
         token,
@@ -73,10 +73,7 @@ export class RollupPublisherService {
       if (existing.status === 'final') {
         return { kind: 'skipped', reason: 'final-protected', pageId: existing.pageId };
       }
-      if (!force) {
-        return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
-      }
-      return null;
+      return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
     } catch (err) {
       this.logger.warn(
         { period, err: String(err) },
@@ -87,9 +84,7 @@ export class RollupPublisherService {
   }
 
   async publish(input: PublishRollupInput): Promise<PublishRollupResult> {
-    const target = this.worklogConfig
-      .getNotionWorkspaces()
-      .find((ws) => ws.rollup?.pageId ?? ws.worklog?.pageId);
+    const target = this.worklogConfig.findRollupWorkspace();
 
     if (!target) {
       this.logger.warn(
@@ -133,12 +128,21 @@ export class RollupPublisherService {
         );
         return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
       }
-      await this.api.archivePage(token, existing.pageId);
-      this.logger.info(
-        { period: activity.period, archivedPageId: existing.pageId },
-        '--force: archived existing draft, recreating',
-      );
+      // 새 페이지를 먼저 만들고 그다음 기존 것을 archive — create 실패 시 기존 rollup 이 보존되도록
+      // (daily publisher 와 동일 패턴). archive 가 실패하면 중복이 잠깐 남지만 데이터 손실은 없음
       const created = await this.createPage(input, token, dataSourceId);
+      try {
+        await this.api.archivePage(token, existing.pageId);
+        this.logger.info(
+          { period: activity.period, archivedPageId: existing.pageId },
+          '--force: recreated rollup, archived old draft',
+        );
+      } catch (err) {
+        this.logger.warn(
+          { period: activity.period, oldPageId: existing.pageId, err: String(err) },
+          '--force: 새 rollup 생성 후 기존 페이지 archive 실패 — 중복 남을 수 있음(데이터 손실 없음)',
+        );
+      }
       return {
         kind: 'recreated',
         pageId: created.id,
@@ -206,9 +210,15 @@ export class RollupPublisherService {
   ): Promise<{ id: string; url: string | null }> {
     const { activity, summary, lang } = input;
     const title = buildTitle(activity, lang);
-    const children = summary
-      ? buildRollupBlocks(summary, activity, lang)
-      : buildRollupFallbackBlocks(activity, lang);
+    // 위반 블록만 drop 하고 발행 계속 — 전부 drop 이면 fallback 으로 degrade (ADR 0021 item-drop)
+    const children = enforceBlockEgress(
+      summary
+        ? buildRollupBlocks(summary, activity, lang)
+        : buildRollupFallbackBlocks(activity, lang),
+      () => buildRollupFallbackBlocks(activity, lang),
+      `rollup.publish.${activity.period}.${activity.rangeStart}`,
+      this.logger,
+    );
     const created = await this.rollupApi.createRollupPage({
       token,
       dataSourceId,
@@ -258,11 +268,12 @@ function buildRollupBlocks(
         ? 'monthly'
         : '월간';
 
+  const modelLabel = summaryModelLabel(summary.usage?.model);
   blocks.push(
     claudeCallout(
       lang === 'en'
-        ? `Auto-generated ${period} rollup by cairn (${activity.rangeStart} ~ ${activity.rangeEnd}).`
-        : `cairn 이 자동 생성한 ${period} 롤업입니다 (${activity.rangeStart} ~ ${activity.rangeEnd}).`,
+        ? `Auto-generated ${period} rollup by cairn (${activity.rangeStart} ~ ${activity.rangeEnd}) · ${modelLabel}`
+        : `cairn 이 자동 생성한 ${period} 롤업입니다 (${activity.rangeStart} ~ ${activity.rangeEnd}) · ${modelLabel}`,
     ),
   );
 

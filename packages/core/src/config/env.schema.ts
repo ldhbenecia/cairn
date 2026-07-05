@@ -4,7 +4,6 @@ import { z } from 'zod';
 // ConfigModule.validate 로 strip 되지 않도록
 export const envSchema = z.looseObject({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  MACHINE_NAME: z.string().min(1).default('unknown'),
 
   ANTHROPIC_OAUTH_TOKEN: z.string().optional(),
 

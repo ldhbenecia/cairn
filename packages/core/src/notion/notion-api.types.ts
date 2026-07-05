@@ -1,25 +1,3 @@
-export type NotionParentTypeRaw =
-  | 'database_id'
-  | 'data_source_id'
-  | 'page_id'
-  | 'workspace'
-  | 'block_id';
-
-export interface RawNotionPage {
-  id: string;
-  url: string;
-  lastEditedTime: string;
-  lastEditedById: string;
-  parentType: NotionParentTypeRaw;
-  parentId: string | null;
-  title: string;
-}
-
-export interface SearchPagesResult {
-  pages: RawNotionPage[];
-  nextCursor: string | null;
-}
-
 export interface CreateWorklogDatabaseInput {
   token: string;
   parentPageId: string;

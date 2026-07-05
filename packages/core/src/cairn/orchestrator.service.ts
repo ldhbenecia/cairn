@@ -19,6 +19,7 @@ import {
 import { RollupSummarizerService } from '../rollup/rollup-summarizer.service.js';
 import { periodRange } from '../rollup/period-range.js';
 import { DailySummarizerService } from '../summarizer/daily-summarizer.service.js';
+import { JournalWriterService } from '../journal/journal-writer.service.js';
 import { WorklogStatsService } from '../worklog-stats/worklog-stats.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
 
@@ -38,6 +39,7 @@ export class OrchestratorService {
     private readonly rollupSummarizer: RollupSummarizerService,
     private readonly rollupPublisher: RollupPublisherService,
     private readonly stats: WorklogStatsService,
+    private readonly journalWriter: JournalWriterService,
     @InjectPinoLogger(OrchestratorService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -79,7 +81,10 @@ export class OrchestratorService {
     const published = options.force
       ? new Set<string>()
       : await this.notionPublisher.findPublishedDates(rangeStart, rangeEnd);
-    const missingDates = options.force ? targetDates : targetDates.filter((d) => !published.has(d));
+    // 노션 발행 목록 + journal 파일 둘 다 없는 날짜만 backfill — 노션 미연동에서도 중복 재요약 방지
+    const missingDates = options.force
+      ? targetDates
+      : targetDates.filter((d) => !published.has(d) && !this.journalWriter.hasDaily(d));
 
     if (missingDates.length === 0) {
       this.logger.info(
@@ -101,6 +106,7 @@ export class OrchestratorService {
 
     let backfillDone = 0;
     const completedDates: string[] = [];
+    const failedDates: string[] = [];
     const backfillTotal = missingDates.length;
     // 데스크톱 배치 진행 UI 가 시작 즉시 총개수·날짜 목록을 알도록(완료 로그 전부터 날짜별 행 렌더링)
     this.logger.info(
@@ -125,12 +131,20 @@ export class OrchestratorService {
         const error = CairnError.from(err, 'config');
         this.logger.error({ date, error }, 'daily: backfill date failed — continuing batch');
         result = { date, kind: 'failed' };
+        failedDates.push(date);
       }
       backfillDone += 1;
       completedDates.push(date);
       // doneDates: 완료 순서가 날짜 순서와 달라도 UI 가 멤버십으로 정확히 상태 판정하도록 누적 목록 전달
+      // failedDates: 실패 날짜도 done 에 포함되므로, UI 가 ✓ 대신 실패로 구분 표시할 수 있게 별도 누적
       this.logger.info(
-        { date, done: backfillDone, total: backfillTotal, doneDates: completedDates.join(',') },
+        {
+          date,
+          done: backfillDone,
+          total: backfillTotal,
+          doneDates: completedDates.join(','),
+          failedDates: failedDates.join(','),
+        },
         'daily: backfill progress',
       );
       return result;
@@ -153,8 +167,9 @@ export class OrchestratorService {
     }
 
     if (!options.dryRun && !options.force && opts.precheck !== false) {
-      const pre = await this.notionPublisher.precheckDaily(date, options.force);
-      if (pre) {
+      const pre = await this.notionPublisher.precheckDaily(date);
+      // no-target(노션 미연동)은 단락하지 않는다 — journal 가 1차 기록이라 런은 계속돼야 함 (ADR 0031)
+      if (pre && pre.kind !== 'no-target') {
         this.logger.info(
           { date, publishResult: pre },
           'daily: precheck short-circuit — skip collect/summarize',
@@ -167,6 +182,21 @@ export class OrchestratorService {
           });
         }
         return pre.kind;
+      }
+      // 노션 미연동이어도 journal 에 이미 기록된 날짜는 재요약하지 않는다 (요약 비용 보호)
+      if (pre?.kind === 'no-target' && this.journalWriter.hasDaily(date)) {
+        // 데스크톱이 precheck 단락과 동일한 publishResult 모양으로 skip 을 판정하도록 구조화 필드 포함
+        this.logger.info(
+          { date, publishResult: { kind: 'skipped', reason: 'already-published' } },
+          'daily: journal file exists — skip collect/summarize',
+        );
+        if (!opts.silent) {
+          await this.notification.notify(
+            'cairn 일지',
+            `${date} skip — 로컬 일지 있음 (--force 로 재생성)`,
+          );
+        }
+        return 'skipped';
       }
     }
 
@@ -232,6 +262,48 @@ export class OrchestratorService {
 
     opts.onStep?.('publish');
     const publishStart = Date.now();
+
+    // 커밋 시각 24칸 히스토그램(머신 로컬 TZ, SHA 중복 제거) — journal frontmatter 와 로컬 통계가 공유
+    const seen = new Set<string>();
+    const stamps: string[] = [];
+    for (const repo of localGitActivity?.repos ?? []) {
+      for (const c of repo.commits) {
+        if (!seen.has(c.shortSha)) {
+          seen.add(c.shortSha);
+          stamps.push(c.authoredAt);
+        }
+      }
+    }
+    for (const pr of githubActivity?.prs ?? []) {
+      for (const c of pr.commitsOnDate) {
+        if (!seen.has(c.shortSha)) {
+          seen.add(c.shortSha);
+          stamps.push(c.authoredAt);
+        }
+      }
+    }
+    const hours = hourHistogram(stamps);
+
+    // 일지의 1차 기록은 로컬 journal — 노션은 연동 싱크 (ADR 0031). journal 실패가 연동 발행을 막지 않는다
+    const journalInput = {
+      date,
+      lang: options.lang,
+      summary,
+      prCount,
+      commitCount,
+      hours,
+    };
+    let journalWritten = false;
+    try {
+      this.journalWriter.writeDaily(journalInput);
+      journalWritten = true;
+    } catch (err) {
+      this.logger.warn(
+        { date, error: CairnError.from(err, 'config') },
+        'daily: journal write failed',
+      );
+    }
+
     const result = await this.notionPublisher.publish({
       date,
       force: options.force,
@@ -242,31 +314,20 @@ export class OrchestratorService {
     });
     const publishMs = Date.now() - publishStart;
 
-    // 통계는 노션이 아닌 로컬에 기록(진실 소스). pr·commit 은 위 distinct 총량과 동일,
-    // hours=커밋 시각 24칸 히스토그램(머신 로컬 TZ, SHA 중복 제거)
-    if (result.kind === 'created' || result.kind === 'recreated') {
-      const seen = new Set<string>();
-      const stamps: string[] = [];
-      for (const repo of localGitActivity?.repos ?? []) {
-        for (const c of repo.commits) {
-          if (!seen.has(c.shortSha)) {
-            seen.add(c.shortSha);
-            stamps.push(c.authoredAt);
-          }
-        }
+    if (journalWritten && (result.kind === 'created' || result.kind === 'recreated')) {
+      try {
+        this.journalWriter.writeDaily({ ...journalInput, notionPageId: result.pageId });
+      } catch {
+        // frontmatter 의 notion 참조 갱신 실패는 치명적이지 않다 — 본문은 이미 기록됨
       }
-      for (const pr of githubActivity?.prs ?? []) {
-        for (const c of pr.commitsOnDate) {
-          if (!seen.has(c.shortSha)) {
-            seen.add(c.shortSha);
-            stamps.push(c.authoredAt);
-          }
-        }
-      }
+    }
+
+    // 통계는 노션이 아닌 로컬에 기록(진실 소스). pr·commit 은 위 distinct 총량과 동일
+    if (journalWritten || result.kind === 'created' || result.kind === 'recreated') {
       this.stats.record('daily', date, {
         pr: prCount,
         commit: commitCount,
-        hours: hourHistogram(stamps),
+        hours,
       });
     }
 
@@ -287,6 +348,7 @@ export class OrchestratorService {
         prCount,
         commitCount,
         summarizerOk: !!summary,
+        journalWritten,
       });
     }
     return result.kind;
@@ -329,6 +391,7 @@ export class OrchestratorService {
       prCount: number;
       commitCount: number;
       summarizerOk: boolean;
+      journalWritten?: boolean;
     },
   ): Promise<void> {
     const counts_label = `gh:${counts.prCount} / git:${counts.commitCount}`;
@@ -347,17 +410,25 @@ export class OrchestratorService {
         `${date} skip — ${result.reason} (--force 로 재생성)`,
       );
     } else if (result.kind === 'no-target') {
-      await this.notification.notify(
-        'cairn 설정 필요',
-        `${date} 발행 대상 없음 — worklog.config.json 의 worklog.pageId 또는 token 확인`,
-      );
+      if (counts.journalWritten) {
+        await this.notification.notify(
+          'cairn 일지',
+          `${date} 로컬 기록 완료 (${counts_label})${summary_tag}`,
+        );
+      } else {
+        await this.notification.notify(
+          'cairn 설정 필요',
+          `${date} 발행 대상 없음 — worklog.config.json 의 worklog.pageId 또는 token 확인`,
+        );
+      }
     }
   }
 
   private async runRollup(period: 'weekly' | 'monthly', options: RunOptions): Promise<void> {
     if (!options.dryRun && !options.force) {
-      const pre = await this.rollupPublisher.precheck(period, options.date, options.force);
-      if (pre) {
+      const pre = await this.rollupPublisher.precheck(period, options.date);
+      // no-target(노션 미연동)은 단락하지 않는다 — journal 가 1차 기록 (ADR 0031)
+      if (pre && pre.kind !== 'no-target') {
         const { start, end } = periodRange(period, options.date);
         this.logger.info(
           { period, rangeStart: start, rangeEnd: end, publishResult: pre },
@@ -365,6 +436,26 @@ export class OrchestratorService {
         );
         await this.notifyRollup(period, start, end, pre, false);
         return;
+      }
+      // 노션 미연동이어도 journal 에 이미 기록된 기간은 재요약하지 않는다 (요약 비용 보호)
+      if (pre?.kind === 'no-target') {
+        const { start, end } = periodRange(period, options.date);
+        if (this.journalWriter.hasRollup(period, start)) {
+          this.logger.info(
+            {
+              period,
+              rangeStart: start,
+              rangeEnd: end,
+              publishResult: { kind: 'skipped', reason: 'already-published' },
+            },
+            'rollup: journal file exists — skip collect/summarize',
+          );
+          await this.notification.notify(
+            `cairn ${rollupKor(period)}`,
+            `${start} ~ ${end} skip — 로컬 정리 있음 (--force 로 재생성)`,
+          );
+          return;
+        }
       }
     }
 
@@ -393,12 +484,53 @@ export class OrchestratorService {
 
     const summary = await this.rollupSummarizer.summarize({ activity }, options.lang);
 
+    if (!summary) {
+      this.logger.warn(
+        { period: activity.period, rangeStart: activity.rangeStart },
+        'rollup: summary generation failed — aborting publish',
+      );
+      throw CairnError.from(
+        new Error('롤업 요약 생성 실패 — Claude 세션/쿼터를 확인한 뒤 다시 발행하세요'),
+        'summarizer',
+      );
+    }
+
+    // 롤업도 로컬 journal 가 1차 기록 (ADR 0031)
+    const rollupJournalInput = {
+      period,
+      rangeStart: activity.rangeStart,
+      rangeEnd: activity.rangeEnd,
+      lang: options.lang,
+      summary,
+      dailyDates: activity.dailies.map((d) => d.date),
+      prCount: activity.metrics.prCount,
+      commitCount: activity.metrics.commitCount,
+    };
+    let journalWritten = false;
+    try {
+      this.journalWriter.writeRollup(rollupJournalInput);
+      journalWritten = true;
+    } catch (err) {
+      this.logger.warn(
+        { period, rangeStart: activity.rangeStart, error: CairnError.from(err, 'config') },
+        'rollup: journal write failed',
+      );
+    }
+
     const result = await this.rollupPublisher.publish({
       activity,
       force: options.force,
       summary,
       lang: options.lang,
     });
+
+    if (journalWritten && (result.kind === 'created' || result.kind === 'recreated')) {
+      try {
+        this.journalWriter.writeRollup({ ...rollupJournalInput, notionPageId: result.pageId });
+      } catch {
+        // frontmatter 의 notion 참조 갱신 실패는 치명적이지 않다 — 본문은 이미 기록됨
+      }
+    }
 
     this.logger.info(
       {

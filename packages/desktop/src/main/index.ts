@@ -2,12 +2,14 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
-import { pickExportFolder, saveMarkdown, savePdf } from './export';
+import { warmClaudePath } from './claude-path';
+import { exportStatus, pickExportFolder, saveMarkdown, savePdf } from './export';
 import { sendTestNotification } from './notifier';
 import {
   busyState,
   cancelRun,
   isRunning,
+  killRunning,
   probeClaude,
   runCore,
   runSnapshot,
@@ -16,21 +18,31 @@ import {
 } from './core-runner';
 import { cloudAuthState, cloudSignOut, startCloudSignIn } from './cloud-auth';
 import { syncStats } from './cloud-sync';
-import { readConfig, tailLatestLog } from './files';
-import { fetchPageContent, listRecentPages } from './notion-client';
+import { readConfig } from './files';
+import { fetchPageContent } from './notion-client';
+import { listRecentMerged, readJournalPageContent, JOURNAL_PAGE_PREFIX } from './journal-reader';
 import {
+  addNotionWorkspace,
   finishOnboarding,
   githubAccountsFromGhCli,
   listNotionDatabases,
+  probeConnectionAccounts,
   probeGithub,
   probeNotion,
   searchNotionPages,
-  type OnboardingPayload,
+  parseNotionWorkspacePayload,
+  parseOnboardingPayload,
 } from './onboarding';
 import { fetchRepoStars } from './repo';
 import { readSettings, writeSettings, type Settings } from './settings';
 import { isSetupComplete } from './setup';
-import { initTelemetry, shutdownTelemetry, trackAppLaunched } from './telemetry';
+import {
+  initTelemetry,
+  shutdownTelemetry,
+  trackAppLaunched,
+  trackAutoPublishConfigured,
+  trackOnboardingCompleted,
+} from './telemetry';
 import { reconfigureTray, setupTray } from './tray';
 import { initUpdater } from './updater';
 
@@ -58,7 +70,7 @@ app.on('second-instance', () => {
   win.focus();
 });
 
-function createWindow(): BrowserWindow {
+function createWindow(startHidden: boolean): BrowserWindow {
   const win = new BrowserWindow({
     width: 1240,
     height: 760,
@@ -77,7 +89,10 @@ function createWindow(): BrowserWindow {
     },
   });
 
-  win.on('ready-to-show', () => win.show());
+  // 로그인 자동 실행으로 떴으면 창을 띄우지 않고 트레이에만 상주(백그라운드 시작)
+  win.on('ready-to-show', () => {
+    if (!startHidden) win.show();
+  });
 
   win.on('close', (e) => {
     if (allowQuit || !app.isPackaged) return;
@@ -99,7 +114,35 @@ function createWindow(): BrowserWindow {
   return win;
 }
 
+// dev 바이너리(Electron.app)를 로그인 항목으로 등록하지 않도록 패키지 한정 — macOS·Windows 만 지원
+// openAsHidden/args: 로그인 자동 실행 시 백그라운드(트레이)로 뜨게. setLoginItemSettings 는
+// OS 권한/레지스트리 문제로 throw 할 수 있어 try-catch — 실패해도 앱 시작은 막지 않음
+function applyLoginItem(enabled: boolean): void {
+  if (!app.isPackaged) return;
+  if (process.platform !== 'darwin' && process.platform !== 'win32') return;
+  try {
+    app.setLoginItemSettings({ openAtLogin: enabled, openAsHidden: enabled, args: ['--hidden'] });
+  } catch (err) {
+    console.error('setLoginItemSettings failed:', err);
+  }
+}
+
+// 이번 실행이 로그인 자동 실행으로 떴는지 — 초기 창 표시를 건너뛰는 판단
+function launchedAtLogin(): boolean {
+  if (process.platform === 'darwin') {
+    try {
+      return app.getLoginItemSettings().wasOpenedAtLogin;
+    } catch {
+      return false;
+    }
+  }
+  if (process.platform === 'win32') return process.argv.includes('--hidden');
+  return false;
+}
+
 void app.whenReady().then(() => {
+  // 로그인 셸 PATH 캡처를 미리 비동기로 — 첫 발행/probe 의 UI 프리즈 방지
+  void warmClaudePath();
   if (!app.isPackaged && process.platform === 'darwin') {
     try {
       app.dock?.setIcon(join(__dirname, '../../resources/icon.png'));
@@ -119,17 +162,34 @@ void app.whenReady().then(() => {
     saveMarkdown(defaultName, content),
   );
   ipcMain.handle('cairn:export:pick-folder', () => pickExportFolder());
+  ipcMain.handle('cairn:export:status', () => exportStatus());
+  // 폴더 경로는 renderer 인자가 아니라 설정에서 읽는다 (임의 경로 열기 방지)
+  ipcMain.handle('cairn:export:reveal', () => {
+    const folder = readSettings().export.folder;
+    return folder ? shell.openPath(folder) : Promise.resolve('');
+  });
   ipcMain.handle('cairn:notify:test', () => sendTestNotification());
   ipcMain.handle('cairn:export:save-pdf', (_e, defaultName: string, html: string) =>
     savePdf(defaultName, html),
   );
-  ipcMain.handle('cairn:open-external', (_e, url: string) => shell.openExternal(url));
+  ipcMain.handle('cairn:open-external', (_e, url: string) => {
+    try {
+      const p = new URL(url).protocol;
+      // obsidian: 은 연동 탭의 journal 딥링크 용도로만 허용
+      if (p === 'https:' || p === 'http:' || p === 'mailto:' || p === 'obsidian:')
+        return shell.openExternal(url);
+    } catch {
+      return Promise.resolve();
+    }
+    return Promise.resolve();
+  });
   ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());
-  ipcMain.handle('cairn:logs:tail', () => tailLatestLog());
-  ipcMain.handle('cairn:recent:list', () => listRecentPages());
+  ipcMain.handle('cairn:recent:list', () => listRecentMerged());
   ipcMain.handle('cairn:notion:page-content', (_e, pageId: string, workspaceLabel: string) =>
-    fetchPageContent(pageId, workspaceLabel),
+    pageId.startsWith(JOURNAL_PAGE_PREFIX)
+      ? readJournalPageContent(pageId)
+      : fetchPageContent(pageId, workspaceLabel),
   );
 
   ipcMain.on('cairn:bootstrap-sync', (e) => {
@@ -141,8 +201,16 @@ void app.whenReady().then(() => {
   });
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {
     const next = writeSettings(patch);
-    if (patch.autoPublish) reconfigureAutoPublish();
+    if (patch.autoPublish) {
+      reconfigureAutoPublish();
+      trackAutoPublishConfigured({
+        daily: next.autoPublish.daily,
+        weekly: next.autoPublish.weekly,
+        monthly: next.autoPublish.monthly,
+      });
+    }
     if (patch.language) reconfigureTray();
+    if (patch.launchAtLogin !== undefined) applyLoginItem(next.launchAtLogin);
     return next;
   });
 
@@ -156,9 +224,19 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:onboarding:probe-github', (_e, token: string) => probeGithub(token));
   ipcMain.handle('cairn:onboarding:github-from-gh', () => githubAccountsFromGhCli());
   ipcMain.handle('cairn:onboarding:probe-claude', () => probeClaude());
-  ipcMain.handle('cairn:onboarding:finish', (_e, payload: OnboardingPayload) =>
-    finishOnboarding(payload),
-  );
+  ipcMain.handle('cairn:connections:accounts', () => probeConnectionAccounts());
+  ipcMain.handle('cairn:integrations:add-notion', (_e, raw: unknown) => {
+    const parsed = parseNotionWorkspacePayload(raw);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    return addNotionWorkspace(parsed.entry);
+  });
+  ipcMain.handle('cairn:onboarding:finish', (_e, raw: unknown) => {
+    const parsed = parseOnboardingPayload(raw);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    const result = finishOnboarding(parsed.payload);
+    if (result.ok) trackOnboardingCompleted();
+    return result;
+  });
   ipcMain.handle('cairn:auth:state', () => cloudAuthState());
   ipcMain.handle('cairn:auth:sign-in', () => startCloudSignIn());
   ipcMain.handle('cairn:auth:sign-out', () => cloudSignOut());
@@ -168,12 +246,16 @@ void app.whenReady().then(() => {
     return r.canceled ? null : (r.filePaths[0] ?? null);
   });
 
-  const win = createWindow();
+  const startHidden = app.isPackaged && launchedAtLogin();
+  const win = createWindow(startHidden);
+  // 백그라운드 시작이면 Dock 아이콘도 빼서 순수 트레이로 — 트레이 클릭 시 win 'show' 가 Dock 복귀
+  if (startHidden && process.platform === 'darwin') app.dock?.hide();
   setupTray(win, () => {
     allowQuit = true;
     app.quit();
   });
 
+  applyLoginItem(readSettings().launchAtLogin);
   initAutoPublish();
   initTelemetry();
   trackAppLaunched();
@@ -194,6 +276,7 @@ app.on('before-quit', (e) => {
     if (process.platform === 'darwin') app.dock?.hide();
     return;
   }
+  killRunning(); // 진행 중 core 자식이 고아로 남지 않게 종료 전 정리
   void shutdownTelemetry();
 });
 

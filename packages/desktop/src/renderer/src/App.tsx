@@ -13,12 +13,15 @@ import type {
   CoreRunOptions,
   RecentListResult,
   RecentPage,
-  RunLine,
   RunProgress,
   RunStep,
 } from './cairn-api';
+import { AnimatePresence } from 'framer-motion';
+import { resetRunLines } from './lib/run-line-store';
+import { RunToast, type RunToastData } from './components/run-toast';
 import { useSettings } from './settings-context';
 import { Dashboard } from './components/dashboard';
+import { GraphView } from './components/graph-view';
 import { Onboarding } from './components/onboarding';
 import { PreferencesDialog } from './components/preferences-dialog';
 import { AchievementsDialog } from './components/achievements-dialog';
@@ -35,7 +38,6 @@ import { WorklogList } from './components/worklog-list';
 export type RunSession = {
   state: 'running' | 'done';
   step: RunStep;
-  lines: RunLine[];
   result?: CoreResult;
   error?: string;
   startedAt: number;
@@ -43,8 +45,6 @@ export type RunSession = {
   batch?: boolean;
   progress?: RunProgress;
 };
-
-const TAIL_MAX = 200;
 
 const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
   daily: null,
@@ -83,8 +83,13 @@ export function App() {
   const [busy, setBusy] = useState<BusyState>({ busy: false, mode: null });
   const busyRef = useRef(busy);
   busyRef.current = busy;
+  const signedInRef = useRef(false);
   const [recent, setRecent] = useState<RecentListResult | null>(readRecentCache);
-  const { t } = useSettings();
+  const recentRef = useRef(recent);
+  recentRef.current = recent;
+  const { t, settings } = useSettings();
+  // 그래프 뷰를 설정에서 끈 상태로 view 가 graph 에 남아 있으면 목록으로 폴백
+  const activeView = view === 'graph' && !settings.graph.enabled ? 'worklogs' : view;
 
   const loadRecent = useCallback(async () => {
     const r = await window.cairn.listRecent();
@@ -94,7 +99,24 @@ export function App() {
     } catch {
       /* empty */
     }
+    return r;
   }, []);
+
+  // 발행 완료 CTA — 노션으로 내보내지 않고 앱 안 드로어로 (목록에 없으면 갱신 후 재탐색)
+  const openPublishedPage = useCallback(
+    async (pageId: string, url: string | null) => {
+      const inState = recentRef.current?.pages.find((p) => p.pageId === pageId);
+      const page =
+        inState ?? (await loadRecent().catch(() => null))?.pages.find((p) => p.pageId === pageId);
+      if (page) {
+        setView('worklogs');
+        setSelectedPage(page);
+      } else if (url) {
+        void window.cairn.openExternal(url);
+      }
+    },
+    [loadRecent],
+  );
 
   useEffect(() => {
     localStorage.setItem('cairn:sidebarWidth', String(sidebarWidth));
@@ -106,6 +128,7 @@ export function App() {
     const onUp = () => {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      window.removeEventListener('blur', onUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
@@ -113,6 +136,8 @@ export function App() {
     document.body.style.userSelect = 'none';
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
+    // 창 밖에서 버튼을 놓으면 mouseup 이 안 옴 — blur 로도 종료
+    window.addEventListener('blur', onUp);
   }, []);
 
   useEffect(() => {
@@ -121,6 +146,7 @@ export function App() {
 
   useEffect(() => {
     const trySync = (signedIn: boolean): void => {
+      signedInRef.current = signedIn;
       if (signedIn) void window.cairn.cloud.syncNow().catch(() => {});
     };
     void window.cairn.cloud
@@ -136,34 +162,11 @@ export function App() {
   }, [loadRecent]);
 
   useEffect(() => {
-    const off = window.cairn.onRunLine((l) => {
-      setSessions((prev) => {
-        const current = prev[l.mode] ?? {
-          state: 'running',
-          step: 'boot',
-          lines: [],
-          startedAt: Date.now(),
-        };
-        const next: RunSession = {
-          ...current,
-          lines:
-            current.lines.length >= TAIL_MAX
-              ? [...current.lines.slice(1), l]
-              : [...current.lines, l],
-        };
-        return { ...prev, [l.mode]: next };
-      });
-    });
-    return off;
-  }, []);
-
-  useEffect(() => {
     const off = window.cairn.onRunStep(({ mode, step }) => {
       setSessions((prev) => {
         const current = prev[mode] ?? {
           state: 'running',
           step: 'boot',
-          lines: [],
           startedAt: Date.now(),
         };
         return { ...prev, [mode]: { ...current, step } };
@@ -178,7 +181,6 @@ export function App() {
         const current = prev[mode] ?? {
           state: 'running' as const,
           step: 'boot' as const,
-          lines: [],
           startedAt: Date.now(),
         };
         return {
@@ -190,13 +192,16 @@ export function App() {
     return off;
   }, []);
 
+  const [toast, setToast] = useState<RunToastData | null>(null);
+  const toastTimer = useRef<number | null>(null);
+
+  const recentRetryTimer = useRef<number | null>(null);
   useEffect(() => {
     const off = window.cairn.onRunDone(({ mode, result }) => {
       setSessions((prev) => {
         const current = prev[mode] ?? {
           state: 'running' as const,
           step: 'done' as const,
-          lines: [],
           startedAt: Date.now(),
         };
         return {
@@ -205,10 +210,36 @@ export function App() {
         };
       });
       setRunningMode((rm) => (rm === mode ? null : rm));
+      if (!result.cancelled) {
+        setToast({ mode, result, at: Date.now() });
+        if (toastTimer.current) window.clearTimeout(toastTimer.current);
+        toastTimer.current = window.setTimeout(() => setToast(null), 6000);
+      }
       void loadRecent();
-      void window.cairn.cloud.syncNow().catch(() => {});
+      // 노션 인덱싱 지연으로 방금 발행한 페이지가 첫 조회에 안 잡히는 경우 — 잠시 뒤 재조회
+      // (연속 run-done 시 타이머 중첩 방지·cleanup 정리 — #241 리뷰)
+      if (recentRetryTimer.current) window.clearTimeout(recentRetryTimer.current);
+      recentRetryTimer.current = window.setTimeout(() => void loadRecent(), 5000);
+      if (signedInRef.current) void window.cairn.cloud.syncNow().catch(() => {});
     });
-    return off;
+    return () => {
+      off();
+      if (recentRetryTimer.current) window.clearTimeout(recentRetryTimer.current);
+      if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    };
+  }, [loadRecent]);
+
+  // 창을 다시 볼 때 목록 최신화(자동 발행 등 외부 변화 인지) — 과호출 방지 60초 스로틀
+  const lastFocusLoad = useRef(0);
+  useEffect(() => {
+    const onFocus = (): void => {
+      const now = Date.now();
+      if (now - lastFocusLoad.current < 60_000) return;
+      lastFocusLoad.current = now;
+      void loadRecent();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, [loadRecent]);
 
   useEffect(() => {
@@ -230,7 +261,6 @@ export function App() {
                 [s.mode!]: {
                   state: 'running',
                   step: s.step,
-                  lines: [],
                   startedAt: s.startedAt,
                   batch: s.progress !== null,
                   progress: s.progress ?? undefined,
@@ -247,8 +277,7 @@ export function App() {
                 [mode]: {
                   state: 'done',
                   step: 'done',
-                  lines: [],
-                  startedAt: endedAt,
+                  startedAt: 0, // 복원 시 실제 시작 시각 미상 → elapsed 표시 숨김
                   result,
                   endedAt,
                 },
@@ -260,6 +289,7 @@ export function App() {
 
   useEffect(() => {
     const off = window.cairn.onFocusMode((focused) => {
+      setPrefsOpen(false);
       setView('worklogs');
       setFilter(focused);
     });
@@ -270,6 +300,8 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === ',') {
         e.preventDefault();
+        // 팔레트를 열어둔 채 환경설정(radix modal)이 뜨면 body pointer-events 가 죽어 팔레트가 안 닫힘
+        setCmdkOpen(false);
         setPrefsOpen(true);
       } else if (e.metaKey && e.key === 'k') {
         e.preventDefault();
@@ -284,24 +316,29 @@ export function App() {
     async (mode: CoreMode, options?: CoreRunOptions) => {
       const active = busyRef.current;
       if (active.busy) {
-        setSessions((prev) => ({
-          ...prev,
-          [mode]: {
-            state: 'done',
-            step: 'boot',
-            lines: [],
-            startedAt: Date.now(),
-            endedAt: Date.now(),
-            error: t('publish.busyMsg'),
-          },
-        }));
+        // 라이브 run 의 라인은 지우면 안 됨 — 다른 mode 가 busy 일 때만 리셋 (기존 lines: [] 동작 유지)
+        if (active.mode !== mode) resetRunLines(mode);
+        setSessions((prev) => {
+          if (prev[mode]?.state === 'running' || active.mode === mode) return prev;
+          return {
+            ...prev,
+            [mode]: {
+              state: 'done',
+              step: 'boot',
+              startedAt: Date.now(),
+              endedAt: Date.now(),
+              error: t('publish.busyMsg'),
+            },
+          };
+        });
         return;
       }
       setRunningMode(mode);
+      resetRunLines(mode);
       const batch = (options?.backfillDays ?? 0) > 0;
       setSessions((prev) => ({
         ...prev,
-        [mode]: { state: 'running', step: 'boot', lines: [], startedAt: Date.now(), batch },
+        [mode]: { state: 'running', step: 'boot', startedAt: Date.now(), batch },
       }));
       try {
         await window.cairn.run(mode, options);
@@ -312,7 +349,6 @@ export function App() {
           const current = prev[mode] ?? {
             state: 'running',
             step: 'boot',
-            lines: [],
             startedAt: Date.now(),
           };
           return {
@@ -354,7 +390,7 @@ export function App() {
     <div className="flex h-screen w-screen bg-canvas text-ink">
       <Sidebar
         width={sidebarWidth}
-        view={view}
+        view={activeView}
         filter={filter}
         counts={counts}
         preferencesActive={prefsOpen}
@@ -367,13 +403,17 @@ export function App() {
           setPrefsOpen(false);
           setView('stats');
         }}
+        onOpenGraph={() => {
+          setPrefsOpen(false);
+          setView('graph');
+        }}
         onOpenPreferences={() => setPrefsOpen(true)}
       />
       <div
         onMouseDown={startResize}
         className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/40 [-webkit-app-region:no-drag]"
       />
-      {view === 'stats' ? (
+      {activeView === 'stats' ? (
         <Dashboard
           recent={recent}
           onPickDate={(date) => {
@@ -382,6 +422,8 @@ export function App() {
           }}
           onGoToWorklogs={() => setView('worklogs')}
         />
+      ) : activeView === 'graph' ? (
+        <GraphView recent={recent} onOpen={setSelectedPage} />
       ) : (
         <WorklogList
           recent={recent}
@@ -389,6 +431,7 @@ export function App() {
           sessions={sessions}
           runningMode={runningMode}
           onTrigger={trigger}
+          onOpenPublished={(pageId, url) => void openPublishedPage(pageId, url)}
           onReload={loadRecent}
           onOpen={setSelectedPage}
           onAchievements={() => setAchvOpen(true)}
@@ -396,22 +439,33 @@ export function App() {
         />
       )}
       {selectedPage && <WorklogDrawer page={selectedPage} onClose={() => setSelectedPage(null)} />}
-      {cmdkOpen && (
-        <CommandPalette
-          recent={recent}
-          onClose={() => setCmdkOpen(false)}
-          onView={setView}
-          onPreferences={() => setPrefsOpen(true)}
-          onPublish={(mode) => void trigger(mode)}
-          onOpenPage={setSelectedPage}
-          onAchievements={() => setAchvOpen(true)}
-        />
-      )}
+      <AnimatePresence>
+        {cmdkOpen && (
+          <CommandPalette
+            recent={recent}
+            onClose={() => setCmdkOpen(false)}
+            onView={setView}
+            onPreferences={() => setPrefsOpen(true)}
+            onPublish={(mode) => void trigger(mode)}
+            onOpenPage={setSelectedPage}
+            onAchievements={() => setAchvOpen(true)}
+          />
+        )}
+      </AnimatePresence>
       {achvOpen && <AchievementsDialog recent={recent} onClose={() => setAchvOpen(false)} />}
+      <RunToast
+        toast={toast}
+        onClose={() => setToast(null)}
+        onOpenPage={(pageId, url) => {
+          void openPublishedPage(pageId, url);
+          setToast(null);
+        }}
+      />
       <PreferencesDialog
         open={prefsOpen}
         onOpenChange={setPrefsOpen}
         onRerunSetup={() => setSetupComplete(false)}
+        blockEscape={cmdkOpen}
       />
     </div>
   );

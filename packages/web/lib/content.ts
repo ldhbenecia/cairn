@@ -7,7 +7,7 @@ export const content = {
       badge: 'Open source · free · runs on your machine',
       h1a: 'Your daily work,',
       h1b: 'stacked into a worklog.',
-      lead: 'Like a trail cairn, it stacks one mark of work each day. cairn collects your GitHub PRs and commits, summarizes them with Claude, and publishes a daily worklog to Notion — your work, documented automatically and ready to look back on.',
+      lead: 'Like a trail cairn, it stacks one mark of work each day. cairn collects your GitHub PRs and commits, summarizes them with Claude, and writes a daily worklog to a local Markdown journal — publish to Notion and more with integrations. Your work, documented automatically and ready to look back on.',
       download: 'Download for macOS',
       source: 'View source',
       sub: 'Apple Silicon · AGPL-3.0',
@@ -30,7 +30,7 @@ export const content = {
         },
         {
           t: 'Publish',
-          d: 'A dated worklog lands in Notion with a copy-paste-ready Share section. Weekly and monthly rollups are generated automatically.',
+          d: 'A dated worklog lands in your local Markdown journal with a copy-paste-ready Share section, plus automatic weekly and monthly rollups. Connect Notion and each publish creates a page there too.',
         },
       ],
     },
@@ -58,16 +58,17 @@ export const content = {
         {
           title: 'Publish',
           meta: 'daily · weekly · monthly',
-          status: 'Notion',
-          description: 'Daily logs to Notion with automatic weekly and monthly rollups.',
-          tags: ['Notion', 'Rollups'],
+          status: 'Journal',
+          description:
+            'Daily logs in a local Markdown journal with automatic weekly and monthly rollups — connect Notion to publish there too.',
+          tags: ['Markdown', 'Rollups'],
         },
         {
           title: 'Desktop app',
           meta: 'macOS',
           status: 'App',
           description:
-            'Guided setup, one-click and scheduled auto-publish, an in-app Notion viewer, a stats dashboard, and cross-device sync.',
+            'Guided setup, one-click and scheduled auto-publish, an in-app worklog viewer, a stats dashboard, and cross-device sync.',
           tags: ['Auto-publish', 'Dashboard'],
         },
         {
@@ -83,7 +84,7 @@ export const content = {
     output: {
       eyebrow: 'The output',
       title: 'A worklog that reads itself back',
-      lead: 'Each day lands in Notion as a clean page — a project-level summary, a copy-paste-ready Share section for standups, and a detailed Done list with the numbers. Months of them roll up into the dashboard — a record you can look back on.',
+      lead: 'Each day lands in your journal as a clean Markdown page — a project-level summary, a copy-paste-ready Share section for standups, and a detailed Done list with the numbers. Months of them roll up into the dashboard — a record you can look back on.',
       ticks: [
         'Summary · Share · Done, every day',
         'Numbers preserved — counts, %, before→after',
@@ -96,7 +97,7 @@ export const content = {
       title: 'Connected in a few minutes',
       lead: 'cairn keeps everything on your machine — you connect your own tokens during onboarding.',
       notion: {
-        title: 'Where worklogs publish',
+        title: 'Publish to Notion (optional)',
         s1pre: 'Create an integration at ',
         s1link: 'notion.so/my-integrations',
         s1post: ' and copy the token (',
@@ -127,6 +128,37 @@ export const content = {
         "the app isn't code-signed yet, so the first launch is blocked by Gatekeeper. Right-click the app → Open, or run ",
       gatekeeperPost: ' once.',
     },
+    faq: {
+      eyebrow: 'FAQ',
+      title: 'Frequently asked questions',
+      lead: 'The short answers — the source is open if you want the long ones.',
+      items: [
+        {
+          q: 'Is it free?',
+          a: 'Yes. cairn is open source (AGPL-3.0) and runs entirely on your machine — collecting, summarizing, and publishing are all free.',
+        },
+        {
+          q: 'Does my code leave my machine?',
+          a: 'No. Code bodies and diffs never leave your machine — this is enforced with a whitelist. Summaries only use metadata like PR titles and commit subjects.',
+        },
+        {
+          q: 'What does it collect?',
+          a: 'Your authored and assigned GitHub PRs plus local Git commits for the day, across multiple accounts and repos. Collection runs on your machine with your own tokens — there is no server in between.',
+        },
+        {
+          q: 'Do I need a Claude subscription?',
+          a: 'Summaries run on your own Claude account: install Claude Code and sign in (Pro/Max) and cairn inherits that auth, or paste an Anthropic API key. Either works.',
+        },
+        {
+          q: 'Do I need Notion?',
+          a: 'No. Worklogs are written to a local Markdown folder on your machine by default. Notion is one of several integrations — connect it and each publish also creates a Notion page. More integrations are on the way.',
+        },
+        {
+          q: 'Where is my data stored?',
+          a: 'Worklogs and stats live in local files on your machine — plain Markdown that opens in any editor. Tokens and secrets stay machine-local too; they are only sent to the services you configure.',
+        },
+      ],
+    },
     cta: { title: 'Start stacking your worklog', button: 'Download for macOS' },
     footer: { docs: 'Docs', privacy: 'Privacy Policy', terms: 'Terms of Service' },
   },
@@ -136,7 +168,7 @@ export const content = {
       badge: '오픈소스 · 무료 · 내 컴퓨터에서 실행',
       h1a: '매일의 작업을,',
       h1b: '일지로 쌓아 올리다.',
-      lead: '등산로의 돌탑처럼, 매일 작업 흔적을 하나씩 쌓습니다. cairn 은 GitHub PR·커밋을 모아 Claude 로 요약하고, 매일 Notion 일지로 발행합니다 — 나중에 돌아볼 작업 기록이 자동으로 쌓입니다.',
+      lead: '등산로의 돌탑처럼, 매일 작업 흔적을 하나씩 쌓습니다. cairn 은 GitHub PR·커밋을 모아 Claude 로 요약하고, 매일 로컬 마크다운 일지로 기록합니다 — 연동을 켜면 Notion 에도 발행돼요. 나중에 돌아볼 작업 기록이 자동으로 쌓입니다.',
       download: 'macOS 다운로드',
       source: '소스 보기',
       sub: 'Apple Silicon · AGPL-3.0',
@@ -159,7 +191,7 @@ export const content = {
         },
         {
           t: '발행',
-          d: '날짜별 일지가 복붙용 Share 섹션과 함께 Notion 에 올라갑니다. 주간·월간 롤업도 자동 생성됩니다.',
+          d: '날짜별 일지가 복붙용 Share 섹션과 함께 로컬 마크다운 journal 에 기록되고, 주간·월간 롤업도 자동 생성됩니다. Notion 을 연동하면 발행 시 페이지도 함께 만들어집니다.',
         },
       ],
     },
@@ -185,16 +217,17 @@ export const content = {
         {
           title: '발행',
           meta: '일간 · 주간 · 월간',
-          status: 'Notion',
-          description: 'Notion 에 일일 일지 발행 + 주간·월간 롤업 자동 생성.',
-          tags: ['Notion', 'Rollups'],
+          status: 'Journal',
+          description:
+            '로컬 마크다운 journal 에 일일 일지 기록 + 주간·월간 롤업 자동 생성 — Notion 연동 시 페이지도 함께 발행.',
+          tags: ['Markdown', 'Rollups'],
         },
         {
           title: '데스크톱 앱',
           meta: 'macOS',
           status: 'App',
           description:
-            '가이드 설정, 원클릭·예약 자동 발행, 인앱 Notion 뷰어, 통계 대시보드, 기기 간 동기화.',
+            '가이드 설정, 원클릭·예약 자동 발행, 인앱 일지 뷰어, 통계 대시보드, 기기 간 동기화.',
           tags: ['Auto-publish', 'Dashboard'],
         },
         {
@@ -210,7 +243,7 @@ export const content = {
     output: {
       eyebrow: '결과물',
       title: '스스로 읽히는 일지',
-      lead: '매일 Notion 에 깔끔한 페이지로 — 프로젝트 단위 요약, 스탠드업에 바로 복붙하는 Share 섹션, 수치가 담긴 상세 Done 목록. 몇 달이 쌓이면 대시보드로, 돌아볼 기록으로 굴러갑니다.',
+      lead: '매일 깔끔한 마크다운 페이지로 — 프로젝트 단위 요약, 스탠드업에 바로 복붙하는 Share 섹션, 수치가 담긴 상세 Done 목록. 몇 달이 쌓이면 대시보드로, 돌아볼 기록으로 굴러갑니다.',
       ticks: [
         '매일 Summary · Share · Done',
         '수치 보존 — 건수, %, before→after',
@@ -223,7 +256,7 @@ export const content = {
       title: '몇 분이면 연결 끝',
       lead: 'cairn 은 모든 걸 내 기기에 둡니다 — 온보딩에서 본인 토큰을 직접 연결합니다.',
       notion: {
-        title: '일지를 발행할 곳',
+        title: 'Notion 에도 발행 (선택)',
         s1pre: '',
         s1link: 'notion.so/my-integrations',
         s1post: ' 에서 integration 을 만들고 토큰(',
@@ -253,6 +286,37 @@ export const content = {
       gatekeeper:
         '아직 코드 서명이 안 돼 있어 첫 실행은 Gatekeeper 에 막힙니다. 앱 우클릭 → 열기, 또는 아래를 한 번 실행하세요 ',
       gatekeeperPost: '.',
+    },
+    faq: {
+      eyebrow: 'FAQ',
+      title: '자주 묻는 질문',
+      lead: '짧은 답만 모았습니다 — 긴 답이 궁금하면 소스가 열려 있습니다.',
+      items: [
+        {
+          q: '무료인가요?',
+          a: '네. cairn 은 오픈소스(AGPL-3.0)이고 전부 내 기기에서 실행됩니다 — 수집·요약·발행 모두 무료입니다.',
+        },
+        {
+          q: '내 코드가 외부로 전송되나요?',
+          a: '아니요. 코드 본문과 diff 는 절대 기기를 떠나지 않으며, 화이트리스트 방식으로 강제됩니다. 요약에는 PR 제목·커밋 제목 수준의 메타데이터만 사용합니다.',
+        },
+        {
+          q: '어떤 걸 수집하나요?',
+          a: '그날 내가 작성·할당된 GitHub PR 과 로컬 Git 커밋을 여러 계정·레포에 걸쳐 모읍니다. 수집은 본인 토큰으로 내 기기에서 실행됩니다 — 중간에 서버가 없습니다.',
+        },
+        {
+          q: 'Claude 구독이 필요한가요?',
+          a: '요약은 본인의 Claude 계정으로 동작합니다: Claude Code 를 설치·로그인해 두면(Pro/Max) cairn 이 그 인증을 인계받고, 또는 Anthropic API 키를 붙여넣어도 됩니다. 둘 다 됩니다.',
+        },
+        {
+          q: '노션 없이도 쓸 수 있나요?',
+          a: '네. 일지는 기본적으로 내 기기의 로컬 폴더에 마크다운으로 기록됩니다. 노션은 여러 연동 중 하나라 연결하면 발행 시 노션 페이지도 함께 만들어지고, 연동은 계속 늘려갈 예정입니다.',
+        },
+        {
+          q: '데이터는 어디에 저장되나요?',
+          a: '일지와 통계 모두 기기의 로컬 파일에 쌓입니다 — 평문 마크다운이라 어떤 에디터로도 열 수 있어요. 토큰·시크릿도 전부 기기에만 저장되며, 내가 설정한 서비스로만 전송됩니다.',
+        },
+      ],
     },
     cta: { title: '오늘부터 일지를 쌓아보세요', button: 'macOS 다운로드' },
     footer: { docs: '문서', privacy: '개인정보 처리방침', terms: '서비스 약관' },

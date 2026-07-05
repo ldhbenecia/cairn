@@ -1,82 +1,29 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, ExternalLink, FolderPlus, Loader2, Plus, Search, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import type { NotionDb, NotionPage } from '../cairn-api';
+import { Check, ExternalLink, FolderPlus, Loader2, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
 import { BrandMark } from './brand-mark';
+import { GithubCard } from './onboarding-cards';
+import type { GithubEntry, Status } from './onboarding-cards';
 
 type T = (key: I18nKey) => string;
 
-type Status = 'idle' | 'testing' | 'ok' | 'err';
-
-type TokenKind = 'notion' | 'github';
-
-function tokenMismatchKey(kind: TokenKind, token: string): I18nKey | null {
-  const t = token.trim();
-  if (!t) return null;
-  const looksNotion = t.startsWith('ntn_') || t.startsWith('secret_');
-  const looksGithub = ['ghp_', 'github_pat_', 'gho_'].some((p) => t.startsWith(p));
-  const looksAnthropic = t.startsWith('sk-ant-');
-  if (kind === 'notion' && (looksGithub || looksAnthropic))
-    return looksGithub ? 'onb.token.notionWrongGithub' : 'onb.token.wrongAnthropic';
-  if (kind === 'github' && (looksNotion || looksAnthropic))
-    return looksNotion ? 'onb.token.githubWrongNotion' : 'onb.token.wrongAnthropic';
-  return null;
-}
-
-type NotionEntry = {
-  label: string;
-  token: string;
-  status: Status;
-  error?: string;
-  persons: { id: string; name: string }[];
-  personId: string;
-  query: string;
-  pages: NotionPage[];
-  pageId: string;
-  searching: boolean;
-  searched: boolean;
-  databases: NotionDb[];
-  worklogDbId: string;
-  rollupDbId: string;
-};
-
-type GithubEntry = { label: string; token: string; status: Status; error?: string; login?: string };
-
-const STEPS = ['welcome', 'notion', 'github', 'claude', 'repos', 'review'] as const;
+const STEPS = ['welcome', 'github', 'claude', 'repos', 'review'] as const;
 type Step = (typeof STEPS)[number];
 const STEP_TITLE_KEY: Record<Step, I18nKey> = {
   welcome: 'onb.step.welcome',
-  notion: 'onb.step.notion',
   github: 'onb.step.github',
   claude: 'onb.step.claude',
   repos: 'onb.step.repos',
   review: 'onb.step.review',
 };
 
-const newNotion = (label: string): NotionEntry => ({
-  label,
-  token: '',
-  status: 'idle',
-  persons: [],
-  personId: '',
-  query: '',
-  pages: [],
-  pageId: '',
-  searching: false,
-  searched: false,
-  databases: [],
-  worklogDbId: '',
-  rollupDbId: '',
-});
-
 export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
-  const { t, settings } = useSettings();
+  const { t } = useSettings();
   const [stepIdx, setStepIdx] = useState(0);
   const step = STEPS[stepIdx]!;
-  const [notion, setNotion] = useState<NotionEntry[]>([newNotion('Personal')]);
   const [github, setGithub] = useState<GithubEntry[]>([
     { label: 'Personal', token: '', status: 'idle' },
   ]);
@@ -88,44 +35,8 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const [ghImporting, setGhImporting] = useState(false);
   const [ghMsg, setGhMsg] = useState<I18nKey | null>(null);
 
-  const patchNotion = (i: number, p: Partial<NotionEntry>) =>
-    setNotion((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
   const patchGithub = (i: number, p: Partial<GithubEntry>) =>
     setGithub((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
-
-  async function testNotion(i: number) {
-    const e = notion[i]!;
-    if (!e.token.trim()) return;
-    patchNotion(i, { status: 'testing', error: undefined });
-    const r = await window.cairn.onboarding.probeNotion(e.token.trim());
-    if (!r.ok) {
-      patchNotion(i, { status: 'err', error: r.error });
-      return;
-    }
-    patchNotion(i, {
-      status: 'ok',
-      persons: r.persons,
-      personId: r.persons.length === 1 ? r.persons[0]!.id : '',
-    });
-    void searchPages(i);
-  }
-
-  async function searchPages(i: number) {
-    const e = notion[i]!;
-    patchNotion(i, { searching: true });
-    try {
-      const pages = await window.cairn.onboarding.searchNotion(e.token.trim(), e.query);
-      patchNotion(i, { pages, searched: true });
-    } finally {
-      patchNotion(i, { searching: false });
-    }
-  }
-
-  async function loadDatabases(i: number, pageId: string) {
-    const e = notion[i]!;
-    const dbs = await window.cairn.onboarding.listDatabases(e.token.trim(), pageId);
-    patchNotion(i, { databases: dbs });
-  }
 
   async function testGithub(i: number) {
     const e = github[i]!;
@@ -170,30 +81,15 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     }
   }
 
-  const notionValid = notion.some((e) => e.status === 'ok' && e.pageId && e.personId);
+  // 최소 요건: 활동 소스(GitHub 계정 또는 로컬 Git 레포) 하나 + Claude. 노션은 Preferences 연동 탭에서.
+  const sourceValid = repos.length > 0 || github.some((e) => e.status === 'ok' && e.token.trim());
+  const claudeValid = claudeStatus === 'ok' || !!anthropicKey.trim();
 
   async function finish() {
     setFinishing(true);
     setFinishErr(null);
     const r = await window.cairn.onboarding.finish({
-      notion: notion
-        .filter((e) => e.status === 'ok' && e.pageId && e.personId)
-        .map((e) => {
-          const worklogDb = e.databases.find((d) => d.databaseId === e.worklogDbId);
-          const rollupDb = e.databases.find((d) => d.databaseId === e.rollupDbId);
-          return {
-            label: e.label,
-            token: e.token.trim(),
-            pageId: e.pageId,
-            myUserId: e.personId,
-            worklogDb: worklogDb
-              ? { databaseId: worklogDb.databaseId, dataSourceId: worklogDb.dataSourceId }
-              : undefined,
-            rollupDb: rollupDb
-              ? { databaseId: rollupDb.databaseId, dataSourceId: rollupDb.dataSourceId }
-              : undefined,
-          };
-        }),
+      notion: [],
       github: github
         .filter((e) => e.status === 'ok' && e.token.trim())
         .map((e) => ({ label: e.label, token: e.token.trim() })),
@@ -212,15 +108,14 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   }
 
   useEffect(() => {
+    // claude 스텝 첫 진입 시 1회 자동 확인 (idle 가드로 멱등)
     if (step === 'claude' && claudeStatus === 'idle') void testClaude();
-  }, [step]);
+  }, [step, claudeStatus]);
 
   async function addRepo() {
     const p = await window.cairn.onboarding.pickFolder();
     if (p && !repos.includes(p)) setRepos((prev) => [...prev, p]);
   }
-
-  const canNext = step === 'notion' ? notionValid : true;
 
   return (
     <div className="panel-enter flex h-screen w-screen flex-col bg-canvas text-ink">
@@ -265,50 +160,6 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             className="flex-1 overflow-y-auto [scrollbar-gutter:stable]"
           >
             {step === 'welcome' && <Welcome t={t} />}
-            {step === 'notion' && (
-              <Section
-                desc={t('onb.notion.desc')}
-                links={[
-                  { label: t('onb.notion.link'), url: 'https://www.notion.so/my-integrations' },
-                ]}
-              >
-                <a
-                  href="https://cairnlog.cloud/setup/notion"
-                  onClick={(ev) => {
-                    ev.preventDefault();
-                    void window.cairn.openExternal(
-                      `https://cairnlog.cloud${settings.language === 'ko' ? '/ko' : ''}/setup/notion`,
-                    );
-                  }}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-surface-1 px-4 py-3 text-[13px] text-ink-muted transition-colors hover:border-ink-subtle hover:text-ink"
-                >
-                  <span>{t('onb.notion.webGuide')}</span>
-                  <ExternalLink size={14} strokeWidth={2} className="shrink-0 text-ink-tertiary" />
-                </a>
-                {notion.map((e, i) => (
-                  <NotionCard
-                    key={i}
-                    e={e}
-                    onChange={(p) => patchNotion(i, p)}
-                    onTest={() => void testNotion(i)}
-                    onSearch={() => void searchPages(i)}
-                    onSelectPage={(pageId) => {
-                      patchNotion(i, { pageId, worklogDbId: '', rollupDbId: '' });
-                      void loadDatabases(i, pageId);
-                    }}
-                    onRemove={
-                      notion.length > 1
-                        ? () => setNotion((p) => p.filter((_, x) => x !== i))
-                        : undefined
-                    }
-                  />
-                ))}
-                <AddButton
-                  label={t('onb.notion.add')}
-                  onClick={() => setNotion((p) => [...p, newNotion(`Workspace ${p.length + 1}`)])}
-                />
-              </Section>
-            )}
             {step === 'github' && (
               <Section
                 desc={t('onb.github.desc')}
@@ -338,7 +189,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   >
                     {ghImporting ? t('onb.github.ghImporting') : t('onb.github.ghImport')}
                   </button>
-                  {ghMsg && <p className="mt-2 text-[12px] text-[#f87171]">{t(ghMsg)}</p>}
+                  {ghMsg && <p className="mt-2 text-[12px] text-danger">{t(ghMsg)}</p>}
                 </div>
                 <div className="flex items-center gap-2.5 py-0.5">
                   <span className="h-px flex-1 bg-hairline" />
@@ -432,7 +283,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                     </span>
                   )}
                   {claudeStatus === 'err' && (
-                    <span className="text-[13px] text-[#f87171]">{t('onb.claude.failed')}</span>
+                    <span className="text-[13px] text-danger">{t('onb.claude.failed')}</span>
                   )}
                   {claudeStatus === 'testing' && (
                     <span className="text-[12px] text-ink-tertiary">{t('onb.claude.testing')}</span>
@@ -470,10 +321,6 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
               <Section desc={t('onb.review.desc')}>
                 <ul className="flex flex-col gap-1.5 text-[13px] text-ink-muted">
                   <li>
-                    {t('onb.review.notion')}{' '}
-                    {notion.filter((e) => e.status === 'ok' && e.pageId).length}
-                  </li>
-                  <li>
                     {t('onb.review.github')} {github.filter((e) => e.status === 'ok').length}
                   </li>
                   <li>
@@ -485,14 +332,20 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   <li>
                     {t('onb.review.repos')} {repos.length}
                   </li>
+                  <li className="text-ink-tertiary">{t('onb.review.notionLater')}</li>
                 </ul>
-                {claudeStatus !== 'ok' && !anthropicKey.trim() && (
-                  <div className="rounded-lg border border-[#fbbf24]/30 bg-[#fbbf24]/10 p-3 text-[12px] leading-relaxed text-[#fbbf24]">
+                {!sourceValid && (
+                  <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-[12px] leading-relaxed text-warning">
+                    {t('onb.review.needSource')}
+                  </div>
+                )}
+                {!claudeValid && (
+                  <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-[12px] leading-relaxed text-warning">
                     {t('onb.review.warnNoClaude')}
                   </div>
                 )}
                 {finishErr && (
-                  <p className="text-[13px] text-[#f87171]">
+                  <p className="text-[13px] text-danger">
                     {t('onb.review.failPrefix')}: {finishErr}
                   </p>
                 )}
@@ -524,7 +377,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             {step === 'review' ? (
               <button
                 type="button"
-                disabled={finishing || !notionValid}
+                disabled={finishing || !sourceValid || !claudeValid}
                 onClick={() => void finish()}
                 className="flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
               >
@@ -534,7 +387,6 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             ) : (
               <button
                 type="button"
-                disabled={!canNext}
                 onClick={() => setStepIdx((s) => s + 1)}
                 className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
               >
@@ -580,9 +432,6 @@ function Welcome({ t }: { t: T }) {
         </p>
       </motion.div>
       <motion.ul variants={RISE} className="flex flex-col gap-1.5 text-[13px] text-ink-subtle">
-        <li>
-          <span className="text-ink-muted">Notion</span> — {t('onb.welcome.notion')}
-        </li>
         <li>
           <span className="text-ink-muted">GitHub</span> — {t('onb.welcome.github')}
         </li>
@@ -670,249 +519,5 @@ function AddButton({
     >
       <Icon size={14} strokeWidth={2} /> {label}
     </button>
-  );
-}
-
-function StatusDot({ status }: { status: Status }) {
-  if (status === 'testing')
-    return <Loader2 size={14} strokeWidth={2} className="animate-spin text-accent" />;
-  if (status === 'ok') return <Check size={14} strokeWidth={2.5} className="text-success" />;
-  return null;
-}
-
-function LabelToken({
-  kind,
-  label,
-  token,
-  status,
-  onChange,
-  onTest,
-  onRemove,
-}: {
-  kind: TokenKind;
-  label: string;
-  token: string;
-  status: Status;
-  onChange: (p: { label?: string; token?: string }) => void;
-  onTest: () => void;
-  onRemove?: () => void;
-}) {
-  const { t } = useSettings();
-  const mismatchKey = tokenMismatchKey(kind, token);
-  const onTestRef = useRef(onTest);
-  onTestRef.current = onTest;
-  const first = useRef(true);
-  useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
-    if (!token.trim() || mismatchKey) return;
-    const id = setTimeout(() => onTestRef.current(), 800);
-    return () => clearTimeout(id);
-  }, [token]);
-
-  return (
-    <>
-      <div className="flex items-center gap-2">
-        <input
-          value={label}
-          onChange={(e) => onChange({ label: e.target.value })}
-          placeholder={t('onb.field.labelPh')}
-          className="w-24 rounded-md border border-hairline bg-surface-1 px-2.5 py-2 text-[13px] text-ink focus:border-accent/60 focus:outline-none"
-        />
-        <input
-          type="password"
-          value={token}
-          onChange={(e) => onChange({ token: e.target.value })}
-          placeholder={t('onb.field.tokenPh')}
-          className="flex-1 rounded-md border border-hairline bg-surface-1 px-2.5 py-2 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/60 focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={onTest}
-          disabled={!token.trim() || status === 'testing' || !!mismatchKey}
-          className="shrink-0 rounded-md border border-hairline px-2.5 py-2 text-[12px] text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
-        >
-          {t('onb.field.test')}
-        </button>
-        <StatusDot status={status} />
-        {onRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="shrink-0 text-ink-tertiary hover:text-ink"
-          >
-            <Trash2 size={14} strokeWidth={2} />
-          </button>
-        )}
-      </div>
-      {mismatchKey && <p className="text-[12px] text-[#fbbf24]">{t(mismatchKey)}</p>}
-    </>
-  );
-}
-
-function NotionCard({
-  e,
-  onChange,
-  onTest,
-  onSearch,
-  onSelectPage,
-  onRemove,
-}: {
-  e: NotionEntry;
-  onChange: (p: Partial<NotionEntry>) => void;
-  onTest: () => void;
-  onSearch: () => void;
-  onSelectPage: (pageId: string) => void;
-  onRemove?: () => void;
-}) {
-  const { t } = useSettings();
-  return (
-    <div className="flex flex-col gap-2.5 rounded-lg border border-hairline bg-surface-1 p-3">
-      <LabelToken
-        kind="notion"
-        label={e.label}
-        token={e.token}
-        status={e.status}
-        onChange={onChange}
-        onTest={onTest}
-        onRemove={onRemove}
-      />
-      {e.status === 'err' && <p className="text-[12px] text-[#f87171]">{e.error}</p>}
-      {e.status === 'ok' && (
-        <>
-          {e.persons.length > 1 && (
-            <select
-              value={e.personId}
-              onChange={(ev) => onChange({ personId: ev.target.value })}
-              className="rounded-md border border-hairline bg-surface-2 px-2.5 py-2 text-[13px] text-ink"
-            >
-              <option value="">{t('onb.notion.selectAccount')}</option>
-              {e.persons.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          )}
-          <div className="flex items-center gap-2">
-            <input
-              value={e.query}
-              onChange={(ev) => onChange({ query: ev.target.value })}
-              onKeyDown={(ev) => {
-                if (ev.key === 'Enter') onSearch();
-              }}
-              placeholder={t('onb.notion.searchPh')}
-              className="flex-1 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/60 focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={onSearch}
-              disabled={e.searching}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1.5 text-[12px] text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
-            >
-              {e.searching ? (
-                <Loader2 size={12} strokeWidth={2} className="animate-spin" />
-              ) : (
-                <Search size={12} strokeWidth={2} />
-              )}
-              {t('onb.notion.search')}
-            </button>
-          </div>
-          {e.pages.length > 0 && (
-            <div className="max-h-44 overflow-y-auto rounded-md border border-hairline [scrollbar-gutter:stable]">
-              {e.pages.map((pg) => (
-                <button
-                  key={pg.id}
-                  type="button"
-                  onClick={() => onSelectPage(pg.id)}
-                  className={[
-                    'flex w-full items-center gap-2 border-b border-hairline px-3 py-2 text-left text-[13px] last:border-b-0 hover:bg-surface-2',
-                    e.pageId === pg.id ? 'text-ink' : 'text-ink-muted',
-                  ].join(' ')}
-                >
-                  <span className="flex size-4 shrink-0 items-center justify-center">
-                    {e.pageId === pg.id && (
-                      <Check size={13} strokeWidth={2.5} className="text-accent" />
-                    )}
-                  </span>
-                  <span className="truncate">{pg.title}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {e.searched && !e.searching && e.pages.length === 0 && (
-            <p className="text-[12px] leading-relaxed text-ink-tertiary">
-              {t('onb.notion.searchEmpty')}
-            </p>
-          )}
-          {e.pageId && e.databases.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <p className="text-[12px] text-ink-tertiary">{t('onb.notion.dbHint')}</p>
-              <div className="flex gap-2">
-                <select
-                  value={e.worklogDbId}
-                  onChange={(ev) => onChange({ worklogDbId: ev.target.value })}
-                  className="flex-1 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink"
-                >
-                  <option value="">{t('onb.notion.worklogAuto')}</option>
-                  {e.databases.map((d) => (
-                    <option key={d.databaseId} value={d.databaseId}>
-                      {t('onb.notion.worklogPrefix')}: {d.title}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={e.rollupDbId}
-                  onChange={(ev) => onChange({ rollupDbId: ev.target.value })}
-                  className="flex-1 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink"
-                >
-                  <option value="">{t('onb.notion.rollupAuto')}</option>
-                  {e.databases.map((d) => (
-                    <option key={d.databaseId} value={d.databaseId}>
-                      {t('onb.notion.rollupPrefix')}: {d.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function GithubCard({
-  e,
-  onChange,
-  onTest,
-  onRemove,
-}: {
-  e: GithubEntry;
-  onChange: (p: Partial<GithubEntry>) => void;
-  onTest: () => void;
-  onRemove?: () => void;
-}) {
-  const { t } = useSettings();
-  return (
-    <div className="flex flex-col gap-2 rounded-lg border border-hairline bg-surface-1 p-3">
-      <LabelToken
-        kind="github"
-        label={e.label}
-        token={e.token}
-        status={e.status}
-        onChange={onChange}
-        onTest={onTest}
-        onRemove={onRemove}
-      />
-      {e.status === 'err' && <p className="text-[12px] text-[#f87171]">{e.error}</p>}
-      {e.status === 'ok' && e.login && (
-        <p className="text-[12px] text-ink-subtle">
-          @{e.login} {t('onb.github.connected')}
-        </p>
-      )}
-    </div>
   );
 }

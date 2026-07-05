@@ -11,6 +11,7 @@ import { LangSwitcher } from './lang-switcher';
 import { Nav } from './nav';
 import { Reveal } from './reveal';
 import { Screenshot } from './screenshot';
+import { Accordion } from './ui/accordion';
 import { BentoGrid, type BentoItem } from './ui/bento-grid';
 
 const HL_ICONS = [GitPullRequest, Sparkles, CalendarDays, LayoutDashboard, ShieldCheck];
@@ -40,7 +41,7 @@ export async function Landing({ lang }: { lang: Lang }) {
   });
 
   return (
-    <div id="top">
+    <div id="top" className="pt-14">
       <Nav stars={stars} lang={lang} />
 
       <section className="relative px-6 pt-16 pb-20 sm:pt-24">
@@ -110,7 +111,7 @@ export async function Landing({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      <section id="how" className="mx-auto max-w-6xl px-6 py-24">
+      <section id="how" className="mx-auto max-w-6xl scroll-mt-14 px-6 py-24">
         <SectionHead eyebrow={c.how.eyebrow} title={c.how.title} lead={c.how.lead} />
         <div className="mt-14 grid grid-cols-1 gap-3 md:grid-cols-4 md:grid-rows-2">
           <Reveal className="md:col-span-2 md:row-span-2">
@@ -161,7 +162,7 @@ export async function Landing({ lang }: { lang: Lang }) {
         </Reveal>
       </section>
 
-      <section id="highlights" className="mx-auto max-w-6xl px-6 pb-24">
+      <section id="highlights" className="mx-auto max-w-6xl scroll-mt-14 px-6 pb-24">
         <SectionHead
           eyebrow={c.highlights.eyebrow}
           title={c.highlights.title}
@@ -172,7 +173,7 @@ export async function Landing({ lang }: { lang: Lang }) {
         </Reveal>
       </section>
 
-      <section id="output" className="border-y border-hairline bg-surface-1/40">
+      <section id="output" className="scroll-mt-14 border-y border-hairline bg-surface-1/40">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <SectionHead eyebrow={c.output.eyebrow} title={c.output.title} lead={c.output.lead} />
           <ul className="mx-auto mt-8 flex max-w-3xl flex-wrap justify-center gap-2.5">
@@ -203,7 +204,7 @@ export async function Landing({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      <section id="setup" className="mx-auto max-w-6xl px-6 py-24">
+      <section id="setup" className="mx-auto max-w-6xl scroll-mt-14 px-6 py-24">
         <SectionHead eyebrow={c.setup.eyebrow} title={c.setup.title} lead={c.setup.lead} />
         <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
           <SetupCard tag="Notion" title={c.setup.notion.title}>
@@ -257,6 +258,13 @@ export async function Landing({ lang }: { lang: Lang }) {
             {c.setup.gatekeeperPost}
           </p>
         </div>
+      </section>
+
+      <section id="faq" className="mx-auto max-w-6xl scroll-mt-14 px-6 pb-24">
+        <SectionHead eyebrow={c.faq.eyebrow} title={c.faq.title} lead={c.faq.lead} />
+        <Reveal delay={0.06} className="mx-auto mt-12 max-w-2xl">
+          <Accordion items={c.faq.items} idPrefix="faq" />
+        </Reveal>
       </section>
 
       <section className="px-6 pb-24">

@@ -48,8 +48,11 @@ export class GithubCollectorService {
     // 과거 (backfill) 만 widening 적용해서 updated_at 이 밀린 케이스 cover
     const isBackfill = date < todayLocalIsoDate();
     const effectiveLookback = isBackfill ? lookbackDays : 0;
-    const widenedRange =
-      effectiveLookback > 0 ? `>=${localDateStartIsoBefore(date, effectiveLookback)}` : range;
+    // backfill 은 updated_at 이 D 이후로 밀린 PR 까지 잡으려 lower bound 만 둔다(상한 없음).
+    // 매우 활발한 계정의 오래된 날짜 backfill 은 updated-desc 1000 cap 에 잘릴 수 있음 — 페이징 재설계는 별도 과제.
+    const backfillLowerBoundIso =
+      effectiveLookback > 0 ? localDateStartIsoBefore(date, effectiveLookback) : null;
+    const widenedRange = backfillLowerBoundIso ? `>=${backfillLowerBoundIso}` : range;
     const accounts = this.worklogConfig.getGithubAccounts();
 
     if (accounts.length === 0) {
@@ -70,7 +73,13 @@ export class GithubCollectorService {
 
     const settled = await Promise.allSettled(
       accounts.map((account) =>
-        this.collectAccount(account, range, widenedRange, window.startIso, window.endIso),
+        this.collectAccount(
+          account,
+          widenedRange,
+          backfillLowerBoundIso,
+          window.startIso,
+          window.endIso,
+        ),
       ),
     );
 
@@ -106,8 +115,8 @@ export class GithubCollectorService {
 
   private async collectAccount(
     account: GithubAccountConfig,
-    range: string,
     widenedRange: string,
+    backfillLowerBoundIso: string | null,
     sinceIso: string,
     untilIso: string,
   ): Promise<GithubPrSummary[]> {
@@ -117,7 +126,10 @@ export class GithubCollectorService {
     }
 
     const loginPromise = this.client.getAuthenticatedLogin(token);
-    const involved = await this.client.searchPrs(token, `involves:@me updated:${widenedRange}`);
+    // backfill 은 캐시 경로 — 동시 backfill 날짜들이 lower bound 만 다른 동일 검색을 공유
+    const involved = backfillLowerBoundIso
+      ? await this.client.searchPrsUpdatedSince(token, 'involves:@me', backfillLowerBoundIso)
+      : await this.client.searchPrs(token, `involves:@me updated:${widenedRange}`);
     const myLogin = await loginPromise;
 
     const buckets = new Map<string, PrBucket>();
@@ -145,10 +157,9 @@ export class GithubCollectorService {
     // GitHub API secondary rate limit 회피를 위해 token 당 동시 호출 5 개로 제한
     const phase1 = await withConcurrency([...buckets.values()], 5, async (bucket) => {
       const { item, categories } = bucket;
-      const skipCommitsOnDate = categories.has('authored_merged') && item.createdAt < sinceIso;
       const createdInDay = item.createdAt >= sinceIso && item.createdAt <= untilIso;
       const hasAuthoredMerged = categories.has('authored_merged');
-      const needsCommitsForEligibility = !skipCommitsOnDate && !hasAuthoredMerged && !createdInDay;
+      const needsCommitsForEligibility = !hasAuthoredMerged && !createdInDay;
       const commitsOnDate = needsCommitsForEligibility
         ? await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin)
         : [];
@@ -171,6 +182,16 @@ export class GithubCollectorService {
     let summaryCommitLookupCount = 0;
     const summaries = await withConcurrency(eligible, 5, async ({ bucket, commitsOnDate }) => {
       const { account: acc, item, categories } = bucket;
+      // title 은 필수 필드라 null 화 불가 — 금지 패턴이면 PR 만 drop (전체 payload 백스톱이 하루치 발행을 막지 않게)
+      try {
+        assertNoForbiddenPayload(item.title, `github.pr-title.${item.repo}#${item.number}`);
+      } catch {
+        this.logger.warn(
+          { repo: item.repo, number: item.number },
+          'pr title contains forbidden pattern — pr dropped',
+        );
+        return null;
+      }
       const shouldFetchCommitsForSummary = commitsOnDate.length === 0;
       const summaryCommitsOnDate = shouldFetchCommitsForSummary
         ? await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin)
@@ -199,7 +220,7 @@ export class GithubCollectorService {
       { account: account.label, summaryCommitLookupCount },
       'github collect account summarized',
     );
-    return summaries;
+    return summaries.filter((s) => s !== null);
   }
 
   private async fetchSafeCommitsOnDate(
@@ -259,7 +280,7 @@ export class GithubCollectorService {
       assertNoForbiddenPayload(truncated, `github.pr-body.${item.repo}#${item.number}`);
     } catch (err) {
       this.logger.warn(
-        { repo: item.repo, number: item.number, err: CairnError.from(err, 'github').message },
+        { repo: item.repo, number: item.number, err: CairnError.from(err, 'github').code },
         'pr body contains forbidden pattern — body dropped',
       );
       return null;

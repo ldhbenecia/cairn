@@ -2,6 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import type { LucideIcon } from 'lucide-react';
 import {
   Bell,
+  Blocks,
   CalendarClock,
   CreditCard,
   Info,
@@ -20,6 +21,7 @@ import { AutoPublishTab } from './preferences/autopublish-tab';
 import { BillingTab } from './preferences/billing-tab';
 import { ConnectionsTab } from './preferences/connections-tab';
 import { FeedbackTab } from './preferences/feedback-tab';
+import { IntegrationsTab } from './preferences/integrations-tab';
 import { NotificationsTab } from './preferences/notifications-tab';
 import { PromptsTab } from './preferences/prompts-tab';
 
@@ -29,15 +31,18 @@ type TabId =
   | 'autopublish'
   | 'prompts'
   | 'connections'
+  | 'integrations'
   | 'billing'
   | 'feedback'
   | 'about';
 
+// 사용 빈도순 — 발행 스케줄·연동이 일상 조작, 소스 연결·결제는 설정 후 거의 안 봄
 const TABS: { id: TabId; icon: LucideIcon; labelKey: I18nKey }[] = [
   { id: 'appearance', icon: Monitor, labelKey: 'prefs.appearance' },
-  { id: 'notifications', icon: Bell, labelKey: 'prefs.notifications' },
   { id: 'autopublish', icon: CalendarClock, labelKey: 'prefs.autoPublish' },
+  { id: 'integrations', icon: Blocks, labelKey: 'prefs.integrations' },
   { id: 'prompts', icon: SquarePen, labelKey: 'prefs.prompts' },
+  { id: 'notifications', icon: Bell, labelKey: 'prefs.notifications' },
   { id: 'connections', icon: Link2, labelKey: 'prefs.connections' },
   { id: 'billing', icon: CreditCard, labelKey: 'prefs.billing' },
   { id: 'feedback', icon: MessageSquare, labelKey: 'prefs.feedback' },
@@ -48,9 +53,10 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRerunSetup: () => void;
+  blockEscape?: boolean;
 };
 
-export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
+export function PreferencesDialog({ open, onOpenChange, onRerunSetup, blockEscape }: Props) {
   const { t } = useSettings();
   const [tab, setTab] = useState<TabId>('appearance');
 
@@ -60,6 +66,17 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50" />
         <Dialog.Content
           onOpenAutoFocus={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => {
+            // cmd+K 팔레트가 위에 떠 있으면 ESC 는 팔레트만 닫는다
+            if (blockEscape) e.preventDefault();
+          }}
+          onPointerDownOutside={(e) => {
+            // 팔레트 오버레이가 전체를 덮어 모든 클릭이 outside 로 판정됨 — 팔레트만 닫는다
+            if (blockEscape) e.preventDefault();
+          }}
+          onInteractOutside={(e) => {
+            if (blockEscape) e.preventDefault();
+          }}
           style={{ width: 920, height: 600, maxWidth: '92vw', maxHeight: '86vh' }}
           className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 focus:outline-none"
         >
@@ -109,6 +126,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
                     }}
                   />
                 )}
+                {tab === 'integrations' && <IntegrationsTab />}
                 {tab === 'billing' && <BillingTab />}
                 {tab === 'feedback' && <FeedbackTab />}
                 {tab === 'about' && <AboutTab />}

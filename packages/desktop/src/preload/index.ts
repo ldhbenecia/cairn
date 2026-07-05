@@ -14,18 +14,29 @@ export type AutoPublish = {
   confirmBeforeRun: boolean;
 };
 export type ExportConfig = { folder: string | null; autoSync: boolean };
+export type GraphLabels = 'auto' | 'always' | 'hover';
+export type GraphConfig = {
+  enabled: boolean;
+  nodeScale: number;
+  spread: number;
+  gravity: number;
+  labels: GraphLabels;
+  showRollups: boolean;
+};
 export type Settings = {
   theme: Theme;
   accent: string;
   liquidGlass: boolean;
   language: Language;
   notifications: boolean;
+  launchAtLogin: boolean;
   telemetry: boolean;
   installId: string;
   autoPublish: AutoPublish;
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
   summaryModel: SummaryModel;
   export: ExportConfig;
+  graph: GraphConfig;
 };
 
 // 무플래시: 첫 페인트 전 동기로 설정을 받는다 (sandbox preload 라 fs 불가 → sendSync)
@@ -53,6 +64,7 @@ export type RunProgress = {
   active: number;
   dates: string[];
   doneDates: string[];
+  failedDates: string[];
   stepByDate: Record<string, DateStep>;
   countsByDate: Record<string, DateCounts>;
 };
@@ -67,9 +79,16 @@ export type RunSnapshot = {
 };
 
 export type SaveResult = { saved: boolean; path?: string; error?: string };
+export type ExportStatus = {
+  folder: string | null;
+  isVault: boolean;
+  fileCount: number;
+  lastSyncAt: number | null;
+};
 
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
-export type LogTailResult = { lines: string[]; path: string | null };
+
+export type WorklogSink = 'journal' | 'notion' | 'obsidian';
 
 export type RecentPage = {
   pageId: string;
@@ -77,13 +96,24 @@ export type RecentPage = {
   title: string;
   date: string | null;
   status: string | null;
+  category: 'daily' | 'weekly' | 'monthly';
+  pr: number | null;
+  commit: number | null;
+  hours: number[] | null;
   workspaceLabel: string;
+  sinks?: WorklogSink[];
 };
 
 export type CloudUser = { name: string; email: string; image: string | null };
 export type CloudAuthState = { signedIn: boolean; user: CloudUser | null };
 
-export type RecentListResult = { pages: RecentPage[]; warnings: string[] };
+export type RecentWarning =
+  | { code: 'no-workspaces' }
+  | { code: 'token-missing'; workspace: string; tokenEnv: string }
+  | { code: 'no-data-source'; workspace: string }
+  | { code: 'fetch-failed'; workspace: string; kind: 'worklog' | 'rollup'; detail: string };
+
+export type RecentListResult = { pages: RecentPage[]; warnings: RecentWarning[] };
 
 export type CoreResult = {
   ok: boolean;
@@ -91,9 +121,12 @@ export type CoreResult = {
   notionUrl: string | null;
   publishKind: PublishKind;
   publishPageId: string | null;
+  journalFile: string | null;
   noActivity: boolean;
   cancelled: boolean;
   summaryFailed: boolean;
+  prCount: number;
+  commitCount: number;
   stderrTail: string;
 };
 
@@ -130,6 +163,17 @@ contextBridge.exposeInMainWorld('cairn', {
       ipcRenderer.invoke('cairn:onboarding:finish', payload) as Promise<unknown>,
     pickFolder: () => ipcRenderer.invoke('cairn:onboarding:pick-folder') as Promise<string | null>,
   },
+  connections: {
+    accounts: () =>
+      ipcRenderer.invoke('cairn:connections:accounts') as Promise<{
+        github: { label: string; login?: string }[];
+        notion: { label: string; workspace?: string }[];
+      }>,
+  },
+  integrations: {
+    addNotion: (payload: unknown) =>
+      ipcRenderer.invoke('cairn:integrations:add-notion', payload) as Promise<unknown>,
+  },
   cloud: {
     state: () => ipcRenderer.invoke('cairn:auth:state') as Promise<CloudAuthState>,
     signIn: () => ipcRenderer.invoke('cairn:auth:sign-in') as Promise<void>,
@@ -164,6 +208,10 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:export:save-markdown', defaultName, content) as Promise<SaveResult>,
   pickExportFolder: (): Promise<string | null> =>
     ipcRenderer.invoke('cairn:export:pick-folder') as Promise<string | null>,
+  exportStatus: (): Promise<ExportStatus> =>
+    ipcRenderer.invoke('cairn:export:status') as Promise<ExportStatus>,
+  revealExportFolder: (): Promise<string> =>
+    ipcRenderer.invoke('cairn:export:reveal') as Promise<string>,
   testNotification: (): Promise<{ supported: boolean }> =>
     ipcRenderer.invoke('cairn:notify:test') as Promise<{ supported: boolean }>,
   exportPdf: (defaultName: string, html: string): Promise<SaveResult> =>
@@ -206,8 +254,6 @@ contextBridge.exposeInMainWorld('cairn', {
   },
   readConfig: (): Promise<ConfigResult> =>
     ipcRenderer.invoke('cairn:config:read') as Promise<ConfigResult>,
-  tailLogs: (): Promise<LogTailResult> =>
-    ipcRenderer.invoke('cairn:logs:tail') as Promise<LogTailResult>,
   listRecent: (): Promise<RecentListResult> =>
     ipcRenderer.invoke('cairn:recent:list') as Promise<RecentListResult>,
   pageContent: (pageId: string, workspaceLabel: string): Promise<unknown> =>

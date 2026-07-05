@@ -3,16 +3,17 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type { WorklogLang } from '../cairn/run-options.js';
 import { isOperator } from '../common/operator.js';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
+import { summaryModelLabel } from '../common/summary-model.js';
 import type { GithubActivity } from '../contracts/github-activity.types.js';
 import type { LocalGitActivity } from '../contracts/local-git-activity.types.js';
 import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
+import { enforceBlockEgress } from './block-egress.js';
 import { NotionApiClient } from './notion-api.client.js';
 import {
   bulletItem,
-  bulletsOrEmpty,
   callout,
   claudeCallout,
   codeBlock,
@@ -51,7 +52,7 @@ export class NotionPublisherService {
   ) {}
 
   async findPublishedDates(rangeStart: string, rangeEnd: string): Promise<Set<string>> {
-    const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
+    const target = this.worklogConfig.findWorklogWorkspace();
     if (!target) return new Set();
 
     const token = this.secrets.getEnv(target.tokenEnv);
@@ -77,8 +78,9 @@ export class NotionPublisherService {
     }
   }
 
-  async precheckDaily(date: string, force: boolean): Promise<PublishWorklogResult | null> {
-    const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
+  // force 실행에선 orchestrator 가 precheck 자체를 건너뛴다 — 여기선 non-force 만 가정
+  async precheckDaily(date: string): Promise<PublishWorklogResult | null> {
+    const target = this.worklogConfig.findWorklogWorkspace();
     if (!target) return { kind: 'no-target' };
 
     const token = this.secrets.getEnv(target.tokenEnv);
@@ -93,10 +95,7 @@ export class NotionPublisherService {
       if (existing.status === 'final') {
         return { kind: 'skipped', reason: 'final-protected', pageId: existing.pageId };
       }
-      if (!force) {
-        return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
-      }
-      return null;
+      return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
     } catch (err) {
       this.logger.warn({ date, err: String(err) }, 'precheckDaily failed — proceeding normally');
       return null;
@@ -104,14 +103,14 @@ export class NotionPublisherService {
   }
 
   async publish(input: PublishWorklogInput): Promise<PublishWorklogResult> {
-    const target = this.worklogConfig.getNotionWorkspaces().find((ws) => ws.worklog?.pageId);
+    const target = this.worklogConfig.findWorklogWorkspace();
     const startedAt = Date.now();
 
     this.logger.info({ date: input.date, force: input.force }, 'notion publish start');
 
     if (!target) {
       this.logger.warn(
-        'no notionWorkspace with worklog.pageId — publisher skipped (set worklog.pageId in worklog.config.json)',
+        'no notionWorkspace with worklog target — publisher skipped (set worklog.pageId or worklog.databaseId in worklog.config.json)',
       );
       return { kind: 'no-target' };
     }
@@ -195,15 +194,33 @@ export class NotionPublisherService {
     return { kind: 'created', pageId: created.id, url: created.url };
   }
 
+  private readonly dbInflight = new Map<
+    string,
+    Promise<{ databaseId: string; dataSourceId: string }>
+  >();
+
   private async ensureDatabaseAndDataSource(
     target: NotionWorkspaceConfig,
     token: string,
   ): Promise<{ databaseId: string; dataSourceId: string }> {
     const cached = target.worklog;
-
     if (cached?.databaseId && cached.dataSourceId) {
       return { databaseId: cached.databaseId, dataSourceId: cached.dataSourceId };
     }
+    const inflight = this.dbInflight.get(target.label);
+    if (inflight) return inflight;
+    const promise = this.resolveDatabaseAndDataSource(target, token).finally(() => {
+      this.dbInflight.delete(target.label);
+    });
+    this.dbInflight.set(target.label, promise);
+    return promise;
+  }
+
+  private async resolveDatabaseAndDataSource(
+    target: NotionWorkspaceConfig,
+    token: string,
+  ): Promise<{ databaseId: string; dataSourceId: string }> {
+    const cached = target.worklog;
 
     if (cached?.databaseId) {
       const dataSourceId = await this.client.getPrimaryDataSourceId(token, cached.databaseId);
@@ -243,9 +260,14 @@ export class NotionPublisherService {
     token: string,
     dataSourceId: string,
   ): Promise<{ id: string; url: string | null }> {
-    const children = input.summary
-      ? buildSummaryBlocks(input.summary, input)
-      : buildFallbackBlocks(input);
+    // fail-closed: 발행 직전 조립 블록에 금지 패턴이 섞이면(모델 입력은 pre-sanitize 되지만 방어선)
+    // 위반 블록만 drop 하고 발행 계속 — 전부 drop 이면 fallback 으로 degrade (ADR 0021 item-drop)
+    const children = enforceBlockEgress(
+      input.summary ? buildSummaryBlocks(input.summary, input) : buildFallbackBlocks(input),
+      () => buildFallbackBlocks(input),
+      `notion.publish.${input.date}`,
+      this.logger,
+    );
     this.logger.info(
       {
         date: input.date,
@@ -291,9 +313,12 @@ function buildSummaryBlocks(
 ): readonly unknown[] {
   const blocks: unknown[] = [];
 
+  const modelLabel = summaryModelLabel(summary.usage?.model);
   blocks.push(
     claudeCallout(
-      input.lang === 'en' ? 'Auto-generated by cairn.' : 'cairn 이 자동 생성한 일지입니다.',
+      input.lang === 'en'
+        ? `Auto-generated by cairn · ${modelLabel}`
+        : `cairn 이 자동 생성한 일지입니다 · ${modelLabel}`,
     ),
   );
 
@@ -302,7 +327,7 @@ function buildSummaryBlocks(
 
   if (summary.shareBullets.length > 0) {
     blocks.push(heading2('Share'));
-    blocks.push(...bulletsOrEmpty(summary.shareBullets));
+    blocks.push(...summary.shareBullets.map((t) => bulletItem(t)));
   }
 
   blocks.push(heading2('Done'));
@@ -310,7 +335,7 @@ function buildSummaryBlocks(
 
   if (summary.reviewedBullets.length > 0) {
     blocks.push(heading2('Reviewed'));
-    blocks.push(...bulletsOrEmpty(summary.reviewedBullets));
+    blocks.push(...summary.reviewedBullets.map((t) => bulletItem(t)));
   }
 
   if (summary.inProgressBullets.length > 0) {
@@ -403,36 +428,34 @@ export function buildDoneBlocks(
   const ACCT = /^\[([^\]]+)\]\s*/;
   const order: string[] = [];
   const groups = new Map<string, string[]>();
+  const origCase = new Map<string, string>();
   const ungrouped: string[] = [];
+  const titleCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+  // multi-account 에선 설정된 계정 라벨만 그룹 — [project] 프리픽스(local-git bullet)가
+  // 가짜 계정 heading 으로 렌더되지 않게. 대소문자 무시 매칭.
+  const accountKeys = new Set(accountLabels.map((a) => a.toLowerCase()));
   for (const b of bullets) {
     const m = ACCT.exec(b);
-    if (!m) {
+    if (!m || (accountLabels.length >= 2 && !accountKeys.has(m[1]!.toLowerCase()))) {
       ungrouped.push(b);
       continue;
     }
-    const acct = m[1]!;
-    if (!groups.has(acct)) {
-      groups.set(acct, []);
-      order.push(acct);
+    const key = m[1]!.toLowerCase();
+    if (!groups.has(key)) {
+      groups.set(key, []);
+      order.push(key);
+      origCase.set(key, m[1]!);
     }
-    groups.get(acct)!.push(b.slice(m[0].length));
+    groups.get(key)!.push(b.slice(m[0].length));
   }
 
   if (accountLabels.length >= 2) {
     const out: unknown[] = ungrouped.map((b) => bulletItem(b));
-    const shown = new Set<string>();
     for (const acct of accountLabels) {
-      shown.add(acct);
-      out.push(heading3(acct));
-      const items = groups.get(acct) ?? [];
+      out.push(heading3(titleCase(acct)));
+      const items = groups.get(acct.toLowerCase()) ?? [];
       if (items.length === 0) out.push(paragraph('None'));
       else for (const text of items) out.push(bulletItem(text));
-    }
-    // 모델이 설정 목록에 없는 라벨로 붙인 경우(예외)도 유지
-    for (const acct of order) {
-      if (shown.has(acct)) continue;
-      out.push(heading3(acct));
-      for (const text of groups.get(acct)!) out.push(bulletItem(text));
     }
     return out;
   }
@@ -440,9 +463,9 @@ export function buildDoneBlocks(
   if (bullets.length === 0) return [paragraph('—')];
   if (groups.size === 0) return bullets.map((t) => bulletItem(t));
   const out: unknown[] = ungrouped.map((b) => bulletItem(b));
-  for (const acct of order) {
-    out.push(heading3(acct));
-    for (const text of groups.get(acct)!) out.push(bulletItem(text));
+  for (const key of order) {
+    out.push(heading3(titleCase(origCase.get(key)!)));
+    for (const text of groups.get(key)!) out.push(bulletItem(text));
   }
   return out;
 }

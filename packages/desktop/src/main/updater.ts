@@ -13,8 +13,12 @@ export function initUpdater(): void {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
 
+  let notifiedVersion: string | null = null;
   autoUpdater.on('update-available', (info) => {
     if (!readSettings().notifications || !Notification.isSupported()) return;
+    // 6시간 주기 재체크마다 같은 버전을 반복 알림하지 않음
+    if (info.version === notifiedVersion) return;
+    notifiedVersion = info.version;
     const noti = new Notification({
       title: mt('updater.title'),
       body: mt('updater.body', { version: info.version }),

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import hljs from 'highlight.js/lib/common';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import hljs from 'highlight.js';
 import {
   Check,
+  ChevronRight,
   Copy,
   ExternalLink,
   FileDown,
@@ -12,10 +13,10 @@ import {
 } from 'lucide-react';
 import type { PageContent, RecentPage, RichSpan, SimpleBlock } from '../cairn-api';
 import { sectionBullets } from '../lib/blocks';
-import { blocksToMarkdown } from '../lib/markdown';
+import { pageSinks, sinkLabel } from '../lib/sinks';
+import { blocksToMarkdown } from '../../../shared/markdown';
 import { blocksToHtml } from '../../../shared/html';
 import { useSettings } from '../settings-context';
-import 'highlight.js/styles/github-dark.css';
 
 type Props = { page: RecentPage; onClose: () => void };
 
@@ -165,6 +166,9 @@ export function WorklogDrawer({ page, onClose }: Props) {
     };
   }, [page.pageId, page.workspaceLabel]);
 
+  const resizeCleanup = useRef<(() => void) | null>(null);
+  useEffect(() => () => resizeCleanup.current?.(), []);
+
   function requestClose() {
     setClosing(true);
     setTimeout(onClose, 200);
@@ -175,20 +179,32 @@ export function WorklogDrawer({ page, onClose }: Props) {
     const max = Math.min(900, Math.round(window.innerWidth * 0.92));
     const onMove = (ev: MouseEvent) =>
       setWidth(Math.min(max, Math.max(360, window.innerWidth - ev.clientX)));
-    const onUp = () => {
+    function cleanup() {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      window.removeEventListener('blur', onUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-    };
+      resizeCleanup.current = null;
+    }
+    function onUp() {
+      cleanup();
+    }
+    resizeCleanup.current = cleanup; // 드래그 중 drawer 언마운트 시 리스너 정리(누수 방지)
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
+    // 창 밖에서 버튼을 놓으면 mouseup 이 안 옴 — blur 로도 종료
+    window.addEventListener('blur', onUp);
   }
 
   return (
-    <div className="fixed inset-0 z-50 [-webkit-app-region:no-drag]">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 [-webkit-app-region:no-drag]"
+    >
       <div
         onMouseDown={requestClose}
         className={[
@@ -213,8 +229,11 @@ export function WorklogDrawer({ page, onClose }: Props) {
         <div className="flex items-start gap-3 border-b border-hairline px-5 py-4 [-webkit-app-region:drag]">
           <div className="min-w-0 flex-1 cursor-text select-text [-webkit-app-region:no-drag]">
             <p className="truncate text-[15px] font-semibold text-ink">{page.title}</p>
-            <p className="mt-0.5 font-mono text-[12px] text-ink-tertiary">
-              {page.date ?? '—'} · {page.workspaceLabel}
+            <p className="mt-0.5 truncate font-mono text-[12px] text-ink-tertiary">
+              {page.date ?? '—'} ·{' '}
+              {pageSinks(page)
+                .map((s) => sinkLabel(s, page, t('source.localDesc')))
+                .join(' · ')}
             </p>
           </div>
           {actions.length > 0 && (
@@ -339,15 +358,41 @@ function Rich({ spans }: { spans: RichSpan[] }) {
   );
 }
 
+// Notion 코드블록 언어명 → highlight.js 식별자 (불일치하는 것만)
+const LANG_ALIAS: Record<string, string> = {
+  'c++': 'cpp',
+  'c#': 'csharp',
+  'f#': 'fsharp',
+  'objective-c': 'objectivec',
+  'plain text': 'plaintext',
+  shell: 'bash',
+  html: 'xml',
+  markup: 'xml',
+  docker: 'dockerfile',
+  'vb.net': 'vbnet',
+  'visual basic': 'vbnet',
+  webassembly: 'wasm',
+  'llvm ir': 'llvm',
+};
+
 function CodeBlock({ code, language }: { code: string; language?: string }) {
-  const lang = language && hljs.getLanguage(language) ? language : undefined;
+  const raw = (language ?? '').toLowerCase().trim();
+  const mapped = LANG_ALIAS[raw] ?? raw;
+  const lang = mapped && hljs.getLanguage(mapped) ? mapped : undefined;
   const html = lang
     ? hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
     : hljs.highlightAuto(code).value;
   return (
-    <pre className="overflow-x-auto rounded-md border border-hairline text-[12px] leading-relaxed">
-      <code className="hljs font-mono" dangerouslySetInnerHTML={{ __html: html }} />
-    </pre>
+    <div className="overflow-hidden rounded-md border border-hairline">
+      {language && mapped !== 'plaintext' && (
+        <div className="border-b border-hairline bg-surface-3 px-3 py-1 font-mono text-[10px] text-ink-tertiary select-none">
+          {language}
+        </div>
+      )}
+      <pre className="overflow-x-auto bg-surface-2 p-3 text-[12px] leading-relaxed">
+        <code className="hljs font-mono" dangerouslySetInnerHTML={{ __html: html }} />
+      </pre>
+    </div>
   );
 }
 
@@ -367,9 +412,15 @@ function Block({ b }: { b: SimpleBlock }) {
   if (b.type === 'toggle') {
     return (
       <details className="group">
-        <summary className="list-none marker:content-none">
-          <span className="text-ink-tertiary">▸ </span>
-          <Rich spans={b.rich} />
+        <summary className="flex cursor-pointer list-none items-start gap-1 select-none marker:content-none hover:text-ink">
+          <ChevronRight
+            size={14}
+            strokeWidth={2.25}
+            className="mt-[3px] shrink-0 text-ink-tertiary transition-transform duration-200 group-open:rotate-90"
+          />
+          <span className="min-w-0">
+            <Rich spans={b.rich} />
+          </span>
         </summary>
         {kids && <div className="mt-1.5">{kids}</div>}
       </details>

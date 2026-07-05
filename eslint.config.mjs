@@ -8,6 +8,7 @@ import tseslint from 'typescript-eslint';
 export default [
   {
     ignores: [
+      '.claude/**',
       '**/dist/**',
       '**/out/**',
       '**/.next/**',

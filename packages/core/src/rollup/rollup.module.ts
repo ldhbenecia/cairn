@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { JournalModule } from '../journal/journal.module.js';
 import { NotionModule } from '../notion/notion.module.js';
 import { SecretsModule } from '../secrets/secrets.module.js';
 import { WorklogConfigModule } from '../worklog-config/worklog-config.module.js';
@@ -8,7 +9,7 @@ import { RollupPublisherService } from './rollup-publisher.service.js';
 import { RollupSummarizerService } from './rollup-summarizer.service.js';
 
 @Module({
-  imports: [WorklogConfigModule, SecretsModule, NotionModule, WorklogStatsModule],
+  imports: [WorklogConfigModule, SecretsModule, NotionModule, WorklogStatsModule, JournalModule],
   providers: [RollupCollectorService, RollupSummarizerService, RollupPublisherService],
   exports: [RollupCollectorService, RollupSummarizerService, RollupPublisherService],
 })

@@ -1,16 +1,10 @@
 import { Client } from '@notionhq/client';
-import { app } from 'electron';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { errorMessage } from './error-message';
 import { readConfig } from './files';
-
-const __dirname = resolve(fileURLToPath(import.meta.url), '..');
-
-const CAIRN_ROOT = app.isPackaged
-  ? (process.env.CAIRN_HOME ?? join(homedir(), '.cairn'))
-  : resolve(__dirname, '../../../..');
+import { CAIRN_ROOT } from './setup';
 
 let envLoaded = false;
 function ensureEnvLoaded(): void {
@@ -40,6 +34,8 @@ function ensureEnvLoaded(): void {
 
 export type RecentCategory = 'daily' | 'weekly' | 'monthly';
 
+export type WorklogSink = 'journal' | 'notion' | 'obsidian';
+
 export type RecentPage = {
   pageId: string;
   url: string;
@@ -51,6 +47,8 @@ export type RecentPage = {
   commit: number | null;
   hours: number[] | null;
   workspaceLabel: string;
+  // 병합부(listRecentMerged)에서 채움
+  sinks?: WorklogSink[];
 };
 
 type NotionWorkspaceConfig = {
@@ -128,15 +126,22 @@ function readWorklogStats(): Record<string, WorklogStat> {
   }
 }
 
+// 경고는 코드로만 — 사용자 표시는 renderer 가 i18n 으로 매핑 (한국어 하드코딩이 EN 사용자에게 새지 않게)
+export type RecentWarning =
+  | { code: 'no-workspaces' }
+  | { code: 'token-missing'; workspace: string; tokenEnv: string }
+  | { code: 'no-data-source'; workspace: string }
+  | { code: 'fetch-failed'; workspace: string; kind: 'worklog' | 'rollup'; detail: string };
+
 export async function listRecentPages(): Promise<{
   pages: RecentPage[];
-  warnings: string[];
+  warnings: RecentWarning[];
 }> {
   ensureEnvLoaded();
   const cfg = await readConfig();
   const parsed = cfg.parsed as ParsedConfig | null;
   if (!parsed?.notionWorkspaces?.length) {
-    return { pages: [], warnings: ['worklog.config.json 에 notionWorkspaces 가 없음'] };
+    return { pages: [], warnings: [{ code: 'no-workspaces' }] };
   }
 
   const results = await Promise.all(parsed.notionWorkspaces.map((ws) => listWorkspacePages(ws)));
@@ -149,13 +154,13 @@ export async function listRecentPages(): Promise<{
 
 async function listWorkspacePages(
   ws: NotionWorkspaceConfig,
-): Promise<{ pages: RecentPage[]; warnings: string[] }> {
+): Promise<{ pages: RecentPage[]; warnings: RecentWarning[] }> {
   const pages: RecentPage[] = [];
-  const warnings: string[] = [];
+  const warnings: RecentWarning[] = [];
 
   const token = process.env[ws.tokenEnv];
   if (!token) {
-    warnings.push(`${ws.label}: token env "${ws.tokenEnv}" 없음`);
+    warnings.push({ code: 'token-missing', workspace: ws.label, tokenEnv: ws.tokenEnv });
     return { pages, warnings };
   }
   const notion = getNotion(token);
@@ -164,7 +169,7 @@ async function listWorkspacePages(
 
   const worklogDs = ws.worklog?.dataSourceId;
   if (!worklogDs) {
-    warnings.push(`${ws.label}: worklog.dataSourceId 없음`);
+    warnings.push({ code: 'no-data-source', workspace: ws.label });
   } else {
     tasks.push(
       listDailyPages(notion, worklogDs, ws.label)
@@ -172,9 +177,12 @@ async function listWorkspacePages(
           pages.push(...dailyPages);
         })
         .catch((err: unknown) => {
-          warnings.push(
-            `${ws.label} (worklog): ${err instanceof Error ? err.message : String(err)}`,
-          );
+          warnings.push({
+            code: 'fetch-failed',
+            workspace: ws.label,
+            kind: 'worklog',
+            detail: errorMessage(err),
+          });
         }),
     );
   }
@@ -187,9 +195,12 @@ async function listWorkspacePages(
           pages.push(...rollupPages);
         })
         .catch((err: unknown) => {
-          warnings.push(
-            `${ws.label} (rollup): ${err instanceof Error ? err.message : String(err)}`,
-          );
+          warnings.push({
+            code: 'fetch-failed',
+            workspace: ws.label,
+            kind: 'rollup',
+            detail: errorMessage(err),
+          });
         }),
     );
   }
@@ -369,6 +380,21 @@ export async function fetchPageContent(
     const notion = getNotion(token);
     return { blocks: await fetchBlocks(notion, pageId, 0) };
   } catch (err) {
-    return { blocks: [], warning: err instanceof Error ? err.message : String(err) };
+    return { blocks: [], warning: errorMessage(err) };
   }
+}
+
+// 발행 워크스페이스 라벨을 모르는 경로(export 자동 sync)용 — 각 워크스페이스 토큰을 차례로 시도.
+// 기존에는 무조건 workspaces[0] 토큰이라 두 번째 워크스페이스 발행분이 조용히 skip 됐다.
+export async function fetchPageContentAnyWorkspace(pageId: string): Promise<PageContent> {
+  ensureEnvLoaded();
+  const cfg = await readConfig();
+  const parsed = cfg.parsed as ParsedConfig | null;
+  const labels = (parsed?.notionWorkspaces ?? []).map((w) => w.label);
+  let last: PageContent = { blocks: [], warning: 'no workspace' };
+  for (const label of labels) {
+    last = await fetchPageContent(pageId, label);
+    if (last.blocks.length > 0) return last;
+  }
+  return last;
 }

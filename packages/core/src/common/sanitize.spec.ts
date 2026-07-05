@@ -46,6 +46,41 @@ describe('assertNoForbiddenPayload', () => {
     );
   });
 
+  it('throws on POSIX /home path (Linux)', () => {
+    expect(() => assertNoForbiddenPayload({ p: '/home/john/.cairn/.env' }, 'test')).toThrow(
+      /absolute-posix-home/,
+    );
+  });
+
+  it('throws on Windows user path', () => {
+    expect(() => assertNoForbiddenPayload({ p: 'C:\\Users\\john\\.cairn' }, 'test')).toThrow(
+      /absolute-windows-path/,
+    );
+  });
+
+  it('throws on any Windows drive path (not just Users)', () => {
+    expect(() => assertNoForbiddenPayload({ p: 'D:\\work\\repo\\secret.ts' }, 'test')).toThrow(
+      /absolute-windows-path/,
+    );
+  });
+
+  it('does not flag a URL as a Windows path', () => {
+    expect(() =>
+      assertNoForbiddenPayload({ url: 'https://example.com/path' }, 'test'),
+    ).not.toThrow();
+  });
+
+  it('throws on a fenced source-code block (no diff header)', () => {
+    const body = '설명\n```ts\nfunction transferFunds() { return 1; }\n```';
+    expect(() => assertNoForbiddenPayload({ body }, 'test')).toThrow(/fenced-code-block/);
+  });
+
+  it('throws on an email address', () => {
+    expect(() => assertNoForbiddenPayload({ subject: 'fix by jane.doe@corp.io' }, 'test')).toThrow(
+      /email-address/,
+    );
+  });
+
   it('throws on Notion token prefix', () => {
     expect(() => assertNoForbiddenPayload({ token: `ntn_${'a'.repeat(40)}` }, 'test')).toThrow(
       /notion-token/,
@@ -86,5 +121,11 @@ describe('assertNoForbiddenPayload', () => {
   it('PR body 시뮬레이션 — unified-diff hunk 차단', () => {
     const dirty = '## 변경\n\n```\n@@ -1,2 +1,2 @@\n- old\n+ new\n```';
     expect(() => assertNoForbiddenPayload(dirty, 'pr-body')).toThrow(/unified-diff-hunk/);
+  });
+
+  it('객체 payload — JSON.stringify 로 이스케이프된 개행 뒤 diff 헤더도 차단', () => {
+    expect(() => assertNoForbiddenPayload({ text: 'x\n--- a/file\n+++ b/file' }, 'test')).toThrow(
+      /unified-diff-old/,
+    );
   });
 });

@@ -3,6 +3,7 @@ import {
   ChevronDown,
   GitCommitHorizontal,
   GitPullRequest,
+  HardDrive,
   ListTree,
   Loader2,
   RefreshCw,
@@ -18,9 +19,13 @@ import type {
   RecentCategory,
   RecentListResult,
   RecentPage,
+  RecentWarning,
+  WorklogSink,
 } from '../cairn-api';
 import type { I18nKey } from '../i18n';
+import { pageSinks, sinkLabel } from '../lib/sinks';
 import { useSettings } from '../settings-context';
+import { NotionMark, ObsidianMark } from './brand-icons';
 import { Pagination } from './pagination';
 import { PublishDialog } from './publish-dialog';
 import type { WorklogFilter } from './sidebar';
@@ -34,7 +39,8 @@ type Props = {
   sessions: Record<CoreMode, RunSession | null>;
   runningMode: CoreMode | null;
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
-  onReload: () => Promise<void>;
+  onOpenPublished: (pageId: string, url: string | null) => void;
+  onReload: () => Promise<unknown>;
   onOpen: (page: RecentPage) => void;
   onAchievements: () => void;
   drawerOpen: boolean;
@@ -61,12 +67,30 @@ export function WorklogList({
   sessions,
   runningMode,
   onTrigger,
+  onOpenPublished,
   onReload,
   onOpen,
   onAchievements,
   drawerOpen,
 }: Props) {
   const { t } = useSettings();
+
+  // 메인 프로세스는 경고를 코드로만 보냄 — 여기서 i18n 매핑. string 은 구버전 로컬 캐시 호환
+  const warningText = (w: RecentWarning | string): string => {
+    if (typeof w === 'string') return w;
+    switch (w.code) {
+      case 'no-workspaces':
+        return t('list.warn.noWorkspaces');
+      case 'token-missing':
+        return t('list.warn.tokenMissing')
+          .replace('{ws}', w.workspace)
+          .replace('{env}', w.tokenEnv);
+      case 'no-data-source':
+        return t('list.warn.noDataSource').replace('{ws}', w.workspace);
+      case 'fetch-failed':
+        return t('list.warn.fetchFailed').replace('{ws}', w.workspace).replace('{kind}', w.kind);
+    }
+  };
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [desc, setDesc] = useState(true);
@@ -112,6 +136,9 @@ export function WorklogList({
     if (drawerOpen) return;
     const onKey = (e: KeyboardEvent): void => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // CommandPalette·AchievementsDialog 등 App 소유 오버레이 상태는 prop 으로 안 내려옴 —
+      // 열린 오버레이는 전부 role="dialog"(radix) 또는 fixed inset-0 레이어로만 마운트되므로 DOM 으로 감지
+      if (document.querySelector('[role="dialog"]')) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSel((i) => Math.min(i + 1, navItems.length - 1));
@@ -206,7 +233,12 @@ export function WorklogList({
               <Sparkles size={12} strokeWidth={2} />
               {t('list.achievements')}
             </button>
-            <PublishDialog sessions={sessions} runningMode={runningMode} onTrigger={onTrigger} />
+            <PublishDialog
+              sessions={sessions}
+              runningMode={runningMode}
+              onTrigger={onTrigger}
+              onOpenPublished={onOpenPublished}
+            />
           </div>
         </div>
       </header>
@@ -283,7 +315,7 @@ export function WorklogList({
               <p className="mb-1 font-medium text-ink-subtle">{t('list.warnings')}</p>
               {recent.warnings.map((w, i) => (
                 <p key={i} className="font-mono">
-                  {w}
+                  {warningText(w)}
                 </p>
               ))}
             </div>
@@ -403,9 +435,41 @@ function PageRow({
           {page.status}
         </span>
       )}
-      <span className="hidden w-16 shrink-0 text-right text-[12px] text-ink-subtle sm:inline">
-        {page.workspaceLabel}
-      </span>
+      <SinkStack page={page} t={t} />
     </button>
   );
 }
+
+function SinkStack({ page, t }: { page: RecentPage; t: T }) {
+  const sinks = pageSinks(page);
+  return (
+    <span
+      className="hidden w-12 shrink-0 items-center justify-end sm:flex"
+      title={sinks.map((s) => sinkLabel(s, page, t('source.localDesc'))).join(' · ')}
+    >
+      {sinks.map((s) => (
+        <span
+          key={s}
+          className={[
+            'flex size-3.5 shrink-0 items-center justify-center rounded-full ring-2 ring-surface-1 first:ml-0 -ml-1.5',
+            SINK_TILE[s],
+          ].join(' ')}
+        >
+          {s === 'journal' ? (
+            <HardDrive size={9} strokeWidth={2.25} />
+          ) : s === 'notion' ? (
+            <NotionMark size={8} />
+          ) : (
+            <ObsidianMark size={9} />
+          )}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const SINK_TILE: Record<WorklogSink, string> = {
+  journal: 'bg-surface-3 text-ink-muted',
+  notion: 'bg-white text-black',
+  obsidian: 'bg-surface-3',
+};
