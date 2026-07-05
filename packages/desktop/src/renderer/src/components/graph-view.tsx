@@ -1,4 +1,4 @@
-import { SlidersHorizontal } from 'lucide-react';
+import { Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { GraphConfig, GraphLabels, RecentListResult, RecentPage } from '../cairn-api';
 import { useSettings } from '../settings-context';
@@ -119,11 +119,14 @@ export function GraphView({
   cfgRef.current = cfg;
   const kickRef = useRef<() => void>(() => {});
   const [panelOpen, setPanelOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const queryRef = useRef('');
+  queryRef.current = query.trim().toLowerCase();
   const pages = recent?.pages;
 
   useEffect(() => {
     kickRef.current();
-  }, [cfg.nodeScale, cfg.spread]);
+  }, [cfg.nodeScale, cfg.spread, cfg.gravity]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -205,9 +208,10 @@ export function GraphView({
         b.vx -= dx * f;
         b.vy -= dy * f;
       }
+      const pull = 0.0016 * cfgRef.current.gravity;
       for (const n of nodes) {
-        n.vx -= n.x * 0.0016;
-        n.vy -= n.y * 0.0016;
+        n.vx -= n.x * pull;
+        n.vy -= n.y * pull;
         if (dragging && 'idx' in dragging && nodes[dragging.idx] === n) {
           n.vx = 0;
           n.vy = 0;
@@ -239,13 +243,16 @@ export function GraphView({
         ctx.stroke();
       }
 
+      const q = queryRef.current;
+      const matches = (n: GraphNode): boolean =>
+        q.length === 0 || n.page.title.toLowerCase().includes(q) || (n.page.date ?? '').includes(q);
       const dimOthers = hover !== -1;
       for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i]!;
         const r = scaleOf(n);
         const isHover = i === hover;
         const isNeighbor = hover !== -1 && neighbors[hover]!.has(i);
-        const dim = dimOthers && !isHover && !isNeighbor;
+        const dim = (dimOthers && !isHover && !isNeighbor) || (!isHover && !matches(n));
         ctx.globalAlpha = dim ? 0.25 : 1;
         ctx.shadowColor = COLOR[n.kind];
         ctx.shadowBlur = (isHover ? r * 4 : r * 2.2) * zoom;
@@ -264,12 +271,14 @@ export function GraphView({
         const n = nodes[i]!;
         const isHover = i === hover;
         const isNeighbor = hover !== -1 && neighbors[hover]!.has(i);
+        const searchHit = q.length > 0 && matches(n);
         if (labelMode === 'hover') {
-          if (!isHover && !isNeighbor) continue;
-        } else {
+          if (!isHover && !isNeighbor && !searchHit) continue;
+        } else if (!searchHit) {
           if (!(n.kind === 'monthly' || isHover || isNeighbor || showAll)) continue;
           if (hover !== -1 && !isHover && !isNeighbor && n.kind !== 'monthly') continue;
         }
+        if (q.length > 0 && !matches(n)) continue;
         const size = n.kind === 'monthly' ? 11 : 9.5;
         ctx.font = `500 ${size / zoom}px ${fontFamily}`;
         ctx.fillStyle = isHover ? LABEL_HI : LABEL_COLOR;
@@ -380,10 +389,24 @@ export function GraphView({
       ) : (
         <>
           <canvas ref={canvasRef} className="h-full w-full [-webkit-app-region:no-drag]" />
-          <div className="pointer-events-none absolute left-6 top-0 flex h-20 items-center [-webkit-app-region:drag]">
+          <div className="pointer-events-none absolute left-6 top-0 flex h-20 items-center gap-3 [-webkit-app-region:drag]">
             <h1 className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
               {t('nav.graph')}
             </h1>
+            <div className="pointer-events-auto relative [-webkit-app-region:no-drag]">
+              <SearchIcon
+                size={12}
+                strokeWidth={2}
+                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-tertiary"
+              />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('graph.search')}
+                spellCheck={false}
+                className="h-7 w-44 rounded-md border border-hairline bg-surface-1 pl-7 pr-2 text-[12px] text-ink placeholder:text-ink-tertiary"
+              />
+            </div>
           </div>
           <div className="absolute right-5 top-14 flex flex-col items-end gap-2 [-webkit-app-region:no-drag]">
             <button
@@ -415,6 +438,14 @@ export function GraphView({
                     min={0.6}
                     max={2}
                     onChange={(v) => setGraph({ spread: v })}
+                  />
+                </PanelRow>
+                <PanelRow label={t('graph.gravity')}>
+                  <Slider
+                    value={cfg.gravity}
+                    min={0.3}
+                    max={2}
+                    onChange={(v) => setGraph({ gravity: v })}
                   />
                 </PanelRow>
                 <PanelRow label={t('graph.labels')}>

@@ -52,9 +52,10 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRerunSetup: () => void;
+  blockEscape?: boolean;
 };
 
-export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
+export function PreferencesDialog({ open, onOpenChange, onRerunSetup, blockEscape }: Props) {
   const { t } = useSettings();
   const [tab, setTab] = useState<TabId>('appearance');
 
@@ -64,6 +65,10 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup }: Props) {
         <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/50" />
         <Dialog.Content
           onOpenAutoFocus={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => {
+            // cmd+K 팔레트가 위에 떠 있으면 ESC 는 팔레트만 닫는다
+            if (blockEscape) e.preventDefault();
+          }}
           style={{ width: 920, height: 600, maxWidth: '92vw', maxHeight: '86vh' }}
           className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 focus:outline-none"
         >

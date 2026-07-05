@@ -147,6 +147,7 @@ export type GraphConfig = {
   enabled: boolean;
   nodeScale: number;
   spread: number;
+  gravity: number;
   labels: GraphLabels;
   showRollups: boolean;
 };

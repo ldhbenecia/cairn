@@ -29,6 +29,7 @@ export type GraphConfig = {
   enabled: boolean;
   nodeScale: number;
   spread: number;
+  gravity: number;
   labels: GraphLabels;
   showRollups: boolean;
 };
@@ -69,7 +70,7 @@ const DEFAULTS: Settings = {
   prompts: { daily: null, weekly: null, monthly: null },
   summaryModel: 'sonnet',
   export: { folder: null, autoSync: false },
-  graph: { enabled: true, nodeScale: 1, spread: 1, labels: 'auto', showRollups: true },
+  graph: { enabled: true, nodeScale: 1, spread: 1, gravity: 1, labels: 'auto', showRollups: true },
 };
 
 const SETTINGS_PATH = join(homedir(), '.cairn', 'settings.json');

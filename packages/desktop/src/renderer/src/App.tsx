@@ -465,6 +465,7 @@ export function App() {
         open={prefsOpen}
         onOpenChange={setPrefsOpen}
         onRerunSetup={() => setSetupComplete(false)}
+        blockEscape={cmdkOpen}
       />
     </div>
   );
