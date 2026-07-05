@@ -44,7 +44,12 @@ export function sendResultNotification(mode: CoreMode, result: CoreResult): void
     return;
   }
   if (result.publishKind === 'no-target') {
-    notify(label, mt('notify.noTarget'), mode);
+    // 노션 미연동이어도 로컬 일지가 저장됐으면 성공 — "발행 대상 없음" 오보 방지
+    if (result.journalFile) {
+      notify(`${label} ${mt('notify.localDoneSuffix')}`, mt('notify.localDoneBody'), mode);
+    } else {
+      notify(label, mt('notify.noTarget'), mode);
+    }
     return;
   }
   if (result.noActivity) {

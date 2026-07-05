@@ -76,6 +76,11 @@ export async function listRecentMerged(): Promise<{
   const notionIds = new Set(notion.pages.map((p) => p.pageId));
   const journalNames = new Set(journal.map((j) => j.fileName));
   const journalRefs = new Set(journal.flatMap((j) => (j.notionRef ? [j.notionRef] : [])));
+  // notionRef 미기록(구버전 journal 등)이어도 같은 category+date 노션 페이지가 있으면 중복 행 방지
+  // 로컬 journal 은 날짜당 1파일이라 워크스페이스 무관 date+category 로 판단해도 안전
+  const notionCatDates = new Set(
+    notion.pages.flatMap((p) => (p.date === null ? [] : [`${p.category}|${p.date}`])),
+  );
 
   const withSinks = (page: RecentPage, inJournal: boolean, inNotion: boolean): RecentPage => {
     const sinks: WorklogSink[] = [];
@@ -86,7 +91,11 @@ export async function listRecentMerged(): Promise<{
     return { ...page, sinks };
   };
 
-  const localOnly = journal.filter((v) => !(v.notionRef && notionIds.has(v.notionRef)));
+  const localOnly = journal.filter(
+    (v) =>
+      !(v.notionRef && notionIds.has(v.notionRef)) &&
+      !(v.date !== null && notionCatDates.has(`${v.category}|${v.date}`)),
+  );
   const pages = [
     ...localOnly.map(({ fileName: _f, notionRef, ...page }) =>
       withSinks(page, true, notionRef !== null),

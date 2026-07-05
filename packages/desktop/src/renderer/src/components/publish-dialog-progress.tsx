@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, Circle, CircleDotDashed } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Circle, CircleDotDashed, XCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import type { RunSession } from '../App';
@@ -74,6 +74,7 @@ const STATUS_BADGE: Record<DStatus, { key: I18nKey; cls: string }> = {
   done: { key: 'publish.status.done', cls: 'bg-emerald-500/15 text-emerald-400' },
   active: { key: 'publish.status.active', cls: 'bg-accent/15 text-accent-hover' },
   pending: { key: 'publish.status.pending', cls: 'bg-surface-2 text-ink-tertiary' },
+  failed: { key: 'publish.status.failed', cls: 'bg-danger/15 text-danger' },
 };
 
 function StatusIcon({ status, size }: { status: DStatus; size: number }) {
@@ -89,6 +90,8 @@ function StatusIcon({ status, size }: { status: DStatus; size: number }) {
       >
         {status === 'done' ? (
           <CheckCircle2 size={size} strokeWidth={2.25} className="text-emerald-400" />
+        ) : status === 'failed' ? (
+          <XCircle size={size} strokeWidth={2.25} className="text-danger" />
         ) : status === 'active' ? (
           <CircleDotDashed
             size={size}
@@ -214,7 +217,9 @@ function StepRow({
         : t(DSTEP_DOING[step])
       : status === 'done'
         ? t('publish.status.done')
-        : t('publish.status.pending');
+        : status === 'failed'
+          ? t('publish.status.failed')
+          : t('publish.status.pending');
   return (
     <div>
       <button
@@ -408,9 +413,11 @@ function CompactRow({ d, i, t }: { d: PanelDate; i: number; t: T }) {
               'rounded-md px-1.5 py-0.5 text-[10px] font-medium',
               s.status === 'done'
                 ? 'bg-emerald-500/12 text-emerald-400'
-                : s.status === 'active'
-                  ? 'batch-pulse bg-accent/15 text-accent-hover'
-                  : 'bg-surface-2 text-ink-tertiary',
+                : s.status === 'failed'
+                  ? 'bg-danger/12 text-danger'
+                  : s.status === 'active'
+                    ? 'batch-pulse bg-accent/15 text-accent-hover'
+                    : 'bg-surface-2 text-ink-tertiary',
             ].join(' ')}
           >
             {t(DSTEP_SHORT[s.step])}
@@ -505,6 +512,7 @@ export function Progress({
     ? buildPanelDates(
         backfill.dates,
         backfill.doneDates,
+        backfill.failedDates ?? [],
         backfill.stepByDate,
         backfill.countsByDate,
         settings.language,
