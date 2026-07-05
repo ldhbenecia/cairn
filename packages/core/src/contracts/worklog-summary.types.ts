@@ -12,4 +12,5 @@ export interface WorklogSummaryUsage {
   inputTokens: number;
   outputTokens: number;
   costUsd: number;
+  model?: string;
 }

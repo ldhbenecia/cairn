@@ -54,6 +54,22 @@ describe('renderDailyJournalMarkdown', () => {
     expect(md).not.toContain('## In Progress');
   });
 
+  it('model 은 usage 에 있을 때만 frontmatter 에 추가된다', () => {
+    expect(md).not.toContain('model:');
+    const withModel = renderDailyJournalMarkdown({
+      date: '2026-07-05',
+      lang: 'ko',
+      summary: {
+        ...SUMMARY,
+        usage: { inputTokens: 1, outputTokens: 1, costUsd: 0, model: 'claude-sonnet-5' },
+      },
+      prCount: 2,
+      commitCount: 7,
+      hours: [],
+    });
+    expect(withModel).toContain('model: claude-sonnet-5');
+  });
+
   it('notion 참조는 있을 때만 frontmatter 에 추가된다', () => {
     expect(md).not.toContain('notion:');
     const withRef = renderDailyJournalMarkdown({
