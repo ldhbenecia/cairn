@@ -424,34 +424,36 @@ export function GraphView({
               {t('nav.graph')}
             </h1>
           </div>
-          <div className="absolute left-6 top-14 [-webkit-app-region:no-drag]">
-            <SearchIcon
-              size={12}
-              strokeWidth={2}
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-tertiary"
-            />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('graph.search')}
-              spellCheck={false}
-              className="h-8 w-48 rounded-lg border border-hairline bg-surface-1 pl-7 pr-2 text-[12px] text-ink placeholder:text-ink-tertiary"
-            />
-          </div>
           <div className="absolute right-5 top-14 flex flex-col items-end gap-2 [-webkit-app-region:no-drag]">
-            <button
-              type="button"
-              aria-label={t('graph.settings')}
-              onClick={() => setPanelOpen((v) => !v)}
-              className={[
-                'flex size-8 items-center justify-center rounded-lg border border-hairline transition-colors',
-                panelOpen
-                  ? 'bg-surface-2 text-ink'
-                  : 'bg-surface-1 text-ink-subtle hover:bg-surface-2 hover:text-ink',
-              ].join(' ')}
-            >
-              <SlidersHorizontal size={14} strokeWidth={2} />
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <SearchIcon
+                  size={12}
+                  strokeWidth={2}
+                  className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-tertiary"
+                />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t('graph.search')}
+                  spellCheck={false}
+                  className="h-8 w-44 rounded-lg border border-hairline bg-surface-1 pl-7 pr-2 text-[12px] text-ink placeholder:text-ink-tertiary"
+                />
+              </div>
+              <button
+                type="button"
+                aria-label={t('graph.settings')}
+                onClick={() => setPanelOpen((v) => !v)}
+                className={[
+                  'flex size-8 items-center justify-center rounded-lg border border-hairline transition-colors',
+                  panelOpen
+                    ? 'bg-surface-2 text-ink'
+                    : 'bg-surface-1 text-ink-subtle hover:bg-surface-2 hover:text-ink',
+                ].join(' ')}
+              >
+                <SlidersHorizontal size={14} strokeWidth={2} />
+              </button>
+            </div>
             {panelOpen && (
               <div className="popover-in w-64 rounded-lg border border-hairline bg-surface-1 p-3.5 shadow-xl shadow-black/40 [transform-origin:top_right]">
                 <PanelRow label={t('graph.nodeScale')}>

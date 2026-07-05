@@ -38,10 +38,34 @@ export function CommandPalette({
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // 아래 radix Dialog(환경설정)가 같은 ESC/클릭을 받아 함께 닫히지 않도록,
+  // window 캡처 단계(문서 리스너보다 먼저)에서 가로채 팔레트만 닫는다
+  useEffect(() => {
+    const onKeyCapture = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      onClose();
+    };
+    const onPointerCapture = (e: PointerEvent): void => {
+      if (panelRef.current?.contains(e.target as Node)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      onClose();
+    };
+    window.addEventListener('keydown', onKeyCapture, { capture: true });
+    window.addEventListener('pointerdown', onPointerCapture, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', onKeyCapture, { capture: true });
+      window.removeEventListener('pointerdown', onPointerCapture, { capture: true });
+    };
+  }, [onClose]);
 
   const commands: Cmd[] = useMemo(() => {
     const plus = <Plus size={12} strokeWidth={2} />;
@@ -140,14 +164,11 @@ export function CommandPalette({
     } else if (e.key === 'Enter') {
       e.preventDefault();
       run(items[sel]);
-    } else if (e.key === 'Escape') {
-      onClose();
     }
   }
 
   return (
     <motion.div
-      onMouseDown={onClose}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -158,7 +179,7 @@ export function CommandPalette({
       className="pointer-events-auto fixed inset-0 z-[60] flex items-start justify-center bg-black/40 pt-[14vh] [-webkit-app-region:no-drag]"
     >
       <motion.div
-        onMouseDown={(e) => e.stopPropagation()}
+        ref={panelRef}
         initial={{ opacity: 0, scale: 0.97, y: -8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.98, y: -4 }}
