@@ -24,7 +24,10 @@ export async function journalFolder(): Promise<string> {
   const cfg = await readConfig();
   const parsed = cfg.parsed as { journal?: { folder?: string } } | null;
   const configured = parsed?.journal?.folder;
-  return configured ? resolve(configured) : join(homedir(), 'Documents', 'cairn');
+  if (!configured) return join(homedir(), 'Documents', 'cairn');
+  // resolve() 는 '~' 를 확장하지 않는다 — cwd 아래 '~/...' 로 새는 것 방지
+  const expanded = configured.startsWith('~/') ? join(homedir(), configured.slice(2)) : configured;
+  return resolve(expanded);
 }
 
 export type JournalPage = RecentPage & { fileName: string; notionRef: string | null };
@@ -125,10 +128,12 @@ function toJournalPage(fileName: string, category: RecentCategory, raw: string):
 
 function stripFrontmatter(raw: string): { fm: Map<string, string>; body: string } {
   const fm = new Map<string, string>();
-  if (!raw.startsWith('---\n')) return { fm, body: raw };
-  const end = raw.indexOf('\n---\n', 4);
-  if (end === -1) return { fm, body: raw };
-  for (const line of raw.slice(4, end).split('\n')) {
+  // 외부 에디터가 CRLF 로 저장할 수 있다 — 파싱 전 정규화
+  const text = raw.replace(/\r\n/g, '\n');
+  if (!text.startsWith('---\n')) return { fm, body: text };
+  const end = text.indexOf('\n---\n', 4);
+  if (end === -1) return { fm, body: text };
+  for (const line of text.slice(4, end).split('\n')) {
     const idx = line.indexOf(':');
     if (idx === -1) continue;
     const key = line.slice(0, idx).trim();
@@ -142,7 +147,7 @@ function stripFrontmatter(raw: string): { fm: Map<string, string>; body: string 
     }
     fm.set(key, value);
   }
-  return { fm, body: raw.slice(end + 5) };
+  return { fm, body: text.slice(end + 5) };
 }
 
 // journal md 는 자체 생성물이라 구조가 한정적 — 헤딩·불릿·문단만 블록으로 변환

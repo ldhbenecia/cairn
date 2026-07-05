@@ -42,7 +42,12 @@ export class JournalWriterService {
 
   folder(): string {
     const configured = this.worklogConfig.load().journal?.folder;
-    return configured ? resolve(configured) : join(homedir(), DEFAULT_FOLDER);
+    if (!configured) return join(homedir(), DEFAULT_FOLDER);
+    // resolve() 는 '~' 를 확장하지 않는다 — cwd 아래 '~/...' 로 새는 것 방지
+    const expanded = configured.startsWith('~/')
+      ? join(homedir(), configured.slice(2))
+      : configured;
+    return resolve(expanded);
   }
 
   hasDaily(date: string): boolean {

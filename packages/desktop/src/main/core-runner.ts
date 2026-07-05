@@ -61,7 +61,8 @@ const NO_ACTIVITY_REGEX = /no activity collected/i;
 const SUMMARY_FAILED_REGEX = /summary generation failed|요약 생성 실패|summarizer threw/;
 const PUBLISH_KIND_REGEX = /"kind"\s*:\s*"(created|recreated|skipped|no-target)"/g;
 const PAGE_ID_REGEX = /"pageId"\s*:\s*"([0-9a-f-]{32,36})"/g;
-const JOURNAL_FILE_REGEX = /"fileName"\s*:\s*"([^"]+\.md)"(?=[^\n]*journal write done)/g;
+// 같은 로그 라인 안이면 키 순서 무관하게 fileName 추출
+const JOURNAL_FILE_REGEX = /^(?=.*journal write done).*"fileName"\s*:\s*"([^"]+\.md)"/gm;
 // eslint-disable-next-line no-control-regex
 const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
 
