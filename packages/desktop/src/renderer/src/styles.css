@@ -18,6 +18,8 @@
   --color-accent: #5b61e6;
   --color-accent-hover: #757bf0;
   --color-accent-focus: #474dcc;
+  /* 차트 보조색 — accent 파생이라 강조색을 바꿔도 짝이 유지됨 */
+  --color-chart-companion: color-mix(in srgb, var(--color-accent) 42%, var(--color-ink-tertiary));
 
   --color-success: #27a644;
   --color-danger: #f87171;

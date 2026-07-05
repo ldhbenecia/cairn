@@ -43,6 +43,23 @@ export function CommandPalette({
     inputRef.current?.focus();
   }, []);
 
+  // 아래 radix Dialog(환경설정)가 같은 ESC/클릭을 받아 함께 닫히지 않도록,
+  // window 캡처 단계(문서 리스너보다 먼저)에서 가로채 팔레트만 닫는다
+  useEffect(() => {
+    const onKeyCapture = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      // IME 조합 취소(ESC)는 팔레트 닫기가 아니다
+      if (e.isComposing || e.keyCode === 229) return;
+      e.preventDefault();
+      e.stopPropagation();
+      onClose();
+    };
+    window.addEventListener('keydown', onKeyCapture, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', onKeyCapture, { capture: true });
+    };
+  }, [onClose]);
+
   const commands: Cmd[] = useMemo(() => {
     const plus = <Plus size={12} strokeWidth={2} />;
     return [
@@ -140,14 +157,17 @@ export function CommandPalette({
     } else if (e.key === 'Enter') {
       e.preventDefault();
       run(items[sel]);
-    } else if (e.key === 'Escape') {
-      onClose();
     }
   }
 
   return (
     <motion.div
-      onMouseDown={onClose}
+      onPointerDown={(e) => {
+        // radix Dialog(환경설정)가 document pointerdown 으로 outside 판정하기 전에 차단
+        e.stopPropagation();
+        e.preventDefault();
+        onClose();
+      }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -158,7 +178,7 @@ export function CommandPalette({
       className="pointer-events-auto fixed inset-0 z-[60] flex items-start justify-center bg-black/40 pt-[14vh] [-webkit-app-region:no-drag]"
     >
       <motion.div
-        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.97, y: -8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.98, y: -4 }}
