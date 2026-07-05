@@ -1,9 +1,9 @@
-import { FolderGit2, Github, Loader2, RotateCw } from 'lucide-react';
+import { FolderGit2, Loader2, RotateCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ConnectionAccounts } from '../../cairn-api';
 import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';
-import { ClaudeMark, NotionMark } from '../brand-icons';
+import { ClaudeMark, GithubMark, NotionMark } from '../brand-icons';
 import { AccordionItem } from '../accordion';
 import { Field } from './field';
 
@@ -108,8 +108,8 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
         <div className="space-y-0.5 rounded-lg border border-hairline bg-surface-1 p-1.5">
           <Row
             icon={
-              <span className="flex shrink-0 text-ink-muted">
-                <NotionMark size={13} />
+              <span className="flex size-[15px] shrink-0 items-center justify-center rounded-[3px] border border-black/10 bg-white text-black">
+                <NotionMark size={10} />
               </span>
             }
             label="Notion"
@@ -118,7 +118,11 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
             onToggle={() => toggle('notion')}
           />
           <Row
-            icon={<Github size={13} className="shrink-0 text-ink-muted" />}
+            icon={
+              <span className="flex shrink-0 text-ink">
+                <GithubMark size={14} />
+              </span>
+            }
             label="GitHub"
             items={githubItems}
             expanded={open.has('github')}

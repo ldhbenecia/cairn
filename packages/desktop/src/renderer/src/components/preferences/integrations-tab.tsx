@@ -293,8 +293,7 @@ function ObsidianIntegrationCard() {
 
   return (
     <ServiceCard
-      icon={<ObsidianMark size={20} />}
-      tileClass="bg-gradient-to-br from-[#a88bfa] to-[#6C31E3] shadow-sm"
+      icon={<ObsidianMark size={22} />}
       title="Obsidian"
       badge={
         isVault ? (
