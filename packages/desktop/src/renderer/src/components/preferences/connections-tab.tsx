@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type { ConnectionAccounts } from '../../cairn-api';
 import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';
+import { ClaudeMark } from '../brand-icons';
 import { AccordionItem } from '../accordion';
 import { Field } from './field';
 
@@ -118,6 +119,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
             onToggle={() => toggle('github')}
           />
           <Row
+            icon={<ClaudeMark size={13} />}
             label="Claude"
             pending={claude === 'checking'}
             ok={claude === 'ok'}
@@ -143,6 +145,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
 }
 
 function Row({
+  icon,
   label,
   items,
   ok,
@@ -151,6 +154,7 @@ function Row({
   expanded,
   onToggle,
 }: {
+  icon?: React.ReactNode;
   label: string;
   items?: Item[];
   ok?: boolean;
@@ -181,6 +185,7 @@ function Row({
           className={`size-1.5 shrink-0 rounded-full ${connected ? 'bg-emerald-500' : 'bg-ink-tertiary'}`}
         />
       )}
+      {icon}
       <span className="text-ink-muted">{label}</span>
       <span className="ml-auto truncate pl-3 text-[12px] text-ink-tertiary">{summary}</span>
       {onRefresh && (

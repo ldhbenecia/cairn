@@ -46,3 +46,9 @@ export function ICloudMark({ size = 20 }: { size?: number }) {
     </svg>
   );
 }
+
+import claudeIcon from '../assets/claude-icon.png';
+
+export function ClaudeMark({ size = 16 }: { size?: number }) {
+  return <img src={claudeIcon} alt="" width={size} height={size} className="rounded-[3px]" />;
+}
