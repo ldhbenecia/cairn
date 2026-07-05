@@ -22,6 +22,7 @@ import { readConfig } from './files';
 import { fetchPageContent } from './notion-client';
 import { listRecentMerged, readJournalPageContent, JOURNAL_PAGE_PREFIX } from './journal-reader';
 import {
+  addNotionWorkspace,
   finishOnboarding,
   githubAccountsFromGhCli,
   listNotionDatabases,
@@ -29,6 +30,7 @@ import {
   probeGithub,
   probeNotion,
   searchNotionPages,
+  parseNotionWorkspacePayload,
   parseOnboardingPayload,
 } from './onboarding';
 import { fetchRepoStars } from './repo';
@@ -223,6 +225,11 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:onboarding:github-from-gh', () => githubAccountsFromGhCli());
   ipcMain.handle('cairn:onboarding:probe-claude', () => probeClaude());
   ipcMain.handle('cairn:connections:accounts', () => probeConnectionAccounts());
+  ipcMain.handle('cairn:integrations:add-notion', (_e, raw: unknown) => {
+    const parsed = parseNotionWorkspacePayload(raw);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    return addNotionWorkspace(parsed.entry);
+  });
   ipcMain.handle('cairn:onboarding:finish', (_e, raw: unknown) => {
     const parsed = parseOnboardingPayload(raw);
     if (!parsed.ok) return { ok: false, error: parsed.error };

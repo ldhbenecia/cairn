@@ -166,6 +166,10 @@ contextBridge.exposeInMainWorld('cairn', {
         notion: { label: string; workspace?: string }[];
       }>,
   },
+  integrations: {
+    addNotion: (payload: unknown) =>
+      ipcRenderer.invoke('cairn:integrations:add-notion', payload) as Promise<unknown>,
+  },
   cloud: {
     state: () => ipcRenderer.invoke('cairn:auth:state') as Promise<CloudAuthState>,
     signIn: () => ipcRenderer.invoke('cairn:auth:sign-in') as Promise<void>,

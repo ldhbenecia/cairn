@@ -378,6 +378,34 @@ function buildNotionWorkspace(
   return ws;
 }
 
+// Preferences 연동 탭에서 노션 워크스페이스 1개 추가 — 같은 라벨이면 교체(재연결)
+export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; error?: string } {
+  try {
+    return withFileLock(CONFIG_PATH, () => {
+      let existing: Record<string, unknown>;
+      try {
+        existing = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as Record<string, unknown>;
+      } catch {
+        existing = {};
+      }
+      const prevWorkspaces = (existing.notionWorkspaces as ExistingWs[] | undefined) ?? [];
+      const env: Record<string, string> = {};
+      const ws = buildNotionWorkspace(w, prevWorkspaces, env);
+      writeEnvMerged(env);
+      for (const [k, v] of Object.entries(env)) process.env[k] = v;
+      const config = {
+        ...existing,
+        notionWorkspaces: [...prevWorkspaces.filter((p) => p.label !== w.label), ws],
+      };
+      mkdirSync(dirname(CONFIG_PATH), { recursive: true });
+      writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
+      return { ok: true };
+    });
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
 export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; error?: string } {
   try {
     // 재실행 시 자동 생성된 DB id 보존을 위해 기존 config 를 먼저 읽음.
