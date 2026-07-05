@@ -9,6 +9,7 @@ import type {
   RollupMetrics,
   RollupPeriod,
 } from '../contracts/rollup-activity.types.js';
+import { JournalSourceService } from '../journal/journal-source.service.js';
 import { NotionApiClient } from '../notion/notion-api.client.js';
 import type { ExtractedBlock, WorklogPageInRange } from '../notion/notion-api.types.js';
 import { SecretsService } from '../secrets/secrets.service.js';
@@ -32,6 +33,7 @@ export class RollupCollectorService {
     private readonly worklogConfig: WorklogConfigService,
     private readonly secrets: SecretsService,
     private readonly stats: WorklogStatsService,
+    private readonly journalSource: JournalSourceService,
     @InjectPinoLogger(RollupCollectorService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -41,8 +43,8 @@ export class RollupCollectorService {
     const target = this.findTarget();
 
     if (!target) {
-      this.logger.warn('no notionWorkspace with worklog.dataSourceId — rollup collector skipped');
-      return emptyActivity(period, start, end);
+      this.logger.info('no notion workspace — rollup collects from local journal');
+      return this.collectFromJournal(period, start, end);
     }
 
     const token = this.secrets.getEnv(target.tokenEnv);
@@ -61,9 +63,9 @@ export class RollupCollectorService {
     if (!dataSourceId) {
       this.logger.warn(
         { workspace: target.label },
-        'rollup collector: worklog.dataSourceId not set — daily DB likely never created',
+        'rollup collector: worklog.dataSourceId not set — collecting from local journal',
       );
-      return emptyActivity(period, start, end);
+      return this.collectFromJournal(period, start, end);
     }
 
     this.logger.info(
@@ -139,8 +141,47 @@ export class RollupCollectorService {
   }
 
   private findTarget(): NotionWorkspaceConfig | undefined {
-    // 발행 target 과 같은 워크스페이스에서 daily 를 읽는다 (dataSourceId 미보유 시 빈 수집)
+    // 발행 target 과 같은 워크스페이스에서 daily 를 읽는다 (미연동이면 로컬 journal 수집)
     return this.worklogConfig.findRollupWorkspace();
+  }
+
+  // 노션 미연동 상태의 롤업 — 로컬 journal 의 daily md 에서 같은 구조로 수집 (ADR 0031)
+  private collectFromJournal(period: RollupPeriod, start: string, end: string): RollupActivity {
+    const entries = this.journalSource.listDailyEntries(start, end);
+    const localStats = this.stats.readAll();
+
+    const dailies: RollupDailyPageMeta[] = [];
+    const summaries: RollupDailySummaryText[] = [];
+    let prTotal = 0;
+    let commitTotal = 0;
+
+    for (const entry of entries) {
+      const stat = localStats[`daily:${entry.date}`] ?? { pr: 0, commit: 0 };
+      dailies.push({
+        date: entry.date,
+        pageId: `journal:${entry.fileName}`,
+        url: '',
+        prCount: stat.pr,
+        commitCount: stat.commit,
+        notionPageCount: 0,
+      });
+      prTotal += stat.pr;
+      commitTotal += stat.commit;
+      const parsed = parseSummaryFromBlocks(entry.blocks);
+      if (parsed) summaries.push({ date: entry.date, ...parsed });
+    }
+
+    const metrics: RollupMetrics = {
+      prCount: prTotal,
+      commitCount: commitTotal,
+      notionPageCount: 0,
+      dailyCount: dailies.length,
+    };
+    this.logger.info(
+      { period, rangeStart: start, rangeEnd: end, ...metrics, summariesParsed: summaries.length },
+      'rollup collect done (journal)',
+    );
+    return { period, rangeStart: start, rangeEnd: end, dailies, summaries, metrics };
   }
 }
 
