@@ -38,7 +38,6 @@ export function CommandPalette({
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -53,17 +52,9 @@ export function CommandPalette({
       e.stopPropagation();
       onClose();
     };
-    const onPointerCapture = (e: PointerEvent): void => {
-      if (panelRef.current?.contains(e.target as Node)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      onClose();
-    };
     window.addEventListener('keydown', onKeyCapture, { capture: true });
-    window.addEventListener('pointerdown', onPointerCapture, { capture: true });
     return () => {
       window.removeEventListener('keydown', onKeyCapture, { capture: true });
-      window.removeEventListener('pointerdown', onPointerCapture, { capture: true });
     };
   }, [onClose]);
 
@@ -169,6 +160,12 @@ export function CommandPalette({
 
   return (
     <motion.div
+      onPointerDown={(e) => {
+        // radix Dialog(환경설정)가 document pointerdown 으로 outside 판정하기 전에 차단
+        e.stopPropagation();
+        e.preventDefault();
+        onClose();
+      }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -179,7 +176,7 @@ export function CommandPalette({
       className="pointer-events-auto fixed inset-0 z-[60] flex items-start justify-center bg-black/40 pt-[14vh] [-webkit-app-region:no-drag]"
     >
       <motion.div
-        ref={panelRef}
+        onPointerDown={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.97, y: -8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.98, y: -4 }}
