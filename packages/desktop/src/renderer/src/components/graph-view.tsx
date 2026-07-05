@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react';
-import type { RecentListResult, RecentPage } from '../cairn-api';
+import { SlidersHorizontal } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import type { GraphConfig, GraphLabels, RecentListResult, RecentPage } from '../cairn-api';
 import { useSettings } from '../settings-context';
+import type { I18nKey } from '../i18n';
 
 type Kind = 'daily' | 'weekly' | 'monthly';
 
@@ -37,8 +39,8 @@ function isoWeekEnd(date: string): string {
   return `${sunday.getUTCFullYear()}-${String(sunday.getUTCMonth() + 1).padStart(2, '0')}-${String(sunday.getUTCDate()).padStart(2, '0')}`;
 }
 
-function buildGraph(pages: RecentPage[]): Graph {
-  const dated = pages.filter((p) => p.date !== null);
+function buildGraph(pages: RecentPage[], showRollups: boolean): Graph {
+  const dated = pages.filter((p) => p.date !== null && (showRollups || p.category === 'daily'));
   const nodes: GraphNode[] = dated.map((page) => {
     const kind = page.category;
     const activity = (page.pr ?? 0) + (page.commit ?? 0);
@@ -107,11 +109,21 @@ export function GraphView({
   recent: RecentListResult | null;
   onOpen: (page: RecentPage) => void;
 }) {
-  const { t } = useSettings();
+  const { t, settings, update } = useSettings();
+  const cfg = settings.graph;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const onOpenRef = useRef(onOpen);
   onOpenRef.current = onOpen;
+  // 슬라이더 조절이 시뮬레이션 재구성 없이 즉시 반영되도록 ref 로 전달
+  const cfgRef = useRef(cfg);
+  cfgRef.current = cfg;
+  const kickRef = useRef<() => void>(() => {});
+  const [panelOpen, setPanelOpen] = useState(false);
   const pages = recent?.pages;
+
+  useEffect(() => {
+    kickRef.current();
+  }, [cfg.nodeScale, cfg.spread]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -119,7 +131,7 @@ export function GraphView({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const graph = buildGraph(pages);
+    const graph = buildGraph(pages, cfg.showRollups);
     const { nodes, edges, neighbors } = graph;
     if (nodes.length === 0) return;
 
@@ -136,6 +148,10 @@ export function GraphView({
     let lastY = 0;
     let raf = 0;
     const fontFamily = getComputedStyle(document.body).fontFamily;
+    const scaleOf = (n: GraphNode): number => n.r * cfgRef.current.nodeScale;
+    kickRef.current = () => {
+      alpha = Math.max(alpha, 0.4);
+    };
 
     const resize = (): void => {
       const rect = canvas.getBoundingClientRect();
@@ -154,6 +170,7 @@ export function GraphView({
     ro.observe(canvas);
 
     const tick = (): void => {
+      const spread = cfgRef.current.spread;
       // 반발(전쌍) + 엣지 스프링 + 중심 인력 — 노드 수백 개 규모라 O(n²) 로 충분
       for (let i = 0; i < nodes.length; i++) {
         const a = nodes[i]!;
@@ -167,7 +184,7 @@ export function GraphView({
             dy = (j % 2 ? 1 : -1) * 0.5;
             d2 = 0.5;
           }
-          const rep = Math.min(12, ((a.r + b.r) * 42) / d2);
+          const rep = Math.min(12, ((a.r + b.r) * 42 * spread) / d2);
           const inv = 1 / Math.sqrt(d2);
           a.vx += dx * inv * rep;
           a.vy += dy * inv * rep;
@@ -178,7 +195,7 @@ export function GraphView({
       for (const [ai, bi] of edges) {
         const a = nodes[ai]!;
         const b = nodes[bi]!;
-        const rest = a.kind === 'weekly' || b.kind === 'weekly' ? 55 : 70;
+        const rest = (a.kind === 'weekly' || b.kind === 'weekly' ? 55 : 70) * spread;
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -225,34 +242,40 @@ export function GraphView({
       const dimOthers = hover !== -1;
       for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i]!;
+        const r = scaleOf(n);
         const isHover = i === hover;
         const isNeighbor = hover !== -1 && neighbors[hover]!.has(i);
         const dim = dimOthers && !isHover && !isNeighbor;
         ctx.globalAlpha = dim ? 0.25 : 1;
         ctx.shadowColor = COLOR[n.kind];
-        ctx.shadowBlur = (isHover ? n.r * 4 : n.r * 2.2) * zoom;
+        ctx.shadowBlur = (isHover ? r * 4 : r * 2.2) * zoom;
         ctx.fillStyle = isHover ? '#a5a9ff' : COLOR[n.kind];
         ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
       }
       ctx.globalAlpha = 1;
 
-      const showAll = zoom > 1.6;
+      const labelMode = cfgRef.current.labels;
+      const showAll = labelMode === 'always' || (labelMode === 'auto' && zoom > 1.6);
       ctx.textAlign = 'center';
       for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i]!;
         const isHover = i === hover;
         const isNeighbor = hover !== -1 && neighbors[hover]!.has(i);
-        if (!(n.kind === 'monthly' || isHover || isNeighbor || showAll)) continue;
-        if (hover !== -1 && !isHover && !isNeighbor && n.kind !== 'monthly') continue;
+        if (labelMode === 'hover') {
+          if (!isHover && !isNeighbor) continue;
+        } else {
+          if (!(n.kind === 'monthly' || isHover || isNeighbor || showAll)) continue;
+          if (hover !== -1 && !isHover && !isNeighbor && n.kind !== 'monthly') continue;
+        }
         const size = n.kind === 'monthly' ? 11 : 9.5;
         ctx.font = `500 ${size / zoom}px ${fontFamily}`;
         ctx.fillStyle = isHover ? LABEL_HI : LABEL_COLOR;
         ctx.globalAlpha = hover !== -1 && !isHover && !isNeighbor ? 0.4 : 0.95;
         const label = n.kind === 'daily' ? (n.page.date ?? n.page.title) : n.page.title;
-        ctx.fillText(label, n.x, n.y + n.r + 14 / zoom);
+        ctx.fillText(label, n.x, n.y + scaleOf(n) + 14 / zoom);
       }
       ctx.globalAlpha = 1;
       ctx.restore();
@@ -276,7 +299,7 @@ export function GraphView({
       const { x, y } = toWorld(e);
       for (let i = nodes.length - 1; i >= 0; i--) {
         const n = nodes[i]!;
-        const pad = n.r + 5 / zoom;
+        const pad = scaleOf(n) + 5 / zoom;
         if ((n.x - x) ** 2 + (n.y - y) ** 2 <= pad * pad) return i;
       }
       return -1;
@@ -343,9 +366,10 @@ export function GraphView({
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('wheel', onWheel);
     };
-  }, [pages]);
+  }, [pages, cfg.showRollups]);
 
   const empty = !pages || pages.filter((p) => p.date !== null).length === 0;
+  const setGraph = (patch: Partial<GraphConfig>): void => update({ graph: { ...cfg, ...patch } });
 
   return (
     <main className="relative min-w-0 flex-1 overflow-hidden bg-canvas">
@@ -360,6 +384,73 @@ export function GraphView({
             <h1 className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
               {t('nav.graph')}
             </h1>
+          </div>
+          <div className="absolute right-5 top-14 flex flex-col items-end gap-2 [-webkit-app-region:no-drag]">
+            <button
+              type="button"
+              aria-label={t('graph.settings')}
+              onClick={() => setPanelOpen((v) => !v)}
+              className={[
+                'flex size-8 items-center justify-center rounded-lg border border-hairline transition-colors',
+                panelOpen
+                  ? 'bg-surface-2 text-ink'
+                  : 'bg-surface-1 text-ink-subtle hover:bg-surface-2 hover:text-ink',
+              ].join(' ')}
+            >
+              <SlidersHorizontal size={14} strokeWidth={2} />
+            </button>
+            {panelOpen && (
+              <div className="popover-in w-64 rounded-lg border border-hairline bg-surface-1 p-3.5 shadow-xl shadow-black/40 [transform-origin:top_right]">
+                <PanelRow label={t('graph.nodeScale')}>
+                  <Slider
+                    value={cfg.nodeScale}
+                    min={0.6}
+                    max={1.8}
+                    onChange={(v) => setGraph({ nodeScale: v })}
+                  />
+                </PanelRow>
+                <PanelRow label={t('graph.spread')}>
+                  <Slider
+                    value={cfg.spread}
+                    min={0.6}
+                    max={2}
+                    onChange={(v) => setGraph({ spread: v })}
+                  />
+                </PanelRow>
+                <PanelRow label={t('graph.labels')}>
+                  <div className="flex gap-1">
+                    {(['auto', 'always', 'hover'] as const).map((mode) => (
+                      <LabelChip
+                        key={mode}
+                        mode={mode}
+                        active={cfg.labels === mode}
+                        onClick={() => setGraph({ labels: mode })}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                </PanelRow>
+                <PanelRow label={t('graph.showRollups')}>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={cfg.showRollups}
+                    onClick={() => setGraph({ showRollups: !cfg.showRollups })}
+                    className={[
+                      'relative h-4.5 w-8 rounded-full transition-colors',
+                      cfg.showRollups ? 'bg-accent' : 'bg-surface-3',
+                    ].join(' ')}
+                  >
+                    <span
+                      className={[
+                        'absolute top-0.5 size-3.5 rounded-full bg-white transition-transform',
+                        cfg.showRollups ? 'translate-x-4' : 'translate-x-0.5',
+                      ].join(' ')}
+                    />
+                  </button>
+                </PanelRow>
+              </div>
+            )}
           </div>
           <div className="pointer-events-none absolute bottom-5 left-6 flex items-center gap-4 text-[11.5px] text-ink-tertiary">
             {(['monthly', 'weekly', 'daily'] as const).map((k) => (
@@ -381,5 +472,72 @@ export function GraphView({
         </>
       )}
     </main>
+  );
+}
+
+function PanelRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+      <span className="shrink-0 text-[12px] text-ink-muted">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function Slider({
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={0.1}
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className="h-1 w-28 cursor-pointer appearance-none rounded-full bg-surface-3 accent-[var(--color-accent)]"
+    />
+  );
+}
+
+const LABEL_MODE_KEY: Record<GraphLabels, I18nKey> = {
+  auto: 'graph.labels.auto',
+  always: 'graph.labels.always',
+  hover: 'graph.labels.hover',
+};
+
+function LabelChip({
+  mode,
+  active,
+  onClick,
+  t,
+}: {
+  mode: GraphLabels;
+  active: boolean;
+  onClick: () => void;
+  t: (key: I18nKey) => string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={[
+        'rounded-md border px-2 py-1 text-[11.5px] transition-colors',
+        active
+          ? 'border-accent/50 bg-accent/15 text-ink'
+          : 'border-hairline text-ink-subtle hover:bg-surface-2 hover:text-ink',
+      ].join(' ')}
+    >
+      {t(LABEL_MODE_KEY[mode])}
+    </button>
   );
 }

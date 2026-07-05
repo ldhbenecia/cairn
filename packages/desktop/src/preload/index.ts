@@ -14,6 +14,14 @@ export type AutoPublish = {
   confirmBeforeRun: boolean;
 };
 export type ExportConfig = { folder: string | null; autoSync: boolean };
+export type GraphLabels = 'auto' | 'always' | 'hover';
+export type GraphConfig = {
+  enabled: boolean;
+  nodeScale: number;
+  spread: number;
+  labels: GraphLabels;
+  showRollups: boolean;
+};
 export type Settings = {
   theme: Theme;
   accent: string;
@@ -27,6 +35,7 @@ export type Settings = {
   prompts: { daily: string | null; weekly: string | null; monthly: string | null };
   summaryModel: SummaryModel;
   export: ExportConfig;
+  graph: GraphConfig;
 };
 
 // 무플래시: 첫 페인트 전 동기로 설정을 받는다 (sandbox preload 라 fs 불가 → sendSync)
