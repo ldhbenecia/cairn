@@ -287,11 +287,12 @@ const STRINGS = {
       '내가 만들었거나 할당된 GitHub PR·커밋, 그리고 로컬 Git 커밋이요. 전부 내 토큰으로 내 기기에서 수집돼요 — 별도 서버가 없어요.',
     'faq.q4': 'Claude 구독이 필요한가요?',
     'faq.a4': '요약 생성에 내 Claude 계정(Claude Code 로그인 또는 API 키)을 사용해요.',
-    'faq.q5': '노션 밖에도 일지를 남길 수 있나요?',
+    'faq.q5': '노션 없이도 쓸 수 있나요?',
     'faq.a5':
-      '연동 탭에서 폴더를 지정하면 발행할 때마다 .md 로도 기록돼요. 마크다운을 읽는 도구라면 무엇이든 그대로 쓸 수 있고, 연동은 계속 늘려갈 예정이에요.',
+      '네. 일지는 기본적으로 이 기기의 로컬 폴더에 마크다운으로 기록돼요. 노션은 여러 연동 중 하나라 연결하면 발행 시 노션 페이지도 함께 만들어지고, 연동은 계속 늘려갈 예정이에요.',
     'faq.q6': '데이터는 어디에 저장되나요?',
-    'faq.a6': '일지는 내 노션 워크스페이스에, 통계는 이 기기의 로컬 파일에 저장돼요.',
+    'faq.a6':
+      '일지와 통계 모두 이 기기의 로컬 파일에 저장돼요. 평문 마크다운이라 어떤 에디터로도 열 수 있고, 폴더를 iCloud·Dropbox 에 두면 그대로 동기화돼요.',
     'range.pickStart': '시작일을 선택하세요',
     'range.pickEnd': '종료일을 선택하세요',
     'achv.empty': '이 기간엔 Done 항목이 없어요',
@@ -709,11 +710,12 @@ const STRINGS = {
       'GitHub PRs and commits you authored or were assigned, plus local Git commits — all on your machine with your own tokens. There is no server.',
     'faq.q4': 'Do I need a Claude subscription?',
     'faq.a4': 'Summaries use your own Claude account (Claude Code login or an API key).',
-    'faq.q5': 'Can I keep worklogs outside Notion too?',
+    'faq.q5': 'Do I need Notion?',
     'faq.a5':
-      'Pick a folder in the Integrations tab and every publish also lands there as .md — any Markdown-based tool can pick it up. More integrations are on the way.',
+      'No. Worklogs are written to a local Markdown folder on this machine by default. Notion is one of several integrations — connect it and each publish also creates a Notion page. More integrations are on the way.',
     'faq.q6': 'Where is my data stored?',
-    'faq.a6': 'Worklogs live in your Notion workspace; stats live in a local file on this machine.',
+    'faq.a6':
+      'Worklogs and stats both live in local files on this machine. Plain Markdown opens in any editor, and putting the folder in iCloud or Dropbox syncs it as-is.',
     'range.pickStart': 'Pick a start date',
     'range.pickEnd': 'Pick an end date',
     'achv.empty': 'No Done items in this range',

@@ -4,7 +4,7 @@
 
 > Like a trail cairn, stack one mark of work each day — and leave a path behind.
 
-cairn turns your daily dev activity — GitHub PRs and local Git commits across multiple repos — into a Claude-summarized worklog published to Notion, with automatic weekly and monthly rollups.
+cairn turns your daily dev activity — GitHub PRs and local Git commits across multiple repos — into a Claude-summarized worklog, recorded as local Markdown with automatic weekly and monthly rollups. Connect integrations like Notion to publish it further.
 
 It runs as an **Electron desktop app** on top of a headless engine. Everything stays on your machine: it uses the Claude Agent SDK (no direct Anthropic API calls) and never sends source code or diffs to external services.
 
@@ -14,16 +14,18 @@ It runs as an **Electron desktop app** on top of a headless engine. Everything s
 
 - **Aggregate** — GitHub PRs (authored + assigned) and local Git commits across multiple repositories and accounts
 - **Summarize** — Claude (Agent SDK) writes the worklog in your language (Korean or English), with the summary model you choose
-- **Publish** — to Notion: daily logs + automatic weekly/monthly rollups
-- **Desktop app** — guided first-run setup, one-click publish, opt-in auto-publish at a time you choose (your local timezone), in-app Notion viewer, a stats dashboard, dark/light/system themes, ko/en
+- **Record** — daily logs + automatic weekly/monthly rollups, written to a local Markdown journal (frontmatter + wiki links)
+- **Integrations** — optionally publish each entry to Notion, or mirror the journal into any Markdown folder (e.g. an Obsidian vault)
+- **Desktop app** — guided first-run setup, one-click publish, opt-in auto-publish at a time you choose (your local timezone), in-app worklog viewer, a stats dashboard, an interactive worklog graph, dark/light/system themes, ko/en
 - **Local-first & private** — machine-local secrets, no server, no code-body egress (ADR 0003)
 
 ## Requirements
 
 - macOS
 - Claude Pro/Max subscription or Anthropic API key (for the Agent SDK)
-- GitHub fine-grained PAT (read-only)
-- Notion internal integration token
+- GitHub fine-grained PAT (read-only) and/or local Git repositories to collect from
+
+Optional: a Notion internal integration token, if you want entries published to Notion as well.
 
 The desktop app's first-run setup walks you through connecting these and writes the config for you.
 
@@ -92,7 +94,7 @@ pnpm monorepo:
 
 ## Privacy
 
-Your worklogs, code, and tokens stay on your machine. They are only sent to the services you configure (Notion, GitHub, Claude) — never anywhere else.
+Your worklogs, code, and tokens stay on your machine. Worklogs are plain Markdown files on disk; data is only sent to the services you choose to connect (GitHub, Claude, Notion) — never anywhere else.
 
 cairn sends **anonymous usage telemetry** (PostHog) to understand how many people use it and which versions are active. It is enabled by default and can be turned off in **Preferences → About → Anonymous usage stats**.
 
