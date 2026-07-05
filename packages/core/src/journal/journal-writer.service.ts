@@ -19,7 +19,7 @@ export interface JournalWriteResult {
   path: string;
 }
 
-const DEFAULT_FOLDER = join('Documents', 'cairn');
+const DEFAULT_FOLDER = join('Documents', 'Cairn Journal');
 
 @Injectable()
 export class JournalWriterService {
