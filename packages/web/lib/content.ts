@@ -30,7 +30,7 @@ export const content = {
         },
         {
           t: 'Publish',
-          d: 'A dated worklog lands in Notion with a copy-paste-ready Share section. Weekly and monthly rollups are generated automatically.',
+          d: 'A dated worklog lands in your local Markdown journal with a copy-paste-ready Share section, plus automatic weekly and monthly rollups. Connect Notion and each publish creates a page there too.',
         },
       ],
     },
@@ -58,16 +58,17 @@ export const content = {
         {
           title: 'Publish',
           meta: 'daily · weekly · monthly',
-          status: 'Notion',
-          description: 'Daily logs to Notion with automatic weekly and monthly rollups.',
-          tags: ['Notion', 'Rollups'],
+          status: 'Journal',
+          description:
+            'Daily logs in a local Markdown journal with automatic weekly and monthly rollups — connect Notion to publish there too.',
+          tags: ['Markdown', 'Rollups'],
         },
         {
           title: 'Desktop app',
           meta: 'macOS',
           status: 'App',
           description:
-            'Guided setup, one-click and scheduled auto-publish, an in-app Notion viewer, a stats dashboard, and cross-device sync.',
+            'Guided setup, one-click and scheduled auto-publish, an in-app worklog viewer, a stats dashboard, and cross-device sync.',
           tags: ['Auto-publish', 'Dashboard'],
         },
         {
@@ -83,7 +84,7 @@ export const content = {
     output: {
       eyebrow: 'The output',
       title: 'A worklog that reads itself back',
-      lead: 'Each day lands in Notion as a clean page — a project-level summary, a copy-paste-ready Share section for standups, and a detailed Done list with the numbers. Months of them roll up into the dashboard — a record you can look back on.',
+      lead: 'Each day lands in your journal as a clean Markdown page — a project-level summary, a copy-paste-ready Share section for standups, and a detailed Done list with the numbers. Months of them roll up into the dashboard — a record you can look back on.',
       ticks: [
         'Summary · Share · Done, every day',
         'Numbers preserved — counts, %, before→after',
@@ -96,7 +97,7 @@ export const content = {
       title: 'Connected in a few minutes',
       lead: 'cairn keeps everything on your machine — you connect your own tokens during onboarding.',
       notion: {
-        title: 'Where worklogs publish',
+        title: 'Publish to Notion (optional)',
         s1pre: 'Create an integration at ',
         s1link: 'notion.so/my-integrations',
         s1post: ' and copy the token (',
@@ -190,7 +191,7 @@ export const content = {
         },
         {
           t: '발행',
-          d: '날짜별 일지가 복붙용 Share 섹션과 함께 Notion 에 올라갑니다. 주간·월간 롤업도 자동 생성됩니다.',
+          d: '날짜별 일지가 복붙용 Share 섹션과 함께 로컬 마크다운 journal 에 기록되고, 주간·월간 롤업도 자동 생성됩니다. Notion 을 연동하면 발행 시 페이지도 함께 만들어집니다.',
         },
       ],
     },
@@ -216,16 +217,17 @@ export const content = {
         {
           title: '발행',
           meta: '일간 · 주간 · 월간',
-          status: 'Notion',
-          description: 'Notion 에 일일 일지 발행 + 주간·월간 롤업 자동 생성.',
-          tags: ['Notion', 'Rollups'],
+          status: 'Journal',
+          description:
+            '로컬 마크다운 journal 에 일일 일지 기록 + 주간·월간 롤업 자동 생성 — Notion 연동 시 페이지도 함께 발행.',
+          tags: ['Markdown', 'Rollups'],
         },
         {
           title: '데스크톱 앱',
           meta: 'macOS',
           status: 'App',
           description:
-            '가이드 설정, 원클릭·예약 자동 발행, 인앱 Notion 뷰어, 통계 대시보드, 기기 간 동기화.',
+            '가이드 설정, 원클릭·예약 자동 발행, 인앱 일지 뷰어, 통계 대시보드, 기기 간 동기화.',
           tags: ['Auto-publish', 'Dashboard'],
         },
         {
@@ -241,7 +243,7 @@ export const content = {
     output: {
       eyebrow: '결과물',
       title: '스스로 읽히는 일지',
-      lead: '매일 Notion 에 깔끔한 페이지로 — 프로젝트 단위 요약, 스탠드업에 바로 복붙하는 Share 섹션, 수치가 담긴 상세 Done 목록. 몇 달이 쌓이면 대시보드로, 돌아볼 기록으로 굴러갑니다.',
+      lead: '매일 깔끔한 마크다운 페이지로 — 프로젝트 단위 요약, 스탠드업에 바로 복붙하는 Share 섹션, 수치가 담긴 상세 Done 목록. 몇 달이 쌓이면 대시보드로, 돌아볼 기록으로 굴러갑니다.',
       ticks: [
         '매일 Summary · Share · Done',
         '수치 보존 — 건수, %, before→after',
@@ -254,7 +256,7 @@ export const content = {
       title: '몇 분이면 연결 끝',
       lead: 'cairn 은 모든 걸 내 기기에 둡니다 — 온보딩에서 본인 토큰을 직접 연결합니다.',
       notion: {
-        title: '일지를 발행할 곳',
+        title: 'Notion 에도 발행 (선택)',
         s1pre: '',
         s1link: 'notion.so/my-integrations',
         s1post: ' 에서 integration 을 만들고 토큰(',
