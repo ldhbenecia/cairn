@@ -10,10 +10,15 @@ on:
     paths:
       - 'packages/web/**'
       - '.github/workflows/web-deploy.yml'
+  workflow_dispatch:
 
 concurrency:
   group: web-deploy-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+  pull-requests: write
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -22,19 +27,36 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # fork PR 은 secrets 미제공 → 스킵
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+          cache: pnpm
       - name: Install Vercel CLI
-        run: npm i -g vercel@latest
-      - name: Resolve target environment
-        id: env
-        run: echo "target=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}" >> "$GITHUB_OUTPUT"
+        run: npm i -g vercel@54.20.1
       - name: Pull Vercel project settings
-        run: vercel pull --yes --environment=${{ steps.env.outputs.target }} --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=${{ github.event_name == 'pull_request' && 'preview' || 'production' }} --token=${{ secrets.VERCEL_TOKEN }}
       - name: Build
-        run: vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build ${{ github.event_name != 'pull_request' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
       - name: Deploy
-        run: vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt ${{ github.event_name != 'pull_request' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployed: $url"
+      - name: Comment preview URL
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          gh pr comment "${{ github.event.number }}" --repo "${{ github.repository }}" \
+            --edit-last --body "Vercel Preview: $PREVIEW_URL" \
+          || gh pr comment "${{ github.event.number }}" --repo "${{ github.repository }}" \
+            --body "Vercel Preview: $PREVIEW_URL"
