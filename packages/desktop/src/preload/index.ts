@@ -116,6 +116,7 @@ export type CoreResult = {
   notionUrl: string | null;
   publishKind: PublishKind;
   publishPageId: string | null;
+  journalFile: string | null;
   noActivity: boolean;
   cancelled: boolean;
   summaryFailed: boolean;

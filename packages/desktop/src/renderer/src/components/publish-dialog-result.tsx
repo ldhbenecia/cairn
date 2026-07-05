@@ -12,7 +12,7 @@ import type { CoreResult, RunProgress } from '../cairn-api';
 import type { T } from './publish-dialog-utils';
 
 function pageIdToUrl(pageId: string | null): string | null {
-  if (!pageId) return null;
+  if (!pageId || pageId.startsWith('journal:')) return null;
   return `https://www.notion.so/${pageId.replace(/-/g, '')}`;
 }
 
@@ -107,9 +107,11 @@ export function Result({
   onOpenPublished: (pageId: string, url: string | null) => void;
 }) {
   const url = result.notionUrl ?? pageIdToUrl(result.publishPageId);
+  // 노션 미연동이어도 로컬 일지가 기록됐으면 성공
+  const localOnly = result.publishKind === 'no-target' && !!result.journalFile;
   const isSuccess =
     result.ok &&
-    result.publishKind !== 'no-target' &&
+    (result.publishKind !== 'no-target' || localOnly) &&
     result.publishKind !== 'skipped' &&
     !result.noActivity;
   let body: React.ReactNode;
@@ -126,7 +128,7 @@ export function Result({
         {t('publish.result.fail')} (exit {result.exitCode ?? 'unknown'})
       </p>
     );
-  } else if (result.publishKind === 'no-target') {
+  } else if (result.publishKind === 'no-target' && !localOnly) {
     body = <p className="text-notice">{t('publish.result.noTarget')}</p>;
   } else if (result.noActivity) {
     body = (
@@ -158,7 +160,9 @@ export function Result({
         >
           <Check size={22} strokeWidth={2.5} />
         </motion.span>
-        <p className="text-[15px] font-semibold text-ink">{t('publish.result.done')}</p>
+        <p className="text-[15px] font-semibold text-ink">
+          {t(localOnly ? 'publish.result.doneLocal' : 'publish.result.done')}
+        </p>
         {(modelLabel || elapsedSec !== null) && (
           <p className="text-[12px] text-ink-tertiary">
             {[modelLabel, elapsedSec !== null ? fmtElapsed(elapsedSec) : null]
