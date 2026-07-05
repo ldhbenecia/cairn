@@ -120,15 +120,16 @@ export type ConnectionAccounts = {
   notion: { label: string; workspace?: string }[];
 };
 export type DbRef = { databaseId: string; dataSourceId: string };
+export type NotionWorkspacePayload = {
+  label: string;
+  token: string;
+  pageId: string;
+  myUserId: string;
+  worklogDb?: DbRef;
+  rollupDb?: DbRef;
+};
 export type OnboardingPayload = {
-  notion: {
-    label: string;
-    token: string;
-    pageId: string;
-    myUserId: string;
-    worklogDb?: DbRef;
-    rollupDb?: DbRef;
-  }[];
+  notion: NotionWorkspacePayload[];
   github: { label: string; token: string }[];
   anthropicApiKey?: string;
   localGitRepos: string[];
@@ -191,6 +192,9 @@ declare global {
       };
       connections: {
         accounts: () => Promise<ConnectionAccounts>;
+      };
+      integrations: {
+        addNotion: (payload: NotionWorkspacePayload) => Promise<{ ok: boolean; error?: string }>;
       };
       cloud: {
         state: () => Promise<CloudAuthState>;

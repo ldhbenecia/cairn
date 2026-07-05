@@ -419,24 +419,24 @@ export function GraphView({
       ) : (
         <>
           <canvas ref={canvasRef} className="h-full w-full [-webkit-app-region:no-drag]" />
-          <div className="pointer-events-none absolute left-6 top-0 flex h-20 items-center gap-3 [-webkit-app-region:drag]">
+          <div className="pointer-events-none absolute left-6 top-0 flex h-20 items-center [-webkit-app-region:drag]">
             <h1 className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
               {t('nav.graph')}
             </h1>
-            <div className="pointer-events-auto relative [-webkit-app-region:no-drag]">
-              <SearchIcon
-                size={12}
-                strokeWidth={2}
-                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-tertiary"
-              />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t('graph.search')}
-                spellCheck={false}
-                className="h-7 w-44 rounded-md border border-hairline bg-surface-1 pl-7 pr-2 text-[12px] text-ink placeholder:text-ink-tertiary"
-              />
-            </div>
+          </div>
+          <div className="absolute left-6 top-14 [-webkit-app-region:no-drag]">
+            <SearchIcon
+              size={12}
+              strokeWidth={2}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-tertiary"
+            />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('graph.search')}
+              spellCheck={false}
+              className="h-8 w-48 rounded-lg border border-hairline bg-surface-1 pl-7 pr-2 text-[12px] text-ink placeholder:text-ink-tertiary"
+            />
           </div>
           <div className="absolute right-5 top-14 flex flex-col items-end gap-2 [-webkit-app-region:no-drag]">
             <button

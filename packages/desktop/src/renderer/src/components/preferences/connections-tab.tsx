@@ -1,8 +1,9 @@
-import { Loader2, RotateCw } from 'lucide-react';
+import { FolderGit2, Loader2, RotateCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ConnectionAccounts } from '../../cairn-api';
 import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';
+import { ClaudeMark, GithubMark, NotionMark } from '../brand-icons';
 import { AccordionItem } from '../accordion';
 import { Field } from './field';
 
@@ -106,24 +107,36 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
       <div className="py-5">
         <div className="space-y-0.5 rounded-lg border border-hairline bg-surface-1 p-1.5">
           <Row
+            icon={
+              <span className="flex size-[15px] shrink-0 items-center justify-center rounded-[3px] border border-black/10 bg-white text-black">
+                <NotionMark size={10} />
+              </span>
+            }
             label="Notion"
             items={notionItems}
             expanded={open.has('notion')}
             onToggle={() => toggle('notion')}
           />
           <Row
+            icon={
+              <span className="flex shrink-0 text-ink">
+                <GithubMark size={14} />
+              </span>
+            }
             label="GitHub"
             items={githubItems}
             expanded={open.has('github')}
             onToggle={() => toggle('github')}
           />
           <Row
+            icon={<ClaudeMark size={13} />}
             label="Claude"
             pending={claude === 'checking'}
             ok={claude === 'ok'}
             onRefresh={claude === 'checking' ? undefined : refreshClaude}
           />
           <Row
+            icon={<FolderGit2 size={13} className="shrink-0 text-ink-muted" />}
             label={t('prefs.conn.localGit')}
             items={repoItems}
             expanded={open.has('repos')}
@@ -143,6 +156,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
 }
 
 function Row({
+  icon,
   label,
   items,
   ok,
@@ -151,6 +165,7 @@ function Row({
   expanded,
   onToggle,
 }: {
+  icon?: React.ReactNode;
   label: string;
   items?: Item[];
   ok?: boolean;
@@ -181,6 +196,7 @@ function Row({
           className={`size-1.5 shrink-0 rounded-full ${connected ? 'bg-emerald-500' : 'bg-ink-tertiary'}`}
         />
       )}
+      {icon}
       <span className="text-ink-muted">{label}</span>
       <span className="ml-auto truncate pl-3 text-[12px] text-ink-tertiary">{summary}</span>
       {onRefresh && (

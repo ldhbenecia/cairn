@@ -5,48 +5,25 @@ import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
 import { BrandMark } from './brand-mark';
-import { GithubCard, NotionCard } from './onboarding-cards';
-import type { GithubEntry, NotionEntry, Status } from './onboarding-cards';
+import { GithubCard } from './onboarding-cards';
+import type { GithubEntry, Status } from './onboarding-cards';
 
 type T = (key: I18nKey) => string;
 
-const STEPS = ['welcome', 'notion', 'github', 'claude', 'repos', 'review'] as const;
+const STEPS = ['welcome', 'github', 'claude', 'repos', 'review'] as const;
 type Step = (typeof STEPS)[number];
 const STEP_TITLE_KEY: Record<Step, I18nKey> = {
   welcome: 'onb.step.welcome',
-  notion: 'onb.step.notion',
   github: 'onb.step.github',
   claude: 'onb.step.claude',
   repos: 'onb.step.repos',
   review: 'onb.step.review',
 };
 
-// finish() 저장 필터와 동일 조건 — 리뷰 카운트가 실제 저장될 워크스페이스 수와 어긋나지 않게
-const notionComplete = (e: NotionEntry): boolean => e.status === 'ok' && !!e.pageId && !!e.personId;
-
-let notionSeq = 0;
-const newNotion = (label: string): NotionEntry => ({
-  uid: `n${notionSeq++}`,
-  label,
-  token: '',
-  status: 'idle',
-  persons: [],
-  personId: '',
-  query: '',
-  pages: [],
-  pageId: '',
-  searching: false,
-  searched: false,
-  databases: [],
-  worklogDbId: '',
-  rollupDbId: '',
-});
-
 export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
-  const { t, settings } = useSettings();
+  const { t } = useSettings();
   const [stepIdx, setStepIdx] = useState(0);
   const step = STEPS[stepIdx]!;
-  const [notion, setNotion] = useState<NotionEntry[]>([newNotion('Personal')]);
   const [github, setGithub] = useState<GithubEntry[]>([
     { label: 'Personal', token: '', status: 'idle' },
   ]);
@@ -58,57 +35,8 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const [ghImporting, setGhImporting] = useState(false);
   const [ghMsg, setGhMsg] = useState<I18nKey | null>(null);
 
-  const patchNotion = (i: number, p: Partial<NotionEntry>) =>
-    setNotion((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
-  // 비동기 완료 후 패치는 uid 로 — 검색 중 카드 삭제/순서변경으로 인덱스가 다른 항목을 가리키는 것 방지
-  const patchNotionById = (uid: string, p: Partial<NotionEntry>) =>
-    setNotion((prev) => prev.map((e) => (e.uid === uid ? { ...e, ...p } : e)));
   const patchGithub = (i: number, p: Partial<GithubEntry>) =>
     setGithub((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
-
-  async function testNotion(i: number) {
-    const e = notion[i]!;
-    if (!e.token.trim()) return;
-    const uid = e.uid;
-    patchNotion(i, { status: 'testing', error: undefined });
-    const r = await window.cairn.onboarding.probeNotion(e.token.trim());
-    if (!r.ok) {
-      patchNotionById(uid, { status: 'err', error: r.error });
-      return;
-    }
-    patchNotionById(uid, {
-      status: 'ok',
-      persons: r.persons,
-      personId: r.persons.length === 1 ? r.persons[0]!.id : '',
-    });
-    void searchPages(uid);
-  }
-
-  async function searchPages(uid: string) {
-    const e = notion.find((n) => n.uid === uid);
-    if (!e) return;
-    patchNotionById(uid, { searching: true });
-    try {
-      const pages = await window.cairn.onboarding.searchNotion(e.token.trim(), e.query);
-      patchNotionById(uid, { pages, searched: true });
-    } catch {
-      // 네트워크/API 실패 시 스피너만 멈추고 조용히 죽던 경로 — 빈 결과로 확정 표시
-      patchNotionById(uid, { pages: [], searched: true });
-    } finally {
-      patchNotionById(uid, { searching: false });
-    }
-  }
-
-  async function loadDatabases(i: number, pageId: string) {
-    const e = notion[i]!;
-    const uid = e.uid;
-    try {
-      const dbs = await window.cairn.onboarding.listDatabases(e.token.trim(), pageId);
-      patchNotionById(uid, { databases: dbs });
-    } catch {
-      patchNotionById(uid, { databases: [] });
-    }
-  }
 
   async function testGithub(i: number) {
     const e = github[i]!;
@@ -153,28 +81,15 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     }
   }
 
-  const notionValid = notion.some(notionComplete);
+  // 최소 요건: 활동 소스(GitHub 계정 또는 로컬 Git 레포) 하나 + Claude. 노션은 Preferences 연동 탭에서.
+  const sourceValid = repos.length > 0 || github.some((e) => e.status === 'ok' && e.token.trim());
+  const claudeValid = claudeStatus === 'ok' || !!anthropicKey.trim();
 
   async function finish() {
     setFinishing(true);
     setFinishErr(null);
     const r = await window.cairn.onboarding.finish({
-      notion: notion.filter(notionComplete).map((e) => {
-        const worklogDb = e.databases.find((d) => d.databaseId === e.worklogDbId);
-        const rollupDb = e.databases.find((d) => d.databaseId === e.rollupDbId);
-        return {
-          label: e.label,
-          token: e.token.trim(),
-          pageId: e.pageId,
-          myUserId: e.personId,
-          worklogDb: worklogDb
-            ? { databaseId: worklogDb.databaseId, dataSourceId: worklogDb.dataSourceId }
-            : undefined,
-          rollupDb: rollupDb
-            ? { databaseId: rollupDb.databaseId, dataSourceId: rollupDb.dataSourceId }
-            : undefined,
-        };
-      }),
+      notion: [],
       github: github
         .filter((e) => e.status === 'ok' && e.token.trim())
         .map((e) => ({ label: e.label, token: e.token.trim() })),
@@ -201,8 +116,6 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     const p = await window.cairn.onboarding.pickFolder();
     if (p && !repos.includes(p)) setRepos((prev) => [...prev, p]);
   }
-
-  const canNext = step === 'notion' ? notionValid : true;
 
   return (
     <div className="panel-enter flex h-screen w-screen flex-col bg-canvas text-ink">
@@ -247,50 +160,6 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             className="flex-1 overflow-y-auto [scrollbar-gutter:stable]"
           >
             {step === 'welcome' && <Welcome t={t} />}
-            {step === 'notion' && (
-              <Section
-                desc={t('onb.notion.desc')}
-                links={[
-                  { label: t('onb.notion.link'), url: 'https://www.notion.so/my-integrations' },
-                ]}
-              >
-                <a
-                  href="https://cairnlog.cloud/setup/notion"
-                  onClick={(ev) => {
-                    ev.preventDefault();
-                    void window.cairn.openExternal(
-                      `https://cairnlog.cloud${settings.language === 'ko' ? '/ko' : ''}/setup/notion`,
-                    );
-                  }}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-surface-1 px-4 py-3 text-[13px] text-ink-muted transition-colors hover:border-ink-subtle hover:text-ink"
-                >
-                  <span>{t('onb.notion.webGuide')}</span>
-                  <ExternalLink size={14} strokeWidth={2} className="shrink-0 text-ink-tertiary" />
-                </a>
-                {notion.map((e, i) => (
-                  <NotionCard
-                    key={e.uid}
-                    e={e}
-                    onChange={(p) => patchNotion(i, p)}
-                    onTest={() => void testNotion(i)}
-                    onSearch={() => void searchPages(e.uid)}
-                    onSelectPage={(pageId) => {
-                      patchNotion(i, { pageId, worklogDbId: '', rollupDbId: '' });
-                      void loadDatabases(i, pageId);
-                    }}
-                    onRemove={
-                      notion.length > 1
-                        ? () => setNotion((p) => p.filter((_, x) => x !== i))
-                        : undefined
-                    }
-                  />
-                ))}
-                <AddButton
-                  label={t('onb.notion.add')}
-                  onClick={() => setNotion((p) => [...p, newNotion(`Workspace ${p.length + 1}`)])}
-                />
-              </Section>
-            )}
             {step === 'github' && (
               <Section
                 desc={t('onb.github.desc')}
@@ -452,9 +321,6 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
               <Section desc={t('onb.review.desc')}>
                 <ul className="flex flex-col gap-1.5 text-[13px] text-ink-muted">
                   <li>
-                    {t('onb.review.notion')} {notion.filter(notionComplete).length}
-                  </li>
-                  <li>
                     {t('onb.review.github')} {github.filter((e) => e.status === 'ok').length}
                   </li>
                   <li>
@@ -466,8 +332,14 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   <li>
                     {t('onb.review.repos')} {repos.length}
                   </li>
+                  <li className="text-ink-tertiary">{t('onb.review.notionLater')}</li>
                 </ul>
-                {claudeStatus !== 'ok' && !anthropicKey.trim() && (
+                {!sourceValid && (
+                  <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-[12px] leading-relaxed text-warning">
+                    {t('onb.review.needSource')}
+                  </div>
+                )}
+                {!claudeValid && (
                   <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-[12px] leading-relaxed text-warning">
                     {t('onb.review.warnNoClaude')}
                   </div>
@@ -505,7 +377,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             {step === 'review' ? (
               <button
                 type="button"
-                disabled={finishing || !notionValid}
+                disabled={finishing || !sourceValid || !claudeValid}
                 onClick={() => void finish()}
                 className="flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
               >
@@ -515,7 +387,6 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             ) : (
               <button
                 type="button"
-                disabled={!canNext}
                 onClick={() => setStepIdx((s) => s + 1)}
                 className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
               >
@@ -561,9 +432,6 @@ function Welcome({ t }: { t: T }) {
         </p>
       </motion.div>
       <motion.ul variants={RISE} className="flex flex-col gap-1.5 text-[13px] text-ink-subtle">
-        <li>
-          <span className="text-ink-muted">Notion</span> — {t('onb.welcome.notion')}
-        </li>
         <li>
           <span className="text-ink-muted">GitHub</span> — {t('onb.welcome.github')}
         </li>

@@ -39,8 +39,11 @@ export function readEnvFile(): Record<string, string> {
 
 type ConfigShape = {
   notionWorkspaces?: { tokenEnv?: string; worklog?: { pageId?: string } }[];
+  githubAccounts?: { tokenEnv?: string }[];
+  localGitRepos?: string[];
 };
 
+// 로컬 우선(ADR 0031): 노션 없이도 활동 소스(로컬 Git 또는 GitHub) 하나면 셋업 완료
 export function isSetupComplete(): boolean {
   let config: ConfigShape;
   try {
@@ -48,7 +51,12 @@ export function isSetupComplete(): boolean {
   } catch {
     return false;
   }
+  if (!config || typeof config !== 'object') return false;
   const env = readEnvFile();
-  const workspaces = config.notionWorkspaces ?? [];
-  return workspaces.some((ws) => !!ws.worklog?.pageId && !!ws.tokenEnv && !!env[ws.tokenEnv]);
+  const reposOk = (config.localGitRepos ?? []).length > 0;
+  const githubOk = (config.githubAccounts ?? []).some((g) => !!g.tokenEnv && !!env[g.tokenEnv]);
+  const notionOk = (config.notionWorkspaces ?? []).some(
+    (ws) => !!ws.worklog?.pageId && !!ws.tokenEnv && !!env[ws.tokenEnv],
+  );
+  return reposOk || githubOk || notionOk;
 }
