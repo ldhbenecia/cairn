@@ -70,6 +70,13 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup, blockEscap
             // cmd+K 팔레트가 위에 떠 있으면 ESC 는 팔레트만 닫는다
             if (blockEscape) e.preventDefault();
           }}
+          onPointerDownOutside={(e) => {
+            // 팔레트 오버레이가 전체를 덮어 모든 클릭이 outside 로 판정됨 — 팔레트만 닫는다
+            if (blockEscape) e.preventDefault();
+          }}
+          onInteractOutside={(e) => {
+            if (blockEscape) e.preventDefault();
+          }}
           style={{ width: 920, height: 600, maxWidth: '92vw', maxHeight: '86vh' }}
           className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 focus:outline-none"
         >
