@@ -16,7 +16,6 @@ const STRINGS = {
     'account.local': '로컬',
     'account.offline': '오프라인',
 
-    'source.local': '로컬',
     'source.localDesc': '로컬 일지',
     'graph.empty': '아직 그래프로 그릴 일지가 없어요. 첫 일지를 발행해 보세요.',
     'graph.hint': '드래그·휠로 탐색 · 클릭하면 일지 열기',
@@ -443,7 +442,6 @@ const STRINGS = {
     'account.local': 'Local',
     'account.offline': 'Offline',
 
-    'source.local': 'Local',
     'source.localDesc': 'Local journal',
     'graph.empty': 'Nothing to graph yet. Publish your first worklog.',
     'graph.hint': 'Drag & scroll to explore · click to open',

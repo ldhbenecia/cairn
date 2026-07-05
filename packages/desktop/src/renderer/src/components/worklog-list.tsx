@@ -1,7 +1,6 @@
 import {
   ArrowDownUp,
   ChevronDown,
-  Cloud,
   GitCommitHorizontal,
   GitPullRequest,
   HardDrive,
@@ -21,9 +20,12 @@ import type {
   RecentListResult,
   RecentPage,
   RecentWarning,
+  WorklogSink,
 } from '../cairn-api';
 import type { I18nKey } from '../i18n';
+import { pageSinks, sinkLabel } from '../lib/sinks';
 import { useSettings } from '../settings-context';
+import { NotionMark, ObsidianMark } from './brand-icons';
 import { Pagination } from './pagination';
 import { PublishDialog } from './publish-dialog';
 import type { WorklogFilter } from './sidebar';
@@ -433,23 +435,41 @@ function PageRow({
           {page.status}
         </span>
       )}
-      <span
-        className="hidden w-20 shrink-0 items-center justify-end gap-1 text-[11.5px] text-ink-subtle sm:flex"
-        title={
-          page.workspaceLabel === 'local'
-            ? t('source.localDesc')
-            : `Notion · ${page.workspaceLabel}`
-        }
-      >
-        {page.workspaceLabel === 'local' ? (
-          <HardDrive size={11} strokeWidth={2} className="shrink-0" />
-        ) : (
-          <Cloud size={11} strokeWidth={2} className="shrink-0" />
-        )}
-        <span className="truncate">
-          {page.workspaceLabel === 'local' ? t('source.local') : page.workspaceLabel}
-        </span>
-      </span>
+      <SinkStack page={page} t={t} />
     </button>
   );
 }
+
+function SinkStack({ page, t }: { page: RecentPage; t: T }) {
+  const sinks = pageSinks(page);
+  return (
+    <span
+      className="hidden w-12 shrink-0 items-center justify-end sm:flex"
+      title={sinks.map((s) => sinkLabel(s, page, t('source.localDesc'))).join(' · ')}
+    >
+      {sinks.map((s) => (
+        <span
+          key={s}
+          className={[
+            'flex size-3.5 shrink-0 items-center justify-center rounded-full ring-2 ring-surface-1 first:ml-0 -ml-1.5',
+            SINK_TILE[s],
+          ].join(' ')}
+        >
+          {s === 'journal' ? (
+            <HardDrive size={9} strokeWidth={2.25} />
+          ) : s === 'notion' ? (
+            <NotionMark size={8} />
+          ) : (
+            <ObsidianMark size={9} />
+          )}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const SINK_TILE: Record<WorklogSink, string> = {
+  journal: 'bg-surface-3 text-ink-muted',
+  notion: 'bg-white text-black',
+  obsidian: 'bg-surface-3',
+};

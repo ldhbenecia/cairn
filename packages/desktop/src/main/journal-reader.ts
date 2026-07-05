@@ -9,7 +9,10 @@ import {
   type RecentPage,
   type RecentWarning,
   type SimpleBlock,
+  type WorklogSink,
 } from './notion-client';
+import { readSettings } from './settings';
+import { buildExportIndex, exportIndexKey, journalFileNameFor } from './worklog-sinks';
 
 export const JOURNAL_PAGE_PREFIX = 'journal:';
 export const JOURNAL_WORKSPACE_LABEL = 'local';
@@ -65,12 +68,37 @@ export async function listRecentMerged(): Promise<{
   pages: RecentPage[];
   warnings: RecentWarning[];
 }> {
-  const [notion, journal] = await Promise.all([listRecentPages(), listJournalPages()]);
+  const [notion, journal, exportIndex] = await Promise.all([
+    listRecentPages(),
+    listJournalPages(),
+    readExportIndex(),
+  ]);
   const notionIds = new Set(notion.pages.map((p) => p.pageId));
+  const journalNames = new Set(journal.map((j) => j.fileName));
+  const journalRefs = new Set(journal.flatMap((j) => (j.notionRef ? [j.notionRef] : [])));
+
+  const withSinks = (page: RecentPage, inJournal: boolean, inNotion: boolean): RecentPage => {
+    const sinks: WorklogSink[] = [];
+    if (inJournal) sinks.push('journal');
+    if (inNotion) sinks.push('notion');
+    const key = page.date === null ? null : exportIndexKey(page.category, page.date);
+    if (key !== null && exportIndex?.has(key)) sinks.push('obsidian');
+    return { ...page, sinks };
+  };
+
   const localOnly = journal.filter((v) => !(v.notionRef && notionIds.has(v.notionRef)));
   const pages = [
-    ...localOnly.map(({ fileName: _f, notionRef: _n, ...page }) => page),
-    ...notion.pages,
+    ...localOnly.map(({ fileName: _f, notionRef, ...page }) =>
+      withSinks(page, true, notionRef !== null),
+    ),
+    ...notion.pages.map((p) => {
+      const name = p.date === null ? null : journalFileNameFor(p.category, p.date);
+      return withSinks(
+        p,
+        journalRefs.has(p.pageId) || (name !== null && journalNames.has(name)),
+        true,
+      );
+    }),
   ].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
   // journal 에 일지가 있으면 노션 미연동은 정상 상태 — 경고 배너를 띄우지 않는다
   const warnings =
@@ -78,6 +106,16 @@ export async function listRecentMerged(): Promise<{
       ? notion.warnings.filter((w) => w.code !== 'no-workspaces')
       : notion.warnings;
   return { pages, warnings };
+}
+
+async function readExportIndex(): Promise<Set<string> | null> {
+  const folder = readSettings().export.folder;
+  if (!folder) return null;
+  try {
+    return buildExportIndex(await readdir(folder));
+  } catch {
+    return null;
+  }
 }
 
 export async function readJournalPageContent(pageId: string): Promise<PageContent> {

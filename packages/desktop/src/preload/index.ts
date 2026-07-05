@@ -87,6 +87,8 @@ export type ExportStatus = {
 
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 
+export type WorklogSink = 'journal' | 'notion' | 'obsidian';
+
 export type RecentPage = {
   pageId: string;
   url: string;
@@ -98,6 +100,7 @@ export type RecentPage = {
   commit: number | null;
   hours: number[] | null;
   workspaceLabel: string;
+  sinks?: WorklogSink[];
 };
 
 export type CloudUser = { name: string; email: string; image: string | null };

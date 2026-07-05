@@ -34,6 +34,8 @@ function ensureEnvLoaded(): void {
 
 export type RecentCategory = 'daily' | 'weekly' | 'monthly';
 
+export type WorklogSink = 'journal' | 'notion' | 'obsidian';
+
 export type RecentPage = {
   pageId: string;
   url: string;
@@ -45,6 +47,8 @@ export type RecentPage = {
   commit: number | null;
   hours: number[] | null;
   workspaceLabel: string;
+  // 병합부(listRecentMerged)에서 채움
+  sinks?: WorklogSink[];
 };
 
 type NotionWorkspaceConfig = {
