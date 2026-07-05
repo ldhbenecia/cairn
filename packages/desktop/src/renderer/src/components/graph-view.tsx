@@ -57,7 +57,8 @@ function buildGraph(pages: RecentPage[], showRollups: boolean): Graph {
   const monthlyIdx = new Map<string, number>();
   nodes.forEach((n, i) => {
     const date = n.page.date!;
-    if (n.kind === 'weekly') weeklyIdx.set(`${n.page.workspaceLabel}|${date}`, i);
+    // 노션 weekly 는 일요일, 로컬 journal weekly 는 월요일 날짜 — isoWeekEnd 로 같은 키로 정규화
+    if (n.kind === 'weekly') weeklyIdx.set(`${n.page.workspaceLabel}|${isoWeekEnd(date)}`, i);
     if (n.kind === 'monthly') monthlyIdx.set(`${n.page.workspaceLabel}|${date.slice(0, 7)}`, i);
   });
 

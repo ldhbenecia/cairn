@@ -108,6 +108,12 @@ function NotionIntegrationCard() {
 
   const patch = (p: Partial<NotionEntry>): void => setEntry((prev) => ({ ...prev, ...p }));
 
+  // 재연결 시 기존 워크스페이스 라벨을 프리필 — 라벨이 달라지면 교체가 아닌 추가가 되므로
+  const openForm = (): void => {
+    setEntry({ ...emptyNotionEntry(), label: labels[0] ?? 'Personal' });
+    setOpen(true);
+  };
+
   async function search(): Promise<void> {
     const e = entryRef.current;
     patch({ searching: true });
@@ -204,7 +210,7 @@ function NotionIntegrationCard() {
           connected ? (
             <button
               type="button"
-              onClick={() => setOpen(true)}
+              onClick={openForm}
               className="rounded-md border border-hairline px-2.5 py-1.5 text-[12px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
             >
               {t('integrations.notion.reconnect')}
@@ -212,7 +218,7 @@ function NotionIntegrationCard() {
           ) : (
             <button
               type="button"
-              onClick={() => setOpen(true)}
+              onClick={openForm}
               className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white transition-colors hover:bg-accent-hover"
             >
               {t('integrations.notion.connect')}
