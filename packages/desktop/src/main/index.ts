@@ -19,7 +19,8 @@ import {
 import { cloudAuthState, cloudSignOut, startCloudSignIn } from './cloud-auth';
 import { syncStats } from './cloud-sync';
 import { readConfig } from './files';
-import { fetchPageContent, listRecentPages } from './notion-client';
+import { fetchPageContent } from './notion-client';
+import { listRecentMerged, readJournalPageContent, JOURNAL_PAGE_PREFIX } from './journal-reader';
 import {
   finishOnboarding,
   githubAccountsFromGhCli,
@@ -172,7 +173,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:open-external', (_e, url: string) => {
     try {
       const p = new URL(url).protocol;
-      // obsidian: 은 연동 탭의 vault 딥링크 용도로만 허용
+      // obsidian: 은 연동 탭의 journal 딥링크 용도로만 허용
       if (p === 'https:' || p === 'http:' || p === 'mailto:' || p === 'obsidian:')
         return shell.openExternal(url);
     } catch {
@@ -182,9 +183,11 @@ void app.whenReady().then(() => {
   });
   ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());
-  ipcMain.handle('cairn:recent:list', () => listRecentPages());
+  ipcMain.handle('cairn:recent:list', () => listRecentMerged());
   ipcMain.handle('cairn:notion:page-content', (_e, pageId: string, workspaceLabel: string) =>
-    fetchPageContent(pageId, workspaceLabel),
+    pageId.startsWith(JOURNAL_PAGE_PREFIX)
+      ? readJournalPageContent(pageId)
+      : fetchPageContent(pageId, workspaceLabel),
   );
 
   ipcMain.on('cairn:bootstrap-sync', (e) => {

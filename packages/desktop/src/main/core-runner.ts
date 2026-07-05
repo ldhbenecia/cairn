@@ -41,6 +41,7 @@ export type CoreResult = {
   notionUrl: string | null;
   publishKind: PublishKind;
   publishPageId: string | null;
+  journalFile: string | null;
   noActivity: boolean;
   cancelled: boolean;
   summaryFailed: boolean;
@@ -60,6 +61,8 @@ const NO_ACTIVITY_REGEX = /no activity collected/i;
 const SUMMARY_FAILED_REGEX = /summary generation failed|요약 생성 실패|summarizer threw/;
 const PUBLISH_KIND_REGEX = /"kind"\s*:\s*"(created|recreated|skipped|no-target)"/g;
 const PAGE_ID_REGEX = /"pageId"\s*:\s*"([0-9a-f-]{32,36})"/g;
+// 같은 로그 라인 안이면 키 순서 무관하게 fileName 추출
+const JOURNAL_FILE_REGEX = /^(?=.*journal write done).*"fileName"\s*:\s*"([^"]+\.md)"/gm;
 // eslint-disable-next-line no-control-regex
 const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
 
@@ -296,6 +299,8 @@ export async function runCore(
       const lastKind = (kindMatches.at(-1)?.[1] as PublishKind) ?? null;
       const pageIdMatches = [...stdoutAll.matchAll(PAGE_ID_REGEX)];
       const lastPageId = pageIdMatches.at(-1)?.[1] ?? null;
+      const journalMatches = [...stdoutAll.matchAll(JOURNAL_FILE_REGEX)];
+      const lastJournalFile = journalMatches.at(-1)?.[1] ?? null;
       const finalNoActivity = noActivity && !lastKind && !lastUrl && !lastPageId;
       const cancelled = cancelRequested;
       cancelRequested = false;
@@ -314,7 +319,9 @@ export async function runCore(
         exitCode,
         notionUrl: lastUrl,
         publishKind: lastKind,
-        publishPageId: lastPageId,
+        // 노션 미연동(로컬 전용) 발행도 앱 내 "일지 보기"가 로컬 일지를 열도록 journal id 로 폴백
+        publishPageId: lastPageId ?? (lastJournalFile ? `journal:${lastJournalFile}` : null),
+        journalFile: lastJournalFile,
         noActivity: finalNoActivity,
         cancelled,
         summaryFailed: SUMMARY_FAILED_REGEX.test(stdoutAll),
@@ -386,6 +393,7 @@ export async function runCore(
         notionUrl: null,
         publishKind: null,
         publishPageId: null,
+        journalFile: null,
         noActivity: false,
         cancelled: false,
         summaryFailed: false,
