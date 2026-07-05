@@ -98,9 +98,8 @@ function NotionIntegrationCard() {
       .readConfig()
       .then((r) => {
         const cfg = r.parsed as { notionWorkspaces?: { label?: string }[] } | null;
-        setLabels(
-          (cfg?.notionWorkspaces ?? []).map((w) => w.label ?? '').filter((l) => l.length > 0),
-        );
+        const workspaces = cfg && Array.isArray(cfg.notionWorkspaces) ? cfg.notionWorkspaces : [];
+        setLabels(workspaces.map((w) => w?.label ?? '').filter((l) => l.length > 0));
       })
       .catch(() => setLabels([]));
   };
@@ -201,18 +200,28 @@ function NotionIntegrationCard() {
       }
       desc={connected ? labels.join(' · ') : t('integrations.notion.desc')}
       action={
-        !connected && !open ? (
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white transition-colors hover:bg-accent-hover"
-          >
-            {t('integrations.notion.connect')}
-          </button>
+        !open ? (
+          connected ? (
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="rounded-md border border-hairline px-2.5 py-1.5 text-[12px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+            >
+              {t('integrations.notion.reconnect')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white transition-colors hover:bg-accent-hover"
+            >
+              {t('integrations.notion.connect')}
+            </button>
+          )
         ) : undefined
       }
     >
-      {open && !connected && (
+      {open && (
         <div className="mt-3 flex flex-col gap-2.5 border-t border-hairline pt-3">
           <p className="text-[12px] leading-relaxed text-ink-tertiary">{t('onb.notion.desc')}</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">

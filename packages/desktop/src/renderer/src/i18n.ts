@@ -354,6 +354,7 @@ const STRINGS = {
     'integrations.notion.desc': '연결하면 발행할 때 노션 페이지도 함께 생성돼요.',
     'integrations.notion.connect': '연결',
     'integrations.notion.connected': '연결됨',
+    'integrations.notion.reconnect': '재연결',
     'integrations.notion.save': '저장',
     'integrations.notion.saveFail': '저장 실패',
     'integrations.obsidian.desc':
@@ -783,6 +784,7 @@ const STRINGS = {
     'integrations.notion.desc': 'Connect it and each publish also creates a Notion page.',
     'integrations.notion.connect': 'Connect',
     'integrations.notion.connected': 'Connected',
+    'integrations.notion.reconnect': 'Reconnect',
     'integrations.notion.save': 'Save',
     'integrations.notion.saveFail': 'Save failed',
     'integrations.obsidian.desc':

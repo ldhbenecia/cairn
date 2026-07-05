@@ -36,6 +36,9 @@ export type OnboardingPayload = {
 };
 
 const isStr = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
+// .env 에 KEY=VALUE 한 줄로 append 되는 값 — 개행·제어문자가 섞이면 임의 라인 주입이 가능해 거부
+// eslint-disable-next-line no-control-regex
+const hasCtl = (s: string): boolean => /[\x00-\x1f\x7f]/.test(s);
 const isDbRef = (v: unknown): v is DbRef =>
   typeof v === 'object' &&
   v !== null &&
@@ -53,6 +56,7 @@ export function parseNotionWorkspacePayload(
   if (!isStr(n.label) || !isStr(n.token) || !isStr(n.pageId) || !isStr(n.myUserId)) {
     return { ok: false, error: 'invalid-notion' };
   }
+  if (hasCtl(n.label) || hasCtl(n.token)) return { ok: false, error: 'invalid-notion' };
   if (n.worklogDb !== undefined && !isDbRef(n.worklogDb)) return { ok: false, error: 'invalid-db' };
   if (n.rollupDb !== undefined && !isDbRef(n.rollupDb)) return { ok: false, error: 'invalid-db' };
   return {
@@ -354,7 +358,8 @@ function buildNotionWorkspace(
 ): Record<string, unknown> {
   const tokenEnv = envKey('NOTION_TOKEN', w.label);
   env[tokenEnv] = w.token;
-  const prev = prevWorkspaces.find((p) => p.worklog?.pageId === w.pageId);
+  // label 까지 일치할 때만 기존 DB 설정 보존 — pageId 만 보면 다른 라벨 워크스페이스 설정을 오복사
+  const prev = prevWorkspaces.find((p) => p.label === w.label && p.worklog?.pageId === w.pageId);
   // 우선순위: 사용자가 고른 기존 DB > 기존 config 보존 > pageId 만(첫 발행 시 자동 생성)
   const worklog: { pageId: string; databaseId?: string; dataSourceId?: string } = {
     pageId: w.pageId,
@@ -384,11 +389,14 @@ export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; er
     return withFileLock(CONFIG_PATH, () => {
       let existing: Record<string, unknown>;
       try {
-        existing = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as Record<string, unknown>;
+        const parsed = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as unknown;
+        existing = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
       } catch {
         existing = {};
       }
-      const prevWorkspaces = (existing.notionWorkspaces as ExistingWs[] | undefined) ?? [];
+      const prevWorkspaces = Array.isArray(existing.notionWorkspaces)
+        ? (existing.notionWorkspaces as ExistingWs[])
+        : [];
       const env: Record<string, string> = {};
       const ws = buildNotionWorkspace(w, prevWorkspaces, env);
       writeEnvMerged(env);
@@ -413,11 +421,14 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
     return withFileLock(CONFIG_PATH, () => {
       let existing: Record<string, unknown>;
       try {
-        existing = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as Record<string, unknown>;
+        const parsed = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as unknown;
+        existing = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
       } catch {
         existing = {};
       }
-      const prevWorkspaces = (existing.notionWorkspaces as ExistingWs[] | undefined) ?? [];
+      const prevWorkspaces = Array.isArray(existing.notionWorkspaces)
+        ? (existing.notionWorkspaces as ExistingWs[])
+        : [];
 
       const env: Record<string, string> = {};
       // 온보딩은 더 이상 노션을 다루지 않음 — 빈 배열이면 Preferences 에서 연결한 기존 워크스페이스 보존

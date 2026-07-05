@@ -51,6 +51,7 @@ export function isSetupComplete(): boolean {
   } catch {
     return false;
   }
+  if (!config || typeof config !== 'object') return false;
   const env = readEnvFile();
   const reposOk = (config.localGitRepos ?? []).length > 0;
   const githubOk = (config.githubAccounts ?? []).some((g) => !!g.tokenEnv && !!env[g.tokenEnv]);
