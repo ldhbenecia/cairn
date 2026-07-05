@@ -42,12 +42,12 @@ jobs:
         run: npm i -g vercel@54.20.1
       - name: Pull Vercel project settings
         run: vercel pull --yes --environment=${{ github.event_name == 'pull_request' && 'preview' || 'production' }} --token=${{ secrets.VERCEL_TOKEN }}
-      - name: Build
-        run: vercel build ${{ github.event_name != 'pull_request' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+      # Sensitive env(DATABASE_URL 등)는 Vercel 밖으로 내려받을 수 없어 로컬 빌드(--prebuilt)가 불가 —
+      # 소스만 올리고 Vercel 인프라에서 원격 빌드한다
       - name: Deploy
         id: deploy
         run: |
-          url=$(vercel deploy --prebuilt ${{ github.event_name != 'pull_request' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          url=$(vercel deploy ${{ github.event_name != 'pull_request' && '--prod' || '' }} --yes --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Deployed: $url"
       - name: Comment preview URL
