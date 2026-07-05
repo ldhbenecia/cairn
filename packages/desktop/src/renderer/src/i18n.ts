@@ -357,7 +357,7 @@ const STRINGS = {
     'integrations.notion.save': '저장',
     'integrations.notion.saveFail': '저장 실패',
     'integrations.obsidian.desc':
-      'cairn 일지는 cairn 전용 폴더에 기록돼요. Obsidian 에서도 보려면 Obsidian vault 안의 폴더를 지정하세요 — 발행할 때마다 .md 로 미러됩니다.',
+      'cairn 일지는 전용 폴더에 기록돼요. Obsidian vault 안의 폴더를 지정하면 발행할 때마다 .md 로 미러됩니다.',
     'integrations.vaultDetected': 'Obsidian vault 감지됨',
     'integrations.change': '변경',
     'integrations.files': '개 파일',
@@ -786,7 +786,7 @@ const STRINGS = {
     'integrations.notion.save': 'Save',
     'integrations.notion.saveFail': 'Save failed',
     'integrations.obsidian.desc':
-      'cairn writes journals to its own folder. To read them in Obsidian too, pick a folder inside your vault — every publish mirrors a .md copy there.',
+      'cairn keeps journals in its own folder. Pick a folder inside your Obsidian vault and every publish mirrors a .md copy.',
     'integrations.vaultDetected': 'Obsidian vault detected',
     'integrations.change': 'Change',
     'integrations.files': ' files',

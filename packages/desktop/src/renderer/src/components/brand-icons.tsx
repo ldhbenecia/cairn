@@ -20,7 +20,7 @@ export function ObsidianMark({ size = 20 }: { size?: number }) {
     <svg
       width={size}
       height={size}
-      fill="#7C3AED"
+      fill="#fff"
       role="img"
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"

@@ -22,6 +22,7 @@ function fmtLastSync(ms: number): string {
 
 function ServiceCard({
   icon,
+  tileClass = 'bg-surface-2',
   title,
   badge,
   desc,
@@ -30,6 +31,7 @@ function ServiceCard({
   children,
 }: {
   icon: ReactNode;
+  tileClass?: string;
   title: string;
   badge?: ReactNode;
   desc: string;
@@ -45,7 +47,9 @@ function ServiceCard({
       ].join(' ')}
     >
       <div className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-2">
+        <span
+          className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${tileClass}`}
+        >
           {icon}
         </span>
         <div className="min-w-0 flex-1">
@@ -53,7 +57,7 @@ function ServiceCard({
             {title}
             {badge}
           </p>
-          <p className="mt-0.5 text-[12px] leading-relaxed text-ink-tertiary">{desc}</p>
+          <p className="mt-0.5 break-keep text-[12px] leading-relaxed text-ink-tertiary">{desc}</p>
         </div>
         {action && <span className="flex shrink-0 items-center gap-1.5">{action}</span>}
       </div>
@@ -184,11 +188,8 @@ function NotionIntegrationCard() {
 
   return (
     <ServiceCard
-      icon={
-        <span className="text-ink">
-          <NotionMark size={20} />
-        </span>
-      }
+      icon={<NotionMark size={20} />}
+      tileClass="border border-black/10 bg-white text-black shadow-sm"
       title="Notion"
       badge={
         connected ? (
@@ -293,6 +294,7 @@ function ObsidianIntegrationCard() {
   return (
     <ServiceCard
       icon={<ObsidianMark size={20} />}
+      tileClass="bg-gradient-to-br from-[#a88bfa] to-[#6C31E3] shadow-sm"
       title="Obsidian"
       badge={
         isVault ? (
@@ -391,11 +393,22 @@ function ObsidianIntegrationCard() {
   );
 }
 
-function ComingSoonCard({ icon, title, desc }: { icon: ReactNode; title: string; desc: string }) {
+function ComingSoonCard({
+  icon,
+  tileClass,
+  title,
+  desc,
+}: {
+  icon: ReactNode;
+  tileClass?: string;
+  title: string;
+  desc: string;
+}) {
   const { t } = useSettings();
   return (
     <ServiceCard
       icon={icon}
+      tileClass={tileClass}
       title={title}
       badge={
         <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-medium text-ink-tertiary">
@@ -420,11 +433,13 @@ export function IntegrationsTab() {
         <ObsidianIntegrationCard />
         <ComingSoonCard
           icon={<ICloudMark size={20} />}
+          tileClass="bg-[#3693F3]/10"
           title={t('integrations.icloud.title')}
           desc={t('integrations.icloud.desc')}
         />
         <ComingSoonCard
           icon={<NotebookPen size={19} strokeWidth={1.8} className="text-warning" />}
+          tileClass="bg-warning/10"
           title={t('integrations.notes.title')}
           desc={t('integrations.notes.desc')}
         />
