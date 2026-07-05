@@ -85,6 +85,15 @@ export function PublishDialog({ sessions, runningMode, onTrigger, onOpenPublishe
   const activeMode = externalBusy && busyMode ? busyMode : (watchedExternal ?? mode);
   const session = sessions[activeMode];
   const busy = runningMode !== null || externalBusy;
+
+  // 마지막 수동 발행 옵션 — 실패 후 "다시 발행" 이 같은 조건으로 재실행되게
+  const lastRun = useRef<{ mode: CoreMode; options: CoreRunOptions } | null>(null);
+  const retry = () => {
+    const last = lastRun.current;
+    setWatchedExternal(null);
+    setShowProgress(true);
+    void onTrigger(activeMode, last?.mode === activeMode ? last.options : undefined);
+  };
   const isRunning = session?.state === 'running';
   const isDone = session?.state === 'done';
   const wide = showProgress && (isRunning || isDone || busy);
@@ -137,7 +146,12 @@ export function PublishDialog({ sessions, runningMode, onTrigger, onOpenPublishe
 
           <div className="overflow-y-auto px-6 py-5">
             {showProgress && isDone && session?.error ? (
-              <ErrorCard message={session.error} t={t} onClose={() => setOpen(false)} />
+              <ErrorCard
+                message={session.error}
+                t={t}
+                onRetry={retry}
+                onClose={() => setOpen(false)}
+              />
             ) : showProgress && isDone && session?.result?.cancelled ? (
               <CancelledCard progress={session.progress} t={t} onClose={() => setOpen(false)} />
             ) : showProgress && isDone && session?.result ? (
@@ -150,6 +164,7 @@ export function PublishDialog({ sessions, runningMode, onTrigger, onOpenPublishe
                 }
                 modelLabel={MODEL_NAME[settings.summaryModel] || t('prefs.prompts.model.default')}
                 t={t}
+                onRetry={retry}
                 onClose={() => setOpen(false)}
                 onOpenPublished={onOpenPublished}
               />
@@ -243,15 +258,17 @@ export function PublishDialog({ sessions, runningMode, onTrigger, onOpenPublishe
                   type="button"
                   disabled={busy}
                   onClick={() => {
-                    // 이전 외부 발행에서 latch 된 mode 가 새 수동 발행 화면을 끌고 가지 않게 (#236 리뷰)
-                    setWatchedExternal(null);
-                    setShowProgress(true);
-                    void onTrigger(mode, {
+                    const options: CoreRunOptions = {
                       backfillDays:
                         mode === 'daily' && isToday && includeBackfill ? DAILY_BACKFILL_DAYS : 0,
                       force,
                       ...(isToday ? {} : { date }),
-                    });
+                    };
+                    lastRun.current = { mode, options };
+                    // 이전 외부 발행에서 latch 된 mode 가 새 수동 발행 화면을 끌고 가지 않게 (#236 리뷰)
+                    setWatchedExternal(null);
+                    setShowProgress(true);
+                    void onTrigger(mode, options);
                   }}
                   className={[
                     'flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all active:scale-[0.99]',
