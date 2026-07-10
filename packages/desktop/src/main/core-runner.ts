@@ -1,6 +1,6 @@
 import { app } from 'electron';
 import { fork, type ChildProcess } from 'node:child_process';
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { createWriteStream, mkdirSync, type WriteStream } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -20,6 +20,12 @@ import { sendResultNotification } from './notifier';
 import { readSettings, type Settings } from './settings';
 import { CAIRN_ROOT } from './setup';
 import { trackPublish, type PublishTrigger } from './telemetry';
+import {
+  createExtractor,
+  deriveFailureHint,
+  type FailureHint,
+  type PublishKind,
+} from './core-runner-extract';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 
@@ -31,21 +37,9 @@ export type CoreRunOptions = {
   date?: string; // "YYYY-MM-DD" — 미지정 시 엔진이 로컬 today 사용 (롤업 기간 anchor 등)
 };
 
-export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
+export type { PublishKind } from './core-runner-extract';
 
-export type FailureHint = 'auth' | 'quota' | 'network' | 'notion' | 'collect' | null;
-
-// 실패 원인 힌트 — raw 로그는 UI 비노출 정책이라 대표 패턴만 내부 분류해 친화 문구 키로 전달.
-// 어떤 패턴에도 안 걸리면 null (기존 exit code 표기 유지)
-function deriveFailureHint(text: string): FailureHint {
-  if (/auth_failed|Bad credentials|Missing required secret|"status"\s*:\s*401/i.test(text))
-    return 'auth';
-  if (/rate_limited|session limit|quota|"status"\s*:\s*429/i.test(text)) return 'quota';
-  if (/ENOTFOUND|ETIMEDOUT|ECONNREFUSED|ECONNRESET|fetch failed/i.test(text)) return 'network';
-  if (/validation_error|body failed validation/i.test(text)) return 'notion';
-  if (/collect errors — failing|수집 실패/i.test(text)) return 'collect';
-  return null;
-}
+export type { FailureHint } from './core-runner-extract';
 
 export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
@@ -71,13 +65,6 @@ const CORE_ENTRY = app.isPackaged
 const LOGS_DIR = join(CAIRN_ROOT, 'logs');
 
 const STDERR_TAIL_LINES = 20;
-const NOTION_URL_REGEX = /https:\/\/www\.notion\.so\/\S+/g;
-const NO_ACTIVITY_REGEX = /no activity collected/i;
-const SUMMARY_FAILED_REGEX = /summary generation failed|요약 생성 실패|summarizer threw/;
-const PUBLISH_KIND_REGEX = /"kind"\s*:\s*"(created|recreated|skipped|no-target)"/g;
-const PAGE_ID_REGEX = /"pageId"\s*:\s*"([0-9a-f-]{32,36})"/g;
-// 같은 로그 라인 안이면 키 순서 무관하게 fileName 추출
-const JOURNAL_FILE_REGEX = /^(?=.*journal write done).*"fileName"\s*:\s*"([^"]+\.md)"/gm;
 // eslint-disable-next-line no-control-regex
 const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
 
@@ -97,19 +84,34 @@ function stripAnsi(s: string): string {
   return s.replace(ANSI_REGEX, '');
 }
 
-function appendRunLog(mode: CoreMode, level: 'info' | 'err' | 'meta', line: string): void {
+// run 로그 파일 append 를 라인마다 동기 appendFileSync 로 하면 발행 중 메인 프로세스
+// 이벤트 루프가 블로킹됨(백필 수천 라인). run 당 WriteStream 하나를 열어 비동기 버퍼 write 로.
+let runLogStream: WriteStream | null = null;
+
+function openRunLog(): void {
+  closeRunLog();
   try {
     mkdirSync(LOGS_DIR, { recursive: true });
     const now = new Date();
     const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    appendFileSync(
-      join(LOGS_DIR, `desktop-run.${day}.log`),
-      `${now.toISOString()} [${mode}] [${level}] ${line}\n`,
-      'utf8',
-    );
+    const stream = createWriteStream(join(LOGS_DIR, `desktop-run.${day}.log`), { flags: 'a' });
+    stream.on('error', () => closeRunLog()); // 디스크 오류 등 — 로깅은 best-effort
+    runLogStream = stream;
   } catch {
-    return;
+    runLogStream = null;
   }
+}
+
+function closeRunLog(): void {
+  if (runLogStream) {
+    runLogStream.end();
+    runLogStream = null;
+  }
+}
+
+function appendRunLog(mode: CoreMode, level: 'info' | 'err' | 'meta', line: string): void {
+  if (!runLogStream) return;
+  runLogStream.write(`${new Date().toISOString()} [${mode}] [${level}] ${line}\n`);
 }
 
 function detectStep(line: string): RunStep | null {
@@ -236,6 +238,7 @@ export async function runCore(
   lastResult = null;
   cancelRequested = false;
   resetBackfillTracking();
+  openRunLog();
   const emitStep = (step: RunStep): void => {
     if (stepRank(step) <= stepRank(runStep)) return;
     runStep = step;
@@ -272,23 +275,26 @@ export async function runCore(
   broadcastBusy();
   emit('meta', `[fork] pid=${child.pid ?? '?'}`);
 
+  // 전체 stdout 을 메모리에 쌓고(stdoutAll) 종료 시 4중 정규식 스캔하던 방식은 장기 백필에서
+  // 수 MB 누적 + 종료 블로킹을 유발. 완결된 라인마다 증분 추출해 마지막 값만 유지(메모리 O(1)).
+  // tail 용 라인 버퍼도 최근 STDERR_TAIL_LINES 만 링으로 보존.
   const stderrLines: string[] = [];
   const stdoutLines: string[] = [];
-  let stdoutAll = '';
   let stdoutCarry = '';
-  let noActivity = false;
+  const ext = createExtractor();
+
+  const pushTail = (buf: string[], line: string): void => {
+    buf.push(line);
+    if (buf.length > STDERR_TAIL_LINES) buf.shift();
+  };
 
   child.stdout?.on('data', (buf: Buffer) => {
-    const text = stripAnsi(buf.toString('utf8'));
-    stdoutAll += text;
-    // 청크 단위(text)가 아니라 누적 전체에서 검사 — 'no activity collected' 가 청크 경계에서
-    // 갈라지면 미검출되던 문제
-    if (!noActivity && NO_ACTIVITY_REGEX.test(stdoutAll)) noActivity = true;
-    const lines = (stdoutCarry + text).split('\n');
+    const lines = (stdoutCarry + stripAnsi(buf.toString('utf8'))).split('\n');
     stdoutCarry = lines.pop() ?? '';
     for (const line of lines) {
       if (line.length === 0) continue;
-      stdoutLines.push(line);
+      ext.feed(line);
+      pushTail(stdoutLines, line);
       emit('info', line);
       trackBackfill(line, mode);
       const step = detectStep(line);
@@ -298,7 +304,7 @@ export async function runCore(
   child.stderr?.on('data', (buf: Buffer) => {
     for (const line of stripAnsi(buf.toString('utf8')).split('\n')) {
       if (line.length === 0) continue;
-      stderrLines.push(line);
+      pushTail(stderrLines, line);
       emit('err', line);
     }
   });
@@ -312,17 +318,15 @@ export async function runCore(
       running = null;
       runningMode = null;
       broadcastBusy();
+      // stdout 이 \n 없이 끝나면 마지막 조각이 carry 에 남음 — 종료 시 마지막 추출 반영
+      if (stdoutCarry.length > 0) ext.feed(stdoutCarry);
       const tailSource = stderrLines.length > 0 ? stderrLines : stdoutLines;
       const tail = tailSource.slice(-STDERR_TAIL_LINES).join('\n');
-      const urlMatches = stdoutAll.match(NOTION_URL_REGEX) ?? [];
-      const lastUrl = urlMatches.at(-1)?.replace(/["',}\]]+$/, '') ?? null;
-      const kindMatches = [...stdoutAll.matchAll(PUBLISH_KIND_REGEX)];
-      const lastKind = (kindMatches.at(-1)?.[1] as PublishKind) ?? null;
-      const pageIdMatches = [...stdoutAll.matchAll(PAGE_ID_REGEX)];
-      const lastPageId = pageIdMatches.at(-1)?.[1] ?? null;
-      const journalMatches = [...stdoutAll.matchAll(JOURNAL_FILE_REGEX)];
-      const lastJournalFile = journalMatches.at(-1)?.[1] ?? null;
-      const finalNoActivity = noActivity && !lastKind && !lastUrl && !lastPageId;
+      const lastUrl = ext.lastUrl;
+      const lastKind = ext.lastKind;
+      const lastPageId = ext.lastPageId;
+      const lastJournalFile = ext.lastJournalFile;
+      const finalNoActivity = ext.noActivity && !lastKind && !lastUrl && !lastPageId;
       const cancelled = cancelRequested;
       cancelRequested = false;
       emit('meta', `[exit] code=${exitCode ?? 'null'}${cancelled ? ' (cancelled)' : ''}`);
@@ -345,8 +349,8 @@ export async function runCore(
         journalFile: lastJournalFile,
         noActivity: finalNoActivity,
         cancelled,
-        summaryFailed: SUMMARY_FAILED_REGEX.test(stdoutAll),
-        failureHint: exitCode === 0 ? null : deriveFailureHint(`${stdoutAll}\n${tail}`),
+        summaryFailed: ext.summaryFailed,
+        failureHint: exitCode === 0 ? null : ext.failureHint,
         prCount: totals.pr,
         commitCount: totals.commit,
         stderrTail: tail,
@@ -384,19 +388,13 @@ export async function runCore(
                     },
                   ]
                 : [];
-          for (const t of targets) {
-            void syncWorklogToFolder({
-              pageId: t.pageId,
-              fileBase: t.fileBase,
-              title: t.fileBase,
-              date: t.date,
-            }).catch((err: unknown) => {
-              emit('err', `[export] sync 실패: ${errorMessage(err)}`);
-            });
-          }
+          // 60일 백필이면 targets 가 60건 — 무제한 동시 실행은 페이지마다 Notion fetch 라
+          // 레이트리밋·버스트 유발. 동시성 4 로 제한(fire-and-forget 유지, run 완료는 안 막음)
+          void runExportSync(targets, emit);
         }
         broadcastRunDone(mode, result);
       } finally {
+        closeRunLog();
         resolvePromise(result);
       }
     });
@@ -432,7 +430,35 @@ export async function runCore(
       });
       sendResultNotification(mode, failResult);
       broadcastRunDone(mode, failResult);
+      closeRunLog();
       resolvePromise(failResult);
     });
   });
+}
+
+type ExportTarget = { pageId: string; fileBase: string; date: string };
+
+// 동시성 제한 export sync — targets 를 POOL 개씩만 병렬로. run 을 막지 않게 fire-and-forget.
+async function runExportSync(
+  targets: ExportTarget[],
+  emit: (level: 'err', line: string) => void,
+): Promise<void> {
+  const POOL = 4;
+  let i = 0;
+  const worker = async (): Promise<void> => {
+    while (i < targets.length) {
+      const t = targets[i++]!;
+      try {
+        await syncWorklogToFolder({
+          pageId: t.pageId,
+          fileBase: t.fileBase,
+          title: t.fileBase,
+          date: t.date,
+        });
+      } catch (err) {
+        emit('err', `[export] sync 실패: ${errorMessage(err)}`);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(POOL, targets.length) }, () => worker()));
 }
