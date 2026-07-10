@@ -318,6 +318,7 @@ export async function runCore(
       running = null;
       runningMode = null;
       broadcastBusy();
+      let exportPending = false;
       // stdout 이 \n 없이 끝나면 마지막 조각이 carry 에 남음 — 종료 시 마지막 추출 반영
       if (stdoutCarry.length > 0) ext.feed(stdoutCarry);
       const tailSource = stderrLines.length > 0 ? stderrLines : stdoutLines;
@@ -389,12 +390,14 @@ export async function runCore(
                   ]
                 : [];
           // 60일 백필이면 targets 가 60건 — 무제한 동시 실행은 페이지마다 Notion fetch 라
-          // 레이트리밋·버스트 유발. 동시성 4 로 제한(fire-and-forget 유지, run 완료는 안 막음)
-          void runExportSync(targets, emit);
+          // 레이트리밋·버스트 유발. 동시성 4 로 제한(fire-and-forget 유지, run 완료는 안 막음).
+          // 로그 스트림은 export 실패 라인까지 파일에 남도록 export 완료 후 close
+          void runExportSync(targets, emit).finally(closeRunLog);
+          exportPending = true;
         }
         broadcastRunDone(mode, result);
       } finally {
-        closeRunLog();
+        if (!exportPending) closeRunLog();
         resolvePromise(result);
       }
     });
