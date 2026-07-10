@@ -1,5 +1,5 @@
 import { Github, Send } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSettings } from '../../settings-context';
 import { FEEDBACK_EMAIL, REPO_URL } from './constants';
 
@@ -7,6 +7,14 @@ export function FeedbackTab() {
   const { t } = useSettings();
   const [feedback, setFeedback] = useState('');
   const [opened, setOpened] = useState(false);
+  const openedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 언마운트(설정 다이얼로그 닫기) 시 타이머 정리 — 언마운트 후 setState 경고·누수 방지
+  useEffect(
+    () => () => {
+      if (openedTimer.current) clearTimeout(openedTimer.current);
+    },
+    [],
+  );
 
   function send() {
     const subject = `${t('prefs.feedback.subject')} (v${window.cairn.version})`;
@@ -26,7 +34,8 @@ export function FeedbackTab() {
 
   function markOpened() {
     setOpened(true);
-    setTimeout(() => setOpened(false), 4000);
+    if (openedTimer.current) clearTimeout(openedTimer.current);
+    openedTimer.current = setTimeout(() => setOpened(false), 4000);
   }
 
   return (
