@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
@@ -175,8 +175,15 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:open-external', (_e, url: string) => {
     try {
       const p = new URL(url).protocol;
-      // obsidian: 은 연동 탭의 journal 딥링크 용도로만 허용
-      if (p === 'https:' || p === 'http:' || p === 'mailto:' || p === 'obsidian:')
+      // obsidian: 은 연동 탭의 journal 딥링크, x-apple.systempreferences: 는
+      // '알림 설정 열기' 버튼(OS 소유 프로토콜) — 이게 빠져 버튼이 무동작이었다
+      if (
+        p === 'https:' ||
+        p === 'http:' ||
+        p === 'mailto:' ||
+        p === 'obsidian:' ||
+        p === 'x-apple.systempreferences:'
+      )
         return shell.openExternal(url);
     } catch {
       return Promise.resolve();
@@ -265,6 +272,13 @@ void app.whenReady().then(() => {
     if (win.isMinimized()) win.restore();
     win.show();
     win.focus();
+  });
+
+  // 시스템 종료/재시작은 Cmd+Q(트레이 상주)와 달리 진짜 종료 — before-quit 의
+  // preventDefault 가 macOS 종료 절차를 중단시키던 문제 방지
+  powerMonitor.on('shutdown', () => {
+    allowQuit = true;
+    app.quit();
   });
 });
 
