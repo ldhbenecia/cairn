@@ -172,6 +172,11 @@ export function GraphView({
   const [query, setQuery] = useState('');
   const queryRef = useRef('');
   queryRef.current = query.trim().toLowerCase();
+  // 유휴 정지된 rAF 루프를 외부 변화(테마·검색어·설정)가 깨울 수 있게 노출
+  const wakeRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    wakeRef.current?.();
+  }, [settings.accent, settings.theme, query, cfg]);
   const pages = recent?.pages;
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
@@ -363,6 +368,7 @@ export function GraphView({
       ctx.restore();
     };
 
+    let idleFrames = 0;
     const loop = (): void => {
       const key = `${accentRef.current}|${themeRef.current}`;
       if (key !== paletteKey) {
@@ -376,10 +382,24 @@ export function GraphView({
       } else {
         pendingKey = null;
       }
-      if (alpha > 0.02) tick();
+      if (alpha > 0.02) {
+        tick();
+        idleFrames = 0;
+      }
       draw();
+      // 시뮬 수렴 + 무입력이면 rAF 중단 — 유휴 상태 60fps 전체 리드로우(CPU 상시 점유) 제거.
+      // 입력·테마/검색 변경은 wake() 로 재개
+      if (alpha <= 0.02 && !dragging && ++idleFrames > 5) {
+        raf = 0;
+        return;
+      }
       raf = requestAnimationFrame(loop);
     };
+    const wake = (): void => {
+      idleFrames = 0;
+      if (raf === 0) raf = requestAnimationFrame(loop);
+    };
+    wakeRef.current = wake;
     raf = requestAnimationFrame(loop);
 
     const toWorld = (e: PointerEvent | WheelEvent): { x: number; y: number } => {
@@ -400,6 +420,7 @@ export function GraphView({
     };
 
     const onPointerDown = (e: PointerEvent): void => {
+      wake();
       canvas.setPointerCapture(e.pointerId);
       moved = 0;
       lastX = e.clientX;
@@ -408,6 +429,7 @@ export function GraphView({
       dragging = hit !== -1 ? { idx: hit } : { pan: true };
     };
     const onPointerMove = (e: PointerEvent): void => {
+      wake();
       if (!dragging) {
         const hit = hitTest(e);
         if (hit !== hover) {
@@ -436,6 +458,7 @@ export function GraphView({
       if (wasNode !== -1 && moved < 5) onOpenRef.current(nodes[wasNode]!.page);
     };
     const onWheel = (e: WheelEvent): void => {
+      wake();
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const cx = e.clientX - rect.left - width / 2 - panX;
@@ -451,6 +474,7 @@ export function GraphView({
       if (hover !== -1) {
         hover = -1;
         canvas.style.cursor = 'grab';
+        wake();
       }
     };
     canvas.addEventListener('pointerdown', onPointerDown);
@@ -461,6 +485,7 @@ export function GraphView({
     canvas.style.cursor = 'grab';
 
     return () => {
+      wakeRef.current = null;
       cameraRef.current = { zoom, panX, panY };
       for (const n of nodes) posRef.current.set(n.page.pageId, { x: n.x, y: n.y });
       cancelAnimationFrame(raf);

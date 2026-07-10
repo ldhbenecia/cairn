@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import hljs from 'highlight.js';
 import {
   Check,
   ChevronRight,
@@ -375,13 +374,33 @@ const LANG_ALIAS: Record<string, string> = {
   'llvm ir': 'llvm',
 };
 
+// highlight.js(전체 언어, ~1.2MB)는 초기 번들에서 분리 — 코드블록이 처음 그려질 때 한 번만 로드
+let hljsModule: typeof import('highlight.js').default | null = null;
+let hljsLoading: Promise<typeof import('highlight.js').default> | null = null;
+function loadHljs(): Promise<typeof import('highlight.js').default> {
+  hljsLoading ??= import('highlight.js').then((m) => {
+    hljsModule = m.default;
+    return m.default;
+  });
+  return hljsLoading;
+}
+
 function CodeBlock({ code, language }: { code: string; language?: string }) {
+  const [ready, setReady] = useState(hljsModule !== null);
+  useEffect(() => {
+    if (!ready) void loadHljs().then(() => setReady(true));
+  }, [ready]);
   const raw = (language ?? '').toLowerCase().trim();
   const mapped = LANG_ALIAS[raw] ?? raw;
-  const lang = mapped && hljs.getLanguage(mapped) ? mapped : undefined;
-  const html = lang
-    ? hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
-    : hljs.highlightAuto(code).value;
+  // 리사이즈 드래그 등 리렌더마다 전체 재하이라이트하지 않도록 memo (하이라이트는 O(코드 길이))
+  const html = useMemo(() => {
+    const hljs = hljsModule;
+    if (!ready || !hljs) return null;
+    const lang = mapped && hljs.getLanguage(mapped) ? mapped : undefined;
+    return lang
+      ? hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
+      : hljs.highlightAuto(code).value;
+  }, [ready, code, mapped]);
   return (
     <div className="overflow-hidden rounded-md border border-hairline">
       {language && mapped !== 'plaintext' && (
@@ -390,7 +409,11 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
         </div>
       )}
       <pre className="overflow-x-auto bg-surface-2 p-3 text-[12px] leading-relaxed">
-        <code className="hljs font-mono" dangerouslySetInnerHTML={{ __html: html }} />
+        {html === null ? (
+          <code className="hljs font-mono">{code}</code>
+        ) : (
+          <code className="hljs font-mono" dangerouslySetInnerHTML={{ __html: html }} />
+        )}
       </pre>
     </div>
   );
