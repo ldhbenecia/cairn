@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ExtractedBlock } from '../notion/notion-api.types.js';
-import { parseSummaryFromBlocks } from './rollup-collector.service.js';
+import { dedupeByDate, parseSummaryFromBlocks } from './rollup-collector.service.js';
 
 describe('parseSummaryFromBlocks', () => {
   it('keeps reviewed bullets separate from authored work', () => {
@@ -24,5 +24,21 @@ describe('parseSummaryFromBlocks', () => {
       inProgressBullets: ['[app] 진행 중인 작업'],
       notesBullets: ['메모'],
     });
+  });
+});
+
+describe('dedupeByDate', () => {
+  it('같은 날짜 중복은 첫 등장만 유지 (재발행 경합 이중 집계 방지)', () => {
+    const pages = [
+      { date: '2026-07-01', pageId: 'a' },
+      { date: '2026-07-01', pageId: 'b' },
+      { date: '2026-07-02', pageId: 'c' },
+    ];
+    expect(dedupeByDate(pages).map((p) => p.pageId)).toEqual(['a', 'c']);
+  });
+
+  it('중복 없으면 그대로', () => {
+    const pages = [{ date: '2026-07-01' }, { date: '2026-07-02' }];
+    expect(dedupeByDate(pages)).toHaveLength(2);
   });
 });

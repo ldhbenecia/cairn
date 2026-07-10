@@ -33,6 +33,13 @@ describe('computeDayTotals', () => {
     expect(computeDayTotals(gh([['a']]), local([['b'], ['c']])).commitCount).toBe(3);
   });
 
+  it('local %h(8자) 와 GitHub slice(7자) 길이 불일치도 같은 커밋으로 dedup', () => {
+    // 같은 커밋: GitHub 은 'abc1234'(7), local 은 'abc12345'(8) — 7자 정규화로 1건
+    const github = gh([['abc1234']]);
+    const localGit = local([['abc12345']]);
+    expect(computeDayTotals(github, localGit).commitCount).toBe(1);
+  });
+
   it('빈 입력', () => {
     expect(computeDayTotals(null, null)).toEqual({ prCount: 0, commitCount: 0, byAccount: {} });
   });
