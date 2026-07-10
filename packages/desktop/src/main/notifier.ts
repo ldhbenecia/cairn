@@ -92,6 +92,19 @@ function notifyWithAction(
 
 // notifications 토글과 무관하게 항상 표시 — 억제하면 confirmBeforeRun 사용자의 발행이 영영 안 됨
 let confirmActive = false;
+let confirmResetTimer: NodeJS.Timeout | null = null;
+// 알림이 click/close 이벤트 없이 사라지는 경우(알림센터 이동·표시 억제)가 실제로 있어,
+// 리셋 없인 confirmActive 가 영구 true — 이후 모든 스케줄 체크가 '배너 표시 중'으로
+// 오판해 자동 발행이 앱 재시작 전까지 전면 중단되던 문제. 타임아웃 후 재프롬프트 허용
+const CONFIRM_RESET_MS = 10 * 60_000;
+
+function clearConfirm(): void {
+  confirmActive = false;
+  if (confirmResetTimer) {
+    clearTimeout(confirmResetTimer);
+    confirmResetTimer = null;
+  }
+}
 
 export function notifyAutoConfirm(modes: CoreMode[], onConfirm: () => void): boolean {
   const primary = modes[0];
@@ -103,15 +116,21 @@ export function notifyAutoConfirm(modes: CoreMode[], onConfirm: () => void): boo
     mt('notify.autoConfirmTitle'),
     mt('notify.autoConfirm', { mode: label }),
     () => {
-      confirmActive = false;
+      clearConfirm();
       focusModeInApp(primary);
       onConfirm();
     },
     () => {
-      confirmActive = false;
+      clearConfirm();
     },
   );
   confirmActive = shown;
+  if (shown) {
+    confirmResetTimer = setTimeout(() => {
+      confirmActive = false;
+      confirmResetTimer = null;
+    }, CONFIRM_RESET_MS);
+  }
   return shown;
 }
 
