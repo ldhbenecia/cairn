@@ -197,6 +197,7 @@ export function App() {
 
   const recentRetryTimer = useRef<number | null>(null);
   useEffect(() => {
+    let active = true;
     const off = window.cairn.onRunDone(({ mode, result }) => {
       setSessions((prev) => {
         const current = prev[mode] ?? {
@@ -219,6 +220,8 @@ export function App() {
       // 이미 잡혔으면 스킵해 발행당 노션 목록 조회를 절반으로 (연속 run-done 타이머 중첩 방지 — #241)
       if (recentRetryTimer.current) window.clearTimeout(recentRetryTimer.current);
       void loadRecent().then((r) => {
+        // 언마운트 후 늦게 도착한 콜백이 새 타이머를 걸지 않도록 (누수·불필요 IPC 방지)
+        if (!active) return;
         const pid = result.publishPageId;
         const found = !pid || (r?.pages ?? []).some((p) => p.pageId === pid);
         if (found) return;
@@ -227,6 +230,7 @@ export function App() {
       if (signedInRef.current) void window.cairn.cloud.syncNow().catch(() => {});
     });
     return () => {
+      active = false;
       off();
       if (recentRetryTimer.current) window.clearTimeout(recentRetryTimer.current);
       if (toastTimer.current) window.clearTimeout(toastTimer.current);
