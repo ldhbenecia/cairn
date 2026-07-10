@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'cairn — your daily dev work, as a Notion worklog';
+export const alt = 'cairn — your daily dev work, stacked into a worklog';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -47,7 +47,7 @@ export default function OpengraphImage() {
           Your daily dev work, stacked into a worklog.
         </div>
         <div style={{ fontSize: 30, color: '#a9aab8', maxWidth: 880, lineHeight: 1.4 }}>
-          GitHub PRs & commits → Claude summary → a dated Notion worklog. Automatic.
+          GitHub PRs & commits → Claude summary → a dated worklog in your journal. Automatic.
         </div>
       </div>
 

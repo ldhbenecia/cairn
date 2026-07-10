@@ -75,11 +75,20 @@ function parseRows(input: unknown): StatRow[] | null {
   return rows;
 }
 
+// 드라이버가 DATE 를 JS Date(서버 로컬 자정)로 줄 때의 방어 — 로컬 getter 로 되돌리면
+// 서버 타임존과 무관하게 원래 달력 날짜가 보존된다 (toISOString 은 UTC 변환이라 금지)
+function dateToIso(v: unknown): unknown {
+  if (!(v instanceof Date)) return v;
+  const mm = String(v.getMonth() + 1).padStart(2, '0');
+  const dd = String(v.getDate()).padStart(2, '0');
+  return `${v.getFullYear()}-${mm}-${dd}`;
+}
+
 export async function GET(req: NextRequest): Promise<Response> {
   const uid = await getUserId(req);
   if (!uid) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   const rows = await db.select().from(worklogStats).where(eq(worklogStats.userId, uid));
-  return NextResponse.json({ stats: rows });
+  return NextResponse.json({ stats: rows.map((r) => ({ ...r, date: dateToIso(r.date) })) });
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
@@ -97,11 +106,21 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (!rows) return NextResponse.json({ error: 'bad-request' }, { status: 400 });
   if (rows.length === 0) return NextResponse.json({ upserted: 0 });
 
+  // 같은 (category,date) 가 한 배치에 두 번 오면 ON CONFLICT 가 같은 행을 두 번 못 건드려
+  // Postgres 21000 → 500 이 되던 문제 — 최신 updatedAt 만 남긴다
+  const byKey = new Map<string, StatRow>();
+  for (const r of rows) {
+    const k = `${r.category}:${r.date}`;
+    const prev = byKey.get(k);
+    if (!prev || Date.parse(r.updatedAt) >= Date.parse(prev.updatedAt)) byKey.set(k, r);
+  }
+  const deduped = [...byKey.values()];
+
   // LWW — 들어온 updated_at 이 더 최신일 때만 덮어씀
   await db
     .insert(worklogStats)
     .values(
-      rows.map((r) => ({
+      deduped.map((r) => ({
         userId: uid,
         category: r.category,
         date: r.date,
@@ -122,5 +141,5 @@ export async function POST(req: NextRequest): Promise<Response> {
       setWhere: sql`${worklogStats.updatedAt} < excluded.updated_at`,
     });
 
-  return NextResponse.json({ upserted: rows.length });
+  return NextResponse.json({ upserted: deduped.length });
 }

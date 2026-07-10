@@ -31,10 +31,6 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'ldhbenecia', url: REPO_URL }],
   creator: 'ldhbenecia',
-  alternates: {
-    canonical: '/',
-    languages: { en: '/', ko: '/ko' },
-  },
   openGraph: {
     type: 'website',
     url: '/',
