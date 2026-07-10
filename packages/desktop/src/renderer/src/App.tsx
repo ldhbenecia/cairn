@@ -215,11 +215,15 @@ export function App() {
         if (toastTimer.current) window.clearTimeout(toastTimer.current);
         toastTimer.current = window.setTimeout(() => setToast(null), 6000);
       }
-      void loadRecent();
-      // 노션 인덱싱 지연으로 방금 발행한 페이지가 첫 조회에 안 잡히는 경우 — 잠시 뒤 재조회
-      // (연속 run-done 시 타이머 중첩 방지·cleanup 정리 — #241 리뷰)
+      // 노션 인덱싱 지연으로 방금 발행한 페이지가 첫 조회에 안 잡히는 경우에만 잠시 뒤 재조회 —
+      // 이미 잡혔으면 스킵해 발행당 노션 목록 조회를 절반으로 (연속 run-done 타이머 중첩 방지 — #241)
       if (recentRetryTimer.current) window.clearTimeout(recentRetryTimer.current);
-      recentRetryTimer.current = window.setTimeout(() => void loadRecent(), 5000);
+      void loadRecent().then((r) => {
+        const pid = result.publishPageId;
+        const found = !pid || (r?.pages ?? []).some((p) => p.pageId === pid);
+        if (found) return;
+        recentRetryTimer.current = window.setTimeout(() => void loadRecent(), 5000);
+      });
       if (signedInRef.current) void window.cairn.cloud.syncNow().catch(() => {});
     });
     return () => {

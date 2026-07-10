@@ -316,6 +316,7 @@ const MAX_DEPTH = 3;
 
 async function fetchBlocks(notion: Client, blockId: string, depth: number): Promise<SimpleBlock[]> {
   const out: SimpleBlock[] = [];
+  const pendingChildren: { sb: SimpleBlock; blockId: string }[] = [];
   let cursor: string | undefined;
 
   do {
@@ -353,12 +354,24 @@ async function fetchBlocks(notion: Client, blockId: string, depth: number): Prom
         type !== 'child_page' &&
         depth < MAX_DEPTH
       ) {
-        sb.children = await fetchBlocks(notion, block.id, depth + 1);
+        pendingChildren.push({ sb, blockId: block.id });
       }
       out.push(sb);
     }
     cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
   } while (cursor);
+
+  // 자식 블록을 직렬 재귀로 기다리면 라운드트립이 합산돼 드로어 열기가 수 초 지연 —
+  // 제한 동시성으로 병렬 fetch (Notion rate limit 고려해 4)
+  const CHILD_CONCURRENCY = 4;
+  for (let i = 0; i < pendingChildren.length; i += CHILD_CONCURRENCY) {
+    const batch = pendingChildren.slice(i, i + CHILD_CONCURRENCY);
+    await Promise.all(
+      batch.map(async ({ sb, blockId }) => {
+        sb.children = await fetchBlocks(notion, blockId, depth + 1);
+      }),
+    );
+  }
 
   return out;
 }
