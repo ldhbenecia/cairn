@@ -16,9 +16,18 @@ function readPort(): string | null {
   return ok ? raw : null;
 }
 
+// 데스크톱이 연 플로우의 CSRF state — hex 만 통과시켜 리다이렉트 URL 오염 차단.
+// 구버전 앱은 state 없이 열므로 없으면 그대로 생략 (하위 호환)
+function readState(): string | null {
+  if (typeof window === 'undefined') return null;
+  const raw = new URLSearchParams(window.location.search).get('state');
+  return raw && /^[0-9a-f]{16,64}$/.test(raw) ? raw : null;
+}
+
 export default function DesktopLogin() {
   const { data: session, isPending } = authClient.useSession();
   const [port] = useState<string | null>(readPort);
+  const [state] = useState<string | null>(readState);
   const [errored, setErrored] = useState(false);
   // one-time token 은 단일 사용 — StrictMode 재마운트·재렌더로 generate 가 중복 호출되지 않도록 1회 가드
   const bridged = useRef(false);
@@ -43,7 +52,8 @@ export default function DesktopLogin() {
           setErrored(true);
           return;
         }
-        window.location.href = `http://127.0.0.1:${port}/?token=${encodeURIComponent(token)}`;
+        const stateParam = state ? `&state=${encodeURIComponent(state)}` : '';
+        window.location.href = `http://127.0.0.1:${port}/?token=${encodeURIComponent(token)}${stateParam}`;
       })
       .catch(() => {
         if (!cancelled) setErrored(true);
@@ -51,7 +61,7 @@ export default function DesktopLogin() {
     return () => {
       cancelled = true;
     };
-  }, [phase, port]);
+  }, [phase, port, state]);
 
   const signIn = (): void => {
     void authClient.signIn.social({ provider: 'google', callbackURL: window.location.href });
