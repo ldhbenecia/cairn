@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { LegalSection, LegalShell } from '../../components/legal-shell';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service · cairn',
+  title: 'Terms of Service',
+  alternates: { canonical: '/terms' },
   description: 'Terms for using cairn.',
 };
 

@@ -3,17 +3,19 @@ import type { Metadata } from 'next';
 import { LegalSection, LegalShell } from '../../components/legal-shell';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy · cairn',
+  title: 'Privacy Policy',
+  alternates: { canonical: '/privacy' },
   description: 'How cairn handles your data.',
 };
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" updated="June 20, 2026">
+    <LegalShell title="Privacy Policy" updated="July 10, 2026">
       <p>
-        cairn is a local-first desktop app that turns your daily development activity into a worklog
-        published to Notion. This policy explains what data cairn handles and what — if anything —
-        leaves your machine.
+        cairn is a local-first desktop app that turns your daily development activity into a daily
+        worklog in a local Markdown journal, with optional publishing to services you connect (like
+        Notion). This policy explains what data cairn handles and what — if anything — leaves your
+        machine.
       </p>
 
       <LegalSection heading="What stays on your device">
