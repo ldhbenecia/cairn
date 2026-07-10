@@ -79,3 +79,18 @@ describe('createExtractor — failureHint', () => {
     expect(ext.failureHint).toBeNull();
   });
 });
+
+describe('createExtractor — journalWriteFailed', () => {
+  it('daily/rollup journal write failed 로그면 true', () => {
+    const ext = createExtractor();
+    ext.feed(
+      '{"date":"2026-07-10","error":{"code":"unknown","message":"EPERM"},"msg":"daily: journal write failed"}',
+    );
+    expect(ext.journalWriteFailed).toBe(true);
+  });
+  it('정상 write done 은 false 유지', () => {
+    const ext = createExtractor();
+    ext.feed('{"fileName":"2026-07-10.md","msg":"journal write done"}');
+    expect(ext.journalWriteFailed).toBe(false);
+  });
+});

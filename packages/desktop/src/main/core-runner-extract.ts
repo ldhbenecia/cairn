@@ -30,6 +30,9 @@ export interface RunExtractor {
   noActivity: boolean;
   summaryFailed: boolean;
   failureHint: FailureHint;
+  // 로컬 journal(1차 기록) 쓰기 실패 — 노션 발행이 성공해도 로컬 기록이 통째로 빠질 수 있어
+  // 결과가 ok 라도 사용자에게 경고해야 한다 (예: macOS TCC 로 Documents 접근 거부 → EPERM)
+  journalWriteFailed: boolean;
 }
 
 export function createExtractor(): RunExtractor {
@@ -42,6 +45,7 @@ export function createExtractor(): RunExtractor {
     noActivity: false,
     summaryFailed: false,
     failureHint: null,
+    journalWriteFailed: false,
   };
   const lineUrl = /https:\/\/www\.notion\.so\/\S+/g;
   const lineKind = /"kind"\s*:\s*"(created|recreated|skipped|no-target)"/g;
@@ -60,6 +64,10 @@ export function createExtractor(): RunExtractor {
     }
     if (!state.noActivity && NO_ACTIVITY_REGEX.test(line)) state.noActivity = true;
     if (!state.summaryFailed && SUMMARY_FAILED_REGEX.test(line)) state.summaryFailed = true;
+    // daily/rollup 둘 다 'journal write failed' 로그를 남긴다 (orchestrator)
+    if (!state.journalWriteFailed && /journal write failed/.test(line)) {
+      state.journalWriteFailed = true;
+    }
     // 첫 매치 라인의 힌트 유지 — 옛 전체 스캔은 auth>quota>… 우선순위였으나 라인 순서로도 실용상 충분
     if (!state.failureHint) state.failureHint = deriveFailureHint(line);
   };
