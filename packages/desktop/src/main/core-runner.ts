@@ -132,7 +132,11 @@ export function cancelRun(): boolean {
 }
 
 export function killRunning(): void {
-  if (running) running.kill('SIGKILL');
+  if (!running) return;
+  // cancelRequested 를 세워야 exit 핸들러가 이 강제 종료를 '실패'로 오인해 spurious 실패 알림 +
+  // telemetry fail 을 내지 않는다 (앱 종료 시 진행 중 run 정리 경로)
+  cancelRequested = true;
+  running.kill('SIGKILL');
 }
 // 리로드/재부착 대비 — 진행 중 run 의 시작 시각·단계, 직전 완료 결과를 메인이 보관
 let runStartedAt = 0;
@@ -262,7 +266,9 @@ export async function runCore(
   child.stdout?.on('data', (buf: Buffer) => {
     const text = stripAnsi(buf.toString('utf8'));
     stdoutAll += text;
-    if (NO_ACTIVITY_REGEX.test(text)) noActivity = true;
+    // 청크 단위(text)가 아니라 누적 전체에서 검사 — 'no activity collected' 가 청크 경계에서
+    // 갈라지면 미검출되던 문제
+    if (!noActivity && NO_ACTIVITY_REGEX.test(stdoutAll)) noActivity = true;
     const lines = (stdoutCarry + text).split('\n');
     stdoutCarry = lines.pop() ?? '';
     for (const line of lines) {
