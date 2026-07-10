@@ -99,8 +99,8 @@ const STRINGS = {
     'onb.notion.rollupPrefix': '롤업',
     'onb.github.desc':
       'PR · 커밋을 수집할 GitHub 계정 (선택). 토큰을 만들어 붙여넣으면 자동으로 확인합니다.',
-    'onb.github.linkClassic': 'Classic 토큰 만들기 — 권장 설정 자동 입력',
-    'onb.github.linkFine': 'Fine-grained PAT 만들기',
+    'onb.github.linkClassic': 'Classic 토큰 만들기 (쓰기 권한 포함 — 비권장)',
+    'onb.github.linkFine': 'Fine-grained PAT 만들기 — 읽기 전용 권장',
     'onb.github.ghTitle': 'gh CLI 로 자동 연결',
     'onb.github.ghBody':
       'GitHub CLI(gh)가 설치·로그인돼 있으면 로그인된 모든 계정을 토큰 없이 한 번에 가져옵니다.',
@@ -536,8 +536,8 @@ const STRINGS = {
     'onb.notion.rollupPrefix': 'Rollup',
     'onb.github.desc':
       'GitHub accounts to collect PRs & commits from (optional). Paste a token and it verifies automatically.',
-    'onb.github.linkClassic': 'Create a classic token — recommended scopes prefilled',
-    'onb.github.linkFine': 'Create a fine-grained PAT',
+    'onb.github.linkClassic': 'Create a classic token (includes write access — not recommended)',
+    'onb.github.linkFine': 'Create a fine-grained PAT — read-only recommended',
     'onb.github.ghTitle': 'Connect via gh CLI',
     'onb.github.ghBody':
       'If the GitHub CLI (gh) is installed and signed in, import all signed-in accounts in one click — no manual PAT needed.',

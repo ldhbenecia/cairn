@@ -165,12 +165,12 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 desc={t('onb.github.desc')}
                 links={[
                   {
-                    label: t('onb.github.linkClassic'),
-                    url: 'https://github.com/settings/tokens/new?scopes=repo,read:user&description=cairn%20worklog',
-                  },
-                  {
                     label: t('onb.github.linkFine'),
                     url: 'https://github.com/settings/personal-access-tokens/new',
+                  },
+                  {
+                    label: t('onb.github.linkClassic'),
+                    url: 'https://github.com/settings/tokens/new?scopes=repo,read:user&description=cairn%20worklog',
                   },
                 ]}
               >
