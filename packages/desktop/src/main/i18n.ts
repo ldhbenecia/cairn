@@ -8,6 +8,11 @@ const STRINGS = {
     'mode.monthly': '이번 달 정리',
 
     'notify.failSuffix': '실패',
+    'notify.fail.auth': '토큰 인증 실패 — 연결 탭에서 확인',
+    'notify.fail.quota': 'Claude 세션/쿼터 한도 — 잠시 후 재시도',
+    'notify.fail.network': '네트워크 오류 — 연결 확인 후 재시도',
+    'notify.fail.notion': 'Notion 발행 거부 — 워크스페이스 권한 확인',
+    'notify.fail.collect': '활동 수집 실패 — 계정 연결 상태 확인',
     'notify.noTarget': '발행 대상 없음 — Preferences 설정 확인',
     'notify.noActivity': '활동 없음 — 발행 안 함',
     'notify.skipped': '이미 발행됨 — 클릭하면 앱에서 확인',
@@ -40,6 +45,11 @@ const STRINGS = {
     'mode.monthly': "This month's rollup",
 
     'notify.failSuffix': 'failed',
+    'notify.fail.auth': 'Token auth failed — check Connections',
+    'notify.fail.quota': 'Claude session/quota limit — retry later',
+    'notify.fail.network': 'Network error — check connection and retry',
+    'notify.fail.notion': 'Notion rejected the publish — check workspace access',
+    'notify.fail.collect': 'Collection failed — check account connections',
     'notify.noTarget': 'No publish target — check Preferences',
     'notify.noActivity': 'No activity — nothing published',
     'notify.skipped': 'Already published — click to view in the app',

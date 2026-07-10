@@ -124,9 +124,14 @@ export function Result({
     );
   } else if (!result.ok) {
     body = (
-      <p className="text-danger">
-        {t('publish.result.fail')} (exit {result.exitCode ?? 'unknown'})
-      </p>
+      <div className="flex flex-col items-center gap-1.5 text-center">
+        <p className="text-danger">{t('publish.result.fail')}</p>
+        <p className="text-[12.5px] leading-relaxed text-ink-tertiary">
+          {result.failureHint
+            ? t(`fail.${result.failureHint}`)
+            : `exit ${result.exitCode ?? 'unknown'}`}
+        </p>
+      </div>
     );
   } else if (result.publishKind === 'no-target' && !localOnly) {
     body = <p className="text-notice">{t('publish.result.noTarget')}</p>;
