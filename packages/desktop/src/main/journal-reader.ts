@@ -52,8 +52,14 @@ export async function listJournalPages(): Promise<JournalPage[]> {
       try {
         // 목록은 frontmatter 만 쓰므로 파일 head(4KB)만 읽는다 — 본문까지 읽으면
         // journal 이 수백 개일 때 목록 조회마다 불필요한 전문 I/O
-        const head = await readFileHead(join(folder, name), 4096);
-        return toJournalPage(name, category, head);
+        const path = join(folder, name);
+        let text = await readFileHead(path, 4096);
+        // 외부 에디터(Obsidian 등)가 frontmatter 를 4KB 이상으로 키우면 종료 마커가 head 밖으로
+        // 밀려 메타가 통째 유실됨 — 그 경우만 전문을 다시 읽어 정확성 보장 (드문 경로)
+        if (text.startsWith('---\n') && text.indexOf('\n---\n', 4) === -1) {
+          text = await readFile(path, 'utf8');
+        }
+        return toJournalPage(name, category, text);
       } catch {
         return null;
       }
