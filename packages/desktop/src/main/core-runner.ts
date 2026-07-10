@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import { fork, type ChildProcess } from 'node:child_process';
 import { createWriteStream, mkdirSync, type WriteStream } from 'node:fs';
+import { StringDecoder } from 'node:string_decoder';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -280,8 +281,13 @@ export async function runCore(
     if (buf.length > STDERR_TAIL_LINES) buf.shift();
   };
 
+  // 청크 경계에서 멀티바이트(한글 로그 '요약 생성 실패' 등)가 잘려 깨지지 않도록 StringDecoder.
+  // buf.toString('utf8') 은 경계에 걸린 문자를 U+FFFD 로 만들어 정규식 매칭까지 실패시킨다
+  const outDecoder = new StringDecoder('utf8');
+  const errDecoder = new StringDecoder('utf8');
+
   child.stdout?.on('data', (buf: Buffer) => {
-    const lines = (stdoutCarry + stripAnsi(buf.toString('utf8'))).split('\n');
+    const lines = (stdoutCarry + stripAnsi(outDecoder.write(buf))).split('\n');
     stdoutCarry = lines.pop() ?? '';
     for (const line of lines) {
       if (line.length === 0) continue;
@@ -294,7 +300,7 @@ export async function runCore(
     }
   });
   child.stderr?.on('data', (buf: Buffer) => {
-    for (const line of stripAnsi(buf.toString('utf8')).split('\n')) {
+    for (const line of stripAnsi(errDecoder.write(buf)).split('\n')) {
       if (line.length === 0) continue;
       pushTail(stderrLines, line);
       emit('err', line);
