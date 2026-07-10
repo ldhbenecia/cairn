@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { CanvasRevealEffect } from '@/components/ui/canvas-reveal-effect';
 import { authClient } from '@/lib/auth-client';
@@ -16,9 +16,24 @@ function readPort(): string | null {
   return ok ? raw : null;
 }
 
+// 데스크톱이 연 플로우의 CSRF state — hex 만 통과시켜 리다이렉트 URL 오염 차단.
+// 구버전 앱은 state 없이 열므로 없으면 그대로 생략 (하위 호환)
+function readState(): string | null {
+  if (typeof window === 'undefined') return null;
+  const raw = new URLSearchParams(window.location.search).get('state');
+  return raw && /^[0-9a-f]{16,64}$/.test(raw) ? raw : null;
+}
+
+const subscribeNoop = (): (() => void) => () => {};
+const getNull = (): string | null => null;
+
 export default function DesktopLogin() {
   const { data: session, isPending } = authClient.useSession();
-  const [port] = useState<string | null>(readPort);
+  // SSR 에선 window 가 없어 서버 스냅샷 null, 클라이언트 스냅샷은 쿼리값 —
+  // useSyncExternalStore 가 hydration mismatch 없이(setState-in-effect 없이) 전환한다.
+  // 쿼리는 페이지 수명 동안 안 바뀌므로 subscribe 는 no-op
+  const port = useSyncExternalStore(subscribeNoop, readPort, getNull);
+  const state = useSyncExternalStore(subscribeNoop, readState, getNull);
   const [errored, setErrored] = useState(false);
   // one-time token 은 단일 사용 — StrictMode 재마운트·재렌더로 generate 가 중복 호출되지 않도록 1회 가드
   const bridged = useRef(false);
@@ -43,7 +58,8 @@ export default function DesktopLogin() {
           setErrored(true);
           return;
         }
-        window.location.href = `http://127.0.0.1:${port}/?token=${encodeURIComponent(token)}`;
+        const stateParam = state ? `&state=${encodeURIComponent(state)}` : '';
+        window.location.href = `http://127.0.0.1:${port}/?token=${encodeURIComponent(token)}${stateParam}`;
       })
       .catch(() => {
         if (!cancelled) setErrored(true);
@@ -51,7 +67,7 @@ export default function DesktopLogin() {
     return () => {
       cancelled = true;
     };
-  }, [phase, port]);
+  }, [phase, port, state]);
 
   const signIn = (): void => {
     void authClient.signIn.social({ provider: 'google', callbackURL: window.location.href });

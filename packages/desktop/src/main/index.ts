@@ -89,6 +89,18 @@ function createWindow(startHidden: boolean): BrowserWindow {
     },
   });
 
+  // 보안: 메인 윈도우는 로컬 번들만 렌더 — 원격 URL 네비게이션을 막아 preload 브릿지가
+  // 외부 콘텐츠에 노출되는 벡터를 차단. 새 창 요청은 외부 브라우저로만 (https 한정)
+  win.webContents.on('will-navigate', (e, url) => {
+    const dev = process.env.ELECTRON_RENDERER_URL;
+    if ((dev && url.startsWith(dev)) || url.startsWith('file://')) return;
+    e.preventDefault();
+  });
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://')) void shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
   // 로그인 자동 실행으로 떴으면 창을 띄우지 않고 트레이에만 상주(백그라운드 시작)
   win.on('ready-to-show', () => {
     if (!startHidden) win.show();

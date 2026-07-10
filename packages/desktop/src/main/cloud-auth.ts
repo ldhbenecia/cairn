@@ -1,4 +1,5 @@
 import { BrowserWindow, shell } from 'electron';
+import { randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { writeFileAtomic } from './atomic-write';
 import { createServer, type Server } from 'node:http';
@@ -55,6 +56,9 @@ function stopServer(): void {
 
 export function startCloudSignIn(): void {
   stopServer();
+  // login CSRF 방어 — 악성 페이지가 window.open 으로 임의 포트에 토큰을 흘려보내는
+  // 드라이브바이를 차단. 우리가 연 플로우의 state 를 에코한 콜백만 수용한다
+  const expectedState = randomBytes(16).toString('hex');
   const current = createServer((req, res) => {
     if (req.method !== 'GET') {
       res.writeHead(405);
@@ -66,6 +70,12 @@ export function startCloudSignIn(): void {
     // favicon 등 토큰 없는 부가 요청은 무시 — 세션 닫지 않음
     if (!ott) {
       res.writeHead(204);
+      res.end();
+      return;
+    }
+    // state 불일치는 거부하되 서버는 유지 — 공격 시도가 정상 플로우를 죽이지 못하게
+    if (url.searchParams.get('state') !== expectedState) {
+      res.writeHead(403);
       res.end();
       return;
     }
@@ -83,7 +93,7 @@ export function startCloudSignIn(): void {
   current.listen(0, '127.0.0.1', () => {
     const addr = current.address();
     const port = addr && typeof addr === 'object' ? addr.port : 0;
-    void shell.openExternal(`${WEB_BASE}/desktop-login?port=${port}`);
+    void shell.openExternal(`${WEB_BASE}/desktop-login?port=${port}&state=${expectedState}`);
   });
   // 브라우저 로그인 플로우를 포기하면 포트가 무기한 점유되지 않도록 5분 후 정리
   authTimeout = setTimeout(
