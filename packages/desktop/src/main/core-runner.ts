@@ -55,6 +55,7 @@ export type CoreResult = {
   cancelled: boolean;
   summaryFailed: boolean;
   failureHint: FailureHint;
+  journalWriteFailed: boolean;
   prCount: number;
   commitCount: number;
   stderrTail: string;
@@ -358,6 +359,7 @@ export async function runCore(
         cancelled,
         summaryFailed: ext.summaryFailed,
         failureHint: exitCode === 0 ? null : ext.failureHint,
+        journalWriteFailed: ext.journalWriteFailed,
         prCount: totals.pr,
         commitCount: totals.commit,
         stderrTail: tail,
@@ -427,6 +429,7 @@ export async function runCore(
         cancelled: false,
         summaryFailed: false,
         failureHint: deriveFailureHint(err.message),
+        journalWriteFailed: false,
         prCount: 0,
         commitCount: 0,
         stderrTail: err.message,

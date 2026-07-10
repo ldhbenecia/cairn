@@ -229,6 +229,8 @@ const STRINGS = {
     'publish.hint.publish': '일지를 기록하는 중',
     'publish.result.done': '발행 완료',
     'publish.result.doneLocal': '로컬 일지 저장 완료',
+    'publish.result.journalWriteFailed':
+      '로컬 일지 저장에 실패했어요 — 저장 폴더 권한/경로를 확인하세요. (노션에는 발행됨)',
     'publish.result.cancelled': '발행 취소됨',
     'publish.cancelled.desc': '진행 중이던 발행을 멈췄어요. 다시 발행하면 이어서 채워집니다.',
     'publish.cancelled.partial': '발행 후 중단',
@@ -668,6 +670,8 @@ const STRINGS = {
     'publish.hint.publish': 'Recording the worklog',
     'publish.result.done': 'Published',
     'publish.result.doneLocal': 'Saved to local journal',
+    'publish.result.journalWriteFailed':
+      "Couldn't save the local journal — check the folder's permissions/path. (Published to Notion.)",
     'publish.result.cancelled': 'Publish cancelled',
     'publish.cancelled.desc': 'Stopped the publish in progress. Run it again to fill in the rest.',
     'publish.cancelled.partial': 'done before stopping',

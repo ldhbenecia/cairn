@@ -208,6 +208,15 @@ export function Result({
             </div>
           </div>
         )}
+        {/* 노션 발행이 성공해도 로컬 journal(1차 기록) 쓰기가 실패했으면 경고 — 조용한 유실 방지 */}
+        {isSuccess && result.journalWriteFailed && (
+          <div className="mt-1 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/[0.08] px-3 py-2.5">
+            <TriangleAlert size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-warning" />
+            <p className="text-[12px] leading-relaxed text-ink-muted">
+              {t('publish.result.journalWriteFailed')}
+            </p>
+          </div>
+        )}
       </div>
       <div
         className={
