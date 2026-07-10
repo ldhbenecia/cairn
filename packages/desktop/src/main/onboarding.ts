@@ -8,6 +8,7 @@ import { dirname } from 'node:path';
 import { promisify } from 'node:util';
 import { findInPath, searchPathEnv } from './claude-path';
 import { CONFIG_PATH, ENV_PATH, readEnvFile } from './setup';
+import { keepIfEmpty, upsertByLabel } from './onboarding-merge';
 
 const execFileAsync = promisify(execFile);
 
@@ -152,8 +153,8 @@ export async function searchNotionPages(token: string, query?: string): Promise<
   const pages: NotionPage[] = [];
   for (const item of res.results) {
     if (!('properties' in item)) continue;
-    // 연결한 최상위 페이지만 — 그 하위/관련 페이지는 제외
-    if ((item as { parent?: { type?: string } }).parent?.type !== 'workspace') continue;
+    // 통합에 공유된 페이지 전체 노출 — workspace 직속만 거르면 하위 페이지('Areas > Worklog' 등)에
+    // 공유한 흔한 구성에서 결과가 항상 비어 연동을 완료할 수 없었다
     const props = (item as { properties: Record<string, unknown> }).properties;
     let title = '(제목 없음)';
     for (const v of Object.values(props)) {
@@ -405,10 +406,7 @@ export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; er
       const ws = buildNotionWorkspace(w, prevWorkspaces, env);
       writeEnvMerged(env);
       for (const [k, v] of Object.entries(env)) process.env[k] = v;
-      const config = {
-        ...existing,
-        notionWorkspaces: [...prevWorkspaces.filter((p) => p.label !== w.label), ws],
-      };
+      const config = { ...existing, notionWorkspaces: upsertByLabel(prevWorkspaces, ws, w.label) };
       mkdirSync(dirname(CONFIG_PATH), { recursive: true });
       writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
       return { ok: true };
@@ -439,11 +437,22 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
       const notionWorkspaces = payload.notion.length
         ? payload.notion.map((w) => buildNotionWorkspace(w, prevWorkspaces, env))
         : prevWorkspaces;
-      const githubAccounts = payload.github.map((g) => {
-        const tokenEnv = envKey('GITHUB_TOKEN', g.label);
-        env[tokenEnv] = g.token;
-        return { label: g.label, tokenEnv };
-      });
+      const prevGithub = Array.isArray(existing.githubAccounts)
+        ? (existing.githubAccounts as { label: string; tokenEnv: string }[])
+        : [];
+      // 재입력한 계정만 반영, 빈 payload 는 기존 보존 — 토큰은 재발급 부담이 큰 값이라 무경고 삭제 방지
+      const githubAccounts = keepIfEmpty(
+        payload.github.map((g) => {
+          const tokenEnv = envKey('GITHUB_TOKEN', g.label);
+          env[tokenEnv] = g.token;
+          return { label: g.label, tokenEnv };
+        }),
+        prevGithub,
+      );
+      const prevRepos = Array.isArray(existing.localGitRepos)
+        ? (existing.localGitRepos as OnboardingPayload['localGitRepos'])
+        : [];
+      const localGitRepos = keepIfEmpty(payload.localGitRepos, prevRepos);
       if (payload.anthropicApiKey?.trim()) env.ANTHROPIC_API_KEY = payload.anthropicApiKey.trim();
 
       writeEnvMerged(env);
@@ -451,7 +460,7 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
 
       const config = {
         ...existing,
-        localGitRepos: payload.localGitRepos,
+        localGitRepos,
         githubAccounts,
         notionWorkspaces,
       };
