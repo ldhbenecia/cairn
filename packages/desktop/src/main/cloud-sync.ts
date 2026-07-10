@@ -61,6 +61,15 @@ export async function syncStats(): Promise<void> {
     const stats = body?.stats;
     if (!Array.isArray(stats)) return;
 
+    // 서버가 이미 가진 것과 대조해 '로컬이 더 최신인' 행만 push — 매 sync 마다 전체를
+    // 올리던 것을 delta 로. 서버 LWW 라 전체 push 도 무해하지만 대역폭·처리 낭비였음
+    const remoteTs = new Map<string, number>();
+    for (const r of stats) {
+      if (r && CATEGORIES.has(r.category) && DATE_RE.test(r.date)) {
+        remoteTs.set(`${r.category}:${r.date}`, Date.parse(r.updatedAt) || 0);
+      }
+    }
+
     // 머지+쓰기만 락 안에서(짧게, 동기) — 네트워크는 락 밖. core 의 동시 write 와 직렬화
     let changed = false;
     const rows = withFileLock(STATS_PATH, () => {
@@ -100,11 +109,15 @@ export async function syncStats(): Promise<void> {
       }
     }
 
-    for (let i = 0; i < rows.length; i += BATCH) {
+    // 서버에 없거나 로컬이 더 최신인 행만 — 나머지는 서버가 이미 최신(LWW)이라 보낼 필요 없음
+    const toPush = rows.filter(
+      (r) => (Date.parse(r.updatedAt) || 0) > (remoteTs.get(`${r.category}:${r.date}`) ?? -1),
+    );
+    for (let i = 0; i < toPush.length; i += BATCH) {
       const push = await fetch(`${WEB_BASE}/api/stats`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ stats: rows.slice(i, i + BATCH) }),
+        body: JSON.stringify({ stats: toPush.slice(i, i + BATCH) }),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       if (!push.ok) break;
