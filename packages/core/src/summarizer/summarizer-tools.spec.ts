@@ -22,7 +22,6 @@ const githubActivity: GithubActivity = {
       createdAt: '2026-05-09T01:00:00Z',
       updatedAt: '2026-05-09T05:00:00Z',
       mergedAt: '2026-05-09T05:00:00Z',
-      changedFileNames: ['error.ts'],
       categories: ['authored', 'authored_merged'],
       body: 'CairnError class + ErrorSource/ErrorCode enum 통합',
       commitsOnDate: [
@@ -45,7 +44,6 @@ const githubActivity: GithubActivity = {
       createdAt: '2026-05-09T06:00:00Z',
       updatedAt: '2026-05-09T07:00:00Z',
       mergedAt: null,
-      changedFileNames: ['schema.ts'],
       categories: ['authored'],
       body: null,
       commitsOnDate: [],
@@ -62,7 +60,6 @@ const githubActivity: GithubActivity = {
       createdAt: '2026-05-09T01:00:00Z',
       updatedAt: '2026-05-09T08:00:00Z',
       mergedAt: '2026-05-09T09:00:00Z',
-      changedFileNames: [],
       categories: ['assigned'],
       body: 'Fixes oversized query strings by chunking ids.',
       commitsOnDate: [],

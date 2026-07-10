@@ -291,7 +291,7 @@ function buildRollupBlocks(
   blocks.push(heading2('Metrics'));
   blocks.push(
     paragraph(
-      `gh:${activity.metrics.prCount} / git:${activity.metrics.commitCount} / notion:${activity.metrics.notionPageCount} / dailies:${activity.metrics.dailyCount}`,
+      `gh:${activity.metrics.prCount} / git:${activity.metrics.commitCount} / dailies:${activity.metrics.dailyCount}`,
     ),
   );
 
@@ -326,7 +326,7 @@ function buildRollupFallbackBlocks(
     ),
     heading2('Metrics'),
     paragraph(
-      `gh:${activity.metrics.prCount} / git:${activity.metrics.commitCount} / notion:${activity.metrics.notionPageCount} / dailies:${activity.metrics.dailyCount}`,
+      `gh:${activity.metrics.prCount} / git:${activity.metrics.commitCount} / dailies:${activity.metrics.dailyCount}`,
     ),
   ];
 }
