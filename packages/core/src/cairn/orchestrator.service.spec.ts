@@ -36,9 +36,38 @@ function makeDaily(overrides: {
     unusable('rollupPublisher') as never,
     unusable('stats') as never,
     unusable('journalWriter') as never,
+    unusable('journalSource') as never,
     logger() as never,
   );
   return { service, notify };
+}
+
+function makeRepublish(opts: {
+  published: string[];
+  hasDaily: (date: string) => boolean;
+  readDailySummary: (date: string) => unknown;
+  publishResult: unknown;
+}) {
+  const notify = vi.fn().mockResolvedValue(undefined);
+  const publish = vi.fn().mockResolvedValue(opts.publishResult);
+  const service = new OrchestratorService(
+    unusable('githubCollector') as never,
+    unusable('localGitCollector') as never,
+    {
+      publish,
+      findPublishedDates: vi.fn().mockResolvedValue(new Set(opts.published)),
+    } as never,
+    unusable('summarizer') as never,
+    { notify } as never,
+    unusable('rollupCollector') as never,
+    unusable('rollupSummarizer') as never,
+    unusable('rollupPublisher') as never,
+    unusable('stats') as never,
+    { hasDaily: vi.fn().mockImplementation(opts.hasDaily) } as never,
+    { readDailySummary: vi.fn().mockImplementation(opts.readDailySummary) } as never,
+    logger() as never,
+  );
+  return { service, notify, publish };
 }
 
 function makeRollup(activity: RollupActivity) {
@@ -54,6 +83,7 @@ function makeRollup(activity: RollupActivity) {
     unusable('rollupPublisher') as never,
     unusable('stats') as never,
     unusable('journalWriter') as never,
+    unusable('journalSource') as never,
     logger() as never,
   );
   return { service, notify };
@@ -119,6 +149,71 @@ describe('daily 활동 0건 판정', () => {
       },
     });
     await expect(service.run(dailyOptions)).rejects.toThrow(/수집 실패 \(cairn\)/);
+  });
+});
+
+describe('journal 재발행 (Notion 발행만 실패했던 날짜 복구)', () => {
+  // backfill 창 3일: 07-07·07-08·07-09. 07-07 은 journal 만 있고 노션에 없음 → 재발행 대상
+  const backfillOptions: RunOptions = {
+    ...dailyOptions,
+    dateExplicit: false,
+    force: false,
+    backfillDays: 3,
+  };
+  const summary = {
+    paragraph: '요약',
+    shareBullets: [],
+    doneBullets: ['작업'],
+    reviewedBullets: [],
+    inProgressBullets: [],
+    notesBullets: [],
+  };
+
+  it('journal 있음 + published 없음 → 재요약 없이 재발행하고 알림', async () => {
+    const { service, notify, publish } = makeRepublish({
+      published: ['2026-07-08', '2026-07-09'],
+      hasDaily: () => true,
+      readDailySummary: () => summary,
+      publishResult: { kind: 'created', pageId: 'p1', url: null },
+    });
+    await expect(service.run(backfillOptions)).resolves.toBeUndefined();
+    expect(publish).toHaveBeenCalledTimes(1);
+    expect(publish).toHaveBeenCalledWith(
+      expect.objectContaining({ date: '2026-07-07', force: false, summary }),
+    );
+    expect(notify).toHaveBeenCalledWith('cairn 일지', expect.stringContaining('재발행'));
+  });
+
+  it('노션 미연동(no-target)이면 재발행 알림 없이 조용히 종료', async () => {
+    const { service, notify } = makeRepublish({
+      published: [],
+      hasDaily: () => true,
+      readDailySummary: () => summary,
+      publishResult: { kind: 'no-target' },
+    });
+    await expect(service.run(backfillOptions)).resolves.toBeUndefined();
+    expect(notify).not.toHaveBeenCalledWith(expect.any(String), expect.stringContaining('재발행'));
+  });
+
+  it('publish 가 던져도(노션 장애 지속) 런은 계속 — 다음 실행에서 재시도', async () => {
+    const notify = vi.fn().mockResolvedValue(undefined);
+    const publish = vi.fn().mockRejectedValue(new Error('notion down'));
+    const service = new OrchestratorService(
+      unusable('githubCollector') as never,
+      unusable('localGitCollector') as never,
+      { publish, findPublishedDates: vi.fn().mockResolvedValue(new Set()) } as never,
+      unusable('summarizer') as never,
+      { notify } as never,
+      unusable('rollupCollector') as never,
+      unusable('rollupSummarizer') as never,
+      unusable('rollupPublisher') as never,
+      unusable('stats') as never,
+      { hasDaily: vi.fn().mockReturnValue(true) } as never,
+      { readDailySummary: vi.fn().mockReturnValue(summary) } as never,
+      logger() as never,
+    );
+    await expect(service.run(backfillOptions)).resolves.toBeUndefined();
+    expect(publish).toHaveBeenCalledTimes(3);
   });
 });
 
