@@ -70,6 +70,8 @@ export function App() {
   const [view, setView] = useState<MainView>('stats');
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [cmdkOpen, setCmdkOpen] = useState(false);
+  // 팔레트 발행 → worklogs 뷰의 PublishDialog 를 진행 화면으로 여는 신호
+  const [publishProgressSignal, setPublishProgressSignal] = useState(0);
   const [achvOpen, setAchvOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
   const [everSetup, setEverSetup] = useState(window.cairn.initialSetupComplete);
@@ -436,6 +438,7 @@ export function App() {
           onOpen={setSelectedPage}
           onAchievements={() => setAchvOpen(true)}
           drawerOpen={selectedPage !== null}
+          publishProgressSignal={publishProgressSignal}
         />
       )}
       {selectedPage && <WorklogDrawer page={selectedPage} onClose={() => setSelectedPage(null)} />}
@@ -446,7 +449,13 @@ export function App() {
             onClose={() => setCmdkOpen(false)}
             onView={setView}
             onPreferences={() => setPrefsOpen(true)}
-            onPublish={(mode) => void trigger(mode)}
+            onPublish={(mode) => {
+              // 대시보드/그래프 뷰에서 팔레트로 발행하면 진행 표시가 없어 무반응처럼 보이던 문제 —
+              // worklogs 뷰로 전환하고 진행 다이얼로그를 열어 스피너/단계를 보여준다
+              setView('worklogs');
+              setPublishProgressSignal((n) => n + 1);
+              void trigger(mode);
+            }}
             onOpenPage={setSelectedPage}
             onAchievements={() => setAchvOpen(true)}
           />
