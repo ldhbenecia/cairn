@@ -7,7 +7,7 @@ export function upsertByLabel<T extends { label?: string }, U>(
   item: U,
   label: string,
 ): (T | U)[] {
-  const idx = prev.findIndex((p) => p.label === label);
+  const idx = prev.findIndex((p) => p?.label === label);
   return idx === -1 ? [...prev, item] : prev.map((p, i) => (i === idx ? item : p));
 }
 
