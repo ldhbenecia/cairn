@@ -15,6 +15,7 @@ import { rollupSystemPrompt } from './rollup-prompt.js';
 import {
   buildRollupActivityPayload,
   buildRollupTools,
+  dropForbiddenSummaries,
   type RollupSummarizerInput,
 } from './rollup-tools.js';
 
@@ -35,7 +36,16 @@ export class RollupSummarizerService {
     this.logger.info({ period: a.period }, 'rollup summarizer start');
 
     // 활동을 프롬프트에 인라인 — 도구 왕복 제거, egress 검사는 동일 (ADR 0003/0021)
-    const payload = buildRollupActivityPayload(input);
+    // 사용자가 편집한 daily 페이지의 위반 항목은 날짜 단위로 drop (전체 실패 방지), 최종 전체 검사는 백스톱
+    const safeSummaries = dropForbiddenSummaries(a.summaries, (date) =>
+      this.logger.warn(
+        { period: a.period, date },
+        'rollup: daily summary dropped by egress check — excluded from rollup input',
+      ),
+    );
+    const payload = buildRollupActivityPayload({
+      activity: { ...a, summaries: safeSummaries },
+    });
     assertNoForbiddenPayload(payload, 'summarizer.rollup-activity');
     const userPrompt = [
       `Summarize my work for the ${a.period} period ${a.rangeStart} ~ ${a.rangeEnd}.`,
@@ -69,7 +79,15 @@ export class RollupSummarizerService {
       this.logger.warn({ period: a.period, error }, 'rollup summarizer threw — fallback');
       return null;
     }
-    const { resultSubtype, inputTokens, outputTokens, costUsd, model } = agentUsage;
+    const {
+      resultSubtype,
+      inputTokens,
+      outputTokens,
+      cacheReadTokens,
+      cacheCreationTokens,
+      costUsd,
+      model,
+    } = agentUsage;
 
     this.logger.info(
       {
@@ -79,27 +97,28 @@ export class RollupSummarizerService {
         resultSubtype,
         inputTokens,
         outputTokens,
+        cacheReadTokens,
+        cacheCreationTokens,
         costUsd,
         isOperator: isOperator(),
       },
       'rollup summarizer finished',
     );
 
-    if (resultSubtype !== 'success') {
-      this.logger.warn(
-        { period: a.period, resultSubtype },
-        'rollup summarizer non-success — fallback',
-      );
-      return null;
-    }
-
     const submission = getSubmission();
     if (!submission) {
       this.logger.warn(
-        { period: a.period },
+        { period: a.period, resultSubtype },
         'rollup summarizer ended without submit_rollup — fallback',
       );
       return null;
+    }
+    if (resultSubtype !== 'success') {
+      // submit_rollup 은 이미 도착 — maxTurns 등 비정상 종료여도 유료 실행 결과를 버리지 않는다 (daily 와 동일)
+      this.logger.warn(
+        { period: a.period, resultSubtype },
+        'rollup summarizer non-success but submission present — using it',
+      );
     }
 
     const usage: WorklogSummaryUsage | undefined = isOperator()

@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import type { RollupActivity } from '../contracts/rollup-activity.types.js';
-import { buildRollupActivityPayload } from './rollup-tools.js';
+import {
+  buildRollupActivityPayload,
+  dropForbiddenSummaries,
+  submitRollupSchema,
+} from './rollup-tools.js';
 
 const activity: RollupActivity = {
   period: 'weekly',
@@ -59,5 +63,47 @@ describe('buildRollupActivityPayload', () => {
     expect(() => assertNoForbiddenPayload(payload, 'test.rollup-tainted')).toThrow(
       /unified-diff-hunk/,
     );
+  });
+});
+
+describe('submitRollupSchema paragraph 상한', () => {
+  it('2000자는 통과, 2001자는 거부 — Notion rich_text 한도 정합', () => {
+    const base = { themes: [], highlights: [] };
+    expect(submitRollupSchema.safeParse({ ...base, paragraph: 'a'.repeat(2000) }).success).toBe(
+      true,
+    );
+    expect(submitRollupSchema.safeParse({ ...base, paragraph: 'a'.repeat(2001) }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe('dropForbiddenSummaries', () => {
+  const clean = {
+    date: '2026-07-01',
+    paragraph: '정상 요약',
+    doneBullets: ['작업 A'],
+    reviewedBullets: [],
+    inProgressBullets: [],
+    notesBullets: [],
+  };
+  const dirty = {
+    ...clean,
+    date: '2026-07-02',
+    notesBullets: ['고객 문의 foo@bar.com 회신'],
+  };
+
+  it('위반 항목만 날짜 단위로 drop 하고 나머지는 보존', () => {
+    const dropped: string[] = [];
+    const safe = dropForbiddenSummaries([clean, dirty], (d) => dropped.push(d));
+    expect(safe.map((s) => s.date)).toEqual(['2026-07-01']);
+    expect(dropped).toEqual(['2026-07-02']);
+  });
+
+  it('전부 정상이면 그대로 통과', () => {
+    const safe = dropForbiddenSummaries([clean], () => {
+      throw new Error('should not drop');
+    });
+    expect(safe).toHaveLength(1);
   });
 });
