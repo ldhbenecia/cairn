@@ -1,5 +1,6 @@
 import type { GithubActivity } from '../contracts/github-activity.types.js';
 import type { LocalGitActivity } from '../contracts/local-git-activity.types.js';
+import type { CairnError } from './error.js';
 
 export interface AccountTotals {
   prCount: number;
@@ -42,4 +43,25 @@ export function computeDayTotals(
     byAccount[acct] = { prCount: b.prCount, commitCount: b.shas.size };
   }
   return { prCount: github?.prs.length ?? 0, commitCount: shas.size, byAccount };
+}
+
+export interface SourceError {
+  source: 'github' | 'local-git';
+  label: string;
+  error: CairnError;
+}
+
+// 활동 0건이 '진짜 무활동'인지 '수집 실패로 0건'인지 구분하기 위한 소스 에러 수집
+export function collectSourceErrors(
+  github: GithubActivity | null | undefined,
+  localGit: LocalGitActivity | null | undefined,
+): SourceError[] {
+  const errors: SourceError[] = [];
+  for (const e of github?.accountErrors ?? []) {
+    errors.push({ source: 'github', label: e.account, error: e.error });
+  }
+  for (const repo of localGit?.repos ?? []) {
+    if (repo.error) errors.push({ source: 'local-git', label: repo.repo, error: repo.error });
+  }
+  return errors;
 }

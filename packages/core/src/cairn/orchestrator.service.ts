@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { withConcurrency } from '../common/concurrency.js';
-import { computeDayTotals } from '../common/day-totals.js';
+import { collectSourceErrors, computeDayTotals } from '../common/day-totals.js';
 import { CairnError } from '../common/error.js';
 import { GithubCollectorService } from '../github/github-collector.service.js';
 import { LocalGitCollectorService } from '../local-git/local-git-collector.service.js';
@@ -227,6 +227,29 @@ export class OrchestratorService {
     const { prCount, commitCount } = computeDayTotals(githubActivity, localGitActivity);
 
     if (prCount + commitCount === 0) {
+      // 수집 에러로 인한 0건은 '활동 없음'으로 위장하지 않는다 — 토큰 만료 등이 매일
+      // 무음으로 넘어가 일지가 통째로 누락되던 문제. throw 로 실패 알림·재시도 경로 복원
+      const sourceErrors = collectSourceErrors(githubActivity, localGitActivity);
+      if (sourceErrors.length > 0) {
+        const first = sourceErrors[0]!;
+        this.logger.warn(
+          {
+            date,
+            sourceErrors: sourceErrors.map((e) => ({
+              source: e.source,
+              label: e.label,
+              code: e.error.code,
+            })),
+          },
+          'daily: zero activity with collect errors — failing run',
+        );
+        throw new CairnError(
+          first.error.source,
+          first.error.code,
+          `수집 실패 (${sourceErrors.map((e) => e.label).join(', ')}) — ${first.error.message}`,
+          first.error.status,
+        );
+      }
       this.logger.info({ date }, 'daily: no activity collected — skipping summarizer + publisher');
       if (!opts.silent) {
         await this.notification.notify('cairn 일지', `${date} 활동 없음 — 일지 생략`);
@@ -471,6 +494,15 @@ export class OrchestratorService {
     }
 
     if (activity.metrics.dailyCount === 0) {
+      // 수집 실패의 0건은 '일지 없음'이 아니다 — 성공 종료 시 데스크톱이 rollup anchor 를
+      // 기록해 해당 기간이 catch-up 에서 영구 제외되던 문제. 실패로 전파해 재시도 복원
+      if (activity.error) {
+        this.logger.warn(
+          { period, error: activity.error },
+          'rollup: collect failed — failing run instead of "no dailies" skip',
+        );
+        throw activity.error;
+      }
       this.logger.info(
         { period, rangeStart: activity.rangeStart, rangeEnd: activity.rangeEnd },
         'rollup: no daily pages in range — skipping summarizer + publisher',
