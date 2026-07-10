@@ -1,4 +1,4 @@
-import { closeSync, openSync, renameSync, rmSync, statSync } from 'node:fs';
+import { closeSync, linkSync, openSync, renameSync, rmSync, statSync } from 'node:fs';
 
 const STALE_MS = 30_000;
 const MAX_WAIT_MS = 3_000;
@@ -20,12 +20,15 @@ function reclaimStale(lockPath: string): void {
     return; // 다른 대기자가 먼저 회수/획득 — 재시도
   }
   try {
-    if (Date.now() - statSync(stealPath).mtimeMs > STALE_MS) {
-      rmSync(stealPath, { force: true });
-    } else {
-      renameSync(stealPath, lockPath); // 유효 락이었음 — 원위치 복원
+    if (Date.now() - statSync(stealPath).mtimeMs <= STALE_MS) {
+      // 훔친 게 사실 유효한 락(회수와 재획득이 교차) — 원위치 복원.
+      // rename 은 대상이 있으면 말없이 덮어써 그새 획득된 남의 락을 지운다.
+      // linkSync 는 대상이 있으면 EEXIST 로 실패 → 덮어쓰기 없음
+      linkSync(stealPath, lockPath);
     }
   } catch {
+    // stale 이었거나(위 분기 통과) 복원 불가(그새 다른 프로세스가 획득) — stealPath 만 정리
+  } finally {
     rmSync(stealPath, { force: true });
   }
 }
