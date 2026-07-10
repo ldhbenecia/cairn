@@ -33,6 +33,20 @@ export type CoreRunOptions = {
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
 
+export type FailureHint = 'auth' | 'quota' | 'network' | 'notion' | 'collect' | null;
+
+// 실패 원인 힌트 — raw 로그는 UI 비노출 정책이라 대표 패턴만 내부 분류해 친화 문구 키로 전달.
+// 어떤 패턴에도 안 걸리면 null (기존 exit code 표기 유지)
+function deriveFailureHint(text: string): FailureHint {
+  if (/auth_failed|Bad credentials|Missing required secret|"status"\s*:\s*401/i.test(text))
+    return 'auth';
+  if (/rate_limited|session limit|quota|"status"\s*:\s*429/i.test(text)) return 'quota';
+  if (/ENOTFOUND|ETIMEDOUT|ECONNREFUSED|ECONNRESET|fetch failed/i.test(text)) return 'network';
+  if (/validation_error|body failed validation/i.test(text)) return 'notion';
+  if (/collect errors — failing|수집 실패/i.test(text)) return 'collect';
+  return null;
+}
+
 export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type CoreResult = {
@@ -45,6 +59,7 @@ export type CoreResult = {
   noActivity: boolean;
   cancelled: boolean;
   summaryFailed: boolean;
+  failureHint: FailureHint;
   prCount: number;
   commitCount: number;
   stderrTail: string;
@@ -325,6 +340,7 @@ export async function runCore(
         noActivity: finalNoActivity,
         cancelled,
         summaryFailed: SUMMARY_FAILED_REGEX.test(stdoutAll),
+        failureHint: exitCode === 0 ? null : deriveFailureHint(`${stdoutAll}\n${tail}`),
         prCount: totals.pr,
         commitCount: totals.commit,
         stderrTail: tail,
@@ -397,6 +413,7 @@ export async function runCore(
         noActivity: false,
         cancelled: false,
         summaryFailed: false,
+        failureHint: deriveFailureHint(err.message),
         prCount: 0,
         commitCount: 0,
         stderrTail: err.message,

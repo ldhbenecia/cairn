@@ -124,6 +124,13 @@ function PromptField({
         maxLength={PROMPT_MAX_CHARS}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => onSave(draft.trim().length > 0 ? draft : null)}
+        onKeyDown={(e) => {
+          // ESC 가 다이얼로그를 바로 닫으면 blur 커밋 전에 편집 내용이 유실 — 첫 ESC 는 커밋만
+          if (e.key === 'Escape') {
+            e.stopPropagation();
+            e.currentTarget.blur();
+          }
+        }}
         placeholder={placeholder}
         rows={4}
         className="w-full resize-none rounded-md border border-hairline bg-surface-2 px-3 py-2 text-[13px] leading-relaxed text-ink placeholder:text-ink-tertiary focus:border-accent/50 focus:outline-none"

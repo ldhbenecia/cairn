@@ -73,8 +73,18 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
       const tgt = e.target as Node;
       if (!triggerRef.current?.contains(tgt) && !popRef.current?.contains(tgt)) close();
     };
+    // capture 단계에서 가로채 stopPropagation — Radix Dialog 의 ESC 닫기보다 먼저 팝오버만 닫는다
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      close();
+    };
     document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey, true);
+    };
   }, [open, closing]);
 
   // 트리거에 붙여 배치 — 아래 공간이 없으면 위로. 예상치(POP_H) 대신 열린 뒤 실측 높이로
@@ -308,8 +318,18 @@ export function DateRangePicker({
       const tgt = e.target as Node;
       if (!triggerRef.current?.contains(tgt) && !popRef.current?.contains(tgt)) close();
     };
+    // capture 단계에서 가로채 stopPropagation — Radix Dialog 의 ESC 닫기보다 먼저 팝오버만 닫는다
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      close();
+    };
     document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey, true);
+    };
   }, [open, closing]);
 
   const place = (): void => {

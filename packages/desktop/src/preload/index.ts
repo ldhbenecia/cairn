@@ -125,6 +125,7 @@ export type CoreResult = {
   noActivity: boolean;
   cancelled: boolean;
   summaryFailed: boolean;
+  failureHint: 'auth' | 'quota' | 'network' | 'notion' | 'collect' | null;
   prCount: number;
   commitCount: number;
   stderrTail: string;

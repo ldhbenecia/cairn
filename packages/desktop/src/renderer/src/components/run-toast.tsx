@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, Check, TriangleAlert, X } from 'lucide-react';
+import { BookOpen, Check, Minus, TriangleAlert, X } from 'lucide-react';
 import type { CoreMode, CoreResult } from '../cairn-api';
 import { useSettings } from '../settings-context';
 
@@ -22,9 +22,27 @@ export function RunToast({
         {toast &&
           (() => {
             const { mode, result } = toast;
-            const ok = result.ok && !result.summaryFailed;
+            // '활동 없음/skip/대상 없음' 을 초록 '발행 완료' 로 오보하지 않도록 결과 종류 구분
+            const kind =
+              !result.ok || result.summaryFailed
+                ? ('fail' as const)
+                : result.noActivity
+                  ? ('noActivity' as const)
+                  : result.publishKind === 'skipped'
+                    ? ('skipped' as const)
+                    : result.publishKind === 'no-target'
+                      ? result.journalFile
+                        ? ('localDone' as const)
+                        : ('noTarget' as const)
+                      : ('done' as const);
+            const ok = kind === 'done' || kind === 'localDone';
+            const neutral = kind === 'noActivity' || kind === 'skipped' || kind === 'noTarget';
             const url = result.notionUrl;
             const hasCounts = ok && (result.prCount > 0 || result.commitCount > 0);
+            const failHint =
+              kind === 'fail' && result.failureHint
+                ? (`fail.${result.failureHint}` as const)
+                : null;
             return (
               <motion.div
                 key={toast.at}
@@ -37,19 +55,33 @@ export function RunToast({
                 <span
                   className={[
                     'flex size-8 shrink-0 items-center justify-center rounded-lg',
-                    ok ? 'bg-emerald-500/12 text-emerald-400' : 'bg-rose-500/12 text-rose-400',
+                    ok
+                      ? 'bg-emerald-500/12 text-emerald-400'
+                      : neutral
+                        ? 'bg-surface-2 text-ink-tertiary'
+                        : 'bg-rose-500/12 text-rose-400',
                   ].join(' ')}
                 >
                   {ok ? (
                     <Check size={15} strokeWidth={2.5} />
+                  ) : neutral ? (
+                    <Minus size={15} strokeWidth={2.25} />
                   ) : (
                     <TriangleAlert size={15} strokeWidth={2} />
                   )}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-medium text-ink">
-                    {t(`nav.${mode}`)} {ok ? t('toast.done') : t('toast.fail')}
+                    {t(`nav.${mode}`)}{' '}
+                    {kind === 'done'
+                      ? t('toast.done')
+                      : kind === 'fail'
+                        ? t('toast.fail')
+                        : t(`toast.${kind}`)}
                   </p>
+                  {failHint && (
+                    <p className="text-[11.5px] leading-snug text-ink-tertiary">{t(failHint)}</p>
+                  )}
                   {hasCounts && (
                     <p className="font-mono text-[11.5px] text-ink-tertiary tabular-nums">
                       PR {result.prCount} · {t('publish.collected.commits')} {result.commitCount}

@@ -36,7 +36,11 @@ export function sendResultNotification(mode: CoreMode, result: CoreResult): void
   const label = modeLabel(mode);
 
   if (!result.ok) {
-    notify(`${label} ${mt('notify.failSuffix')}`, `exit ${result.exitCode ?? 'unknown'}`, mode);
+    // 가장 흔한 실패 원인은 사용자가 행동할 수 있는 문구로 — 분류 불가 시에만 exit code
+    const body = result.failureHint
+      ? mt(`notify.fail.${result.failureHint}`)
+      : `exit ${result.exitCode ?? 'unknown'}`;
+    notify(`${label} ${mt('notify.failSuffix')}`, body, mode);
     return;
   }
   if (result.summaryFailed) {
