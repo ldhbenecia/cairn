@@ -74,6 +74,15 @@ export function AchievementsDialog({
     };
   }, []);
 
+  // 자체 오버레이(Radix 아님)라 ESC 닫기를 직접 — 다른 다이얼로그와 동작 통일
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const countInRange = (r: number): number =>
     (recent?.pages ?? []).filter(
       (p) => p.category === 'daily' && p.date != null && p.date >= localDateDaysAgo(r),
