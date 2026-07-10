@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { open, readdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { readConfig } from './files';
@@ -50,8 +50,10 @@ export async function listJournalPages(): Promise<JournalPage[]> {
   const pages = await Promise.all(
     targets.map(async ({ name, category }) => {
       try {
-        const raw = await readFile(join(folder, name), 'utf8');
-        return toJournalPage(name, category, raw);
+        // 목록은 frontmatter 만 쓰므로 파일 head(4KB)만 읽는다 — 본문까지 읽으면
+        // journal 이 수백 개일 때 목록 조회마다 불필요한 전문 I/O
+        const head = await readFileHead(join(folder, name), 4096);
+        return toJournalPage(name, category, head);
       } catch {
         return null;
       }
@@ -138,6 +140,19 @@ export async function readJournalPageContent(pageId: string): Promise<PageConten
     return { blocks: markdownToBlocks(stripFrontmatter(raw).body) };
   } catch {
     return { blocks: [], warning: 'journal file read failed' };
+  }
+}
+
+// 파일 앞 N 바이트만 읽는다 — frontmatter(작은 고정 필드) 파싱용. 경계에서 멀티바이트가
+// 잘려도 frontmatter 종료(\n---\n)는 head 안에 있어 파싱에 영향 없음
+async function readFileHead(path: string, bytes: number): Promise<string> {
+  const fh = await open(path, 'r');
+  try {
+    const buf = Buffer.alloc(bytes);
+    const { bytesRead } = await fh.read(buf, 0, bytes, 0);
+    return buf.subarray(0, bytesRead).toString('utf8');
+  } finally {
+    await fh.close();
   }
 }
 
