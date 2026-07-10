@@ -37,6 +37,8 @@ type Props = {
   recent: RecentListResult | null;
   filter: WorklogFilter;
   sessions: Record<CoreMode, RunSession | null>;
+  publishProgressSignal?: number;
+  onConsumePublishSignal?: () => void;
   runningMode: CoreMode | null;
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
   onOpenPublished: (pageId: string, url: string | null) => void;
@@ -65,6 +67,8 @@ export function WorklogList({
   recent,
   filter,
   sessions,
+  publishProgressSignal,
+  onConsumePublishSignal,
   runningMode,
   onTrigger,
   onOpenPublished,
@@ -238,6 +242,8 @@ export function WorklogList({
               runningMode={runningMode}
               onTrigger={onTrigger}
               onOpenPublished={onOpenPublished}
+              openProgressSignal={publishProgressSignal}
+              onConsumeSignal={onConsumePublishSignal}
             />
           </div>
         </div>
