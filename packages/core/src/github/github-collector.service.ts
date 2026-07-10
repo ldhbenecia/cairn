@@ -210,7 +210,6 @@ export class GithubCollectorService {
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
         mergedAt: item.mergedAt,
-        changedFileNames: [],
         categories: [...categories],
         body,
         commitsOnDate: summaryCommitsOnDate,

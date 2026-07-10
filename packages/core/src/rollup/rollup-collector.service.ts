@@ -113,7 +113,6 @@ export class RollupCollectorService {
         url: page.url ?? '',
         prCount: stat.pr,
         commitCount: stat.commit,
-        notionPageCount: 0,
       };
       prTotal += stat.pr;
       commitTotal += stat.commit;
@@ -139,7 +138,6 @@ export class RollupCollectorService {
     const metrics: RollupMetrics = {
       prCount: prTotal,
       commitCount: commitTotal,
-      notionPageCount: 0,
       dailyCount: dailies.length,
     };
 
@@ -174,7 +172,6 @@ export class RollupCollectorService {
         url: '',
         prCount: stat.pr,
         commitCount: stat.commit,
-        notionPageCount: 0,
       });
       prTotal += stat.pr;
       commitTotal += stat.commit;
@@ -185,7 +182,6 @@ export class RollupCollectorService {
     const metrics: RollupMetrics = {
       prCount: prTotal,
       commitCount: commitTotal,
-      notionPageCount: 0,
       dailyCount: dailies.length,
     };
     this.logger.info(
@@ -203,7 +199,7 @@ function emptyActivity(period: RollupPeriod, start: string, end: string): Rollup
     rangeEnd: end,
     dailies: [],
     summaries: [],
-    metrics: { prCount: 0, commitCount: 0, notionPageCount: 0, dailyCount: 0 },
+    metrics: { prCount: 0, commitCount: 0, dailyCount: 0 },
   };
 }
 

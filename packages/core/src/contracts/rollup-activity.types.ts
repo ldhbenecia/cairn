@@ -8,7 +8,6 @@ export interface RollupDailyPageMeta {
   url: string;
   prCount: number;
   commitCount: number;
-  notionPageCount: number;
 }
 
 export interface RollupDailySummaryText {
@@ -23,7 +22,6 @@ export interface RollupDailySummaryText {
 export interface RollupMetrics {
   prCount: number;
   commitCount: number;
-  notionPageCount: number;
   dailyCount: number;
 }
 

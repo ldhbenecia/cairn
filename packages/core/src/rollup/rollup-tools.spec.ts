@@ -11,7 +11,7 @@ const activity: RollupActivity = {
   period: 'weekly',
   rangeStart: '2026-05-04T00:00:00Z',
   rangeEnd: '2026-05-10T23:59:59Z',
-  metrics: { prCount: 6, commitCount: 23, notionPageCount: 5, dailyCount: 5 },
+  metrics: { prCount: 6, commitCount: 23, dailyCount: 5 },
   dailies: [
     {
       date: '2026-05-09',
@@ -19,7 +19,6 @@ const activity: RollupActivity = {
       url: 'https://notion.so/page-123',
       prCount: 2,
       commitCount: 7,
-      notionPageCount: 1,
     },
   ],
   summaries: [

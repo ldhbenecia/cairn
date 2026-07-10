@@ -107,7 +107,7 @@ const emptyRollup = (error?: CairnError): RollupActivity => ({
   rangeEnd: '2026-07-05',
   dailies: [],
   summaries: [],
-  metrics: { prCount: 0, commitCount: 0, notionPageCount: 0, dailyCount: 0 },
+  metrics: { prCount: 0, commitCount: 0, dailyCount: 0 },
   ...(error ? { error } : {}),
 });
 

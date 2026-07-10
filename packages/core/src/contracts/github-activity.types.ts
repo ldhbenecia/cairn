@@ -20,7 +20,6 @@ export interface GithubPrSummary {
   createdAt: string;
   updatedAt: string;
   mergedAt: string | null;
-  changedFileNames: readonly string[];
   categories: readonly GithubActivityCategory[];
   body: string | null;
   commitsOnDate: readonly PrCommitOnDate[];

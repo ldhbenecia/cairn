@@ -30,7 +30,6 @@ interface RollupActivityPayload {
   metrics: {
     prCount: number;
     commitCount: number;
-    notionPageCount: number;
     dailyCount: number;
   };
   dailies: ReadonlyArray<{
@@ -38,7 +37,6 @@ interface RollupActivityPayload {
     url: string;
     prCount: number;
     commitCount: number;
-    notionPageCount: number;
   }>;
   summaries: ReadonlyArray<{
     date: string;
@@ -63,7 +61,6 @@ export function buildRollupActivityPayload(input: RollupSummarizerInput): Rollup
       url: d.url,
       prCount: d.prCount,
       commitCount: d.commitCount,
-      notionPageCount: d.notionPageCount,
     })),
     summaries: a.summaries.map((s) => ({
       date: s.date,
