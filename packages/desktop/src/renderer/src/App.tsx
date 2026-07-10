@@ -439,6 +439,7 @@ export function App() {
           onAchievements={() => setAchvOpen(true)}
           drawerOpen={selectedPage !== null}
           publishProgressSignal={publishProgressSignal}
+          onConsumePublishSignal={() => setPublishProgressSignal(0)}
         />
       )}
       {selectedPage && <WorklogDrawer page={selectedPage} onClose={() => setSelectedPage(null)} />}

@@ -25,6 +25,8 @@ type Props = {
   runningMode: CoreMode | null;
   // 커맨드 팔레트 등 외부에서 '진행 화면으로 열기'를 요청하는 신호 (증가할 때마다 오픈)
   openProgressSignal?: number;
+  // 신호 소비 후 부모 상태를 리셋 — 뷰 전환 후 재마운트 때 옛 신호로 다시 열리는 것 방지
+  onConsumeSignal?: () => void;
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
   onOpenPublished: (pageId: string, url: string | null) => void;
 };
@@ -56,6 +58,7 @@ export function PublishDialog({
   onTrigger,
   onOpenPublished,
   openProgressSignal,
+  onConsumeSignal,
 }: Props) {
   const { t, settings } = useSettings();
   const [open, setOpen] = useState(false);
@@ -95,7 +98,8 @@ export function PublishDialog({
     if (openProgressSignal === undefined || openProgressSignal === 0) return;
     setShowProgress(true);
     setOpen(true);
-  }, [openProgressSignal]);
+    onConsumeSignal?.();
+  }, [openProgressSignal, onConsumeSignal]);
 
   const activeMode = externalBusy && busyMode ? busyMode : (watchedExternal ?? mode);
   const session = sessions[activeMode];
