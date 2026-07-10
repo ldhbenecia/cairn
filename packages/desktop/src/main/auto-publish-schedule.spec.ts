@@ -4,7 +4,9 @@ import {
   lastCompletedMonthAnchor,
   lastCompletedWeekAnchor,
   localTodayIso,
+  monthAnchorsToPublish,
   msUntilLocalTime,
+  weekAnchorsToPublish,
 } from './auto-publish-schedule';
 
 // Date 는 로컬 컴포넌트로 생성 — 머신 TZ 와 무관하게 동일 결과
@@ -69,5 +71,64 @@ describe('lastCompletedMonthAnchor', () => {
 describe('localTodayIso', () => {
   it('zero-padding', () => {
     expect(localTodayIso(new Date(2026, 0, 5))).toBe('2026-01-05');
+  });
+});
+
+describe('weekAnchorsToPublish (놓친 주 catch-up)', () => {
+  // 2026-07-11 은 토요일 → 직전 완료 주 anchor = 2026-07-05(일)
+  const now = new Date(2026, 6, 11);
+
+  it('last 없으면 현재 주 하나만 (과거 백필 안 함)', () => {
+    expect(weekAnchorsToPublish(undefined, now)).toEqual(['2026-07-05']);
+  });
+
+  it('이미 최신이면 빈 배열', () => {
+    expect(weekAnchorsToPublish('2026-07-05', now)).toEqual([]);
+  });
+
+  it('3주 놓쳤으면 그 사이 주를 오래된 순으로 전부', () => {
+    // last=2026-06-14(일) → 06-21, 06-28, 07-05
+    expect(weekAnchorsToPublish('2026-06-14', now)).toEqual([
+      '2026-06-21',
+      '2026-06-28',
+      '2026-07-05',
+    ]);
+  });
+
+  it('연 경계도 주 단위로 이어짐', () => {
+    const jan = new Date(2026, 0, 10); // 2026-01-10 토 → anchor 2026-01-04
+    expect(weekAnchorsToPublish('2025-12-21', jan)).toEqual(['2025-12-28', '2026-01-04']);
+  });
+
+  it('상한(12) 초과면 오래된 12개만 (나머지는 다음 실행)', () => {
+    const r = weekAnchorsToPublish('2025-01-05', now);
+    expect(r.length).toBe(12);
+    expect(r[0]).toBe('2025-01-12'); // 오래된 것부터
+  });
+});
+
+describe('monthAnchorsToPublish (놓친 월 catch-up)', () => {
+  const now = new Date(2026, 6, 11); // 2026-07 → 직전 완료 월 anchor 2026-06-30
+
+  it('last 없으면 현재 월 하나만', () => {
+    expect(monthAnchorsToPublish(undefined, now)).toEqual(['2026-06-30']);
+  });
+
+  it('이미 최신이면 빈 배열', () => {
+    expect(monthAnchorsToPublish('2026-06-30', now)).toEqual([]);
+  });
+
+  it('3개월 놓쳤으면 월-끝을 오래된 순으로', () => {
+    // last=2026-03-31 → 04-30, 05-31, 06-30
+    expect(monthAnchorsToPublish('2026-03-31', now)).toEqual([
+      '2026-04-30',
+      '2026-05-31',
+      '2026-06-30',
+    ]);
+  });
+
+  it('연 경계', () => {
+    const feb = new Date(2026, 1, 10); // 2026-02 → anchor 2026-01-31
+    expect(monthAnchorsToPublish('2025-11-30', feb)).toEqual(['2025-12-31', '2026-01-31']);
   });
 });

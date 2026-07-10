@@ -1,10 +1,10 @@
 import { powerMonitor } from 'electron';
 import {
   isScheduledTimeReached,
-  lastCompletedMonthAnchor,
-  lastCompletedWeekAnchor,
   localTodayIso,
+  monthAnchorsToPublish,
   msUntilLocalTime,
+  weekAnchorsToPublish,
 } from './auto-publish-schedule';
 import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { notifyAutoConfirm, notifyAutoStart } from './notifier';
@@ -76,14 +76,13 @@ function dueRuns(cfg: AutoPublish, state: AutoPublishState): DueRun[] {
     }
   }
   if (cfg.weekly) {
-    const anchor = lastCompletedWeekAnchor(now);
-    if (state.weekly !== anchor) {
+    // 놓친 주 전부 catch-up — 직전 anchor 이후 완료된 모든 주를 오래된 순으로
+    for (const anchor of weekAnchorsToPublish(state.weekly, now)) {
       runs.push({ mode: 'weekly', options: { date: anchor }, rollupField: 'weekly', anchor });
     }
   }
   if (cfg.monthly) {
-    const anchor = lastCompletedMonthAnchor(now);
-    if (state.monthly !== anchor) {
+    for (const anchor of monthAnchorsToPublish(state.monthly, now)) {
       runs.push({ mode: 'monthly', options: { date: anchor }, rollupField: 'monthly', anchor });
     }
   }
@@ -119,7 +118,11 @@ async function executeRuns(runs: DueRun[]): Promise<void> {
     scheduleRetry();
     return;
   }
+  // catch-up 은 오래된 순 — 같은 모드의 앞 기간이 실패하면 뒤 기간을 건너뛴다.
+  // 안 그러면 뒤 기간 성공이 anchor 를 갭 너머로 전진시켜 실패한 중간 기간이 영구 누락된다.
+  const failedModes = new Set<CoreMode>();
   for (const { mode, options, rollupField, anchor } of runs) {
+    if (failedModes.has(mode)) continue;
     notifyAutoStart(mode);
     try {
       const result = await runCore(mode, options, 'scheduled');
@@ -127,10 +130,12 @@ async function executeRuns(runs: DueRun[]): Promise<void> {
       if (result.ok && rollupField && anchor) {
         writeAutoPublishState({ ...readAutoPublishState(), [rollupField]: anchor });
       } else if (!result.ok && !result.cancelled) {
+        failedModes.add(mode);
         scheduleFailureRetry();
       }
     } catch {
       // busy 레이스(루프 도중 수동 실행 시작) — anchor 미기록 상태라 재시도에서 다시 due
+      failedModes.add(mode);
       scheduleRetry();
     }
   }
