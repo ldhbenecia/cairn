@@ -82,6 +82,17 @@ export class RollupCollectorService {
       return { ...emptyActivity(period, start, end), error };
     }
 
+    // 같은 날짜의 daily 페이지가 둘 이상이면(재발행 경합 등) 메트릭·요약 입력이 이중 집계되던 문제.
+    // 날짜당 하나만 — 최근 편집분 우선(내림차순 정렬돼 있으므로 첫 등장 유지)
+    const dedupedPages = dedupeByDate(pages);
+    if (dedupedPages.length !== pages.length) {
+      this.logger.warn(
+        { period, raw: pages.length, deduped: dedupedPages.length },
+        'rollup: duplicate daily pages for same date — deduped',
+      );
+    }
+    pages = dedupedPages;
+
     this.logger.info(
       { period, dailyCount: pages.length, dailyDates: pages.map((p) => p.date) },
       'rollup dailies',
@@ -194,6 +205,19 @@ function emptyActivity(period: RollupPeriod, start: string, end: string): Rollup
     summaries: [],
     metrics: { prCount: 0, commitCount: 0, notionPageCount: 0, dailyCount: 0 },
   };
+}
+
+// 날짜당 첫 등장만 유지 (정렬이 최근순이면 최신 편집분 우선). 재발행 경합으로 같은 날짜
+// 페이지가 둘 이상일 때 메트릭·요약 이중 집계 방지
+export function dedupeByDate<T extends { date: string }>(pages: readonly T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const p of pages) {
+    if (seen.has(p.date)) continue;
+    seen.add(p.date);
+    out.push(p);
+  }
+  return out;
 }
 
 export function parseSummaryFromBlocks(
