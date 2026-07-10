@@ -65,7 +65,15 @@ export class DailySummarizerService {
       this.logger.warn({ date: input.date, error }, 'summarizer threw — fallback');
       return null;
     }
-    const { resultSubtype, inputTokens, outputTokens, costUsd, model } = agentUsage;
+    const {
+      resultSubtype,
+      inputTokens,
+      outputTokens,
+      cacheReadTokens,
+      cacheCreationTokens,
+      costUsd,
+      model,
+    } = agentUsage;
 
     this.logger.info(
       {
@@ -73,6 +81,8 @@ export class DailySummarizerService {
         resultSubtype,
         inputTokens,
         outputTokens,
+        cacheReadTokens,
+        cacheCreationTokens,
         costUsd,
         isOperator: isOperator(),
       },

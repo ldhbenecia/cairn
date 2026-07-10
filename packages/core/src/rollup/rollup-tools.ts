@@ -1,14 +1,15 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
-import { sanitizeCairnError } from '../common/sanitize.js';
-import type { RollupActivity } from '../contracts/rollup-activity.types.js';
+import { assertNoForbiddenPayload, sanitizeCairnError } from '../common/sanitize.js';
+import type { RollupActivity, RollupDailySummaryText } from '../contracts/rollup-activity.types.js';
 
 export interface RollupSummarizerInput {
   activity: RollupActivity;
 }
 
 export const submitRollupSchema = z.object({
-  paragraph: z.string().min(1).max(2500),
+  // Notion rich_text text.content 한도가 2000자 — 2500 이면 스키마는 통과하고 발행이 터진다
+  paragraph: z.string().min(1).max(2000),
   themes: z
     .array(
       z.object({
@@ -75,6 +76,25 @@ export function buildRollupActivityPayload(input: RollupSummarizerInput): Rollup
   };
   if (a.error) payload.sourceError = sanitizeCairnError(a.error);
   return payload;
+}
+
+// daily 페이지는 발행 후 사용자가 자유 편집하는 대상 — 어느 날의 bullet 하나에 금지 패턴
+// (이메일·절대경로 등)이 들어가면 전체-payload fail-closed 가 롤업을 결정적·영구적으로
+// 실패시키던 문제. 항목(날짜) 단위로 검사해 위반 항목만 drop 한다 (ADR 0021 item-drop)
+export function dropForbiddenSummaries(
+  summaries: readonly RollupDailySummaryText[],
+  onDrop: (date: string) => void,
+): RollupDailySummaryText[] {
+  const safe: RollupDailySummaryText[] = [];
+  for (const s of summaries) {
+    try {
+      assertNoForbiddenPayload(s, `summarizer.rollup-daily.${s.date}`);
+      safe.push(s);
+    } catch {
+      onDrop(s.date);
+    }
+  }
+  return safe;
 }
 
 export interface RollupToolsBundle {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { renderDailyJournalMarkdown } from './journal-markdown.js';
-import { parseJournalFile } from './journal-parse.js';
+import { blocksToWorklogSummary, parseJournalFile } from './journal-parse.js';
 import { parseSummaryFromBlocks } from '../rollup/rollup-collector.service.js';
 
 const SUMMARY = {
@@ -43,5 +43,33 @@ describe('parseJournalFile', () => {
     const { fm, blocks } = parseJournalFile(md.replace(/\n/g, '\r\n'));
     expect(fm.get('date')).toBe('2026-07-05');
     expect(parseSummaryFromBlocks(blocks)?.doneBullets.length).toBe(2);
+  });
+});
+
+describe('blocksToWorklogSummary (재발행용 역방향 복원)', () => {
+  it('렌더 → 파스 → 복원 왕복으로 WorklogSummary 전 섹션(Share 포함)이 보존된다', () => {
+    const original = {
+      paragraph: '수집기를 정리했다.',
+      shareBullets: ['팀 공유: 수집기 개선'],
+      doneBullets: ['[work] 수집기 refactor'],
+      reviewedBullets: ['PR #11'],
+      inProgressBullets: ['롤업 개선'],
+      notesBullets: ['내일 확인'],
+    };
+    const md = renderDailyJournalMarkdown({
+      date: '2026-07-07',
+      lang: 'ko',
+      summary: original,
+      prCount: 1,
+      commitCount: 3,
+      hours: [],
+    });
+    const { blocks } = parseJournalFile(md);
+    expect(blocksToWorklogSummary(blocks)).toEqual(original);
+  });
+
+  it('내용 없는 블록이면 null (빈 페이지 재발행 방지)', () => {
+    expect(blocksToWorklogSummary([])).toBeNull();
+    expect(blocksToWorklogSummary([{ type: 'heading_2', text: 'Summary' }])).toBeNull();
   });
 });

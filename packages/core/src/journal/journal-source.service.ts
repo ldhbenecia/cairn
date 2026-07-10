@@ -3,8 +3,9 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ExtractedBlock } from '../notion/notion-api.types.js';
+import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
 import { dailyFileName } from './journal-markdown.js';
-import { parseJournalFile } from './journal-parse.js';
+import { blocksToWorklogSummary, parseJournalFile } from './journal-parse.js';
 import { JournalWriterService } from './journal-writer.service.js';
 
 export interface JournalDailyEntry {
@@ -20,6 +21,19 @@ export class JournalSourceService {
     @InjectPinoLogger(JournalSourceService.name)
     private readonly logger: PinoLogger,
   ) {}
+
+  // 재발행 경로용 — journal daily md 를 WorklogSummary 로 복원 (파일 없음/파싱 실패/빈 내용이면 null)
+  readDailySummary(date: string): WorklogSummary | null {
+    const path = join(this.writer.folder(), dailyFileName(date));
+    if (!existsSync(path)) return null;
+    try {
+      const { blocks } = parseJournalFile(readFileSync(path, 'utf8'));
+      return blocksToWorklogSummary(blocks);
+    } catch (err) {
+      this.logger.warn({ date, err: String(err) }, 'journal daily read failed — republish skipped');
+      return null;
+    }
+  }
 
   listDailyEntries(rangeStart: string, rangeEnd: string): JournalDailyEntry[] {
     const folder = this.writer.folder();

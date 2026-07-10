@@ -19,6 +19,7 @@ import {
 import { RollupSummarizerService } from '../rollup/rollup-summarizer.service.js';
 import { periodRange } from '../rollup/period-range.js';
 import { DailySummarizerService } from '../summarizer/daily-summarizer.service.js';
+import { JournalSourceService } from '../journal/journal-source.service.js';
 import { JournalWriterService } from '../journal/journal-writer.service.js';
 import { WorklogStatsService } from '../worklog-stats/worklog-stats.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
@@ -40,6 +41,7 @@ export class OrchestratorService {
     private readonly rollupPublisher: RollupPublisherService,
     private readonly stats: WorklogStatsService,
     private readonly journalWriter: JournalWriterService,
+    private readonly journalSource: JournalSourceService,
     @InjectPinoLogger(OrchestratorService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -81,6 +83,13 @@ export class OrchestratorService {
     const published = options.force
       ? new Set<string>()
       : await this.notionPublisher.findPublishedDates(rangeStart, rangeEnd);
+    // journal 은 있는데 노션에 없는 날짜 — 과거 실행에서 journal 쓰기 성공 후 Notion 발행만
+    // 실패한 케이스. 아래 hasDaily 필터가 이 날짜를 backfill 에서 영구 제외하던 문제를,
+    // 재요약 없이 journal 내용 그대로 재발행하는 경로로 복구한다 (리뷰 PR-B)
+    if (!options.force) {
+      await this.republishFromJournal(targetDates, published, options);
+    }
+
     // 노션 발행 목록 + journal 파일 둘 다 없는 날짜만 backfill — 노션 미연동에서도 중복 재요약 방지
     const missingDates = options.force
       ? targetDates
@@ -151,6 +160,54 @@ export class OrchestratorService {
     });
 
     await this.notifyBackfillBatch(missingDates, results);
+  }
+
+  // Notion 발행만 실패했던 날짜(journal 있음 + published 없음)를 재요약 비용 없이 복구.
+  // publish 는 페이지가 실제로 있으면 skipped 를 반환하므로(findPublishedDates 일시 오류 대비) 안전
+  private async republishFromJournal(
+    targetDates: readonly string[],
+    published: ReadonlySet<string>,
+    options: RunOptions,
+  ): Promise<void> {
+    const candidates = targetDates.filter(
+      (d) => !published.has(d) && this.journalWriter.hasDaily(d),
+    );
+    if (candidates.length === 0) return;
+
+    const republished: string[] = [];
+    for (const date of candidates) {
+      const summary = this.journalSource.readDailySummary(date);
+      if (!summary) continue;
+      try {
+        const result = await this.notionPublisher.publish({
+          date,
+          force: false,
+          github: null,
+          localGit: null,
+          summary,
+          lang: options.lang,
+        });
+        // 노션 미연동이면 나머지 날짜도 동일 — 재발행 자체가 해당 없음
+        if (result.kind === 'no-target') return;
+        if (result.kind === 'created' || result.kind === 'recreated') {
+          republished.push(date);
+          this.logger.info({ date, publishResult: result }, 'daily: republished from journal');
+        }
+      } catch (err) {
+        // Notion 장애 지속 등 — 다음 예약 실행에서 같은 경로로 재시도되므로 런은 계속
+        this.logger.warn(
+          { date, error: CairnError.from(err, 'notion') },
+          'daily: journal republish failed — will retry next run',
+        );
+      }
+    }
+    if (republished.length > 0) {
+      const label =
+        republished.length === 1
+          ? republished[0]!
+          : `${republished[0]} 외 ${republished.length - 1}건`;
+      await this.notification.notify('cairn 일지', `미발행 일지 재발행 — ${label}`);
+    }
   }
 
   private async runDailyForDate(

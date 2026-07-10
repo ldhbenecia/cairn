@@ -1,4 +1,5 @@
 import type { ExtractedBlock } from '../notion/notion-api.types.js';
+import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
 
 export interface ParsedJournalFile {
   fm: Map<string, string>;
@@ -37,4 +38,49 @@ function markdownToBlocks(body: string): ExtractedBlock[] {
     else blocks.push({ type: 'paragraph', text: trimmed });
   }
   return blocks;
+}
+
+// daily journal 블록 → WorklogSummary 복원 — renderDailyJournalMarkdown 의 역방향.
+// Notion 발행만 실패한 날짜를 재요약 없이 journal 로 재발행하는 경로에서 사용
+export function blocksToWorklogSummary(blocks: readonly ExtractedBlock[]): WorklogSummary | null {
+  let paragraph = '';
+  let pickedParagraph = false;
+  const sections: Record<string, string[]> = {
+    share: [],
+    done: [],
+    reviewed: [],
+    'in progress': [],
+    notes: [],
+  };
+  let section: string | null = null;
+
+  for (const block of blocks) {
+    if (block.type === 'heading_2') {
+      section = block.text.toLowerCase().trim();
+      continue;
+    }
+    if (block.type === 'paragraph' && section === 'summary' && !pickedParagraph) {
+      const text = block.text.trim();
+      if (text && text !== '—') {
+        paragraph = text;
+        pickedParagraph = true;
+      }
+      continue;
+    }
+    if (block.type === 'bulleted_list_item' && section && section in sections) {
+      const text = block.text.trim();
+      if (text) sections[section]!.push(text);
+    }
+  }
+
+  const empty = !paragraph && Object.values(sections).every((bullets) => bullets.length === 0);
+  if (empty) return null;
+  return {
+    paragraph,
+    shareBullets: sections['share']!,
+    doneBullets: sections['done']!,
+    reviewedBullets: sections['reviewed']!,
+    inProgressBullets: sections['in progress']!,
+    notesBullets: sections['notes']!,
+  };
 }
