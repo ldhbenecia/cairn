@@ -357,14 +357,15 @@ textarea {
    backdrop-filter 가 합성되지 않는 환경(실측)에선 sharp 한 반투명 유리로 보인다 —
    dialog-overlay 가 뒤를 어둡게 깔아줘 가독성 유지. */
 [data-glass='on'] .glass-panel {
-  /* 불투명도를 조금 올리고(뒤 비침 ↓) 채도·상단 sheen 을 낮춰 '뽀얀'(밀키) 느낌 완화 */
+  /* 표면 ≈55% 투명 — 뒤 콘텐츠가 실제로 비쳐야 유리로 읽힌다(리퀴드 글래스의 핵심). 불투명도를
+     올리면 비침이 죽어 글래스감이 사라지므로 낮게 유지 */
   background: linear-gradient(
     155deg,
-    color-mix(in srgb, var(--color-surface-1) 58%, transparent),
-    color-mix(in srgb, var(--color-surface-1) 70%, transparent)
+    color-mix(in srgb, var(--color-surface-1) 46%, transparent),
+    color-mix(in srgb, var(--color-surface-1) 58%, transparent)
   );
-  -webkit-backdrop-filter: blur(40px) saturate(1.5);
-  backdrop-filter: blur(40px) saturate(1.5);
+  -webkit-backdrop-filter: blur(40px) saturate(2);
+  backdrop-filter: blur(40px) saturate(2);
   /* packaged 빌드의 GPU 합성에서 backdrop-filter 가 누락되는 걸 막기 위해 별도 합성 레이어로
      승격(isolate + translateZ). dev/패키징 모두 blur 가 같은 레이어 경로로 렌더되게 한다. */
   isolation: isolate;
@@ -372,8 +373,8 @@ textarea {
   border-color: color-mix(in srgb, var(--color-ink) 14%, transparent);
   /* 위쪽 밝은 sheen + 아래 미묘한 음영 + 바깥 그림자 — blur 가 약한 환경에서도 유리 모서리가 읽히게 */
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 11%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, #ffffff 3%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 18%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, #ffffff 4%, transparent),
     inset 0 -1px 0 color-mix(in srgb, #000000 10%, transparent),
     0 16px 48px color-mix(in srgb, #000000 34%, transparent);
 }
@@ -382,22 +383,21 @@ textarea {
   background-color: rgba(0, 0, 0, 0.28);
 }
 
-/* 라이트 모드 글래스 — surface(그레이) 대신 흰색 베이스의 반투명으로(탁함 제거),
-   불투명도는 낮게(58~70%) 잡아 뒤가 비치는 유리감 유지. blur 는 기본 규칙에서 그대로. */
-/* 라이트 글래스 — 어두운 오버레이를 비쳐 패널이 어두워지지 않게 흰색 베이스를 높게(밝고 하모니),
-   blur 는 유지해 frosted 가장자리. */
+/* 라이트 글래스 — 흰색 반투명 베이스. 이전 86~92% 는 거의 불투명해 뒤가 전혀 안 비쳐 유리감이
+   없었음. 62~74% 로 낮춰 blur 로 뒤 콘텐츠가 프로스티드하게 비치게(리퀴드 글래스). 오버레이가
+   뒤를 살짝 깔아 텍스트 가독성 유지. */
 [data-theme='light'][data-glass='on'] .glass-panel {
   background: linear-gradient(
     155deg,
-    color-mix(in srgb, #ffffff 86%, transparent),
-    color-mix(in srgb, #ffffff 92%, transparent)
+    color-mix(in srgb, #ffffff 62%, transparent),
+    color-mix(in srgb, #ffffff 74%, transparent)
   );
-  -webkit-backdrop-filter: blur(44px) saturate(1.4);
-  backdrop-filter: blur(44px) saturate(1.4);
-  border-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  -webkit-backdrop-filter: blur(44px) saturate(1.7);
+  backdrop-filter: blur(44px) saturate(1.7);
+  border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 95%, transparent),
-    0 18px 52px color-mix(in srgb, #000000 12%, transparent);
+    inset 0 1px 0 color-mix(in srgb, #ffffff 90%, transparent),
+    0 18px 52px color-mix(in srgb, #000000 14%, transparent);
 }
 [data-theme='light'][data-glass='on'] .dialog-overlay {
   background-color: rgba(20, 24, 33, 0.16);
