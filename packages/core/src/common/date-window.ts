@@ -14,7 +14,11 @@ export function localDateToUtcWindow(date: string): UtcWindow {
     throw new Error(`invalid date: ${date}`);
   }
   const start = new Date(year, month - 1, day, 0, 0, 0, 0);
-  const end = new Date(year, month - 1, day, 23, 59, 59, 0);
+  // end 를 고정 23:59:59 로 잡으면 자정 근처에서 DST 가 전환되는 TZ(예: 폴백으로 00:00 직전
+  // 1시간이 반복)에서 그 반복 시간의 커밋이 어느 날 윈도우에도 안 잡히는 dead zone 이 생긴다.
+  // 다음날 로컬 자정 − 1ms 에서 유도하면 다음날 start 와 구조적으로 인접(갭 불가) —
+  // 일반일 출력은 그대로 23:59:59(밀리초 절삭), DST 전환일에만 실제 하루 길이를 정확히 반영
+  const end = new Date(new Date(year, month - 1, day + 1, 0, 0, 0, 0).getTime() - 1);
   return {
     startIso: trimMillis(start),
     endIso: trimMillis(end),
