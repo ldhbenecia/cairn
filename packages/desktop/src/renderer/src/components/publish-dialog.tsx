@@ -31,6 +31,23 @@ type Props = {
   onOpenPublished: (pageId: string, url: string | null) => void;
 };
 
+// 최근 실패 결과를 오픈 시 자동 회수할 시간 창 (30분) — 그 이후는 stale 로 안 띄운다
+const RECALL_WINDOW_MS = 30 * 60_000;
+
+// 가장 최근에 '실패'로 끝난 완료 세션 — !ok / 요약 실패 / 에러. 성공은 회수 대상 아님
+function mostRecentFailed(
+  sessions: Record<CoreMode, RunSession | null>,
+): { mode: CoreMode; endedAt: number } | null {
+  let best: { mode: CoreMode; endedAt: number } | null = null;
+  for (const mode of ['daily', 'weekly', 'monthly'] as CoreMode[]) {
+    const s = sessions[mode];
+    if (s?.state !== 'done' || !s.endedAt) continue;
+    const failed = !!s.error || (!!s.result && (!s.result.ok || s.result.summaryFailed));
+    if (failed && (!best || s.endedAt > best.endedAt)) best = { mode, endedAt: s.endedAt };
+  }
+  return best;
+}
+
 const MODE_OPTIONS: { mode: CoreMode; key: I18nKey; sub: I18nKey; icon: LucideIcon }[] = [
   { mode: 'daily', key: 'publish.today', sub: 'publish.scope.daily', icon: CalendarDays },
   { mode: 'weekly', key: 'publish.week', sub: 'publish.scope.weekly', icon: CalendarRange },
@@ -68,6 +85,8 @@ export function PublishDialog({
   const [includeBackfill, setIncludeBackfill] = useState(false);
   const [force, setForce] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
+  // 최근 실패 결과를 오픈 시 1회만 자동 회수 — 같은 결과를 재오픈 때마다 다시 띄우지 않게
+  const recalledEndedAt = useRef(0);
   const isToday = date === todayIso();
 
   // runningMode 만으론 시작 시 자동 발행이 도는 걸 모르므로 전역 busy·mode 를 따로 확인
@@ -114,7 +133,24 @@ export function PublishDialog({
       onOpenChange={(o) => {
         setOpen(o);
         if (o) {
-          setShowProgress(busy);
+          // 진행 중이면 진행 화면. 아니면, 방금(30분 내) 실패로 끝난 결과가 아직 확인 전이면
+          // 결과 화면을 먼저 — 6초 토스트가 유일해 실패를 다시 볼 수 없던 문제
+          if (busy) {
+            setShowProgress(true);
+          } else {
+            const failed = mostRecentFailed(sessions);
+            if (
+              failed &&
+              Date.now() - failed.endedAt < RECALL_WINDOW_MS &&
+              failed.endedAt !== recalledEndedAt.current
+            ) {
+              setMode(failed.mode);
+              setShowProgress(true);
+              recalledEndedAt.current = failed.endedAt;
+            } else {
+              setShowProgress(false);
+            }
+          }
           // 자정을 넘겨 열면 mount 시점의 어제 날짜가 남아 있음 — 사용자가 직접 고른 날짜는 유지 (#236 리뷰)
           if (!dateTouched.current) setDate((prev) => (prev === todayIso() ? prev : todayIso()));
         }
@@ -156,7 +192,12 @@ export function PublishDialog({
 
           <div className="overflow-y-auto px-6 py-5">
             {showProgress && isDone && session?.error ? (
-              <ErrorCard message={session.error} t={t} onClose={() => setOpen(false)} />
+              <ErrorCard
+                message={session.error}
+                t={t}
+                onClose={() => setOpen(false)}
+                onNewPublish={busy ? undefined : () => setShowProgress(false)}
+              />
             ) : showProgress && isDone && session?.result?.cancelled ? (
               <CancelledCard progress={session.progress} t={t} onClose={() => setOpen(false)} />
             ) : showProgress && isDone && session?.result ? (
@@ -171,6 +212,7 @@ export function PublishDialog({
                 t={t}
                 onClose={() => setOpen(false)}
                 onOpenPublished={onOpenPublished}
+                onNewPublish={busy ? undefined : () => setShowProgress(false)}
               />
             ) : showProgress && (isRunning || busy) ? (
               <Progress
