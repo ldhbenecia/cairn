@@ -454,6 +454,7 @@ export function App() {
       <AnimatePresence>
         {cmdkOpen && (
           <CommandPalette
+            key="command-palette"
             recent={recent}
             onClose={() => setCmdkOpen(false)}
             onView={setView}
@@ -470,7 +471,15 @@ export function App() {
           />
         )}
       </AnimatePresence>
-      {achvOpen && <AchievementsDialog recent={recent} onClose={() => setAchvOpen(false)} />}
+      <AnimatePresence>
+        {achvOpen && (
+          <AchievementsDialog
+            key="achievements"
+            recent={recent}
+            onClose={() => setAchvOpen(false)}
+          />
+        )}
+      </AnimatePresence>
       <RunToast
         toast={toast}
         onClose={() => setToast(null)}

@@ -433,8 +433,9 @@ function PageRow({
       </span>
       {page.status && (
         <span
+          title={page.status}
           className={[
-            'w-12 shrink-0 rounded-md border px-2 py-0.5 text-center text-[11px]',
+            'max-w-24 shrink-0 truncate rounded-md border px-2 py-0.5 text-center text-[11px] font-medium',
             STATUS_STYLE[page.status] ?? 'border-hairline text-ink-tertiary',
           ].join(' ')}
         >

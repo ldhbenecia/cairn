@@ -185,6 +185,7 @@ export function AchievementsDialog({
       onMouseDown={onClose}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       transition={{ duration: 0.15 }}
       role="dialog"
       aria-modal="true"
@@ -194,6 +195,7 @@ export function AchievementsDialog({
         onMouseDown={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 8 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
         className={`glass-panel flex max-h-[80vh] max-w-[92vw] flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           wide ? 'w-[560px]' : 'w-[440px]'
@@ -212,6 +214,7 @@ export function AchievementsDialog({
           <button
             type="button"
             onClick={onClose}
+            aria-label={t('publish.close')}
             className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
           >
             <X size={15} strokeWidth={2} />
@@ -385,7 +388,7 @@ export function AchievementsDialog({
               <div className="mt-4 flex h-[132px] w-full flex-col justify-end gap-1.5 overflow-hidden rounded-xl border border-hairline bg-surface-2/40 px-3.5 py-3">
                 {recentScan.map((s) => (
                   <div key={s.key} className="flex items-center gap-2.5">
-                    <Check size={13} strokeWidth={2.5} className="shrink-0 text-emerald-400" />
+                    <Check size={13} strokeWidth={2.5} className="shrink-0 text-success" />
                     <span className="font-mono text-[11.5px] text-ink-muted">{s.date}</span>
                     <span className="ml-auto font-mono text-[11px] text-ink-tertiary tabular-nums">
                       {s.count} {t('achv.done')}
@@ -400,7 +403,7 @@ export function AchievementsDialog({
             (markdown ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="flex items-center gap-1.5 rounded-md bg-emerald-500/12 px-2.5 py-1 text-[11.5px] font-medium text-emerald-400">
+                  <span className="flex items-center gap-1.5 rounded-md bg-success/12 px-2.5 py-1 text-[11.5px] font-medium text-success">
                     <Check size={13} strokeWidth={2.5} />
                     {t('achv.complete')}
                   </span>

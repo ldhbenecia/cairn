@@ -149,6 +149,7 @@ const STRINGS = {
     'onb.field.labelPh': '라벨',
     'onb.field.tokenPh': '토큰 붙여넣기 — 자동으로 확인합니다',
     'onb.field.test': '테스트',
+    'onb.field.remove': '삭제',
     'onb.token.notionWrongGithub':
       'GitHub 토큰 같아요 — 여기엔 Notion integration 토큰(ntn_…)을 붙여넣어 주세요',
     'onb.token.githubWrongNotion':
@@ -591,6 +592,7 @@ const STRINGS = {
     'onb.field.labelPh': 'Label',
     'onb.field.tokenPh': 'Paste token — verifies automatically',
     'onb.field.test': 'Test',
+    'onb.field.remove': 'Remove',
     'onb.token.notionWrongGithub':
       'Looks like a GitHub token — paste a Notion integration token (ntn_…) here',
     'onb.token.githubWrongNotion':

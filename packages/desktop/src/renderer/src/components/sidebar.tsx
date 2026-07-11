@@ -108,29 +108,39 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
   const { t } = useSettings();
   const { signedIn, user } = useCloudAuth();
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const closeMenu = (): void => {
+    setClosing(true);
+    setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+    }, 130);
+  };
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || closing) return;
     const onDown = (e: MouseEvent): void => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) closeMenu();
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  }, [open]);
+  }, [open, closing]);
 
   if (!signedIn || !user) {
     return (
-      <div className="flex items-center gap-2.5 px-1 [-webkit-app-region:no-drag]">
-        <span className="flex size-6 items-center justify-center rounded-md bg-accent text-white">
+      <div className="flex min-w-0 items-center gap-2.5 px-1 [-webkit-app-region:no-drag]">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent text-white">
           <BrandMark size={15} />
         </span>
-        <span className="text-[15px] font-semibold tracking-[-0.2px] text-ink">cairn</span>
+        <span className="min-w-0 truncate text-[15px] font-semibold tracking-[-0.2px] text-ink">
+          cairn
+        </span>
         <AccountStatusPill />
         <button
           type="button"
           onClick={() => void window.cairn.cloud.signIn().catch(() => {})}
-          className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+          className="ml-auto flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
         >
           <LogIn size={13} strokeWidth={2} />
           {t('account.signIn')}
@@ -143,7 +153,7 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
     <div ref={ref} className="relative [-webkit-app-region:no-drag]">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? closeMenu() : setOpen(true))}
         className={[
           'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors',
           open ? 'bg-surface-2' : 'hover:bg-surface-2/70',
@@ -156,7 +166,9 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
         <AccountStatusPill className="mr-0.5" />
       </button>
       {open && (
-        <div className="popover-in absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40 [transform-origin:top]">
+        <div
+          className={`floating-panel ${closing ? 'popover-out' : 'popover-in'} absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40 [transform-origin:top]`}
+        >
           <p className="truncate px-2.5 py-1.5 text-[12px] leading-tight text-ink-tertiary">
             {user.email}
           </p>
@@ -164,7 +176,7 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
           <button
             type="button"
             onClick={() => {
-              setOpen(false);
+              closeMenu();
               onOpenPreferences();
             }}
             className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
@@ -175,7 +187,7 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
           <button
             type="button"
             onClick={() => {
-              setOpen(false);
+              closeMenu();
               void window.cairn.cloud.signOut().catch(() => {});
             }}
             className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"

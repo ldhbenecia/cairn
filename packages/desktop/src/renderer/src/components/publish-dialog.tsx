@@ -185,7 +185,10 @@ export function PublishDialog({
               </span>
               {t('publish.title')}
             </Dialog.Title>
-            <Dialog.Close className="flex size-7 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink">
+            <Dialog.Close
+              aria-label={t('publish.close')}
+              className="flex size-7 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+            >
               <X size={15} strokeWidth={2} />
             </Dialog.Close>
           </div>

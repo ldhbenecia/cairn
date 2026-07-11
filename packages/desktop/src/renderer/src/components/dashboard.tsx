@@ -424,7 +424,9 @@ function InsightCards({ insights, t }: { insights: Insights; t: T }) {
         label={t('stats.thisWeek')}
         value={`${thisWeek}${suffix}`}
         sub={weekDeltaText}
-        subColor={weekDelta === null ? undefined : weekUp ? '#10b981' : HUE.rose}
+        subColor={
+          weekDelta === null ? undefined : weekUp ? 'var(--color-success)' : 'var(--color-danger)'
+        }
         subIcon={
           weekDelta === null ? null : weekUp ? (
             <TrendingUp size={11} strokeWidth={2.2} />
@@ -439,7 +441,9 @@ function InsightCards({ insights, t }: { insights: Insights; t: T }) {
         label={t('stats.thisMonth')}
         value={`${thisMonth}${suffix}`}
         sub={deltaText}
-        subColor={monthDelta === null ? undefined : up ? '#10b981' : HUE.rose}
+        subColor={
+          monthDelta === null ? undefined : up ? 'var(--color-success)' : 'var(--color-danger)'
+        }
         subIcon={
           monthDelta === null ? null : up ? (
             <TrendingUp size={11} strokeWidth={2.2} />
@@ -692,7 +696,7 @@ function Heatmap({
       </div>
       {tip && (
         <div
-          className="pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-full rounded-md border border-hairline bg-surface-3 px-2 py-1 text-[11px] font-medium whitespace-nowrap text-ink shadow-lg shadow-black/40"
+          className="floating-panel pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-full rounded-md border border-hairline bg-surface-3 px-2 py-1 text-[11px] font-medium whitespace-nowrap text-ink shadow-lg shadow-black/40"
           style={{ left: tip.x, top: tip.y - 7 }}
         >
           {tip.label}

@@ -303,7 +303,8 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                       <button
                         type="button"
                         onClick={() => setRepos((p) => p.filter((_, x) => x !== i))}
-                        className="text-ink-tertiary hover:text-ink"
+                        aria-label={t('onb.field.remove')}
+                        className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink"
                       >
                         <Trash2 size={14} strokeWidth={2} />
                       </button>
@@ -445,7 +446,7 @@ function Welcome({ t }: { t: T }) {
       >
         {signedIn && user ? (
           <p className="flex items-center gap-2 text-[13px] text-ink-muted">
-            <Check size={15} className="shrink-0 text-emerald-500" />
+            <Check size={15} className="shrink-0 text-success" />
             {t('onb.welcome.signedInAs').replace('{email}', user.email)}
           </p>
         ) : (

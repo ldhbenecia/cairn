@@ -217,7 +217,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
       <div
         style={{ width: `${width}px` }}
         className={[
-          'absolute top-0 right-0 flex h-full max-w-[92vw] flex-col border-l border-hairline bg-surface-1 shadow-2xl shadow-black/40',
+          'floating-panel absolute top-0 right-0 flex h-full max-w-[92vw] flex-col border-l border-hairline bg-surface-1 shadow-2xl shadow-black/40',
           closing ? 'drawer-out' : 'drawer-in',
         ].join(' ')}
       >
@@ -225,7 +225,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
           onMouseDown={startResize}
           className="absolute top-0 left-0 z-10 h-full w-1 cursor-col-resize hover:bg-accent/40 [-webkit-app-region:no-drag]"
         />
-        <div className="flex items-start gap-3 border-b border-hairline px-5 py-4 [-webkit-app-region:drag]">
+        <div className="flex items-start gap-3 border-b border-hairline px-6 py-4 [-webkit-app-region:drag]">
           <div className="min-w-0 flex-1 cursor-text select-text [-webkit-app-region:no-drag]">
             <p className="truncate text-[15px] font-semibold text-ink">{page.title}</p>
             <p className="mt-0.5 truncate font-mono text-[12px] text-ink-tertiary">
@@ -254,7 +254,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
               </button>
               {menuOpen && (
                 <div
-                  className={`${menuClosing ? 'popover-out' : 'popover-in'} glass-panel absolute right-0 top-9 z-30 w-48 rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40`}
+                  className={`${menuClosing ? 'popover-out' : 'popover-in'} glass-panel absolute top-full right-0 z-30 mt-1.5 w-48 rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40`}
                 >
                   {actions.map((a) => (
                     <button
@@ -294,7 +294,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
           ) : content.blocks.length === 0 ? (
             <p className="text-[13px] text-ink-tertiary">{t('drawer.empty')}</p>
           ) : (
-            <div className="flex flex-col gap-1.5 text-[13px] leading-relaxed text-ink">
+            <div className="journal-content flex flex-col gap-1.5 text-[13px] leading-relaxed text-ink">
               {content.blocks.map((b) => (
                 <Block key={b.id} b={b} />
               ))}

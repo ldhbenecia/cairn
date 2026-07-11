@@ -57,19 +57,30 @@
    화이트로 띄우고, 보더는 은은하게, ink 는 소프트 near-black. */
 [data-theme='light'] {
   color-scheme: light;
-  --color-canvas: #f8f9fb;
+  /* 라이트가 washed/flat/clinical 하던 4대 원인 교정:
+     (1) 값 분리 — canvas 를 순백(surface-1)보다 확실히 낮춰(ΔL* 2.1→4.3) 흰 카드가 뜨게
+     (2) hue 정렬 — 중성색을 steel-blue(220°)에서 accent 와 같은 indigo(240°) 축으로 이동(R=G)
+     (3) hairline 가시성 — 1.20:1 → 1.32/1.50:1 로 지각 임계 넘김
+     (4) elevation — navy(검정 X) 그림자 토큰 도입. 카드/패널이 부드럽게 뜨게 */
+  --color-canvas: #f2f2f8;
   --color-surface-1: #ffffff;
-  --color-surface-2: #f3f4f7;
-  --color-surface-3: #ebedf1;
-  --color-surface-4: #e3e6ec;
-  --color-hairline: #e8eaef;
-  --color-hairline-strong: #d6d9e0;
-  --color-hairline-tertiary: #c2c7d0;
+  --color-surface-2: #eaeaf2;
+  --color-surface-3: #e2e2ee;
+  --color-surface-4: #d8d8e6;
+  --color-hairline: #dfdfe9;
+  --color-hairline-strong: #d2d2df;
+  --color-hairline-tertiary: #c2c2d0;
 
   --color-ink: #1c1d22;
   --color-ink-muted: #3d424b;
   --color-ink-subtle: #646a74;
-  --color-ink-tertiary: #8b919c;
+  /* 깊어진 surface-2/3 위에서도 AA 유지(#6b7280 은 surface-3 서 3.76:1 로 미달) */
+  --color-ink-tertiary: #5f6572;
+
+  /* navy 계열 elevation — 라이트는 명도로 elevation 을 못 주므로 border+soft shadow 로. 검정은
+     밝은 캔버스서 회색 얼룩이라 금지(라이트 glass-panel 과 같은 cool-navy 레시피) */
+  --shadow-card: 0 1px 2px 0 rgba(28, 39, 64, 0.05), 0 2px 6px -1px rgba(28, 39, 64, 0.06);
+  --shadow-elevated: 0 4px 10px -4px rgba(28, 39, 64, 0.1), 0 12px 28px -8px rgba(28, 39, 64, 0.16);
 
   --color-accent: #5256dd;
   --color-accent-hover: #4a4ecf;
@@ -79,6 +90,8 @@
   --color-danger: #dc2626;
   --color-warning: #d97706;
   --color-notice: #b45309;
+  /* #27a644 는 흰 배경서 ~3.1:1 → success 텍스트(추세·연결·확인)용 진한 녹색 */
+  --color-success: #15803d;
 
   /* 코드블록 신택스 토큰 색 (라이트 — 밝은 배경 대비) */
   --code-key: #2563eb;
@@ -89,26 +102,12 @@
   --code-comment: #8b919c;
 }
 
-/* 마우스 포커스·비대화 요소엔 링 없음 — modifier 키 입력만으로 링이 뜨던 어수선함 제거.
-   단 키보드 탭 네비게이션(:focus-visible)은 실제 대화형 요소에만 링을 복원 — 전역 제거는
-   키보드 사용자가 포커스 위치를 못 봐 접근성이 깨지던 문제 */
+/* 포커스 링 전역 제거 — 사용자 선호(탭·버튼에 파란 테두리가 자꾸 떠 어수선). 대화형 요소에도
+   :focus-visible 링을 띄우지 않는다. 텍스트 입력은 자체 focus:border 로 위치가 보이므로 무영향.
+   트레이드오프: 키보드만 쓰는 사용자는 포커스 위치 가시성이 낮아진다(의도된 선택). */
 :focus,
 :focus-visible {
   outline: none;
-}
-
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible,
-[tabindex]:focus-visible,
-[role='button']:focus-visible,
-[role='menuitem']:focus-visible,
-[role='option']:focus-visible {
-  outline: 2px solid var(--color-accent-focus);
-  outline-offset: 2px;
-  border-radius: 4px;
 }
 
 html,
@@ -132,6 +131,34 @@ body,
 button {
   font-family: inherit;
   cursor: default;
+}
+
+/* 텍스트 선택은 발행된 일지 본문에서만 — 나머지 UI(사이드바·그래프·버튼·팔레트·설정)는 드래그 선택 차단.
+   Radix Dialog.Portal(설정)·createPortal(date-picker)이 body 로 빠져나가므로 #root 가 아닌 body 에 걸어
+   포털 다이얼로그까지 상속시킨다. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* 일지 리더 본문·입력 필드만 선택/복사 허용 — 직접 매칭 규칙이 상속된 none 을 이긴다(특이도 무관) */
+.journal-content,
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 라이트 카드 elevation — surface-1 카드(border-hairline 동반, 88곳)가 깊어진 캔버스 위에 whisper
+   navy 그림자로 뜨게. border 는 유지(border+shadow 가 카드를 별개 평면으로 읽히게). 다크는 명도로
+   elevation 하므로 라이트 전용. floating(dialog/popover/toast/drawer)은 제외 — 더 강한 elevated 를 받음. */
+[data-theme='light'] .bg-surface-1.border-hairline:not(.glass-panel):not(.floating-panel) {
+  box-shadow: var(--shadow-card);
+}
+/* floating 표면 elevation — 다크는 shadow-black 유틸 유지, 라이트에선 검정(회색 얼룩) 대신 부드러운
+   navy elevated 로. 글래스 ON 이면 더 특정한 [data-glass] 규칙의 frost 그림자가 우선(그것도 navy). */
+[data-theme='light'] .glass-panel,
+[data-theme='light'] .floating-panel {
+  box-shadow: var(--shadow-elevated);
 }
 
 @keyframes panel-enter {
@@ -336,49 +363,48 @@ button {
    backdrop-filter 가 합성되지 않는 환경(실측)에선 sharp 한 반투명 유리로 보인다 —
    dialog-overlay 가 뒤를 어둡게 깔아줘 가독성 유지. */
 [data-glass='on'] .glass-panel {
-  background: linear-gradient(
-    155deg,
-    color-mix(in srgb, var(--color-surface-1) 46%, transparent),
-    color-mix(in srgb, var(--color-surface-1) 58%, transparent)
-  );
-  -webkit-backdrop-filter: blur(40px) saturate(2);
-  backdrop-filter: blur(40px) saturate(2);
+  /* 틴트를 surface-1(#0f1011, 거의 검정) 대신 살짝 밝은 쿨그레이로 — 검은 반투명 '카드'가 아니라
+     빛을 머금은 유리로 읽히게. 40~52% 불투명도라 packaged(blur 미합성)에서도 가독성 유지.
+     backdrop-filter 의 brightness 가 뒤 콘텐츠를 들어올려 굴절감을 살린다(육안 검증). */
+  background: linear-gradient(155deg, rgba(38, 42, 52, 0.3), rgba(28, 31, 40, 0.42));
+  -webkit-backdrop-filter: blur(42px) saturate(2.05) brightness(1.22);
+  backdrop-filter: blur(42px) saturate(2.05) brightness(1.22);
   /* packaged 빌드의 GPU 합성에서 backdrop-filter 가 누락되는 걸 막기 위해 별도 합성 레이어로
      승격(isolate + translateZ). dev/패키징 모두 blur 가 같은 레이어 경로로 렌더되게 한다. */
   isolation: isolate;
   transform: translateZ(0);
-  border-color: color-mix(in srgb, var(--color-ink) 14%, transparent);
-  /* 위쪽 밝은 sheen + 아래 미묘한 음영 + 바깥 그림자 — blur 가 약한 환경에서도 유리 모서리가 읽히게 */
+  border-color: color-mix(in srgb, var(--color-ink) 20%, transparent);
+  /* 위쪽 밝은 sheen + 아래 깊이감 음영 + 바깥 그림자 — blur 가 약한 환경에서도 유리 모서리가 읽히게 */
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 18%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, #ffffff 4%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #000000 10%, transparent),
-    0 16px 48px color-mix(in srgb, #000000 34%, transparent);
+    inset 0 1px 0 color-mix(in srgb, #ffffff 32%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, #ffffff 7%, transparent),
+    inset 0 -16px 44px color-mix(in srgb, #000000 16%, transparent),
+    0 22px 60px color-mix(in srgb, #000000 44%, transparent);
 }
-/* 글래스일 때 다이얼로그 오버레이를 밝혀 뒤 콘텐츠가 frosted 로 비치게 */
+/* 글래스일 때 오버레이를 밝혀(0.28→0.20) 뒤 콘텐츠가 유리로 더 비치게 — packaged 가독성은
+   패널 불투명도로 지킴 */
 [data-glass='on'] .dialog-overlay {
-  background-color: rgba(0, 0, 0, 0.28);
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
-/* 라이트 모드 글래스 — surface(그레이) 대신 흰색 베이스의 반투명으로(탁함 제거),
-   불투명도는 낮게(58~70%) 잡아 뒤가 비치는 유리감 유지. blur 는 기본 규칙에서 그대로. */
-/* 라이트 글래스 — 어두운 오버레이를 비쳐 패널이 어두워지지 않게 흰색 베이스를 높게(밝고 하모니),
-   blur 는 유지해 frosted 가장자리. */
+/* 라이트 글래스 — 흰색 반투명 베이스. 이전 86~92% 는 거의 불투명해 뒤가 전혀 안 비쳐 유리감이
+   없었음. 62~74% 로 낮춰 blur 로 뒤 콘텐츠가 프로스티드하게 비치게(리퀴드 글래스). 오버레이가
+   뒤를 살짝 깔아 텍스트 가독성 유지. */
 [data-theme='light'][data-glass='on'] .glass-panel {
-  background: linear-gradient(
-    155deg,
-    color-mix(in srgb, #ffffff 86%, transparent),
-    color-mix(in srgb, #ffffff 92%, transparent)
-  );
-  -webkit-backdrop-filter: blur(44px) saturate(1.4);
-  backdrop-filter: blur(44px) saturate(1.4);
-  border-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  /* 라이트 글래스는 solid 에 가까운 쿨 프로스트 — 큰 Preferences 패널이 너무 투명하면 뒤 대시보드가
+     비쳐 부자연스럽다는 피드백. 82~90% 로 거의 불투명하게 하되 순백(255)이 아닌 미세한 쿨 틴트라
+     '그냥 흰 카드'가 아니라 유리 재질로 읽히고, 가장자리·고대비 콘텐츠 위에서만 은은한 프로스트.
+     내부 흰 카드(bg-surface-1)와도 자연스럽게 어우러짐. saturate 1.4 로 과채도(무지개) 방지. */
+  background: linear-gradient(155deg, rgba(247, 249, 252, 0.82), rgba(242, 245, 250, 0.9));
+  -webkit-backdrop-filter: blur(40px) saturate(1.4);
+  backdrop-filter: blur(40px) saturate(1.4);
+  border-color: rgba(60, 70, 110, 0.1);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 95%, transparent),
-    0 18px 52px color-mix(in srgb, #000000 12%, transparent);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 20px 56px rgba(40, 50, 80, 0.16);
 }
 [data-theme='light'][data-glass='on'] .dialog-overlay {
-  background-color: rgba(20, 24, 33, 0.16);
+  background-color: rgba(20, 24, 33, 0.2);
 }
 
 /* 발행 대기 — 요약 단계의 브랜드 마크 숨쉬기 + 순환 문구 페이드 */

@@ -84,7 +84,10 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup, blockEscap
             <Dialog.Title className="text-[16px] font-semibold tracking-[-0.2px] text-ink">
               {t('prefs.title')}
             </Dialog.Title>
-            <Dialog.Close className="flex size-7 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink focus:outline-none focus-visible:outline-none">
+            <Dialog.Close
+              aria-label={t('publish.close')}
+              className="flex size-7 items-center justify-center rounded-md text-ink-subtle hover:bg-surface-2 hover:text-ink focus:outline-none focus-visible:outline-none"
+            >
               <X size={15} strokeWidth={2} />
             </Dialog.Close>
           </div>

@@ -123,7 +123,8 @@ function LabelToken({
           <button
             type="button"
             onClick={onRemove}
-            className="shrink-0 text-ink-tertiary hover:text-ink"
+            aria-label={t('onb.field.remove')}
+            className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink"
           >
             <Trash2 size={14} strokeWidth={2} />
           </button>

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useSettings } from '../settings-context';
 
 type Props = {
   totalPages: number;
@@ -46,6 +47,7 @@ function generatePages(total: number, current: number, maxVisible: number): Page
 }
 
 export function Pagination({ totalPages, currentPage, onPageChange, maxVisiblePages = 7 }: Props) {
+  const { t } = useSettings();
   const trackRef = useRef<HTMLDivElement | null>(null);
   const btnRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   const [underline, setUnderline] = useState<{ left: number; width: number }>({
@@ -70,6 +72,7 @@ export function Pagination({ totalPages, currentPage, onPageChange, maxVisiblePa
         type="button"
         disabled={currentPage <= 1}
         onClick={() => onPageChange(currentPage - 1)}
+        aria-label={t('onb.nav.prev')}
         className="flex size-7 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:pointer-events-none disabled:opacity-30"
       >
         <ChevronLeft size={14} strokeWidth={2} />
@@ -89,6 +92,7 @@ export function Pagination({ totalPages, currentPage, onPageChange, maxVisiblePa
                 btnRefs.current[pg] = el;
               }}
               onClick={() => onPageChange(pg)}
+              aria-current={pg === currentPage ? 'page' : undefined}
               className={[
                 'rounded-md px-2.5 py-1 font-mono text-[12px] tabular-nums transition-colors',
                 pg === currentPage
@@ -112,6 +116,7 @@ export function Pagination({ totalPages, currentPage, onPageChange, maxVisiblePa
         type="button"
         disabled={currentPage >= totalPages}
         onClick={() => onPageChange(currentPage + 1)}
+        aria-label={t('onb.nav.next')}
         className="flex size-7 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:pointer-events-none disabled:opacity-30"
       >
         <ChevronRight size={14} strokeWidth={2} />
