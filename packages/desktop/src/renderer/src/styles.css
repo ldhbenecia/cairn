@@ -69,7 +69,8 @@
   --color-ink: #1c1d22;
   --color-ink-muted: #3d424b;
   --color-ink-subtle: #646a74;
-  --color-ink-tertiary: #8b919c;
+  /* #8b919c 는 흰 배경서 ~3.2:1 로 AA 미달(11~13px 기능 텍스트에 광범위 사용) → ~4.6:1 로 진하게 */
+  --color-ink-tertiary: #6b7280;
 
   --color-accent: #5256dd;
   --color-accent-hover: #4a4ecf;
@@ -79,6 +80,8 @@
   --color-danger: #dc2626;
   --color-warning: #d97706;
   --color-notice: #b45309;
+  /* #27a644 는 흰 배경서 ~3.1:1 → success 텍스트(추세·연결·확인)용 진한 녹색 */
+  --color-success: #15803d;
 
   /* 코드블록 신택스 토큰 색 (라이트 — 밝은 배경 대비) */
   --code-key: #2563eb;

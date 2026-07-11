@@ -424,7 +424,9 @@ function InsightCards({ insights, t }: { insights: Insights; t: T }) {
         label={t('stats.thisWeek')}
         value={`${thisWeek}${suffix}`}
         sub={weekDeltaText}
-        subColor={weekDelta === null ? undefined : weekUp ? '#10b981' : HUE.rose}
+        subColor={
+          weekDelta === null ? undefined : weekUp ? 'var(--color-success)' : 'var(--color-danger)'
+        }
         subIcon={
           weekDelta === null ? null : weekUp ? (
             <TrendingUp size={11} strokeWidth={2.2} />
@@ -439,7 +441,9 @@ function InsightCards({ insights, t }: { insights: Insights; t: T }) {
         label={t('stats.thisMonth')}
         value={`${thisMonth}${suffix}`}
         sub={deltaText}
-        subColor={monthDelta === null ? undefined : up ? '#10b981' : HUE.rose}
+        subColor={
+          monthDelta === null ? undefined : up ? 'var(--color-success)' : 'var(--color-danger)'
+        }
         subIcon={
           monthDelta === null ? null : up ? (
             <TrendingUp size={11} strokeWidth={2.2} />
