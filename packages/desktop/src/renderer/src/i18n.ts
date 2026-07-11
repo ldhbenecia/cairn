@@ -304,6 +304,7 @@ const STRINGS = {
     'achv.info':
       '완료된 항목만 골라 월별 마크다운으로 묶어 둡니다. 그대로 복사해 노션에 붙여넣을 수 있어요.',
     'publish.close': '닫기',
+    'publish.newPublish': '새로 발행',
     'publish.cancel': '발행 취소',
     'publish.cancelling': '취소하는 중…',
 
@@ -746,6 +747,7 @@ const STRINGS = {
     'achv.back': 'Pick another range',
     'achv.info': 'Gathers only Done items into monthly Markdown — copy it straight into Notion.',
     'publish.close': 'Close',
+    'publish.newPublish': 'New publish',
     'publish.cancel': 'Cancel publish',
     'publish.cancelling': 'Cancelling…',
 

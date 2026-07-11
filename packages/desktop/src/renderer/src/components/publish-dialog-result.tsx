@@ -64,7 +64,17 @@ export function CancelledCard({
   );
 }
 
-export function ErrorCard({ message, t, onClose }: { message: string; t: T; onClose: () => void }) {
+export function ErrorCard({
+  message,
+  t,
+  onClose,
+  onNewPublish,
+}: {
+  message: string;
+  t: T;
+  onClose: () => void;
+  onNewPublish?: () => void;
+}) {
   return (
     <div className="flex flex-col gap-5 py-2">
       <p className="flex items-center gap-2 text-[15px] text-danger">
@@ -72,7 +82,16 @@ export function ErrorCard({ message, t, onClose }: { message: string; t: T; onCl
         {t('publish.result.error')}
       </p>
       <p className="text-[13px] leading-relaxed text-ink-muted">{message}</p>
-      <div className="flex items-center">
+      <div className="flex items-center gap-2">
+        {onNewPublish && (
+          <button
+            type="button"
+            onClick={onNewPublish}
+            className="rounded-md bg-accent px-3.5 py-2 text-[13px] font-medium text-white hover:bg-accent-hover"
+          >
+            {t('publish.newPublish')}
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}
@@ -98,6 +117,7 @@ export function Result({
   t,
   onClose,
   onOpenPublished,
+  onNewPublish,
 }: {
   result: CoreResult;
   elapsedSec: number | null;
@@ -105,6 +125,7 @@ export function Result({
   t: T;
   onClose: () => void;
   onOpenPublished: (pageId: string, url: string | null) => void;
+  onNewPublish?: () => void;
 }) {
   const url = result.notionUrl ?? pageIdToUrl(result.publishPageId);
   // 노션 미연동이어도 로컬 일지가 기록됐으면 성공
@@ -236,10 +257,19 @@ export function Result({
             {t('publish.viewInApp')}
           </button>
         )}
+        {onNewPublish && (
+          <button
+            type="button"
+            onClick={onNewPublish}
+            className="rounded-md border border-hairline px-3.5 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink"
+          >
+            {t('publish.newPublish')}
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}
-          className={`rounded-md border border-hairline px-3.5 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink ${isSuccess ? '' : 'ml-auto'}`}
+          className={`rounded-md border border-hairline px-3.5 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink ${isSuccess && !onNewPublish ? '' : 'ml-auto'}`}
         >
           {t('publish.close')}
         </button>
