@@ -60,7 +60,7 @@ export function PromptsTab() {
                 className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 transition-all duration-200 ease-out active:scale-[0.96] ${
                   selected
                     ? 'border-accent/60 bg-accent/10 text-ink shadow-sm shadow-accent/15'
-                    : 'border-hairline bg-surface-2 text-ink-secondary hover:border-ink-tertiary hover:bg-surface-3'
+                    : 'border-hairline bg-surface-2 text-ink-muted hover:border-ink-tertiary hover:bg-surface-3'
                 }`}
               >
                 <span className="text-[13px] font-medium">
@@ -71,7 +71,7 @@ export function PromptsTab() {
             );
           })}
         </div>
-        <div className="rounded-md border border-hairline bg-surface-1 px-3 py-2.5 text-[12px] leading-relaxed text-ink-secondary">
+        <div className="rounded-md border border-hairline bg-surface-1 px-3 py-2.5 text-[12px] leading-relaxed text-ink-muted">
           <span className="font-medium text-ink">
             {selectedModel.name || t('prefs.prompts.model.default')}
           </span>

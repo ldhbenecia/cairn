@@ -583,3 +583,22 @@ button {
 .hljs-punctuation {
   color: var(--color-ink-subtle);
 }
+
+/* 상태 accent 텍스트(-400 계열)는 흰 배경서 대비가 낮아 잘 안 읽힘 — chip-* 처럼 라이트 테마에서만
+   한 단계 진한 톤으로 override(다크는 불변). 배경은 반투명(bg-*-500/12)이라 그대로 둔다.
+   Tailwind 유틸 클래스를 attribute 셀렉터로 덮어 특이도 우위를 확보 */
+[data-theme='light'] .text-emerald-400 {
+  color: #059669;
+}
+[data-theme='light'] .text-rose-400 {
+  color: #e11d48;
+}
+[data-theme='light'] .text-amber-400 {
+  color: #d97706;
+}
+[data-theme='light'] .text-violet-400 {
+  color: #7c3aed;
+}
+[data-theme='light'] .text-sky-400 {
+  color: #0284c7;
+}

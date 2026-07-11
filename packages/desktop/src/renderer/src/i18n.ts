@@ -384,7 +384,8 @@ const STRINGS = {
     'integrations.notes.desc': '발행한 일지를 Apple Notes 로도 보내요.',
     'integrations.comingSoon': '준비 중',
     'prefs.autoPublish.time': '발행 시각',
-    'prefs.autoPublish.timeDesc': '기기 로컬 시간 기준',
+    'prefs.autoPublish.timeDesc':
+      '기기 로컬 시간 기준 · 이 시각 이후의 당일 활동은 다음날 발행 전까지 포함되지 않아요 (필요하면 발행 화면에서 --force 로 다시 발행)',
     'prefs.autoPublish.time.minus': '30분 감소',
     'prefs.autoPublish.time.plus': '30분 증가',
     'prefs.autoPublish.backfill': '백필 일수',
@@ -828,7 +829,8 @@ const STRINGS = {
     'integrations.notes.desc': 'Send published worklogs to Apple Notes too.',
     'integrations.comingSoon': 'Coming soon',
     'prefs.autoPublish.time': 'Time',
-    'prefs.autoPublish.timeDesc': 'In your device local time',
+    'prefs.autoPublish.timeDesc':
+      "In your device's local time · activity after this time isn't included until the next day's publish (re-publish with --force from the publish dialog if needed)",
     'prefs.autoPublish.time.minus': 'Decrease by 30 minutes',
     'prefs.autoPublish.time.plus': 'Increase by 30 minutes',
     'prefs.autoPublish.backfill': 'Backfill days',
