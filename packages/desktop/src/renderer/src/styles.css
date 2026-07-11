@@ -388,17 +388,18 @@ textarea {
    없었음. 62~74% 로 낮춰 blur 로 뒤 콘텐츠가 프로스티드하게 비치게(리퀴드 글래스). 오버레이가
    뒤를 살짝 깔아 텍스트 가독성 유지. */
 [data-theme='light'][data-glass='on'] .glass-panel {
-  /* 라이트 글래스는 '채도로 색을 끌어오기'가 아니라 'blur 로 깊이를 보여주기'. 이전 saturate 2.4 는
-     큰 Preferences 패널이 뒤 대시보드 accent 를 과채도로 끌어와 무지개 얼룩이 됐음 → saturate 1.3·
-     blur 44 로 낮춰 색 얼룩 없이 깨끗한 프로스트. 불투명도 60~70% 로 packaged 가독성·큰 패널 안정. */
-  background: linear-gradient(155deg, rgba(255, 255, 255, 0.6), rgba(250, 251, 253, 0.7));
-  -webkit-backdrop-filter: blur(44px) saturate(1.3);
-  backdrop-filter: blur(44px) saturate(1.3);
-  border-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  /* 라이트는 배경이 거의 흰색이라 흰 패널은 비칠 게 없어 '그냥 카드'가 됨. 유리로 읽히게 (1) 더 투명
+     (44~58%)해서 뒤 accent(차트·2660·사이드바)가 굴절돼 비치고 (2) 미세한 쿨 틴트로 유리 재질감.
+     saturate 는 1.7 로 억제 — 앱 고유 accent(인디고) 하나만 은은히 살리고 여러 색 과채도(무지개 얼룩)는
+     방지. 불투명도 44~58% 라 packaged(blur 미합성)에서도 밝은 배경 위 가독성 유지(육안 검증). */
+  background: linear-gradient(155deg, rgba(240, 243, 250, 0.46), rgba(233, 237, 246, 0.58));
+  -webkit-backdrop-filter: blur(34px) saturate(1.7);
+  backdrop-filter: blur(34px) saturate(1.7);
+  border-color: rgba(60, 70, 110, 0.12);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -18px 40px rgba(120, 130, 160, 0.06),
-    0 20px 56px rgba(40, 50, 80, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    0 20px 56px rgba(40, 50, 80, 0.18);
 }
 [data-theme='light'][data-glass='on'] .dialog-overlay {
   background-color: rgba(20, 24, 33, 0.2);
