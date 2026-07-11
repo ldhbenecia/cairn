@@ -294,7 +294,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
           ) : content.blocks.length === 0 ? (
             <p className="text-[13px] text-ink-tertiary">{t('drawer.empty')}</p>
           ) : (
-            <div className="flex flex-col gap-1.5 text-[13px] leading-relaxed text-ink">
+            <div className="journal-content flex flex-col gap-1.5 text-[13px] leading-relaxed text-ink">
               {content.blocks.map((b) => (
                 <Block key={b.id} b={b} />
               ))}

@@ -140,6 +140,21 @@ button {
   cursor: default;
 }
 
+/* 텍스트 선택은 발행된 일지 본문에서만 — 나머지 UI(사이드바·그래프·버튼·팔레트·설정)는 드래그 선택 차단.
+   Radix Dialog.Portal(설정)·createPortal(date-picker)이 body 로 빠져나가므로 #root 가 아닌 body 에 걸어
+   포털 다이얼로그까지 상속시킨다. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* 일지 리더 본문·입력 필드만 선택/복사 허용 — 직접 매칭 규칙이 상속된 none 을 이긴다(특이도 무관) */
+.journal-content,
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 @keyframes panel-enter {
   from {
     opacity: 0;
