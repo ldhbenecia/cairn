@@ -38,6 +38,7 @@ export function CommandPalette({
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const selRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -141,6 +142,11 @@ export function CommandPalette({
     setSel(0);
   }, [q]);
 
+  // 화살표로 접힌 영역 아래 항목을 선택하면 보이도록 스크롤 (worklog-list PageRow 와 동일 패턴)
+  useEffect(() => {
+    selRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [sel]);
+
   function run(cmd: Cmd | undefined) {
     if (!cmd) return;
     cmd.run();
@@ -206,6 +212,7 @@ export function CommandPalette({
             items.map((it, i) => (
               <button
                 key={it.id}
+                ref={i === sel ? selRef : undefined}
                 type="button"
                 onMouseEnter={() => setSel(i)}
                 onClick={() => run(it)}

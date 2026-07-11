@@ -214,6 +214,7 @@ export function AchievementsDialog({
           <button
             type="button"
             onClick={onClose}
+            aria-label={t('publish.close')}
             className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
           >
             <X size={15} strokeWidth={2} />

@@ -101,6 +101,7 @@ export function RunToast({
                 <button
                   type="button"
                   onClick={onClose}
+                  aria-label={t('drawer.close')}
                   className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
                 >
                   <X size={14} strokeWidth={2} />
