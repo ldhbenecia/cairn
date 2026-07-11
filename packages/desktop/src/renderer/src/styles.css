@@ -150,9 +150,15 @@ textarea {
 
 /* 라이트 카드 elevation — surface-1 카드(border-hairline 동반, 88곳)가 깊어진 캔버스 위에 whisper
    navy 그림자로 뜨게. border 는 유지(border+shadow 가 카드를 별개 평면으로 읽히게). 다크는 명도로
-   elevation 하므로 라이트 전용. 개별 88곳 편집 대신 패턴 매칭 단일 규칙. */
-[data-theme='light'] .bg-surface-1.border-hairline {
+   elevation 하므로 라이트 전용. floating(dialog/popover/toast/drawer)은 제외 — 더 강한 elevated 를 받음. */
+[data-theme='light'] .bg-surface-1.border-hairline:not(.glass-panel):not(.floating-panel) {
   box-shadow: var(--shadow-card);
+}
+/* floating 표면 elevation — 다크는 shadow-black 유틸 유지, 라이트에선 검정(회색 얼룩) 대신 부드러운
+   navy elevated 로. 글래스 ON 이면 더 특정한 [data-glass] 규칙의 frost 그림자가 우선(그것도 navy). */
+[data-theme='light'] .glass-panel,
+[data-theme='light'] .floating-panel {
+  box-shadow: var(--shadow-elevated);
 }
 
 @keyframes panel-enter {

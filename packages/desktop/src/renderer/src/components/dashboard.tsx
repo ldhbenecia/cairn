@@ -696,7 +696,7 @@ function Heatmap({
       </div>
       {tip && (
         <div
-          className="pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-full rounded-md border border-hairline bg-surface-3 px-2 py-1 text-[11px] font-medium whitespace-nowrap text-ink shadow-lg shadow-black/40"
+          className="floating-panel pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-full rounded-md border border-hairline bg-surface-3 px-2 py-1 text-[11px] font-medium whitespace-nowrap text-ink shadow-lg shadow-black/40"
           style={{ left: tip.x, top: tip.y - 7 }}
         >
           {tip.label}

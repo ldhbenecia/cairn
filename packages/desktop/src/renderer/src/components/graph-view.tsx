@@ -182,6 +182,14 @@ export function GraphView({
   themeRef.current = settings.theme;
   const kickRef = useRef<() => void>(() => {});
   const [panelOpen, setPanelOpen] = useState(false);
+  const [panelClosing, setPanelClosing] = useState(false);
+  const closePanel = (): void => {
+    setPanelClosing(true);
+    setTimeout(() => {
+      setPanelOpen(false);
+      setPanelClosing(false);
+    }, 130);
+  };
   const [query, setQuery] = useState('');
   const queryRef = useRef('');
   queryRef.current = query.trim().toLowerCase();
@@ -606,7 +614,7 @@ export function GraphView({
               <button
                 type="button"
                 aria-label={t('graph.settings')}
-                onClick={() => setPanelOpen((v) => !v)}
+                onClick={() => (panelOpen ? closePanel() : setPanelOpen(true))}
                 className={[
                   'flex size-8 items-center justify-center rounded-lg border border-hairline transition-colors',
                   panelOpen
@@ -618,7 +626,9 @@ export function GraphView({
               </button>
             </div>
             {panelOpen && (
-              <div className="popover-in w-64 rounded-lg border border-hairline bg-surface-1 p-3.5 shadow-xl shadow-black/40 [transform-origin:top_right]">
+              <div
+                className={`floating-panel ${panelClosing ? 'popover-out' : 'popover-in'} w-64 rounded-lg border border-hairline bg-surface-1 p-3.5 shadow-xl shadow-black/40 [transform-origin:top_right]`}
+              >
                 <PanelRow label={t('graph.nodeScale')}>
                   <Slider
                     value={cfg.nodeScale}
