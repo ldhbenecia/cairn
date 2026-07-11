@@ -87,7 +87,7 @@ export function ErrorCard({
           <button
             type="button"
             onClick={onNewPublish}
-            className="rounded-md bg-accent px-3.5 py-2 text-[13px] font-medium text-white hover:bg-accent-hover"
+            className="rounded-md bg-accent px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover"
           >
             {t('publish.newPublish')}
           </button>
@@ -95,7 +95,7 @@ export function ErrorCard({
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink"
+          className="ml-auto rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
         >
           {t('publish.close')}
         </button>
@@ -251,7 +251,7 @@ export function Result({
               onOpenPublished(result.publishPageId!, url);
               onClose();
             }}
-            className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3.5 py-2 text-[13px] font-medium text-white hover:bg-accent-hover"
+            className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover"
           >
             <BookOpen size={14} strokeWidth={2} />
             {t('publish.viewInApp')}
@@ -261,7 +261,7 @@ export function Result({
           <button
             type="button"
             onClick={onNewPublish}
-            className="rounded-md border border-hairline px-3.5 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink"
+            className="rounded-md border border-hairline px-3.5 py-2 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
           >
             {t('publish.newPublish')}
           </button>
@@ -269,7 +269,7 @@ export function Result({
         <button
           type="button"
           onClick={onClose}
-          className={`rounded-md border border-hairline px-3.5 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink ${isSuccess && !onNewPublish ? '' : 'ml-auto'}`}
+          className={`rounded-md border border-hairline px-3.5 py-2 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink ${isSuccess && !onNewPublish ? '' : 'ml-auto'}`}
         >
           {t('publish.close')}
         </button>

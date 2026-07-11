@@ -121,16 +121,18 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
 
   if (!signedIn || !user) {
     return (
-      <div className="flex items-center gap-2.5 px-1 [-webkit-app-region:no-drag]">
-        <span className="flex size-6 items-center justify-center rounded-md bg-accent text-white">
+      <div className="flex min-w-0 items-center gap-2.5 px-1 [-webkit-app-region:no-drag]">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent text-white">
           <BrandMark size={15} />
         </span>
-        <span className="text-[15px] font-semibold tracking-[-0.2px] text-ink">cairn</span>
+        <span className="min-w-0 truncate text-[15px] font-semibold tracking-[-0.2px] text-ink">
+          cairn
+        </span>
         <AccountStatusPill />
         <button
           type="button"
           onClick={() => void window.cairn.cloud.signIn().catch(() => {})}
-          className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+          className="ml-auto flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
         >
           <LogIn size={13} strokeWidth={2} />
           {t('account.signIn')}
