@@ -454,6 +454,7 @@ export function App() {
       <AnimatePresence>
         {cmdkOpen && (
           <CommandPalette
+            key="command-palette"
             recent={recent}
             onClose={() => setCmdkOpen(false)}
             onView={setView}

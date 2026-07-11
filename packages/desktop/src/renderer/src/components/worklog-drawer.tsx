@@ -254,7 +254,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
               </button>
               {menuOpen && (
                 <div
-                  className={`${menuClosing ? 'popover-out' : 'popover-in'} glass-panel absolute right-0 top-9 z-30 w-48 rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40`}
+                  className={`${menuClosing ? 'popover-out' : 'popover-in'} glass-panel absolute top-full right-0 z-30 mt-1.5 w-48 rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40`}
                 >
                   {actions.map((a) => (
                     <button

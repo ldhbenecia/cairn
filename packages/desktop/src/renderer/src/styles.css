@@ -90,8 +90,11 @@
 }
 
 /* 마우스 포커스·비대화 요소엔 링 없음 — modifier 키 입력만으로 링이 뜨던 어수선함 제거.
-   단 키보드 탭 네비게이션(:focus-visible)은 실제 대화형 요소에만 링을 복원 — 전역 제거는
-   키보드 사용자가 포커스 위치를 못 봐 접근성이 깨지던 문제 */
+   단 키보드 탭 네비게이션(:focus-visible)은 버튼류에만 링을 복원 — 전역 제거는
+   키보드 사용자가 포커스 위치를 못 봐 접근성이 깨지던 문제.
+   input/textarea 는 제외: 텍스트 입력은 브라우저가 모든 포커스를 :focus-visible 로 치는 데다
+   (팔레트·검색창이 열릴 때마다 링), 자체 focus:border-accent 스타일이 이미 위치를 보여준다.
+   border-radius 를 여기서 덮지 않는다 — outline 은 요소 자체 radius(토글 pill 등)를 따라간다 */
 :focus,
 :focus-visible {
   outline: none;
@@ -99,16 +102,19 @@
 
 button:focus-visible,
 a:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible,
-[tabindex]:focus-visible,
+[tabindex='0']:focus-visible,
 [role='button']:focus-visible,
 [role='menuitem']:focus-visible,
 [role='option']:focus-visible {
   outline: 2px solid var(--color-accent-focus);
   outline-offset: 2px;
-  border-radius: 4px;
+}
+
+/* Radix Dialog·팔레트의 focus-trap 컨테이너는 tabindex=-1 로 프로그램적 포커스만 받는데,
+   키보드로 열면(⌘, → ⌘K) :focus-visible 이 걸려 다이얼로그 전체에 파란 링이 뜬다 — 명시 제거 */
+[tabindex='-1']:focus-visible,
+[role='dialog']:focus-visible {
+  outline: none;
 }
 
 html,
@@ -336,13 +342,14 @@ button {
    backdrop-filter 가 합성되지 않는 환경(실측)에선 sharp 한 반투명 유리로 보인다 —
    dialog-overlay 가 뒤를 어둡게 깔아줘 가독성 유지. */
 [data-glass='on'] .glass-panel {
+  /* 불투명도를 조금 올리고(뒤 비침 ↓) 채도·상단 sheen 을 낮춰 '뽀얀'(밀키) 느낌 완화 */
   background: linear-gradient(
     155deg,
-    color-mix(in srgb, var(--color-surface-1) 46%, transparent),
-    color-mix(in srgb, var(--color-surface-1) 58%, transparent)
+    color-mix(in srgb, var(--color-surface-1) 58%, transparent),
+    color-mix(in srgb, var(--color-surface-1) 70%, transparent)
   );
-  -webkit-backdrop-filter: blur(40px) saturate(2);
-  backdrop-filter: blur(40px) saturate(2);
+  -webkit-backdrop-filter: blur(40px) saturate(1.5);
+  backdrop-filter: blur(40px) saturate(1.5);
   /* packaged 빌드의 GPU 합성에서 backdrop-filter 가 누락되는 걸 막기 위해 별도 합성 레이어로
      승격(isolate + translateZ). dev/패키징 모두 blur 가 같은 레이어 경로로 렌더되게 한다. */
   isolation: isolate;
@@ -350,8 +357,8 @@ button {
   border-color: color-mix(in srgb, var(--color-ink) 14%, transparent);
   /* 위쪽 밝은 sheen + 아래 미묘한 음영 + 바깥 그림자 — blur 가 약한 환경에서도 유리 모서리가 읽히게 */
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 18%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, #ffffff 4%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 11%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, #ffffff 3%, transparent),
     inset 0 -1px 0 color-mix(in srgb, #000000 10%, transparent),
     0 16px 48px color-mix(in srgb, #000000 34%, transparent);
 }
