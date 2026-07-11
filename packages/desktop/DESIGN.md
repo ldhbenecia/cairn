@@ -97,10 +97,11 @@ Light shadow tokens (defined in `[data-theme='light']`, cool navy `rgb(28,39,64)
 
 - **Resting cards** (`.bg-surface-1.border-hairline`) get `--shadow-card` via a single light-only
   rule — border + whisper shadow makes a white card a distinct plane above the deeper canvas.
-- **Floating surfaces** (dialogs, palette, drawer, popovers, toast) should use `--shadow-elevated`
-  in light (negative spread → crisp Linear-popover penumbra, not a foggy halo).
-  *Known debt:* several still carry dark-tuned `shadow-black/40|50`; migrate them to a shared
-  `.floating-panel` + `[data-theme='light'] .floating-panel { box-shadow: var(--shadow-elevated) }`.
+- **Floating surfaces** (dialogs, palette, drawer, popovers, toast, tooltip) use `--shadow-elevated`
+  in light (negative spread → crisp Linear-popover penumbra, not a foggy halo). They keep the
+  Tailwind `shadow-black/40|50` for dark; the swap is a single light-only rule on `.glass-panel`
+  (the 8 glass surfaces) and a `.floating-panel` marker class (the 4 non-glass ones). The card rule
+  excludes both so a dialog never gets the whisper `--shadow-card`.
 
 ### Why the light palette looks the way it does (2026-07-11 refinement)
 
