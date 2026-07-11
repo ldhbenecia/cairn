@@ -136,7 +136,7 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
     : `${sel.y}. ${pad2(sel.m + 1)}. ${pad2(sel.d)}`;
 
   const navBtn =
-    'flex size-6 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent';
+    'flex size-7 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent';
 
   return (
     <>
@@ -394,7 +394,7 @@ export function DateRangePicker({
   };
 
   const navBtn =
-    'flex size-6 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent';
+    'flex size-7 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent';
 
   return (
     <>
