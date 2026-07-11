@@ -388,7 +388,7 @@ export function AchievementsDialog({
               <div className="mt-4 flex h-[132px] w-full flex-col justify-end gap-1.5 overflow-hidden rounded-xl border border-hairline bg-surface-2/40 px-3.5 py-3">
                 {recentScan.map((s) => (
                   <div key={s.key} className="flex items-center gap-2.5">
-                    <Check size={13} strokeWidth={2.5} className="shrink-0 text-emerald-400" />
+                    <Check size={13} strokeWidth={2.5} className="shrink-0 text-success" />
                     <span className="font-mono text-[11.5px] text-ink-muted">{s.date}</span>
                     <span className="ml-auto font-mono text-[11px] text-ink-tertiary tabular-nums">
                       {s.count} {t('achv.done')}
@@ -403,7 +403,7 @@ export function AchievementsDialog({
             (markdown ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="flex items-center gap-1.5 rounded-md bg-emerald-500/12 px-2.5 py-1 text-[11.5px] font-medium text-emerald-400">
+                  <span className="flex items-center gap-1.5 rounded-md bg-success/12 px-2.5 py-1 text-[11.5px] font-medium text-success">
                     <Check size={13} strokeWidth={2.5} />
                     {t('achv.complete')}
                   </span>

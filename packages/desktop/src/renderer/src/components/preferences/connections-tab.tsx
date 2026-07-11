@@ -193,7 +193,7 @@ function Row({
         <Loader2 className="size-3.5 shrink-0 animate-spin text-ink-tertiary" />
       ) : (
         <span
-          className={`size-1.5 shrink-0 rounded-full ${connected ? 'bg-emerald-500' : 'bg-ink-tertiary'}`}
+          className={`size-1.5 shrink-0 rounded-full ${connected ? 'bg-success' : 'bg-ink-tertiary'}`}
         />
       )}
       {icon}
