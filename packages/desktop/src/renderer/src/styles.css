@@ -92,31 +92,11 @@
   --code-comment: #8b919c;
 }
 
-/* 마우스 포커스·비대화 요소엔 링 없음 — modifier 키 입력만으로 링이 뜨던 어수선함 제거.
-   단 키보드 탭 네비게이션(:focus-visible)은 버튼류에만 링을 복원 — 전역 제거는
-   키보드 사용자가 포커스 위치를 못 봐 접근성이 깨지던 문제.
-   input/textarea 는 제외: 텍스트 입력은 브라우저가 모든 포커스를 :focus-visible 로 치는 데다
-   (팔레트·검색창이 열릴 때마다 링), 자체 focus:border-accent 스타일이 이미 위치를 보여준다.
-   border-radius 를 여기서 덮지 않는다 — outline 은 요소 자체 radius(토글 pill 등)를 따라간다 */
+/* 포커스 링 전역 제거 — 사용자 선호(탭·버튼에 파란 테두리가 자꾸 떠 어수선). 대화형 요소에도
+   :focus-visible 링을 띄우지 않는다. 텍스트 입력은 자체 focus:border 로 위치가 보이므로 무영향.
+   트레이드오프: 키보드만 쓰는 사용자는 포커스 위치 가시성이 낮아진다(의도된 선택). */
 :focus,
 :focus-visible {
-  outline: none;
-}
-
-button:focus-visible,
-a:focus-visible,
-[tabindex='0']:focus-visible,
-[role='button']:focus-visible,
-[role='menuitem']:focus-visible,
-[role='option']:focus-visible {
-  outline: 2px solid var(--color-accent-focus);
-  outline-offset: 2px;
-}
-
-/* Radix Dialog·팔레트의 focus-trap 컨테이너는 tabindex=-1 로 프로그램적 포커스만 받는데,
-   키보드로 열면(⌘, → ⌘K) :focus-visible 이 걸려 다이얼로그 전체에 파란 링이 뜬다 — 명시 제거 */
-[tabindex='-1']:focus-visible,
-[role='dialog']:focus-visible {
   outline: none;
 }
 
@@ -388,11 +368,11 @@ textarea {
    없었음. 62~74% 로 낮춰 blur 로 뒤 콘텐츠가 프로스티드하게 비치게(리퀴드 글래스). 오버레이가
    뒤를 살짝 깔아 텍스트 가독성 유지. */
 [data-theme='light'][data-glass='on'] .glass-panel {
-  /* 라이트 글래스 균형점: 내부 카드(bg-surface-1, 불투명 흰색)와 조화되도록 패널을 미세한 쿨 틴트의
-     프로스트로. 너무 투명하면(44~58%) 흰 카드가 유리 위에 둥둥 떠 이질적이고, 순백 불투명이면(60~70%)
-     '그냥 카드'라 유리감이 없음 → 쿨 틴트 반투명(72~80%)이 카드와 어우러지면서도 흰색이 아닌 유리
-     재질로 읽힘. saturate 1.4 로 과채도(무지개) 방지. 카드까지 반투명화하는 완전 층상 유리는 별도 검토. */
-  background: linear-gradient(155deg, rgba(246, 248, 251, 0.72), rgba(240, 243, 248, 0.8));
+  /* 라이트 글래스는 solid 에 가까운 쿨 프로스트 — 큰 Preferences 패널이 너무 투명하면 뒤 대시보드가
+     비쳐 부자연스럽다는 피드백. 82~90% 로 거의 불투명하게 하되 순백(255)이 아닌 미세한 쿨 틴트라
+     '그냥 흰 카드'가 아니라 유리 재질로 읽히고, 가장자리·고대비 콘텐츠 위에서만 은은한 프로스트.
+     내부 흰 카드(bg-surface-1)와도 자연스럽게 어우러짐. saturate 1.4 로 과채도(무지개) 방지. */
+  background: linear-gradient(155deg, rgba(247, 249, 252, 0.82), rgba(242, 245, 250, 0.9));
   -webkit-backdrop-filter: blur(40px) saturate(1.4);
   backdrop-filter: blur(40px) saturate(1.4);
   border-color: rgba(60, 70, 110, 0.1);
