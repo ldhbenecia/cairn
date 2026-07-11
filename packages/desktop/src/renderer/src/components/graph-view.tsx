@@ -184,6 +184,11 @@ export function GraphView({
   useEffect(() => {
     wakeRef.current?.();
   }, [cfg]);
+  // 유휴(rAF 정지) 중에도 테마·강조색·검색어가 바뀌면 단발 재드로로 반영 — 레이아웃은 불변
+  const redrawRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    redrawRef.current?.();
+  }, [settings.theme, settings.accent, query]);
   const pages = recent?.pages;
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
@@ -224,15 +229,17 @@ export function GraphView({
     let width = 0;
     let height = 0;
     let { zoom, panX, panY } = cameraRef.current;
-    let alpha = seeded === nodes.length ? 0.1 : 1;
+    // 첫 진입은 부드럽게 정착하도록 낮은 alpha(과거 1 은 스텝이 커 '확 움직이고 멈춤'), 위치 복원 시 미세 재정착
+    let alpha = seeded === nodes.length ? 0.1 : 0.55;
     let hover = -1;
     let dragging: { idx: number } | { pan: true } | null = null;
     let moved = 0;
     let lastX = 0;
     let lastY = 0;
     let raf = 0;
-    let floating = false; // 물리 수렴 후 gentle float 모드 — 정착 위치(hx,hy) 기준 사인 드리프트
-    let tf = 0; // float 시간 카운터 (프레임당 증가)
+    let settled = false; // 물리 수렴 완료 여부
+    let drift = 0; // 드리프트 진폭 예산(1→0). 수렴 후 서서히 감쇠해 완전 정지 → rAF 도 멈춰 유휴 비용 0
+    let tf = 0; // 드리프트 시간 카운터 (프레임당 증가)
     const fontFamily = getComputedStyle(document.body).fontFamily;
     let palette = buildPalette(accentRef.current);
     let paletteKey = `${accentRef.current}|${themeRef.current}`;
@@ -241,6 +248,8 @@ export function GraphView({
     const scaleOf = (n: GraphNode): number => n.r * cfgRef.current.nodeScale;
     kickRef.current = () => {
       alpha = Math.max(alpha, 0.4);
+      settled = false;
+      ensureLoop();
     };
 
     const resize = (): void => {
@@ -304,8 +313,10 @@ export function GraphView({
           n.vy = 0;
           continue;
         }
-        n.vx *= 0.86;
-        n.vy *= 0.86;
+        // 감쇠 완화(과거 0.86 은 속도를 ~0.3s 만에 죽여 '확 움직이고 굳음'). alpha 감쇠와 보조를
+        // 맞춰 속도가 함께 사그라들며 부드럽게 정착
+        n.vx *= 0.9;
+        n.vy *= 0.9;
         n.x += n.vx * alpha;
         n.y += n.vy * alpha;
       }
@@ -390,38 +401,57 @@ export function GraphView({
       } else {
         pendingKey = null;
       }
-      if (alpha > 0.02 || dragging) {
-        // 물리(레이아웃) 단계 — 수렴할 때까지 O(n²). 드래그 중엔 물리 유지
+      // 물리는 수렴 전 or '노드' 드래그 중에만. 패닝({pan})은 물리를 건드리지 않는다 —
+      // 패닝이 물리로 전환하면 드리프트 앵커가 재캡처되며 클릭마다 노드가 딱딱 튐(staccato)
+      const nodeDrag = dragging !== null && 'idx' in dragging;
+      if (alpha > 0.02 || nodeDrag) {
+        // 레이아웃 단계 — 수렴할 때까지 O(n²)
         tick();
-        floating = false;
+        settled = false;
+        drift = 1; // 수렴 후 쓸 드리프트 예산을 채워둠
       } else {
-        // 수렴 완료 → gentle float. 정착 위치를 한 번 캡처하고, 이후 O(n) 사인 드리프트만.
-        // 노드가 '행성처럼' 천천히 떠다님 (물리 O(n²) 재계산 없이 저비용 유지)
-        if (!floating) {
+        // 수렴 완료 → 드리프트 진폭을 서서히 0 으로(ease-out) 감쇠하며 완전히 멈춤.
+        // 앵커는 드리프트 offset 을 뺀 순수 정착 위치로 캡처 → 재진입해도 불연속 없음
+        if (!settled) {
           for (const n of nodes) {
-            n.hx = n.x;
-            n.hy = n.y;
+            n.hx = n.x - Math.sin(tf * 0.013 + n.phase) * 2.8 * drift;
+            n.hy = n.y - Math.cos(tf * 0.01 + n.phase * 1.3) * 2.8 * drift;
           }
-          floating = true;
+          settled = true;
         }
-        tf += 1;
-        const A = 2.6; // 드리프트 반경(px) — 은은하게
-        for (const n of nodes) {
-          n.x = n.hx + Math.sin(tf * 0.011 + n.phase) * A;
-          n.y = n.hy + Math.cos(tf * 0.009 + n.phase * 1.3) * A;
+        if (drift > 0) {
+          tf += 1;
+          drift = Math.max(0, drift - 0.007); // ≈2.4s 에 걸쳐 은은히 감속 후 정지
+          const A = 2.8 * drift; // 진폭이 선형으로 줄며 부드럽게 멈춤
+          for (const n of nodes) {
+            n.x = n.hx + Math.sin(tf * 0.013 + n.phase) * A;
+            n.y = n.hy + Math.cos(tf * 0.01 + n.phase * 1.3) * A;
+          }
         }
       }
       draw();
-      // 항상 루프 지속 — 유휴에도 float 로 살아있게 (idle 비용은 draw + O(n) 드리프트뿐)
-      raf = requestAnimationFrame(loop);
+      // 움직임(수렴·노드드래그·드리프트)·패닝/줌·팔레트 스왑 대기가 있을 때만 계속.
+      // 완전 정지하면 rAF 도 멈춰 유휴 비용 0 (검색·테마·줌은 redraw/ensureLoop 로 단발 재개)
+      const animating = alpha > 0.02 || nodeDrag || drift > 0;
+      if (animating || dragging !== null || pendingKey !== null) {
+        raf = requestAnimationFrame(loop);
+      } else {
+        raf = 0;
+      }
     };
-    const wake = (): void => {
-      // 설정 변경 시 물리를 다시 짧게 돌려 재배치 후 float 로 복귀
-      alpha = Math.max(alpha, 0.4);
-      floating = false;
+    const ensureLoop = (): void => {
       if (raf === 0) raf = requestAnimationFrame(loop);
     };
+    // 레이아웃에 영향 주는 설정 변경 시: 물리를 짧게 재개해 재배치 후 다시 정지
+    const wake = (): void => {
+      alpha = Math.max(alpha, 0.4);
+      settled = false;
+      drift = 1;
+      ensureLoop();
+    };
     wakeRef.current = wake;
+    // 테마·강조색·검색어 변경 시: 레이아웃은 그대로, 단발 재드로만(유휴 정지 상태에서도 반영)
+    redrawRef.current = ensureLoop;
     raf = requestAnimationFrame(loop);
 
     const toWorld = (e: PointerEvent | WheelEvent): { x: number; y: number } => {
@@ -448,6 +478,7 @@ export function GraphView({
       lastY = e.clientY;
       const hit = hitTest(e);
       dragging = hit !== -1 ? { idx: hit } : { pan: true };
+      ensureLoop(); // 유휴 중이면 드래그/패닝 프레임을 위해 재개
     };
     const onPointerMove = (e: PointerEvent): void => {
       if (!dragging) {
@@ -455,6 +486,7 @@ export function GraphView({
         if (hit !== hover) {
           hover = hit;
           canvas.style.cursor = hit !== -1 ? 'pointer' : 'grab';
+          ensureLoop(); // hover 하이라이트 갱신을 위한 단발 재드로
         }
         return;
       }
@@ -486,6 +518,7 @@ export function GraphView({
       panX -= cx * (next / zoom - 1);
       panY -= cy * (next / zoom - 1);
       zoom = next;
+      ensureLoop(); // 줌 갱신 재드로
     };
 
     const onPointerLeave = (): void => {
@@ -493,6 +526,7 @@ export function GraphView({
       if (hover !== -1) {
         hover = -1;
         canvas.style.cursor = 'grab';
+        ensureLoop(); // hover 해제 재드로
       }
     };
     canvas.addEventListener('pointerdown', onPointerDown);
@@ -528,7 +562,9 @@ export function GraphView({
       ) : (
         <>
           <canvas ref={canvasRef} className="h-full w-full [-webkit-app-region:no-drag]" />
-          <div className="pointer-events-none absolute left-6 top-0 flex h-20 items-center [-webkit-app-region:drag]">
+          {/* 상단 80px 풀폭 드래그 밴드 — 창 이동 핸들(대시보드·일지 뷰와 동일 패턴).
+              캔버스가 no-drag 로 상단을 덮어 제목 폭만 잡히던 문제 해소. 우측 컨트롤은 no-drag 상위 형제라 클릭 유지 */}
+          <div className="absolute inset-x-0 top-0 flex h-20 items-center px-6 [-webkit-app-region:drag]">
             <h1 className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
               {t('nav.graph')}
             </h1>
