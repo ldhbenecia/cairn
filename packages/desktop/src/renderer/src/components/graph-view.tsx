@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GraphConfig, GraphLabels, RecentListResult, RecentPage } from '../cairn-api';
 import { ACCENTS, useSettings } from '../settings-context';
 import type { I18nKey } from '../i18n';
+import { Toggle } from './toggle';
 
 type Kind = 'daily' | 'weekly' | 'monthly';
 
@@ -14,6 +15,10 @@ type GraphNode = {
   y: number;
   vx: number;
   vy: number;
+  // 수렴 후 '행성처럼' 계속 떠다니는 gentle float 용 — 정착 위치(hx,hy)를 중심으로 사인 드리프트
+  hx: number;
+  hy: number;
+  phase: number;
 };
 
 type Graph = { nodes: GraphNode[]; edges: [number, number][]; neighbors: Set<number>[] };
@@ -86,7 +91,7 @@ function isoWeekEnd(date: string): string {
 
 function buildGraph(pages: RecentPage[], showRollups: boolean): Graph {
   const dated = pages.filter((p) => p.date !== null && (showRollups || p.category === 'daily'));
-  const nodes: GraphNode[] = dated.map((page) => {
+  const nodes: GraphNode[] = dated.map((page, i) => {
     const kind = page.category;
     const activity = (page.pr ?? 0) + (page.commit ?? 0);
     const r =
@@ -95,7 +100,8 @@ function buildGraph(pages: RecentPage[], showRollups: boolean): Graph {
         : kind === 'weekly'
           ? 9
           : 3.5 + Math.min(5, Math.sqrt(activity) * 1.4);
-    return { page, kind, r, x: 0, y: 0, vx: 0, vy: 0 };
+    // phase: 인덱스 기반(결정적) — 노드마다 드리프트 위상을 흩어 동시에 같은 방향으로 안 흐르게
+    return { page, kind, r, x: 0, y: 0, vx: 0, vy: 0, hx: 0, hy: 0, phase: i * 1.7 };
   });
 
   const weeklyIdx = new Map<string, number>();
@@ -172,11 +178,12 @@ export function GraphView({
   const [query, setQuery] = useState('');
   const queryRef = useRef('');
   queryRef.current = query.trim().toLowerCase();
-  // 유휴 정지된 rAF 루프를 외부 변화(테마·검색어·설정)가 깨울 수 있게 노출
+  // 레이아웃에 영향 주는 설정(간격·중력 등)이 바뀌면 물리를 다시 돌려 재배치.
+  // 테마·검색어는 루프가 매 프레임 반영하므로(연속 실행) wake 불필요 — 검색 중 그래프가 들썩이지 않게.
   const wakeRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     wakeRef.current?.();
-  }, [settings.accent, settings.theme, query, cfg]);
+  }, [cfg]);
   const pages = recent?.pages;
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
@@ -224,6 +231,8 @@ export function GraphView({
     let lastX = 0;
     let lastY = 0;
     let raf = 0;
+    let floating = false; // 물리 수렴 후 gentle float 모드 — 정착 위치(hx,hy) 기준 사인 드리프트
+    let tf = 0; // float 시간 카운터 (프레임당 증가)
     const fontFamily = getComputedStyle(document.body).fontFamily;
     let palette = buildPalette(accentRef.current);
     let paletteKey = `${accentRef.current}|${themeRef.current}`;
@@ -368,7 +377,6 @@ export function GraphView({
       ctx.restore();
     };
 
-    let idleFrames = 0;
     const loop = (): void => {
       const key = `${accentRef.current}|${themeRef.current}`;
       if (key !== paletteKey) {
@@ -382,21 +390,35 @@ export function GraphView({
       } else {
         pendingKey = null;
       }
-      if (alpha > 0.02) {
+      if (alpha > 0.02 || dragging) {
+        // 물리(레이아웃) 단계 — 수렴할 때까지 O(n²). 드래그 중엔 물리 유지
         tick();
-        idleFrames = 0;
+        floating = false;
+      } else {
+        // 수렴 완료 → gentle float. 정착 위치를 한 번 캡처하고, 이후 O(n) 사인 드리프트만.
+        // 노드가 '행성처럼' 천천히 떠다님 (물리 O(n²) 재계산 없이 저비용 유지)
+        if (!floating) {
+          for (const n of nodes) {
+            n.hx = n.x;
+            n.hy = n.y;
+          }
+          floating = true;
+        }
+        tf += 1;
+        const A = 2.6; // 드리프트 반경(px) — 은은하게
+        for (const n of nodes) {
+          n.x = n.hx + Math.sin(tf * 0.011 + n.phase) * A;
+          n.y = n.hy + Math.cos(tf * 0.009 + n.phase * 1.3) * A;
+        }
       }
       draw();
-      // 시뮬 수렴 + 무입력이면 rAF 중단 — 유휴 상태 60fps 전체 리드로우(CPU 상시 점유) 제거.
-      // 입력·테마/검색 변경은 wake() 로 재개
-      if (alpha <= 0.02 && !dragging && ++idleFrames > 5) {
-        raf = 0;
-        return;
-      }
+      // 항상 루프 지속 — 유휴에도 float 로 살아있게 (idle 비용은 draw + O(n) 드리프트뿐)
       raf = requestAnimationFrame(loop);
     };
     const wake = (): void => {
-      idleFrames = 0;
+      // 설정 변경 시 물리를 다시 짧게 돌려 재배치 후 float 로 복귀
+      alpha = Math.max(alpha, 0.4);
+      floating = false;
       if (raf === 0) raf = requestAnimationFrame(loop);
     };
     wakeRef.current = wake;
@@ -420,7 +442,6 @@ export function GraphView({
     };
 
     const onPointerDown = (e: PointerEvent): void => {
-      wake();
       canvas.setPointerCapture(e.pointerId);
       moved = 0;
       lastX = e.clientX;
@@ -429,7 +450,6 @@ export function GraphView({
       dragging = hit !== -1 ? { idx: hit } : { pan: true };
     };
     const onPointerMove = (e: PointerEvent): void => {
-      wake();
       if (!dragging) {
         const hit = hitTest(e);
         if (hit !== hover) {
@@ -458,7 +478,6 @@ export function GraphView({
       if (wasNode !== -1 && moved < 5) onOpenRef.current(nodes[wasNode]!.page);
     };
     const onWheel = (e: WheelEvent): void => {
-      wake();
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const cx = e.clientX - rect.left - width / 2 - panX;
@@ -474,7 +493,6 @@ export function GraphView({
       if (hover !== -1) {
         hover = -1;
         canvas.style.cursor = 'grab';
-        wake();
       }
     };
     canvas.addEventListener('pointerdown', onPointerDown);
@@ -585,23 +603,10 @@ export function GraphView({
                   </div>
                 </PanelRow>
                 <PanelRow label={t('graph.showRollups')}>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={cfg.showRollups}
-                    onClick={() => setGraph({ showRollups: !cfg.showRollups })}
-                    className={[
-                      'relative h-4.5 w-8 rounded-full transition-colors',
-                      cfg.showRollups ? 'bg-accent' : 'bg-surface-3',
-                    ].join(' ')}
-                  >
-                    <span
-                      className={[
-                        'absolute top-0.5 size-3.5 rounded-full bg-white transition-transform',
-                        cfg.showRollups ? 'translate-x-4' : 'translate-x-0.5',
-                      ].join(' ')}
-                    />
-                  </button>
+                  <Toggle
+                    checked={cfg.showRollups}
+                    onChange={(v) => setGraph({ showRollups: v })}
+                  />
                 </PanelRow>
               </div>
             )}
