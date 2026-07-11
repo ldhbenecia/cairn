@@ -134,21 +134,28 @@ function buildGraph(pages: RecentPage[], showRollups: boolean): Graph {
     neighbors[b]!.add(a);
   }
 
-  // 초기 배치: 월 클러스터를 원환에 두고 하위 노드를 그 근처에 뿌림 — 시뮬레이션 수렴 가속
+  // 초기 배치: 각 월을 원환 위 '클러스터 중심'에 두고, 같은 달 노드를 그 중심 근처에 compact
+  // blob 으로 흩뿌린다(반경별 동심원 링 X). 링으로 뿌리면 스프링이 같은 달 노드를 반경선 따라
+  // 뭉치며 진입 순간 눈에 띄게 '오므라들어' 이상해짐 — blob 시드는 수렴 형태(월별 blob)에 가까워
+  // 그 수축을 없앤다. clusterR 은 월 개수에 맞춰 클러스터가 겹치지 않게 스케일.
   const months = [...new Set(dated.map((p) => p.date!.slice(0, 7)))].sort();
-  const monthAngle = new Map(
-    months.map((mo, i) => [mo, (i / Math.max(1, months.length)) * Math.PI * 2]),
-  );
+  const m = months.length;
+  // 클러스터 원환 반경 — 월 개수에 맞춰 이웃 클러스터가 겹치지 않게(수렴 위치에 근접해 전역 수축 최소화)
+  const clusterR = m <= 1 ? 0 : Math.max(190, Math.min(480, 140 / Math.sin(Math.PI / m)));
+  const monthAngle = new Map(months.map((mo, i) => [mo, (i / m) * Math.PI * 2]));
   nodes.forEach((n, i) => {
     const angle = monthAngle.get(n.page.date!.slice(0, 7)) ?? 0;
-    const base = n.kind === 'monthly' ? 190 : n.kind === 'weekly' ? 250 : 310;
-    // 결정적 지터(인덱스 기반) — 같은 데이터면 같은 초기 모양
+    const cx = Math.cos(angle) * clusterR;
+    const cy = Math.sin(angle) * clusterR;
+    // 결정적 스캐터(인덱스 해시) — 같은 데이터면 같은 초기 모양. monthly 는 중심 가까이, daily 는
+    // 조금 더 퍼지게(반경 링이 아닌 blob)
     const j1 = Math.sin(i * 12.9898) * 43758.5453;
     const j2 = Math.sin(i * 78.233) * 12543.8567;
-    const jitterA = (j1 - Math.floor(j1) - 0.5) * 0.9;
-    const jitterR = (j2 - Math.floor(j2) - 0.5) * 160;
-    n.x = Math.cos(angle + jitterA) * (base + jitterR);
-    n.y = Math.sin(angle + jitterA) * (base + jitterR);
+    const sx = j1 - Math.floor(j1) - 0.5;
+    const sy = j2 - Math.floor(j2) - 0.5;
+    const spread = n.kind === 'monthly' ? 20 : n.kind === 'weekly' ? 54 : 84;
+    n.x = cx + sx * spread;
+    n.y = cy + sy * spread;
   });
 
   return { nodes, edges, neighbors };
@@ -240,6 +247,7 @@ export function GraphView({
     let settled = false; // 물리 수렴 완료 여부
     let drift = 0; // 드리프트 진폭 예산(1→0). 수렴 후 서서히 감쇠해 완전 정지 → rAF 도 멈춰 유휴 비용 0
     let tf = 0; // 드리프트 시간 카운터 (프레임당 증가)
+    const DRIFT_AMP = 5.5; // 드리프트 최대 진폭(px) — 행성처럼 눈에 띄게 부유
     const fontFamily = getComputedStyle(document.body).fontFamily;
     let palette = buildPalette(accentRef.current);
     let paletteKey = `${accentRef.current}|${themeRef.current}`;
@@ -353,7 +361,8 @@ export function GraphView({
         const dim = (dimOthers && !isHover && !isNeighbor) || (!isHover && !matches(n));
         ctx.globalAlpha = dim ? 0.25 : 1;
         ctx.shadowColor = palette.node[n.kind];
-        ctx.shadowBlur = (isHover ? r * 4 : r * 2.2) * zoom;
+        // glow 축소 — 과거 r*2.2 는 밀집 클러스터에서 halo 가 겹쳐 '뽀얀' 안개가 됨. 노드를 또렷하게
+        ctx.shadowBlur = (isHover ? r * 2.4 : r * 1.1) * zoom;
         ctx.fillStyle = isHover ? palette.hoverFill : palette.node[n.kind];
         ctx.beginPath();
         ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
@@ -414,18 +423,18 @@ export function GraphView({
         // 앵커는 드리프트 offset 을 뺀 순수 정착 위치로 캡처 → 재진입해도 불연속 없음
         if (!settled) {
           for (const n of nodes) {
-            n.hx = n.x - Math.sin(tf * 0.013 + n.phase) * 2.8 * drift;
-            n.hy = n.y - Math.cos(tf * 0.01 + n.phase * 1.3) * 2.8 * drift;
+            n.hx = n.x - Math.sin(tf * 0.02 + n.phase) * DRIFT_AMP * drift;
+            n.hy = n.y - Math.cos(tf * 0.016 + n.phase * 1.3) * DRIFT_AMP * drift;
           }
           settled = true;
         }
         if (drift > 0) {
           tf += 1;
-          drift = Math.max(0, drift - 0.007); // ≈2.4s 에 걸쳐 은은히 감속 후 정지
-          const A = 2.8 * drift; // 진폭이 선형으로 줄며 부드럽게 멈춤
+          drift = Math.max(0, drift - 0.004); // ≈4s 에 걸쳐 눈에 띄게 부유하다 서서히 멈춤
+          const A = DRIFT_AMP * drift; // 진폭이 선형으로 줄며 부드럽게 멈춤
           for (const n of nodes) {
-            n.x = n.hx + Math.sin(tf * 0.013 + n.phase) * A;
-            n.y = n.hy + Math.cos(tf * 0.01 + n.phase * 1.3) * A;
+            n.x = n.hx + Math.sin(tf * 0.02 + n.phase) * A;
+            n.y = n.hy + Math.cos(tf * 0.016 + n.phase * 1.3) * A;
           }
         }
       }
@@ -452,6 +461,13 @@ export function GraphView({
     wakeRef.current = wake;
     // 테마·강조색·검색어 변경 시: 레이아웃은 그대로, 단발 재드로만(유휴 정지 상태에서도 반영)
     redrawRef.current = ensureLoop;
+
+    // 진입 '오므라듦' 제거 — 첫 프레임 전에 물리를 오프스크린으로 수렴시킨다. 수렴 과정(수축/재배치)을
+    // 화면에 안 보여주고 정착된 레이아웃이 바로 나타난 뒤 gentle drift 만 재생. 최대 300틱 O(n²) 라
+    // 최초 진입 시 짧은 계산뿐. 재진입(위치 복원)은 alpha 가 낮아 몇 틱만 돌아 저장 위치를 유지.
+    if (seeded < nodes.length) alpha = 1;
+    for (let it = 0; it < 300 && alpha > 0.02; it++) tick();
+    drift = 1; // 표시 단계에선 물리 없이 gentle drift 만
     raf = requestAnimationFrame(loop);
 
     const toWorld = (e: PointerEvent | WheelEvent): { x: number; y: number } => {
@@ -461,12 +477,14 @@ export function GraphView({
         y: (e.clientY - rect.top - height / 2 - panY) / zoom,
       };
     };
-    const hitTest = (e: PointerEvent): number => {
+    // pad: 히트 반경 여유(px). 커서/hover 는 0(노드 위에서만 포인터), 클릭/드래그는 5(작은 노드도
+    // 잡기 쉽게). 밀집 클러스터에서 +5 여유가 노드 사이 빈틈까지 잡아 커서가 상시 포인터로 뜨던 문제 해소
+    const hitTest = (e: PointerEvent, pad = 5): number => {
       const { x, y } = toWorld(e);
       for (let i = nodes.length - 1; i >= 0; i--) {
         const n = nodes[i]!;
-        const pad = scaleOf(n) + 5 / zoom;
-        if ((n.x - x) ** 2 + (n.y - y) ** 2 <= pad * pad) return i;
+        const reach = scaleOf(n) + pad / zoom;
+        if ((n.x - x) ** 2 + (n.y - y) ** 2 <= reach * reach) return i;
       }
       return -1;
     };
@@ -482,7 +500,7 @@ export function GraphView({
     };
     const onPointerMove = (e: PointerEvent): void => {
       if (!dragging) {
-        const hit = hitTest(e);
+        const hit = hitTest(e, 0); // 커서/하이라이트는 노드 위에서만(빈틈 여유 없음)
         if (hit !== hover) {
           hover = hit;
           canvas.style.cursor = hit !== -1 ? 'pointer' : 'grab';
@@ -604,8 +622,8 @@ export function GraphView({
                 <PanelRow label={t('graph.nodeScale')}>
                   <Slider
                     value={cfg.nodeScale}
-                    min={0.6}
-                    max={1.8}
+                    min={0.7}
+                    max={1.3}
                     onChange={(v) => setGraph({ nodeScale: v })}
                   />
                 </PanelRow>
