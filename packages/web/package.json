@@ -27,7 +27,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tailwind-merge": "^3.6.0",
-    "three": "^0.184.0"
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.2",
@@ -35,7 +35,7 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@types/three": "^0.184.1",
+    "@types/three": "^0.185.1",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.0",
     "eslint-config-next": "^16.2.9",
