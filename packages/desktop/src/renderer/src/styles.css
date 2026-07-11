@@ -360,25 +360,25 @@ textarea {
   /* 틴트를 surface-1(#0f1011, 거의 검정) 대신 살짝 밝은 쿨그레이로 — 검은 반투명 '카드'가 아니라
      빛을 머금은 유리로 읽히게. 40~52% 불투명도라 packaged(blur 미합성)에서도 가독성 유지.
      backdrop-filter 의 brightness 가 뒤 콘텐츠를 들어올려 굴절감을 살린다(육안 검증). */
-  background: linear-gradient(155deg, rgba(34, 37, 44, 0.4), rgba(26, 29, 36, 0.52));
-  -webkit-backdrop-filter: blur(46px) saturate(1.9) brightness(1.14);
-  backdrop-filter: blur(46px) saturate(1.9) brightness(1.14);
+  background: linear-gradient(155deg, rgba(38, 42, 52, 0.3), rgba(28, 31, 40, 0.42));
+  -webkit-backdrop-filter: blur(42px) saturate(2.05) brightness(1.22);
+  backdrop-filter: blur(42px) saturate(2.05) brightness(1.22);
   /* packaged 빌드의 GPU 합성에서 backdrop-filter 가 누락되는 걸 막기 위해 별도 합성 레이어로
      승격(isolate + translateZ). dev/패키징 모두 blur 가 같은 레이어 경로로 렌더되게 한다. */
   isolation: isolate;
   transform: translateZ(0);
-  border-color: color-mix(in srgb, var(--color-ink) 16%, transparent);
+  border-color: color-mix(in srgb, var(--color-ink) 20%, transparent);
   /* 위쪽 밝은 sheen + 아래 깊이감 음영 + 바깥 그림자 — blur 가 약한 환경에서도 유리 모서리가 읽히게 */
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 26%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, #ffffff 6%, transparent),
-    inset 0 -14px 40px color-mix(in srgb, #000000 18%, transparent),
-    0 20px 56px color-mix(in srgb, #000000 42%, transparent);
+    inset 0 1px 0 color-mix(in srgb, #ffffff 32%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, #ffffff 7%, transparent),
+    inset 0 -16px 44px color-mix(in srgb, #000000 16%, transparent),
+    0 22px 60px color-mix(in srgb, #000000 44%, transparent);
 }
-/* 글래스일 때 오버레이를 조금 밝혀(0.28→0.22) 뒤 콘텐츠가 유리로 더 비치게 — packaged 가독성은
+/* 글래스일 때 오버레이를 밝혀(0.28→0.20) 뒤 콘텐츠가 유리로 더 비치게 — packaged 가독성은
    패널 불투명도로 지킴 */
 [data-glass='on'] .dialog-overlay {
-  background-color: rgba(0, 0, 0, 0.22);
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 /* 라이트 글래스 — 흰색 반투명 베이스. 이전 86~92% 는 거의 불투명해 뒤가 전혀 안 비쳐 유리감이
