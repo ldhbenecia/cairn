@@ -160,7 +160,12 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
             {picking === 'day' ? (
               <>
                 <div className="mb-2 flex items-center justify-between">
-                  <button type="button" onClick={() => shiftMonth(-1)} className={navBtn}>
+                  <button
+                    type="button"
+                    onClick={() => shiftMonth(-1)}
+                    aria-label={t('onb.nav.prev')}
+                    className={navBtn}
+                  >
                     <ChevronLeft size={15} strokeWidth={2} />
                   </button>
                   <button
@@ -174,6 +179,7 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
                     type="button"
                     disabled={viewMonthIndex >= maxMonthIndex}
                     onClick={() => shiftMonth(1)}
+                    aria-label={t('onb.nav.next')}
                     className={navBtn}
                   >
                     <ChevronRight size={15} strokeWidth={2} />
@@ -224,6 +230,7 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
                   <button
                     type="button"
                     onClick={() => setView((v) => ({ ...v, y: v.y - 1 }))}
+                    aria-label={t('onb.nav.prev')}
                     className={navBtn}
                   >
                     <ChevronLeft size={15} strokeWidth={2} />
@@ -235,6 +242,7 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
                     type="button"
                     disabled={view.y >= maxD.y}
                     onClick={() => setView((v) => ({ ...v, y: v.y + 1 }))}
+                    aria-label={t('onb.nav.next')}
                     className={navBtn}
                   >
                     <ChevronRight size={15} strokeWidth={2} />
@@ -419,7 +427,12 @@ export function DateRangePicker({
             {picking === 'day' ? (
               <>
                 <div className="mb-2 flex items-center justify-between">
-                  <button type="button" onClick={() => shiftMonth(-1)} className={navBtn}>
+                  <button
+                    type="button"
+                    onClick={() => shiftMonth(-1)}
+                    aria-label={t('onb.nav.prev')}
+                    className={navBtn}
+                  >
                     <ChevronLeft size={15} strokeWidth={2} />
                   </button>
                   <button
@@ -433,6 +446,7 @@ export function DateRangePicker({
                     type="button"
                     disabled={viewMonthIndex >= maxMonthIndex}
                     onClick={() => shiftMonth(1)}
+                    aria-label={t('onb.nav.next')}
                     className={navBtn}
                   >
                     <ChevronRight size={15} strokeWidth={2} />
@@ -488,6 +502,7 @@ export function DateRangePicker({
                   <button
                     type="button"
                     onClick={() => setView((v) => ({ ...v, y: v.y - 1 }))}
+                    aria-label={t('onb.nav.prev')}
                     className={navBtn}
                   >
                     <ChevronLeft size={15} strokeWidth={2} />
@@ -499,6 +514,7 @@ export function DateRangePicker({
                     type="button"
                     disabled={view.y >= maxD.y}
                     onClick={() => setView((v) => ({ ...v, y: v.y + 1 }))}
+                    aria-label={t('onb.nav.next')}
                     className={navBtn}
                   >
                     <ChevronRight size={15} strokeWidth={2} />
