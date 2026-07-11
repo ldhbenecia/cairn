@@ -385,20 +385,21 @@ textarea {
    없었음. 62~74% 로 낮춰 blur 로 뒤 콘텐츠가 프로스티드하게 비치게(리퀴드 글래스). 오버레이가
    뒤를 살짝 깔아 텍스트 가독성 유지. */
 [data-theme='light'][data-glass='on'] .glass-panel {
-  background: linear-gradient(
-    155deg,
-    color-mix(in srgb, #ffffff 62%, transparent),
-    color-mix(in srgb, #ffffff 74%, transparent)
-  );
-  -webkit-backdrop-filter: blur(44px) saturate(1.7);
-  backdrop-filter: blur(44px) saturate(1.7);
+  /* 흰 배경 위 흰 패널은 굴절할 색·대비가 없어 흰 카드처럼 보임 → 더 투명(44~58%) + 높은 채도로
+     뒤 accent 콘텐츠(차트·그래프)를 파스텔로 끌어올려 유리감. blur 는 낮춰(30) 색이 뭉개지지 않게.
+     불투명도 44~58% 라 packaged(blur 미합성)에서도 밝은 배경 위 가독성 유지(육안 검증). */
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.44), rgba(246, 247, 251, 0.58));
+  -webkit-backdrop-filter: blur(30px) saturate(2.4);
+  backdrop-filter: blur(30px) saturate(2.4);
   border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 90%, transparent),
-    0 18px 52px color-mix(in srgb, #000000 14%, transparent);
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    inset 0 -20px 40px rgba(120, 130, 160, 0.1),
+    0 20px 56px rgba(40, 50, 80, 0.16);
 }
 [data-theme='light'][data-glass='on'] .dialog-overlay {
-  background-color: rgba(20, 24, 33, 0.16);
+  background-color: rgba(20, 24, 33, 0.2);
 }
 
 /* 발행 대기 — 요약 단계의 브랜드 마크 숨쉬기 + 순환 문구 페이드 */
