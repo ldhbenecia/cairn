@@ -180,7 +180,6 @@ export function GraphView({
   accentRef.current = settings.accent;
   const themeRef = useRef(settings.theme);
   themeRef.current = settings.theme;
-  const kickRef = useRef<() => void>(() => {});
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelClosing, setPanelClosing] = useState(false);
   const closePanel = (): void => {
@@ -193,17 +192,17 @@ export function GraphView({
   const [query, setQuery] = useState('');
   const queryRef = useRef('');
   queryRef.current = query.trim().toLowerCase();
-  // 레이아웃에 영향 주는 설정(간격·중력 등)이 바뀌면 물리를 다시 돌려 재배치.
-  // 테마·검색어는 루프가 매 프레임 반영하므로(연속 실행) wake 불필요 — 검색 중 그래프가 들썩이지 않게.
+  // 레이아웃에 영향 주는 설정(간격·중력)만 물리를 다시 돌려 재배치. nodeScale·labels 같은 시각 설정은
+  // 물리 없이 아래 단발 재드로로 — 노드 크기 슬라이더 조작 시 그래프가 들썩이지 않게(cfg 전체 의존 X).
   const wakeRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     wakeRef.current?.();
-  }, [cfg]);
-  // 유휴(rAF 정지) 중에도 테마·강조색·검색어가 바뀌면 단발 재드로로 반영 — 레이아웃은 불변
+  }, [cfg.spread, cfg.gravity]);
+  // 유휴(rAF 정지) 중 테마·강조색·검색어·시각 설정(nodeScale·labels)이 바뀌면 단발 재드로 — 레이아웃 불변
   const redrawRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     redrawRef.current?.();
-  }, [settings.theme, settings.accent, query]);
+  }, [settings.theme, settings.accent, query, cfg.nodeScale, cfg.labels]);
   const pages = recent?.pages;
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
@@ -215,10 +214,6 @@ export function GraphView({
   );
   const cameraRef = useRef({ zoom: 1, panX: 0, panY: 0 });
   const posRef = useRef(new Map<string, { x: number; y: number }>());
-
-  useEffect(() => {
-    kickRef.current();
-  }, [cfg.nodeScale, cfg.spread, cfg.gravity]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -262,11 +257,6 @@ export function GraphView({
     // 테마 전환은 CSS 변수(ink 계열) 반영 후에 읽어야 해서 한 프레임 지연 후 재생성
     let pendingKey: string | null = null;
     const scaleOf = (n: GraphNode): number => n.r * cfgRef.current.nodeScale;
-    kickRef.current = () => {
-      alpha = Math.max(alpha, 0.4);
-      settled = false;
-      ensureLoop();
-    };
 
     const resize = (): void => {
       const rect = canvas.getBoundingClientRect();
