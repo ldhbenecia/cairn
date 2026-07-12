@@ -1,11 +1,13 @@
 import { BrowserWindow, dialog } from 'electron';
 import { existsSync } from 'node:fs';
-import { readdir, stat, writeFile } from 'node:fs/promises';
+import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { blocksToMarkdown } from '../shared/markdown';
-import { fetchPageContentAnyWorkspace } from './notion-client';
+import { journalFolder } from './journal-reader';
+import { fetchPageContentAnyWorkspace, type RecentCategory } from './notion-client';
 import { readSettings } from './settings';
+import { journalFileNameFor } from './worklog-sinks';
 
 export interface SaveResult {
   saved: boolean;
@@ -13,14 +15,33 @@ export interface SaveResult {
   error?: string;
 }
 
+// 1차 소스는 journal 파일 복사 — front-matter 가 그대로 실리고, 노션 미연동(로컬 온리)에서도
+// autoSync 가 동작한다 (plan 2026-07-05: 노션 콘텐츠 기반 → journal 복사 기반 전환).
+// journal 이 없는 항목(구버전 발행 등)만 기존 노션 fetch 로 폴백.
 export async function syncWorklogToFolder(opts: {
-  pageId: string;
+  category: RecentCategory;
+  date: string | null;
   fileBase: string;
   title: string;
-  date: string | null;
+  pageId: string | null;
 }): Promise<void> {
   const cfg = readSettings().export;
   if (!cfg.autoSync || !cfg.folder) return;
+
+  if (opts.date) {
+    const fileName = journalFileNameFor(opts.category, opts.date);
+    if (fileName) {
+      try {
+        const raw = await readFile(join(await journalFolder(), fileName), 'utf8');
+        await writeFile(join(cfg.folder, `${opts.fileBase}.md`), raw, 'utf8');
+        return;
+      } catch {
+        // journal 파일 없음/읽기 실패 — 노션 폴백으로 계속
+      }
+    }
+  }
+
+  if (!opts.pageId) return;
   const content = await fetchPageContentAnyWorkspace(opts.pageId);
   if (content.blocks.length === 0) return;
   const md = blocksToMarkdown(content.blocks, {

@@ -17,6 +17,7 @@ import { broadcast } from './broadcast';
 import { errorMessage } from './error-message';
 import { claudeEnv } from './claude-path';
 import { syncWorklogToFolder } from './export';
+import { buildExportTargets, type ExportTarget } from './export-targets';
 import { sendResultNotification } from './notifier';
 import { readSettings, type Settings } from './settings';
 import { CAIRN_ROOT } from './setup';
@@ -340,7 +341,8 @@ export async function runCore(
       emit('meta', `[exit] code=${exitCode ?? 'null'}${cancelled ? ' (cancelled)' : ''}`);
       if (exitCode === 0) emitStep('done');
       // totals·발행 날짜는 reset 전에 스냅샷 — reset 을 먼저 하면 항상 0/null 이 된다
-      const totals = Object.values(getBackfillCountsByDate()).reduce(
+      const countsByDate = getBackfillCountsByDate();
+      const totals = Object.values(countsByDate).reduce(
         (a, c) => ({ pr: a.pr + c.pr, commit: a.commit + c.commit }),
         { pr: 0, commit: 0 },
       );
@@ -387,23 +389,16 @@ export async function runCore(
             options.date ??
             lastPublishedDate ??
             `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-          // daily 백필 다건이면 발행된 날짜 전부 sync (기존엔 마지막 페이지만 나가던 문제)
-          const targets =
-            mode === 'daily' && Object.keys(publishedPages).length > 0
-              ? Object.entries(publishedPages).map(([date, pageId]) => ({
-                  pageId,
-                  fileBase: date,
-                  date,
-                }))
-              : lastPageId
-                ? [
-                    {
-                      pageId: lastPageId,
-                      fileBase: mode === 'daily' ? fallbackDate : `${fallbackDate}-${mode}`,
-                      date: fallbackDate,
-                    },
-                  ]
-                : [];
+          // daily 백필 다건이면 발행된 날짜 전부 sync. 노션 pageId 에 의존하지 않아
+          // 로컬 온리 발행에서도 autoSync 가 동작한다 (export-targets)
+          const targets = buildExportTargets({
+            mode,
+            fallbackDate,
+            lastPageId,
+            lastJournalFile,
+            countsByDate,
+            pagesByDate: publishedPages,
+          });
           // 60일 백필이면 targets 가 60건 — 무제한 동시 실행은 페이지마다 Notion fetch 라
           // 레이트리밋·버스트 유발. 동시성 4 로 제한(fire-and-forget 유지, run 완료는 안 막음).
           // 로그 스트림은 export 실패 라인까지 파일에 남도록 export 완료 후 close
@@ -455,8 +450,6 @@ export async function runCore(
   });
 }
 
-type ExportTarget = { pageId: string; fileBase: string; date: string };
-
 // 동시성 제한 export sync — targets 를 POOL 개씩만 병렬로. run 을 막지 않게 fire-and-forget.
 async function runExportSync(
   targets: ExportTarget[],
@@ -469,10 +462,11 @@ async function runExportSync(
       const t = targets[i++]!;
       try {
         await syncWorklogToFolder({
-          pageId: t.pageId,
+          category: t.category,
+          date: t.date,
           fileBase: t.fileBase,
           title: t.fileBase,
-          date: t.date,
+          pageId: t.pageId,
         });
       } catch (err) {
         emit('err', `[export] sync 실패: ${errorMessage(err)}`);
