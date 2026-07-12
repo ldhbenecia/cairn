@@ -163,6 +163,11 @@ contextBridge.exposeInMainWorld('cairn', {
         error?: string;
       }>,
     probeClaude: () => ipcRenderer.invoke('cairn:onboarding:probe-claude') as Promise<unknown>,
+    probeRepo: (path: string) =>
+      ipcRenderer.invoke('cairn:onboarding:probe-repo', path) as Promise<{
+        ok: boolean;
+        reason?: 'not-git' | 'no-email';
+      }>,
     finish: (payload: unknown) =>
       ipcRenderer.invoke('cairn:onboarding:finish', payload) as Promise<unknown>,
     pickFolder: () => ipcRenderer.invoke('cairn:onboarding:pick-folder') as Promise<string | null>,

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { withConcurrency } from '../common/concurrency.js';
-import { collectSourceErrors, computeDayTotals } from '../common/day-totals.js';
+import { collectSourceErrors, computeDayTotals, shaKey } from '../common/day-totals.js';
 import { CairnError } from '../common/error.js';
 import { GithubCollectorService } from '../github/github-collector.service.js';
 import { LocalGitCollectorService } from '../local-git/local-git-collector.service.js';
@@ -227,8 +227,24 @@ export class OrchestratorService {
 
     if (!options.dryRun && !options.force && opts.precheck !== false) {
       const pre = await this.notionPublisher.precheckDaily(date);
-      // no-target(노션 미연동)은 단락하지 않는다 — journal 가 1차 기록이라 런은 계속돼야 함 (ADR 0031)
-      if (pre && pre.kind !== 'no-target') {
+      // precheck API 에러(토큰 만료·노션 장애)는 '페이지 없음'과 다르다 — 로컬 일지가 이미 있으면
+      // 재요약 비용을 쓰지 않고 skip, 없으면 진행 (journal-first 라 요약은 로컬에 남고 노션 실패는 표면화)
+      if (pre?.kind === 'precheck-error') {
+        if (this.journalWriter.hasDaily(date)) {
+          this.logger.info(
+            { date, publishResult: { kind: 'skipped', reason: 'already-published' } },
+            'daily: notion precheck failed but journal exists — skip collect/summarize',
+          );
+          if (!opts.silent) {
+            await this.notification.notify(
+              'cairn 일지',
+              `${date} skip — 노션 확인 실패, 로컬 일지 있음 (--force 로 재생성)`,
+            );
+          }
+          return 'skipped';
+        }
+      } else if (pre && pre.kind !== 'no-target') {
+        // no-target(노션 미연동)은 단락하지 않는다 — journal 가 1차 기록이라 런은 계속돼야 함 (ADR 0031)
         this.logger.info(
           { date, publishResult: pre },
           'daily: precheck short-circuit — skip collect/summarize',
@@ -346,21 +362,22 @@ export class OrchestratorService {
     opts.onStep?.('publish');
     const publishStart = Date.now();
 
-    // 커밋 시각 24칸 히스토그램(머신 로컬 TZ, SHA 중복 제거) — journal frontmatter 와 로컬 통계가 공유
+    // 커밋 시각 24칸 히스토그램(머신 로컬 TZ, SHA 중복 제거) — journal frontmatter 와 로컬 통계가 공유.
+    // dedup 키는 day-totals 와 동일한 shaKey — local %h(가변 길이)와 GitHub slice(0,7) 불일치 대응
     const seen = new Set<string>();
     const stamps: string[] = [];
     for (const repo of localGitActivity?.repos ?? []) {
       for (const c of repo.commits) {
-        if (!seen.has(c.shortSha)) {
-          seen.add(c.shortSha);
+        if (!seen.has(shaKey(c.shortSha))) {
+          seen.add(shaKey(c.shortSha));
           stamps.push(c.authoredAt);
         }
       }
     }
     for (const pr of githubActivity?.prs ?? []) {
       for (const c of pr.commitsOnDate) {
-        if (!seen.has(c.shortSha)) {
-          seen.add(c.shortSha);
+        if (!seen.has(shaKey(c.shortSha))) {
+          seen.add(shaKey(c.shortSha));
           stamps.push(c.authoredAt);
         }
       }

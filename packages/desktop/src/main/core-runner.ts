@@ -346,7 +346,14 @@ export async function runCore(
       );
       const lastPublishedDate = getBackfillLastPublishedDate();
       const publishedPages = getBackfillPagesByDate();
+      const finalProgress = getRunProgress();
       resetBackfillTracking();
+      // 백필 배치에서 일부 날짜만 요약 실패한 경우 결과 전체를 '요약 실패'로 오표시하지 않는다 —
+      // 날짜별 실패는 progress.failedDates 가 이미 구분 표시. 배치 전 날짜가 실패했을 때만 유지
+      const batchTotal = finalProgress?.total ?? 0;
+      const summaryFailed =
+        ext.summaryFailed &&
+        (batchTotal <= 1 || (finalProgress?.failedDates.length ?? 0) >= batchTotal);
       const result: CoreResult = {
         ok: exitCode === 0,
         exitCode,
@@ -357,7 +364,7 @@ export async function runCore(
         journalFile: lastJournalFile,
         noActivity: finalNoActivity,
         cancelled,
-        summaryFailed: ext.summaryFailed,
+        summaryFailed,
         failureHint: exitCode === 0 ? null : ext.failureHint,
         journalWriteFailed: ext.journalWriteFailed,
         prCount: totals.pr,

@@ -122,6 +122,7 @@ export type NotionProbe = { ok: boolean; persons: { id: string; name: string }[]
 export type NotionPage = { id: string; title: string };
 export type NotionDb = { databaseId: string; dataSourceId: string; title: string };
 export type GithubProbe = { ok: boolean; login?: string; error?: string };
+export type LocalRepoProbe = { ok: boolean; reason?: 'not-git' | 'no-email' };
 export type ConnectionAccounts = {
   github: { label: string; login?: string }[];
   notion: { label: string; workspace?: string }[];
@@ -196,6 +197,7 @@ declare global {
           error?: string;
         }>;
         probeClaude: () => Promise<{ ok: boolean }>;
+        probeRepo: (path: string) => Promise<LocalRepoProbe>;
         finish: (payload: OnboardingPayload) => Promise<{ ok: boolean; error?: string }>;
         pickFolder: () => Promise<string | null>;
       };

@@ -19,7 +19,7 @@ export interface DayTotals {
 // (shortSha 로 중복 제거 — 같은 커밋이 로컬과 PR 양쪽에 잡혀도 한 번만).
 // GitHub 은 sha.slice(0,7) 고정, local-git 은 git %h(가변 — 충돌 시 8자 이상)라 같은 커밋이
 // 서로 다른 길이로 잡혀 dedup 이 실패, 이중 집계되던 문제. 공통 7자 prefix 로 정규화.
-const shaKey = (s: string): string => s.slice(0, 7);
+export const shaKey = (s: string): string => s.slice(0, 7);
 
 export function computeDayTotals(
   github: GithubActivity | null | undefined,

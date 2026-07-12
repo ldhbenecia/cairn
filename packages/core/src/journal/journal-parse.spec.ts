@@ -72,4 +72,25 @@ describe('blocksToWorklogSummary (재발행용 역방향 복원)', () => {
     expect(blocksToWorklogSummary([])).toBeNull();
     expect(blocksToWorklogSummary([{ type: 'heading_2', text: 'Summary' }])).toBeNull();
   });
+
+  it('paragraph 에 개행이 있어도 왕복에서 뒷문단이 유실되지 않는다', () => {
+    const original = {
+      paragraph: '첫 문단 요약.\n\n둘째 문단 — 세부 맥락.',
+      shareBullets: [],
+      doneBullets: ['[work] 작업'],
+      reviewedBullets: [],
+      inProgressBullets: [],
+      notesBullets: [],
+    };
+    const md = renderDailyJournalMarkdown({
+      date: '2026-07-12',
+      lang: 'ko',
+      summary: original,
+      prCount: 1,
+      commitCount: 1,
+      hours: [],
+    });
+    const restored = blocksToWorklogSummary(parseJournalFile(md).blocks);
+    expect(restored?.paragraph).toBe('첫 문단 요약.\n\n둘째 문단 — 세부 맥락.');
+  });
 });
