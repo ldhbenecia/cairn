@@ -3,6 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { withConcurrency } from '../common/concurrency.js';
 import { collectSourceErrors, computeDayTotals, shaKey } from '../common/day-totals.js';
 import { CairnError } from '../common/error.js';
+import { emitParentEvent } from '../common/parent-events.js';
 import { GithubCollectorService } from '../github/github-collector.service.js';
 import { LocalGitCollectorService } from '../local-git/local-git-collector.service.js';
 import { NotificationService } from '../notification/notification.service.js';
@@ -240,6 +241,7 @@ export class OrchestratorService {
             { date, publishResult: { kind: 'skipped', reason: 'already-published' } },
             'daily: notion precheck failed but journal exists — skip collect/summarize',
           );
+          emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
           if (!opts.silent) {
             await this.notification.notify(
               'cairn 일지',
@@ -254,6 +256,12 @@ export class OrchestratorService {
           { date, publishResult: pre },
           'daily: precheck short-circuit — skip collect/summarize',
         );
+        emitParentEvent({
+          type: 'publish-result',
+          kind: pre.kind,
+          pageId: 'pageId' in pre ? pre.pageId : null,
+          url: null,
+        });
         if (!opts.silent) {
           await this.notify(date, pre, {
             prCount: 0,
@@ -270,6 +278,7 @@ export class OrchestratorService {
           { date, publishResult: { kind: 'skipped', reason: 'already-published' } },
           'daily: journal file exists — skip collect/summarize',
         );
+        emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
         if (!opts.silent) {
           await this.notification.notify(
             'cairn 일지',
@@ -281,6 +290,7 @@ export class OrchestratorService {
     }
 
     opts.onStep?.('collect');
+    emitParentEvent({ type: 'date-step', date, step: 'collect' });
     const collectStart = Date.now();
     const [githubActivity, localGitActivity] = await Promise.all([
       wantsGithub
@@ -338,6 +348,7 @@ export class OrchestratorService {
           { date },
           'daily: no activity collected — skipping summarizer + publisher',
         );
+        emitParentEvent({ type: 'no-activity', date });
         if (!opts.silent) {
           await this.notification.notify('cairn 일지', `${date} 활동 없음 — 일지 생략`);
         }
@@ -354,6 +365,7 @@ export class OrchestratorService {
     this.logger.info({ date, prCount, commitCountTotal: commitCount }, 'daily: day totals');
 
     opts.onStep?.('summarize');
+    emitParentEvent({ type: 'date-step', date, step: 'summarize' });
     const summarizeStart = Date.now();
     const summary = await this.summarizer.summarize(
       {
@@ -370,6 +382,7 @@ export class OrchestratorService {
     // '성공'으로 만들어 가짜 발행이 남던 문제 방지, 발행 전에 던져 기존 페이지도 안 건드림
     if (!summary) {
       this.logger.warn({ date }, 'daily: summary generation failed — aborting publish');
+      emitParentEvent({ type: 'summary-failed', date });
       throw CairnError.from(
         new Error('요약 생성 실패 — Claude 세션/쿼터를 확인한 뒤 다시 발행하세요'),
         'summarizer',
@@ -377,6 +390,7 @@ export class OrchestratorService {
     }
 
     opts.onStep?.('publish');
+    emitParentEvent({ type: 'date-step', date, step: 'publish' });
     const publishStart = Date.now();
 
     // 커밋 시각 24칸 히스토그램(머신 로컬 TZ, SHA 중복 제거) — journal frontmatter 와 로컬 통계가 공유.
@@ -412,13 +426,15 @@ export class OrchestratorService {
     };
     let journalWritten = false;
     try {
-      this.journalWriter.writeDaily(journalInput);
+      const written = this.journalWriter.writeDaily(journalInput);
       journalWritten = true;
+      emitParentEvent({ type: 'journal-written', fileName: written.fileName });
     } catch (err) {
       this.logger.warn(
         { date, error: CairnError.from(err, 'config') },
         'daily: journal write failed',
       );
+      emitParentEvent({ type: 'journal-write-failed' });
     }
 
     // 이번 발행에서 노션 제외 — 결과는 미연동과 동일한 no-target 모양 (데스크톱 파싱 계약 유지)
@@ -433,6 +449,12 @@ export class OrchestratorService {
           lang: options.lang,
         });
     const publishMs = Date.now() - publishStart;
+    emitParentEvent({
+      type: 'publish-result',
+      kind: result.kind,
+      pageId: 'pageId' in result ? result.pageId : null,
+      url: 'url' in result ? result.url : null,
+    });
 
     if (journalWritten && (result.kind === 'created' || result.kind === 'recreated')) {
       try {
@@ -557,6 +579,12 @@ export class OrchestratorService {
           { period, rangeStart: start, rangeEnd: end, publishResult: pre },
           'rollup: precheck short-circuit — skip collect/summarize',
         );
+        emitParentEvent({
+          type: 'publish-result',
+          kind: pre.kind,
+          pageId: 'pageId' in pre ? pre.pageId : null,
+          url: null,
+        });
         await this.notifyRollup(period, start, end, pre, false);
         return;
       }
@@ -573,6 +601,7 @@ export class OrchestratorService {
             },
             'rollup: journal file exists — skip collect/summarize',
           );
+          emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
           await this.notification.notify(
             `cairn ${rollupKor(period)}`,
             `${start} ~ ${end} skip — 로컬 정리 있음 (--force 로 재생성)`,
@@ -621,6 +650,7 @@ export class OrchestratorService {
         { period: activity.period, rangeStart: activity.rangeStart },
         'rollup: summary generation failed — aborting publish',
       );
+      emitParentEvent({ type: 'summary-failed', date: activity.rangeStart });
       throw CairnError.from(
         new Error('롤업 요약 생성 실패 — Claude 세션/쿼터를 확인한 뒤 다시 발행하세요'),
         'summarizer',
@@ -640,13 +670,15 @@ export class OrchestratorService {
     };
     let journalWritten = false;
     try {
-      this.journalWriter.writeRollup(rollupJournalInput);
+      const written = this.journalWriter.writeRollup(rollupJournalInput);
       journalWritten = true;
+      emitParentEvent({ type: 'journal-written', fileName: written.fileName });
     } catch (err) {
       this.logger.warn(
         { period, rangeStart: activity.rangeStart, error: CairnError.from(err, 'config') },
         'rollup: journal write failed',
       );
+      emitParentEvent({ type: 'journal-write-failed' });
     }
 
     // 이번 발행에서 노션 제외 — 결과는 미연동과 동일한 no-target 모양 (데스크톱 파싱 계약 유지)
@@ -658,6 +690,12 @@ export class OrchestratorService {
           summary,
           lang: options.lang,
         });
+    emitParentEvent({
+      type: 'publish-result',
+      kind: result.kind,
+      pageId: 'pageId' in result ? result.pageId : null,
+      url: 'url' in result ? result.url : null,
+    });
 
     if (journalWritten && (result.kind === 'created' || result.kind === 'recreated')) {
       try {
