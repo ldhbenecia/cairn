@@ -433,7 +433,6 @@ export function buildDoneBlocks(
   const groups = new Map<string, string[]>();
   const origCase = new Map<string, string>();
   const ungrouped: string[] = [];
-  const titleCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
   // multi-account 에선 설정된 계정 라벨만 그룹 — [project] 프리픽스(local-git bullet)가
   // 가짜 계정 heading 으로 렌더되지 않게. 대소문자 무시 매칭.
   const accountKeys = new Set(accountLabels.map((a) => a.toLowerCase()));
@@ -455,7 +454,8 @@ export function buildDoneBlocks(
   if (accountLabels.length >= 2) {
     const out: unknown[] = ungrouped.map((b) => bulletItem(b));
     for (const acct of accountLabels) {
-      out.push(heading3(titleCase(acct)));
+      // 설정 라벨 verbatim — titleCase 는 ldhbenecia→Ldhbenecia, iOS→Ios 로 변형
+      out.push(heading3(acct));
       const items = groups.get(acct.toLowerCase()) ?? [];
       if (items.length === 0) out.push(paragraph('None'));
       else for (const text of items) out.push(bulletItem(text));
@@ -467,7 +467,7 @@ export function buildDoneBlocks(
   if (groups.size === 0) return bullets.map((t) => bulletItem(t));
   const out: unknown[] = ungrouped.map((b) => bulletItem(b));
   for (const key of order) {
-    out.push(heading3(titleCase(origCase.get(key)!)));
+    out.push(heading3(origCase.get(key)!));
     for (const text of groups.get(key)!) out.push(bulletItem(text));
   }
   return out;

@@ -52,6 +52,15 @@ describe('buildDoneBlocks', () => {
     expect(textOf(blocks[3])).toBe('None');
   });
 
+  it('계정 라벨 대소문자를 변형하지 않고 그대로 heading 에 쓴다', () => {
+    const blocks = buildDoneBlocks(
+      ['[ldhbenecia] cairn — 작업', '[iOS] app — 작업'],
+      ['ldhbenecia', 'iOS'],
+    );
+    expect(textOf(blocks[0])).toBe('ldhbenecia');
+    expect(textOf(blocks[2])).toBe('iOS');
+  });
+
   it('multi-account 에서 계정 라벨이 아닌 [project] 프리픽스는 가짜 계정 heading 이 되지 않는다', () => {
     const blocks = buildDoneBlocks(
       ['[Work] team-api — fix', '[cairn] streak 계산 수정'],
