@@ -37,7 +37,6 @@ function makeDaily(overrides: {
     unusable('stats') as never,
     unusable('journalWriter') as never,
     unusable('journalSource') as never,
-    // 활동 0건 판정 전에 메모를 읽는다 (메모-온리 발행) — 이 스펙들은 메모 없음 가정
     { forDate: vi.fn().mockReturnValue([]) } as never,
     logger() as never,
   );

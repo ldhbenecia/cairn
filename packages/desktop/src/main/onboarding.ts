@@ -40,10 +40,8 @@ const isStr = (v: unknown): v is string => typeof v === 'string' && v.length > 0
 
 export type LocalRepoProbe = { ok: boolean; reason?: 'not-git' | 'no-email' };
 
-// 온보딩에서 로컬 저장소를 추가하는 즉시 인라인 검증 — 발행 시점(collector 의 repos[].error)에야
-// 드러나던 .git 부재·user.email 미설정을 미리 보여준다. git 실행 불가(미설치 등)는 판정 보류(ok)
 export async function probeLocalRepo(path: string): Promise<LocalRepoProbe> {
-  // .git 은 디렉토리(일반)·파일(worktree/submodule) 둘 다 가능 — existsSync 가 모두 커버
+  // .git 은 dir·file(worktree) 둘 다 — existsSync 커버
   if (!isStr(path) || !existsSync(join(path, '.git'))) return { ok: false, reason: 'not-git' };
   try {
     const { stdout } = await execFileAsync('git', ['-C', path, 'config', 'user.email'], {
@@ -51,7 +49,7 @@ export async function probeLocalRepo(path: string): Promise<LocalRepoProbe> {
     });
     return stdout.trim() ? { ok: true } : { ok: false, reason: 'no-email' };
   } catch (err) {
-    // exit 1 = user.email 미설정. ENOENT(git 없음)·타임아웃은 여기서 판정하지 않는다
+    // exit 1 = user.email 미설정 — ENOENT·타임아웃은 판정 보류
     if ((err as { code?: unknown }).code === 1) return { ok: false, reason: 'no-email' };
     return { ok: true };
   }

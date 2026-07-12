@@ -10,11 +10,11 @@ const MEMOS_DIR = join(homedir(), '.cairn');
 const MEMOS_PATH = join(MEMOS_DIR, 'memos.json');
 
 export const MAX_MEMO_CHARS = 300;
-// core 읽기 상한(memo-file.ts MAX_MEMOS_PER_DAY)과 동일 — 저장은 됐는데 병합에서 잘리는 항목이 없게
+// core 읽기 상한(memo-file.ts)과 일치
 export const MAX_MEMOS_PER_DAY = 20;
 const KEEP_DAYS = 60;
 
-// 로컬 오늘 날짜(YYYY-MM-DD) — KST 단정 금지(timezone 룰)
+// 로컬 날짜 — KST 단정 금지 (timezone 룰)
 export function todayLocalIsoDate(now = new Date()): string {
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -37,7 +37,6 @@ export function parseMemosFile(raw: string): MemosFile {
     for (const e of entries) {
       const text = (e as { text?: unknown } | null)?.text;
       const at = (e as { at?: unknown } | null)?.at;
-      // at 누락은 core 파서와 동일하게 수용 — 손편집된 파일의 항목을 RMW 가 지우지 않게
       if (typeof text === 'string') list.push({ text, at: typeof at === 'string' ? at : '' });
     }
     if (list.length > 0) out[date] = list;
@@ -49,7 +48,6 @@ export function appendMemoEntry(file: MemosFile, date: string, entry: MemoEntry)
   return { ...file, [date]: [...(file[date] ?? []), entry] };
 }
 
-// 오래된 날짜 정리 — 발행이 안 지워도 파일이 무한히 크지 않게 (문자열 비교로 충분: ISO 날짜 키)
 export function pruneBefore(file: MemosFile, cutoffDate: string): MemosFile {
   const out: MemosFile = {};
   for (const [date, entries] of Object.entries(file)) {
@@ -60,7 +58,7 @@ export function pruneBefore(file: MemosFile, cutoffDate: string): MemosFile {
 
 export function addMemo(rawText: string): { ok: boolean; count: number } {
   const text = rawText.trim();
-  // 상한 초과는 자르지 않고 거부 — truncate 가 토큰·이메일을 반토막 내면 core 의 egress 패턴 매칭을 피해간다
+  // truncate 금지 — 반토막 나면 core egress 패턴 회피
   if (!text || text.length > MAX_MEMO_CHARS) return { ok: false, count: 0 };
   const now = new Date();
   const date = todayLocalIsoDate(now);
@@ -69,17 +67,16 @@ export function addMemo(rawText: string): { ok: boolean; count: number } {
   );
   try {
     mkdirSync(MEMOS_DIR, { recursive: true });
-    // 락 안에서 read-modify-write — forked core(발행)와의 lost-update 방지 (worklog-stats 와 동일)
+    // 락 안 read-modify-write — forked core 와 lost-update 방지
     return withFileLock(MEMOS_PATH, () => {
       let file: MemosFile = {};
       try {
         file = parseMemosFile(readFileSync(MEMOS_PATH, 'utf8'));
       } catch {
-        // 파일 없음/깨짐 — 새로 시작
+        /* 파일 없음/깨짐 — 빈 상태 */
       }
       const pruned = pruneBefore(file, cutoff);
       const todayCount = pruned[date]?.length ?? 0;
-      // '저장은 됐는데 병합에서 잘리는' 항목이 안 생기게 core 읽기 상한과 동일하게 거부
       if (todayCount >= MAX_MEMOS_PER_DAY) return { ok: false, count: todayCount };
       const next = appendMemoEntry(pruned, date, {
         text,

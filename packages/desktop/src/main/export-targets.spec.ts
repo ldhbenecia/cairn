@@ -28,7 +28,6 @@ describe('buildExportTargets', () => {
       fileBase: '2026-07-10',
       pageId: 'page-a',
     });
-    // 노션 페이지가 없어도(로컬 온리) 대상에 포함 — journal 복사가 1차 소스
     expect(targets[1]!.pageId).toBeNull();
   });
 

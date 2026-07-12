@@ -83,7 +83,6 @@ export class OrchestratorService {
     const targetDates = generatePastDates(options.date, options.backfillDays);
     const rangeStart = targetDates[0]!;
     const rangeEnd = targetDates[targetDates.length - 1]!;
-    // skipNotion 은 노션 조회·재발행도 건너뛴다 — hasDaily(journal) 필터가 중복 재요약을 막는다
     const published =
       options.force || options.skipNotion
         ? new Set<string>()
@@ -238,12 +237,10 @@ export class OrchestratorService {
     }
 
     if (!options.dryRun && !options.force && opts.precheck !== false) {
-      // skipNotion 이면 노션 precheck 를 하지 않는다 — no-target 과 동일하게 journal 존재만 판단
       const pre = options.skipNotion
         ? ({ kind: 'no-target' } as const)
         : await this.notionPublisher.precheckDaily(date);
-      // precheck API 에러(토큰 만료·노션 장애)는 '페이지 없음'과 다르다 — 로컬 일지가 이미 있으면
-      // 재요약 비용을 쓰지 않고 skip, 없으면 진행 (journal-first 라 요약은 로컬에 남고 노션 실패는 표면화)
+      // precheck 에러 + 일지 있음 → 재요약 없이 skip (journal-first)
       if (pre?.kind === 'precheck-error') {
         if (this.journalWriter.hasDaily(date)) {
           this.logger.info(
@@ -350,8 +347,7 @@ export class OrchestratorService {
           first.error.status,
         );
       }
-      // 활동 0건이어도 그날 quick capture 메모가 있으면 발행한다 — 회의·설계·학습만 한 날이
-      // 캡처의 대상 시나리오인데, 스킵하면 메모가 어디에도 실리지 않고 60일 후 소멸 (ADR 0032)
+      // 활동 0건 + 메모 → 발행 — 미발행 메모 60일 소멸 방지 (ADR 0032)
       if (memos.length === 0) {
         this.logger.info(
           { date },
@@ -402,8 +398,7 @@ export class OrchestratorService {
     emitParentEvent({ type: 'date-step', date, step: 'publish' });
     const publishStart = Date.now();
 
-    // 커밋 시각 24칸 히스토그램(머신 로컬 TZ, SHA 중복 제거) — journal frontmatter 와 로컬 통계가 공유.
-    // dedup 키는 day-totals 와 동일한 shaKey — local %h(가변 길이)와 GitHub slice(0,7) 불일치 대응
+    // 커밋 시각 24칸 히스토그램(머신 로컬 TZ, shaKey 로 SHA 중복 제거) — journal frontmatter 와 로컬 통계가 공유
     const seen = new Set<string>();
     const stamps: string[] = [];
     for (const repo of localGitActivity?.repos ?? []) {
@@ -446,7 +441,7 @@ export class OrchestratorService {
       emitParentEvent({ type: 'journal-write-failed' });
     }
 
-    // 이번 발행에서 노션 제외 — 결과는 미연동과 동일한 no-target 모양 (데스크톱 파싱 계약 유지)
+    // skipNotion 은 no-target 모양 — 데스크톱 파싱 계약 유지
     const result: PublishWorklogResult = options.skipNotion
       ? { kind: 'no-target' }
       : await this.notionPublisher.publish({
@@ -464,7 +459,6 @@ export class OrchestratorService {
       pageId: 'pageId' in result ? result.pageId : null,
       url: 'url' in result ? result.url : null,
     });
-    // 배치 UI 의 날짜별 수치·export 대상 산정 소스 ('daily: publish done' 스크래핑 대응)
     emitParentEvent({
       type: 'day-done',
       date,
@@ -585,7 +579,6 @@ export class OrchestratorService {
 
   private async runRollup(period: 'weekly' | 'monthly', options: RunOptions): Promise<void> {
     if (!options.dryRun && !options.force) {
-      // skipNotion 이면 노션 precheck 를 하지 않는다 — no-target 과 동일하게 journal 존재만 판단
       const pre = options.skipNotion
         ? ({ kind: 'no-target' } as const)
         : await this.rollupPublisher.precheck(period, options.date);
@@ -698,7 +691,7 @@ export class OrchestratorService {
       emitParentEvent({ type: 'journal-write-failed' });
     }
 
-    // 이번 발행에서 노션 제외 — 결과는 미연동과 동일한 no-target 모양 (데스크톱 파싱 계약 유지)
+    // skipNotion 은 no-target 모양 — 데스크톱 파싱 계약 유지
     const result: PublishRollupResult = options.skipNotion
       ? { kind: 'no-target' }
       : await this.rollupPublisher.publish({

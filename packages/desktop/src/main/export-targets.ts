@@ -5,8 +5,7 @@ export type ExportTarget = {
   pageId: string | null;
 };
 
-// export sync 대상 산정 — 노션 pageId 에 의존하지 않는다 (로컬 온리 발행에서 autoSync 가
-// 무동작이던 문제). daily 배치는 활동이 있어 발행된 날짜 전부, rollup 은 기간 라벨 파일 하나.
+// 노션 pageId 비의존 — 로컬 온리 autoSync
 export function buildExportTargets(input: {
   mode: 'daily' | 'weekly' | 'monthly';
   fallbackDate: string;
@@ -16,7 +15,6 @@ export function buildExportTargets(input: {
   pagesByDate: Record<string, string>;
 }): ExportTarget[] {
   if (input.mode !== 'daily') {
-    // 노션 페이지든 journal 이든 하나는 있어야 sync 할 소스가 있다
     if (!input.lastPageId && !input.lastJournalFile) return [];
     return [
       {
@@ -27,7 +25,7 @@ export function buildExportTargets(input: {
       },
     ];
   }
-  // countsByDate 는 'daily: publish done' 에서만 채워진다 — 활동 0(no-activity) 날짜 제외
+  // countsByDate 는 발행 완료 날짜만 — no-activity 제외
   const active = Object.entries(input.countsByDate).filter(([, c]) => c.pr + c.commit > 0);
   if (active.length > 0) {
     return active.map(([date]) => ({
