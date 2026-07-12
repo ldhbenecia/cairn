@@ -37,6 +37,7 @@ export type CoreRunOptions = {
   backfillDays?: number;
   force?: boolean;
   date?: string; // "YYYY-MM-DD" — 미지정 시 엔진이 로컬 today 사용 (롤업 기간 anchor 등)
+  skipNotion?: boolean; // 이번 발행에서 노션 제외 — journal(1차 기록)·통계는 그대로
 };
 
 export type { PublishKind } from './core-runner-extract';
@@ -254,6 +255,7 @@ export async function runCore(
   if (options.backfillDays !== undefined) args.push(`--backfill-days=${options.backfillDays}`);
   if (options.force) args.push('--force');
   if (options.date) args.push(`--date=${options.date}`);
+  if (options.skipNotion) args.push('--skip-notion');
   args.push(`--lang=${settings.language}`);
 
   emit('meta', `[fork] ${CORE_ENTRY} ${args.join(' ')}`);

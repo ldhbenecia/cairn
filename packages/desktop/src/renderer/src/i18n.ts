@@ -194,6 +194,8 @@ const STRINGS = {
     'publish.backfill.daysSuffix': '일',
     'publish.backfill.concurrent': '날짜별로 수집·요약·발행을 동시에 처리합니다.',
     'publish.force': '이미 발행됐어도 덮어쓰기',
+    'publish.skipNotion': '이번 발행에서 노션 제외',
+    'publish.skipNotionDesc': '로컬 일지·통계만 기록하고 노션 발행은 건너뜁니다',
     'publish.start': '발행 시작',
     'publish.busy': '다른 작업 실행 중',
     'publish.busyMsg':
@@ -658,6 +660,8 @@ const STRINGS = {
     'publish.backfill.daysSuffix': ' days',
     'publish.backfill.concurrent': 'Collecting, summarizing & publishing each day in parallel.',
     'publish.force': 'Overwrite even if already published',
+    'publish.skipNotion': 'Skip Notion for this publish',
+    'publish.skipNotionDesc': 'Writes the local journal and stats only — no Notion page',
     'publish.start': 'Publish',
     'publish.busy': 'Another task running',
     'publish.busyMsg':

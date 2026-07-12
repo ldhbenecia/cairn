@@ -82,13 +82,15 @@ export class OrchestratorService {
     const targetDates = generatePastDates(options.date, options.backfillDays);
     const rangeStart = targetDates[0]!;
     const rangeEnd = targetDates[targetDates.length - 1]!;
-    const published = options.force
-      ? new Set<string>()
-      : await this.notionPublisher.findPublishedDates(rangeStart, rangeEnd);
+    // skipNotion 은 노션 조회·재발행도 건너뛴다 — hasDaily(journal) 필터가 중복 재요약을 막는다
+    const published =
+      options.force || options.skipNotion
+        ? new Set<string>()
+        : await this.notionPublisher.findPublishedDates(rangeStart, rangeEnd);
     // journal 은 있는데 노션에 없는 날짜 — 과거 실행에서 journal 쓰기 성공 후 Notion 발행만
     // 실패한 케이스. 아래 hasDaily 필터가 이 날짜를 backfill 에서 영구 제외하던 문제를,
     // 재요약 없이 journal 내용 그대로 재발행하는 경로로 복구한다 (리뷰 PR-B)
-    if (!options.force) {
+    if (!options.force && !options.skipNotion) {
       await this.republishFromJournal(targetDates, published, options);
     }
 
@@ -226,7 +228,10 @@ export class OrchestratorService {
     }
 
     if (!options.dryRun && !options.force && opts.precheck !== false) {
-      const pre = await this.notionPublisher.precheckDaily(date);
+      // skipNotion 이면 노션 precheck 를 하지 않는다 — no-target 과 동일하게 journal 존재만 판단
+      const pre = options.skipNotion
+        ? ({ kind: 'no-target' } as const)
+        : await this.notionPublisher.precheckDaily(date);
       // precheck API 에러(토큰 만료·노션 장애)는 '페이지 없음'과 다르다 — 로컬 일지가 이미 있으면
       // 재요약 비용을 쓰지 않고 skip, 없으면 진행 (journal-first 라 요약은 로컬에 남고 노션 실패는 표면화)
       if (pre?.kind === 'precheck-error') {
@@ -404,14 +409,17 @@ export class OrchestratorService {
       );
     }
 
-    const result = await this.notionPublisher.publish({
-      date,
-      force: options.force,
-      github: githubActivity,
-      localGit: localGitActivity,
-      summary,
-      lang: options.lang,
-    });
+    // 이번 발행에서 노션 제외 — 결과는 미연동과 동일한 no-target 모양 (데스크톱 파싱 계약 유지)
+    const result: PublishWorklogResult = options.skipNotion
+      ? { kind: 'no-target' }
+      : await this.notionPublisher.publish({
+          date,
+          force: options.force,
+          github: githubActivity,
+          localGit: localGitActivity,
+          summary,
+          lang: options.lang,
+        });
     const publishMs = Date.now() - publishStart;
 
     if (journalWritten && (result.kind === 'created' || result.kind === 'recreated')) {
@@ -526,7 +534,10 @@ export class OrchestratorService {
 
   private async runRollup(period: 'weekly' | 'monthly', options: RunOptions): Promise<void> {
     if (!options.dryRun && !options.force) {
-      const pre = await this.rollupPublisher.precheck(period, options.date);
+      // skipNotion 이면 노션 precheck 를 하지 않는다 — no-target 과 동일하게 journal 존재만 판단
+      const pre = options.skipNotion
+        ? ({ kind: 'no-target' } as const)
+        : await this.rollupPublisher.precheck(period, options.date);
       // no-target(노션 미연동)은 단락하지 않는다 — journal 가 1차 기록 (ADR 0031)
       if (pre && pre.kind !== 'no-target') {
         const { start, end } = periodRange(period, options.date);
@@ -626,12 +637,15 @@ export class OrchestratorService {
       );
     }
 
-    const result = await this.rollupPublisher.publish({
-      activity,
-      force: options.force,
-      summary,
-      lang: options.lang,
-    });
+    // 이번 발행에서 노션 제외 — 결과는 미연동과 동일한 no-target 모양 (데스크톱 파싱 계약 유지)
+    const result: PublishRollupResult = options.skipNotion
+      ? { kind: 'no-target' }
+      : await this.rollupPublisher.publish({
+          activity,
+          force: options.force,
+          summary,
+          lang: options.lang,
+        });
 
     if (journalWritten && (result.kind === 'created' || result.kind === 'recreated')) {
       try {

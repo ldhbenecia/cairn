@@ -50,7 +50,12 @@ const boot = ipcRenderer.sendSync('cairn:bootstrap-sync') as {
 
 export type CoreMode = 'daily' | 'weekly' | 'monthly';
 
-export type CoreRunOptions = { backfillDays?: number; force?: boolean; date?: string };
+export type CoreRunOptions = {
+  backfillDays?: number;
+  force?: boolean;
+  date?: string;
+  skipNotion?: boolean;
+};
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
 

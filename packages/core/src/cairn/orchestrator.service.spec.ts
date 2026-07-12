@@ -102,6 +102,7 @@ const dailyOptions: RunOptions = {
   lookbackDays: 1,
   sources: 'all',
   lang: 'ko',
+  skipNotion: false,
 };
 
 const emptyRollup = (error?: CairnError): RollupActivity => ({
@@ -287,5 +288,58 @@ describe('daily precheck API 에러 구분 (페이지 없음과 다름)', () => 
     const { service, notify } = makePrecheckError(false, true);
     await expect(service.run(nonForce)).resolves.toBeUndefined();
     expect(notify).toHaveBeenCalledWith('cairn 일지', expect.stringContaining('활동 없음'));
+  });
+});
+
+describe('skipNotion — 이번 발행에서 노션 제외', () => {
+  it('노션 publisher 를 일절 호출하지 않고 journal 기록으로 완료된다', async () => {
+    const notify = vi.fn().mockResolvedValue(undefined);
+    const writeDaily = vi.fn().mockReturnValue({ fileName: '2026-07-09.md', path: 'x' });
+    const summary = {
+      paragraph: '요약',
+      shareBullets: [],
+      doneBullets: ['작업'],
+      reviewedBullets: [],
+      inProgressBullets: [],
+      notesBullets: [],
+    };
+    const service = new OrchestratorService(
+      { collect: vi.fn().mockResolvedValue(null) } as never,
+      {
+        collect: vi.fn().mockResolvedValue({
+          repos: [
+            {
+              repo: 'cairn',
+              commitCount: 1,
+              commits: [
+                {
+                  shortSha: 'abc1234',
+                  subject: '작업',
+                  authoredAt: '2026-07-09T10:00:00+09:00',
+                  branch: null,
+                  pushed: true,
+                },
+              ],
+            },
+          ],
+        }),
+      } as never,
+      unusable('notionPublisher') as never,
+      { summarize: vi.fn().mockResolvedValue(summary) } as never,
+      { notify } as never,
+      unusable('rollupCollector') as never,
+      unusable('rollupSummarizer') as never,
+      unusable('rollupPublisher') as never,
+      { record: vi.fn() } as never,
+      { writeDaily, hasDaily: vi.fn().mockReturnValue(false) } as never,
+      unusable('journalSource') as never,
+      { forDate: vi.fn().mockReturnValue([]) } as never,
+      logger() as never,
+    );
+    await expect(
+      service.run({ ...dailyOptions, force: false, skipNotion: true }),
+    ).resolves.toBeUndefined();
+    expect(writeDaily).toHaveBeenCalledTimes(1);
+    expect(notify).toHaveBeenCalledWith('cairn 일지', expect.stringContaining('로컬 기록 완료'));
   });
 });
