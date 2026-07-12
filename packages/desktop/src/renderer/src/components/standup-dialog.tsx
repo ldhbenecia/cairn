@@ -59,6 +59,11 @@ export function StandupDialog({
       .then((c) => {
         // stale 응답 가드 — source 가 그새 다른 페이지로 바뀌었으면 버린다
         if (!mounted.current || builtFor.current !== source.pageId) return;
+        // IPC 응답 방어 — blocks 가 없으면 조립 대신 실패 문구 (봇 리뷰 #297)
+        if (!Array.isArray(c?.blocks)) {
+          setFailed(true);
+          return;
+        }
         setText(
           buildStandupText(c.blocks, source.date ?? '', {
             yesterday: t('standup.yesterday'),

@@ -92,7 +92,10 @@ export function PublishDialog({
   const recalledEndedAt = useRef(0);
   const isToday = date === todayIso();
 
+  // 다이얼로그가 앱 수명 내내 마운트돼 있어, 열 때마다 재조회 — 환경설정에서 노션 연동을
+  // 추가/해제한 뒤에도 토글 노출이 최신으로 (봇 리뷰 #300)
   useEffect(() => {
+    if (!open) return;
     void window.cairn
       .readConfig()
       .then((c) => {
@@ -100,7 +103,7 @@ export function PublishDialog({
         setNotionConnected(Array.isArray(ws) && ws.length > 0);
       })
       .catch(() => {});
-  }, []);
+  }, [open]);
 
   // runningMode 만으론 시작 시 자동 발행이 도는 걸 모르므로 전역 busy·mode 를 따로 확인
   const [externalBusy, setExternalBusy] = useState(false);
