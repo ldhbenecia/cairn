@@ -1,6 +1,11 @@
 appId: io.cairn.desktop
 afterPack: scripts/adhoc-sign.cjs
 productName: Cairn
+# cairn:// 딥링크 (Shortcuts/Raycast 퀵 캡처) — macOS 는 Info.plist 선언이 있어야 스킴이 열린다
+protocols:
+  - name: Cairn
+    schemes:
+      - cairn
 directories:
   output: dist
   buildResources: resources

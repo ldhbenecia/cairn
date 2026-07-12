@@ -29,6 +29,10 @@ const STRINGS = {
     'notify.testTitle': 'cairn 알림 테스트',
     'notify.testBody': '이 알림이 보이면 발행 완료 알림도 정상으로 떠요',
 
+    'capture.deeplinkTitle': '퀵 캡처',
+    'capture.deeplinkSaved': '메모 저장됨 — 발행 시 일지에 병합',
+    'capture.deeplinkFail': '메모 저장 안 됨 — 비어 있거나 300자 초과',
+
     'tray.tooltip': 'cairn — 자동 작업 일지',
     'tray.daily': '오늘 일지 발행',
     'tray.weekly': '이번 주 정리',
@@ -66,6 +70,10 @@ const STRINGS = {
     'notify.autoConfirm': 'Publish {mode}? Click to confirm',
     'notify.testTitle': 'cairn notification test',
     'notify.testBody': 'If you can see this, publish notifications work too',
+
+    'capture.deeplinkTitle': 'Quick capture',
+    'capture.deeplinkSaved': 'Memo saved — merged at publish',
+    'capture.deeplinkFail': 'Memo not saved — empty or over 300 chars',
 
     'tray.tooltip': 'cairn — automatic worklog',
     'tray.daily': 'Publish today',
