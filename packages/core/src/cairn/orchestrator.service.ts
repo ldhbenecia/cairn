@@ -21,6 +21,7 @@ import { periodRange } from '../rollup/period-range.js';
 import { DailySummarizerService } from '../summarizer/daily-summarizer.service.js';
 import { JournalSourceService } from '../journal/journal-source.service.js';
 import { JournalWriterService } from '../journal/journal-writer.service.js';
+import { MemoSourceService } from '../memos/memo-source.service.js';
 import { WorklogStatsService } from '../worklog-stats/worklog-stats.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
 
@@ -42,6 +43,7 @@ export class OrchestratorService {
     private readonly stats: WorklogStatsService,
     private readonly journalWriter: JournalWriterService,
     private readonly journalSource: JournalSourceService,
+    private readonly memoSource: MemoSourceService,
     @InjectPinoLogger(OrchestratorService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -325,6 +327,7 @@ export class OrchestratorService {
         date,
         github: githubActivity,
         localGit: localGitActivity,
+        memos: this.memoSource.forDate(date),
       },
       options.lang,
     );

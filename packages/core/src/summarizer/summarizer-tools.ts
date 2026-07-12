@@ -14,6 +14,8 @@ export interface SummarizerInput {
   date: string;
   github: GithubActivity | null;
   localGit: LocalGitActivity | null;
+  // quick capture 수동 메모 — 읽기 시점에 egress drop 검사를 통과한 텍스트만 (MemoSourceService)
+  memos?: readonly string[];
 }
 
 export const submitSummarySchema = z.object({
@@ -93,6 +95,7 @@ export interface ActivityPayload {
   };
   done: { prs: DonePrItem[]; commits: DoneCommitItem[] };
   inProgress: { prs: OpenPrItem[]; commits: UnpushedCommitItem[] };
+  memos: string[];
   sourceErrors: SourceErrorsView;
 }
 
@@ -113,6 +116,7 @@ export function buildActivityPayload(input: SummarizerInput): ActivityPayload {
       prs: openPrs,
       commits: computeUnpushedCommits(input),
     },
+    memos: [...(input.memos ?? [])],
     sourceErrors: computeSourceErrors(input),
   };
 }
