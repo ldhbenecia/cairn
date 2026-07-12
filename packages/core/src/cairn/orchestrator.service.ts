@@ -305,6 +305,7 @@ export class OrchestratorService {
     }
 
     const { prCount, commitCount } = computeDayTotals(githubActivity, localGitActivity);
+    const memos = this.memoSource.forDate(date);
 
     if (prCount + commitCount === 0) {
       // 수집 에러로 인한 0건은 '활동 없음'으로 위장하지 않는다 — 토큰 만료 등이 매일
@@ -330,11 +331,22 @@ export class OrchestratorService {
           first.error.status,
         );
       }
-      this.logger.info({ date }, 'daily: no activity collected — skipping summarizer + publisher');
-      if (!opts.silent) {
-        await this.notification.notify('cairn 일지', `${date} 활동 없음 — 일지 생략`);
+      // 활동 0건이어도 그날 quick capture 메모가 있으면 발행한다 — 회의·설계·학습만 한 날이
+      // 캡처의 대상 시나리오인데, 스킵하면 메모가 어디에도 실리지 않고 60일 후 소멸 (ADR 0032)
+      if (memos.length === 0) {
+        this.logger.info(
+          { date },
+          'daily: no activity collected — skipping summarizer + publisher',
+        );
+        if (!opts.silent) {
+          await this.notification.notify('cairn 일지', `${date} 활동 없음 — 일지 생략`);
+        }
+        return 'no-activity';
       }
-      return 'no-activity';
+      this.logger.info(
+        { date, memoCount: memos.length },
+        'daily: no activity but memos exist — publishing from memos',
+      );
     }
 
     // 그랜드 토탈(로컬+GitHub PR dedup)을 요약 전에 한 번 — 발행 진행 UI 칩이
@@ -348,7 +360,7 @@ export class OrchestratorService {
         date,
         github: githubActivity,
         localGit: localGitActivity,
-        memos: this.memoSource.forDate(date),
+        memos,
       },
       options.lang,
     );
