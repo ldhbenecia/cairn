@@ -37,8 +37,7 @@ export interface RunExtractor {
   journalWriteFailed: boolean;
 }
 
-// core 의 fork-IPC 구조화 이벤트 (ADR 0033) — 송신 타입: core/src/common/parent-events.ts (드리프트 주의).
-// 로그 스크래핑과 병행 소비하는 전환기 — 같은 필드에 같은 값이라 last-write 일관.
+// core fork-IPC 구조화 이벤트 (ADR 0033) — 송신 타입: core/src/common/parent-events.ts (드리프트 주의)
 export type ParentEvent =
   | { type: 'date-step'; date: string; step: 'collect' | 'summarize' | 'publish' }
   | {
@@ -72,7 +71,6 @@ const dateList = (v: unknown): string[] | null =>
     ? (v as string[])
     : null;
 
-// child 'message' payload 검증 — cairn 봉투 + type 별 필드 타입이 맞을 때만 이벤트로 인정
 export function parseParentEvent(raw: unknown): ParentEvent | null {
   if (!raw || typeof raw !== 'object') return null;
   const m = raw as Record<string, unknown>;
@@ -134,7 +132,6 @@ export function parseParentEvent(raw: unknown): ParentEvent | null {
   }
 }
 
-// 이벤트를 extractor 상태에 반영. run step 브로드캐스트가 필요하면 그 step 을 반환
 export function applyParentEvent(state: RunExtractor, event: ParentEvent): RunStep | null {
   switch (event.type) {
     case 'date-step':

@@ -5,7 +5,7 @@ import { translate, type I18nKey } from './i18n';
 import { applyAccent, applyGlass, applyTheme } from './settings-context';
 import './styles.css';
 
-// 캡처 창은 SettingsProvider 없이 bootstrap 설정으로 고정 렌더 — 언어·테마 등 변경 시 main 이 창을 파기한다
+// bootstrap 설정으로 고정 렌더 — 설정 변경 시 main 이 창을 파기한다
 const lang = window.cairn.initialSettings.language;
 const t = (key: I18nKey): string => translate(lang, key);
 
@@ -20,7 +20,6 @@ function Capture() {
   const savedTimer = useRef<number | null>(null);
   const saving = useRef(false);
 
-  // 창이 다시 뜰 때마다 입력에 포커스
   useEffect(() => {
     const onFocus = (): void => inputRef.current?.focus();
     window.addEventListener('focus', onFocus);
@@ -48,7 +47,6 @@ function Capture() {
 
   async function submit(): Promise<void> {
     const trimmed = text.trim();
-    // saving 가드 — 키 반복 Enter 가 IPC 완료 전에 중복 저장하는 것 방지
     if (!trimmed || saving.current) return;
     saving.current = true;
     try {
@@ -62,7 +60,7 @@ function Capture() {
         void window.cairn.capture.hide();
       }, 700);
     } catch {
-      // IPC 실패 — 입력이 그대로 남아 재시도 가능
+      /* 입력 보존 — 재시도 가능 */
     } finally {
       saving.current = false;
     }
@@ -83,7 +81,7 @@ function Capture() {
           maxLength={300}
           onChange={(e) => {
             setText(e.target.value);
-            // 저장 플래시 중 바로 다음 메모를 치기 시작하면 자동 숨김 취소
+            // 플래시 중 타이핑하면 자동 숨김 취소
             if (savedTimer.current) {
               window.clearTimeout(savedTimer.current);
               savedTimer.current = null;

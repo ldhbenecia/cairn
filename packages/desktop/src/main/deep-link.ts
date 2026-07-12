@@ -1,8 +1,7 @@
 export type DeepLink = { action: 'capture'; text: string | null };
 
-// cairn:// 딥링크 파싱 — capture/append 호스트만 화이트리스트 (외부 앱발 입력이라 그 외 명령은 무시).
-// text 는 자르지 않고 그대로 — truncate 는 토큰·이메일을 반토막 내 egress 패턴 매칭을 피해갈 수 있어
-// 상한 초과는 memo-store 가 거부하고 알림으로 알린다
+// capture/append 호스트만 화이트리스트 (외부 앱발 입력).
+// text 는 자르지 않는다 — truncate 는 egress 패턴을 반토막 낼 수 있어 초과분은 memo-store 가 거부
 export function parseDeepLink(raw: string): DeepLink | null {
   let url: URL;
   try {

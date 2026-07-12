@@ -197,10 +197,8 @@ export function trackBackfill(line: string, mode: CoreMode): void {
   publishProgress(mode);
 }
 
-// 상태 → 진행 브로드캐스트 (dedupe 포함) — 스크래핑(trackBackfill)과 이벤트(applyBackfillEvent) 공용
 function publishProgress(mode: CoreMode): void {
   if (bfTotal <= 1) return;
-  // started 는 스크래핑 카운터·이벤트 집합이 같은 사실을 따로 세므로 max 가 참값 (이중 집계 방지)
   const started = Math.max(bfStarted, bfStartedDates.size);
   const active = Math.max(0, Math.min(bfTotal - bfDone, started - bfDone));
   const stepSig = Object.entries(bfStepByDate)
@@ -227,8 +225,7 @@ function publishProgress(mode: CoreMode): void {
   broadcast('cairn:run-progress', { mode, ...runProgress });
 }
 
-// 구조화 이벤트(ADR 0033 2단계) — 스크래핑과 같은 상태를 갱신한다.
-// 값 갱신은 전부 멱등(max·length 가드·키 맵)이라 두 소스가 병행돼도 일관
+// 구조화 이벤트(ADR 0033) — 갱신은 전부 멱등이라 스크래핑과 병행돼도 일관
 export function applyBackfillEvent(event: ParentEvent, mode: CoreMode): void {
   switch (event.type) {
     case 'backfill-start':

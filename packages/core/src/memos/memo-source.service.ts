@@ -7,9 +7,7 @@ import { dropForbiddenMemos, memoTextsForDate, parseMemosFile } from './memo-fil
 
 const MEMOS_PATH = join(homedir(), '.cairn', 'memos.json');
 
-// 데스크톱 quick capture 가 쌓은 수동 메모(~/.cairn/memos.json)를 발행 시점에 읽어
-// summarizer 입력에 병합한다. journal 파일에 직접 append 하지 않는 이유는 ADR 0032 —
-// journal 존재는 '이미 발행됨' 스킵 가드라서, 미발행 날짜에 파일이 생기면 자동 발행이 스킵된다.
+// journal 직접 append 금지 — journal 존재가 '발행됨' 스킵 가드라 자동 발행이 스킵된다 (ADR 0032)
 @Injectable()
 export class MemoSourceService {
   constructor(

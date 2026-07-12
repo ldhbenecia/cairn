@@ -84,7 +84,6 @@ export function PublishDialog({
   const dateTouched = useRef(false);
   const [includeBackfill, setIncludeBackfill] = useState(false);
   const [force, setForce] = useState(false);
-  // '이번 발행에서' 옵션 — 노션 연동이 있을 때만 노출, 다이얼로그를 새로 열면 리셋
   const [skipNotion, setSkipNotion] = useState(false);
   const [notionConnected, setNotionConnected] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
@@ -92,8 +91,7 @@ export function PublishDialog({
   const recalledEndedAt = useRef(0);
   const isToday = date === todayIso();
 
-  // 다이얼로그가 앱 수명 내내 마운트돼 있어, 열 때마다 재조회 — 환경설정에서 노션 연동을
-  // 추가/해제한 뒤에도 토글 노출이 최신으로 (봇 리뷰 #300)
+  // 마운트 1회가 아니라 열 때마다 재조회 — 연동 추가/해제 후에도 최신
   useEffect(() => {
     if (!open) return;
     void window.cairn
@@ -169,7 +167,6 @@ export function PublishDialog({
           }
           // 자정을 넘겨 열면 mount 시점의 어제 날짜가 남아 있음 — 사용자가 직접 고른 날짜는 유지 (#236 리뷰)
           if (!dateTouched.current) setDate((prev) => (prev === todayIso() ? prev : todayIso()));
-          // '이번 발행에서' 의미라 새로 열 때마다 리셋
           if (!busy) setSkipNotion(false);
         }
       }}

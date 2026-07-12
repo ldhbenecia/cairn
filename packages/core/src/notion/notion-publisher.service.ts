@@ -79,8 +79,7 @@ export class NotionPublisherService {
   }
 
   // force 실행에선 orchestrator 가 precheck 자체를 건너뛴다 — 여기선 non-force 만 가정.
-  // API 에러는 '페이지 없음'(null)과 구분해 marker 로 돌려준다 — 토큰 만료가 매 실행
-  // 요약 비용을 재지출시키던 문제를 orchestrator 가 journal 존재 여부로 판단할 수 있게
+  // API 에러는 '페이지 없음'(null)과 구분해 marker 반환 — 토큰 만료의 요약 비용 재지출 방지
   async precheckDaily(
     date: string,
   ): Promise<PublishWorklogResult | { kind: 'precheck-error' } | null> {

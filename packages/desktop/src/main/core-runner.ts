@@ -41,7 +41,7 @@ export type CoreRunOptions = {
   backfillDays?: number;
   force?: boolean;
   date?: string; // "YYYY-MM-DD" — 미지정 시 엔진이 로컬 today 사용 (롤업 기간 anchor 등)
-  skipNotion?: boolean; // 이번 발행에서 노션 제외 — journal(1차 기록)·통계는 그대로
+  skipNotion?: boolean; // 노션만 제외 — journal·통계는 그대로
 };
 
 export type { PublishKind } from './core-runner-extract';
@@ -323,7 +323,7 @@ export async function runCore(
     }
   });
 
-  // 구조화 이벤트(ADR 0033) — 로그 스크래핑과 병행 소비 (같은 필드에 같은 값, last-write 일관)
+  // 구조화 이벤트(ADR 0033) — 스크래핑과 병행 소비
   child.on('message', (raw) => {
     const event = parseParentEvent(raw);
     if (!event) return;
@@ -365,8 +365,7 @@ export async function runCore(
       const publishedPages = getBackfillPagesByDate();
       const finalProgress = getRunProgress();
       resetBackfillTracking();
-      // 백필 배치에서 일부 날짜만 요약 실패한 경우 결과 전체를 '요약 실패'로 오표시하지 않는다 —
-      // 날짜별 실패는 progress.failedDates 가 이미 구분 표시. 배치 전 날짜가 실패했을 때만 유지
+      // 배치 부분 요약 실패를 전체 '요약 실패'로 오표시하지 않는다 — 전 날짜 실패 시에만 유지
       const batchTotal = finalProgress?.total ?? 0;
       const summaryFailed =
         ext.summaryFailed &&
@@ -404,8 +403,6 @@ export async function runCore(
             options.date ??
             lastPublishedDate ??
             `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-          // daily 백필 다건이면 발행된 날짜 전부 sync. 노션 pageId 에 의존하지 않아
-          // 로컬 온리 발행에서도 autoSync 가 동작한다 (export-targets)
           const targets = buildExportTargets({
             mode,
             fallbackDate,

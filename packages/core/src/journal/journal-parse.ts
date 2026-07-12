@@ -43,8 +43,7 @@ function markdownToBlocks(body: string): ExtractedBlock[] {
 // daily journal 블록 → WorklogSummary 복원 — renderDailyJournalMarkdown 의 역방향.
 // Notion 발행만 실패한 날짜를 재요약 없이 journal 로 재발행하는 경로에서 사용
 export function blocksToWorklogSummary(blocks: readonly ExtractedBlock[]): WorklogSummary | null {
-  // Summary 는 다중 문단 허용 — 요약 paragraph 에 개행이 있으면 렌더 시 문단 여러 개로
-  // 나뉘는데, 첫 문단만 취하면 재발행 왕복에서 뒷문단이 유실된다
+  // Summary 다중 문단 수집 — 첫 문단만 취하면 재발행 왕복에서 뒷문단 유실
   const paragraphs: string[] = [];
   const sections: Record<string, string[]> = {
     share: [],

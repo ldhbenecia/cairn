@@ -43,7 +43,6 @@ describe('memoTextsForDate', () => {
   });
 
   it('항목 수 상한을 적용하고, 길이 초과는 자르지 않고 스킵한다', () => {
-    // truncate 는 토큰·이메일을 반토막 내 egress 패턴 매칭을 피해갈 수 있어 스킵이 정책
     const long = 'x'.repeat(MAX_MEMO_CHARS + 1);
     const file = {
       '2026-07-12': [

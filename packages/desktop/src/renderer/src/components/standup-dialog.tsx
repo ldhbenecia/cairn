@@ -24,8 +24,7 @@ export function StandupDialog({
   const [text, setText] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
-  // 페이지당 1회만 생성 — recent 목록 갱신(포커스 리로드·발행 완료)마다 source 참조가 바뀌어
-  // 재생성되면 textarea 의 사용자 편집이 덮인다
+  // 페이지당 1회만 생성 — recent 갱신마다 재생성하면 사용자 편집이 덮인다
   const builtFor = useRef<string | null>(null);
   const mounted = useRef(true);
 
@@ -42,7 +41,7 @@ export function StandupDialog({
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key !== 'Escape') return;
-      // IME 조합 취소(ESC)는 다이얼로그 닫기가 아니다 — 편집 중 유실 방지
+      // IME 조합 취소(ESC)는 닫기가 아니다
       if (e.isComposing || e.keyCode === 229) return;
       onClose();
     };
@@ -57,9 +56,7 @@ export function StandupDialog({
     void window.cairn
       .pageContent(source.pageId, source.workspaceLabel)
       .then((c) => {
-        // stale 응답 가드 — source 가 그새 다른 페이지로 바뀌었으면 버린다
         if (!mounted.current || builtFor.current !== source.pageId) return;
-        // IPC 응답 방어 — blocks 가 없으면 조립 대신 실패 문구 (봇 리뷰 #297)
         if (!Array.isArray(c?.blocks)) {
           setFailed(true);
           return;

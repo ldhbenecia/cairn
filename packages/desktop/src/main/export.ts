@@ -15,9 +15,7 @@ export interface SaveResult {
   error?: string;
 }
 
-// 1차 소스는 journal 파일 복사 — front-matter 가 그대로 실리고, 노션 미연동(로컬 온리)에서도
-// autoSync 가 동작한다 (plan 2026-07-05: 노션 콘텐츠 기반 → journal 복사 기반 전환).
-// journal 이 없는 항목(구버전 발행 등)만 기존 노션 fetch 로 폴백.
+// 1차 소스는 journal 복사(front-matter 포함, 로컬 온리 동작) — 없으면 노션 fetch 폴백
 export async function syncWorklogToFolder(opts: {
   category: RecentCategory;
   date: string | null;
@@ -36,7 +34,7 @@ export async function syncWorklogToFolder(opts: {
         await writeFile(join(cfg.folder, `${opts.fileBase}.md`), raw, 'utf8');
         return;
       } catch {
-        // journal 파일 없음/읽기 실패 — 노션 폴백으로 계속
+        /* 노션 폴백 */
       }
     }
   }

@@ -125,7 +125,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     const p = await window.cairn.onboarding.pickFolder();
     if (!p || repos.includes(p)) return;
     setRepos((prev) => [...prev, p]);
-    // 추가 즉시 인라인 검증 — .git 부재·user.email 미설정은 발행 때야 드러나던 문제 (경고만, 차단 안 함)
+    // 경고만, 차단 안 함
     const probe = await window.cairn.onboarding.probeRepo(p);
     if (!probe.ok && probe.reason) {
       setRepoWarns((prev) => ({ ...prev, [p]: probe.reason! }));

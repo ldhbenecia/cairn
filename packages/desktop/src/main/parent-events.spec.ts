@@ -61,7 +61,6 @@ describe('parseParentEvent', () => {
         pageId: null,
       }),
     ).toEqual({ type: 'day-done', date: '2026-07-10', pr: 2, commit: 5, pageId: null });
-    // 날짜 형식·수치 타입이 어긋나면 버린다
     expect(
       parseParentEvent({ cairn: 1, type: 'backfill-start', total: 3, dates: ['nope'] }),
     ).toBeNull();

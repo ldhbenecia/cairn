@@ -43,7 +43,7 @@ export function memoTextsForDate(file: MemosFile, date: string): string[] {
   );
 }
 
-// 자유 텍스트라 마스킹 대신 항목 drop (ADR 0021) — 경로·토큰·이메일이 섞인 메모만 버린다
+// 자유 텍스트는 마스킹 대신 항목 drop (ADR 0021)
 export function dropForbiddenMemos(texts: readonly string[]): { kept: string[]; dropped: number } {
   const kept: string[] = [];
   let dropped = 0;
