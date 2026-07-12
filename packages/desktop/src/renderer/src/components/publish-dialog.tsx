@@ -84,10 +84,23 @@ export function PublishDialog({
   const dateTouched = useRef(false);
   const [includeBackfill, setIncludeBackfill] = useState(false);
   const [force, setForce] = useState(false);
+  // '이번 발행에서' 옵션 — 노션 연동이 있을 때만 노출, 다이얼로그를 새로 열면 리셋
+  const [skipNotion, setSkipNotion] = useState(false);
+  const [notionConnected, setNotionConnected] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   // 최근 실패 결과를 오픈 시 1회만 자동 회수 — 같은 결과를 재오픈 때마다 다시 띄우지 않게
   const recalledEndedAt = useRef(0);
   const isToday = date === todayIso();
+
+  useEffect(() => {
+    void window.cairn
+      .readConfig()
+      .then((c) => {
+        const ws = (c.parsed as { notionWorkspaces?: unknown[] } | null)?.notionWorkspaces;
+        setNotionConnected(Array.isArray(ws) && ws.length > 0);
+      })
+      .catch(() => {});
+  }, []);
 
   // runningMode 만으론 시작 시 자동 발행이 도는 걸 모르므로 전역 busy·mode 를 따로 확인
   const [externalBusy, setExternalBusy] = useState(false);
@@ -153,6 +166,8 @@ export function PublishDialog({
           }
           // 자정을 넘겨 열면 mount 시점의 어제 날짜가 남아 있음 — 사용자가 직접 고른 날짜는 유지 (#236 리뷰)
           if (!dateTouched.current) setDate((prev) => (prev === todayIso() ? prev : todayIso()));
+          // '이번 발행에서' 의미라 새로 열 때마다 리셋
+          if (!busy) setSkipNotion(false);
         }
       }}
     >
@@ -301,6 +316,17 @@ export function PublishDialog({
                     <span className="text-[13px] text-ink">{t('publish.force')}</span>
                     <Toggle checked={force} onChange={setForce} disabled={busy} />
                   </div>
+                  {notionConnected && (
+                    <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                      <div className="flex min-w-0 flex-col">
+                        <span className="text-[13px] text-ink">{t('publish.skipNotion')}</span>
+                        <span className="text-[11px] text-ink-tertiary">
+                          {t('publish.skipNotionDesc')}
+                        </span>
+                      </div>
+                      <Toggle checked={skipNotion} onChange={setSkipNotion} disabled={busy} />
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -315,6 +341,7 @@ export function PublishDialog({
                         mode === 'daily' && isToday && includeBackfill ? DAILY_BACKFILL_DAYS : 0,
                       force,
                       ...(isToday ? {} : { date }),
+                      ...(notionConnected && skipNotion ? { skipNotion: true } : {}),
                     });
                   }}
                   className={[

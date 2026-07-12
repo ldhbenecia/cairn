@@ -18,6 +18,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
       'lookback-days': { type: 'string', default: '14' },
       source: { type: 'string', multiple: true, default: [] },
       lang: { type: 'string', default: 'ko' },
+      'skip-notion': { type: 'boolean', default: false },
     },
     strict: true,
     allowPositionals: false,
@@ -42,6 +43,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
     lookbackDays,
     sources,
     lang,
+    skipNotion: values['skip-notion'] ?? false,
   };
 }
 
