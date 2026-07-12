@@ -79,7 +79,7 @@ export class NotionPublisherService {
   }
 
   // force 실행에선 orchestrator 가 precheck 자체를 건너뛴다 — 여기선 non-force 만 가정.
-  // API 에러는 '페이지 없음'(null)과 구분해 marker 반환 — 토큰 만료의 요약 비용 재지출 방지
+  // API 에러는 '페이지 없음'(null)과 구분 — 요약 비용 재지출 방지
   async precheckDaily(
     date: string,
   ): Promise<PublishWorklogResult | { kind: 'precheck-error' } | null> {

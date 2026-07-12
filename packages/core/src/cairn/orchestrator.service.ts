@@ -240,7 +240,7 @@ export class OrchestratorService {
       const pre = options.skipNotion
         ? ({ kind: 'no-target' } as const)
         : await this.notionPublisher.precheckDaily(date);
-      // precheck 에러는 '페이지 없음'과 다르다 — 일지 있으면 재요약 없이 skip, 없으면 진행(journal-first)
+      // precheck 에러 + 일지 있음 → 재요약 없이 skip (journal-first)
       if (pre?.kind === 'precheck-error') {
         if (this.journalWriter.hasDaily(date)) {
           this.logger.info(
@@ -347,7 +347,7 @@ export class OrchestratorService {
           first.error.status,
         );
       }
-      // 활동 0건이어도 메모가 있으면 발행 — 스킵하면 메모가 어디에도 실리지 않고 60일 후 소멸 (ADR 0032)
+      // 활동 0건 + 메모 → 발행 — 미발행 메모 60일 소멸 방지 (ADR 0032)
       if (memos.length === 0) {
         this.logger.info(
           { date },
@@ -441,7 +441,7 @@ export class OrchestratorService {
       emitParentEvent({ type: 'journal-write-failed' });
     }
 
-    // 이번 발행에서 노션 제외 — 결과는 미연동과 동일한 no-target 모양 (데스크톱 파싱 계약 유지)
+    // skipNotion 은 no-target 모양 — 데스크톱 파싱 계약 유지
     const result: PublishWorklogResult = options.skipNotion
       ? { kind: 'no-target' }
       : await this.notionPublisher.publish({
@@ -691,7 +691,7 @@ export class OrchestratorService {
       emitParentEvent({ type: 'journal-write-failed' });
     }
 
-    // 이번 발행에서 노션 제외 — 결과는 미연동과 동일한 no-target 모양 (데스크톱 파싱 계약 유지)
+    // skipNotion 은 no-target 모양 — 데스크톱 파싱 계약 유지
     const result: PublishRollupResult = options.skipNotion
       ? { kind: 'no-target' }
       : await this.rollupPublisher.publish({

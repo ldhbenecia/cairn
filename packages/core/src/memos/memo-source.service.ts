@@ -7,7 +7,7 @@ import { dropForbiddenMemos, memoTextsForDate, parseMemosFile } from './memo-fil
 
 const MEMOS_PATH = join(homedir(), '.cairn', 'memos.json');
 
-// journal 직접 append 금지 — journal 존재가 '발행됨' 스킵 가드라 자동 발행이 스킵된다 (ADR 0032)
+// journal 직접 append 금지 — journal 존재 = '발행됨' 스킵 가드 (ADR 0032)
 @Injectable()
 export class MemoSourceService {
   constructor(

@@ -5,7 +5,7 @@ import { translate, type I18nKey } from './i18n';
 import { applyAccent, applyGlass, applyTheme } from './settings-context';
 import './styles.css';
 
-// bootstrap 설정으로 고정 렌더 — 설정 변경 시 main 이 창을 파기한다
+// bootstrap 설정 고정 렌더 — 설정 변경 시 main 이 창 파기
 const lang = window.cairn.initialSettings.language;
 const t = (key: I18nKey): string => translate(lang, key);
 
@@ -29,7 +29,7 @@ function Capture() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key !== 'Escape') return;
-      // IME 조합 취소(ESC)는 창 닫기가 아니다
+      // IME 조합 취소 ESC 제외
       if (e.isComposing || e.keyCode === 229) return;
       e.preventDefault();
       void window.cairn.capture.hide();
@@ -81,7 +81,7 @@ function Capture() {
           maxLength={300}
           onChange={(e) => {
             setText(e.target.value);
-            // 플래시 중 타이핑하면 자동 숨김 취소
+            // 플래시 중 타이핑 시 자동 숨김 취소
             if (savedTimer.current) {
               window.clearTimeout(savedTimer.current);
               savedTimer.current = null;

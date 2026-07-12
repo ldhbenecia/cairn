@@ -94,7 +94,6 @@ app.on('second-instance', (_e, argv) => {
   win.focus();
 });
 
-// cairn:// 딥링크 — text 없으면 캡처 창 토글
 function handleDeepLink(raw: string): void {
   const link = parseDeepLink(raw);
   if (!link) return;
@@ -110,7 +109,7 @@ function handleDeepLink(raw: string): void {
   }).show();
 }
 
-// 미실행 상태의 macOS 딥링크는 앱 기동 후 전달됨 — ready 대기
+// 미실행 시 기동 후 전달 — ready 대기
 app.on('open-url', (e, url) => {
   e.preventDefault();
   void app.whenReady().then(() => handleDeepLink(url));
@@ -158,7 +157,7 @@ function createWindow(startHidden: boolean): BrowserWindow {
     win.hide();
   });
 
-  // dev: 메인 창을 닫으면 숨은 캡처 창 때문에 window-all-closed 가 안 와 앱이 안 죽는 문제 방지
+  // dev: 숨은 캡처 창의 window-all-closed 미발생 방지
   win.on('closed', () => {
     if (!app.isPackaged) disposeCaptureWindow();
   });
@@ -340,7 +339,7 @@ void app.whenReady().then(() => {
   const initial = readSettings();
   applyLoginItem(initial.launchAtLogin);
   reconfigureCaptureShortcut(initial.quickCapture.enabled, initial.quickCapture.shortcut);
-  // dev 는 Electron 바이너리가 등록돼 버려 패키지 한정
+  // dev 는 Electron 바이너리 등록 — 패키지 한정
   if (app.isPackaged) app.setAsDefaultProtocolClient('cairn');
   initAutoPublish();
   initTelemetry();

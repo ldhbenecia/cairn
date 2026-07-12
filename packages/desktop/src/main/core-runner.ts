@@ -41,7 +41,7 @@ export type CoreRunOptions = {
   backfillDays?: number;
   force?: boolean;
   date?: string; // "YYYY-MM-DD" — 미지정 시 엔진이 로컬 today 사용 (롤업 기간 anchor 등)
-  skipNotion?: boolean; // 노션만 제외 — journal·통계는 그대로
+  skipNotion?: boolean; // 노션만 제외 — journal·통계 유지
 };
 
 export type { PublishKind } from './core-runner-extract';
@@ -323,7 +323,7 @@ export async function runCore(
     }
   });
 
-  // 구조화 이벤트(ADR 0033) — 스크래핑과 병행 소비
+  // 구조화 이벤트 (ADR 0033) — 스크래핑과 병행
   child.on('message', (raw) => {
     const event = parseParentEvent(raw);
     if (!event) return;
@@ -365,7 +365,7 @@ export async function runCore(
       const publishedPages = getBackfillPagesByDate();
       const finalProgress = getRunProgress();
       resetBackfillTracking();
-      // 배치 부분 요약 실패를 전체 '요약 실패'로 오표시하지 않는다 — 전 날짜 실패 시에만 유지
+      // 배치 부분 요약 실패의 전체 오표시 방지 — 전 날짜 실패 시에만 유지
       const batchTotal = finalProgress?.total ?? 0;
       const summaryFailed =
         ext.summaryFailed &&

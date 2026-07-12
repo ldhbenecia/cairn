@@ -19,7 +19,7 @@ let runProgress: RunProgress | null = null;
 let bfTotal = 0;
 let bfDone = 0;
 let bfStarted = 0;
-// 이벤트 소스의 시작 날짜 집합 — 스크래핑 카운터와 이중 집계되지 않게 소스별로 두고 max 사용
+// 이벤트 소스별 시작 집합 — 스크래핑 카운터와 max 로 이중 집계 방지
 let bfStartedDates = new Set<string>();
 let bfInStat = false;
 let bfLastKey = '';
@@ -225,7 +225,7 @@ function publishProgress(mode: CoreMode): void {
   broadcast('cairn:run-progress', { mode, ...runProgress });
 }
 
-// 구조화 이벤트(ADR 0033) — 갱신은 전부 멱등이라 스크래핑과 병행돼도 일관
+// 구조화 이벤트 (ADR 0033) — 갱신 전부 멱등, 스크래핑과 병행 가능
 export function applyBackfillEvent(event: ParentEvent, mode: CoreMode): void {
   switch (event.type) {
     case 'backfill-start':

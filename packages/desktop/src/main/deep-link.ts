@@ -1,7 +1,7 @@
 export type DeepLink = { action: 'capture'; text: string | null };
 
-// capture/append 호스트만 화이트리스트 (외부 앱발 입력).
-// text 는 자르지 않는다 — truncate 는 egress 패턴을 반토막 낼 수 있어 초과분은 memo-store 가 거부
+// capture/append 호스트만 화이트리스트
+// text truncate 금지 — egress 패턴 반토막 방지, 초과분은 memo-store 가 거부
 export function parseDeepLink(raw: string): DeepLink | null {
   let url: URL;
   try {

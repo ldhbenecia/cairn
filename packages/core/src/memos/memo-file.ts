@@ -37,13 +37,13 @@ export function memoTextsForDate(file: MemosFile, date: string): string[] {
   return (
     (file[date] ?? [])
       .map((e) => e.text.trim())
-      // 상한 초과는 자르지 않고 스킵 — truncate 가 토큰·이메일을 반토막 내면 egress 패턴 매칭을 피해간다
+      // truncate 금지 — 반토막 나면 egress 패턴 회피
       .filter((t) => t.length > 0 && t.length <= MAX_MEMO_CHARS)
       .slice(0, MAX_MEMOS_PER_DAY)
   );
 }
 
-// 자유 텍스트는 마스킹 대신 항목 drop (ADR 0021)
+// 마스킹 대신 항목 drop (ADR 0021)
 export function dropForbiddenMemos(texts: readonly string[]): { kept: string[]; dropped: number } {
   const kept: string[] = [];
   let dropped = 0;

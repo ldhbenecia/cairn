@@ -91,7 +91,7 @@ export function PublishDialog({
   const recalledEndedAt = useRef(0);
   const isToday = date === todayIso();
 
-  // 마운트 1회가 아니라 열 때마다 재조회 — 연동 추가/해제 후에도 최신
+  // 열 때마다 재조회 — 연동 변경 반영
   useEffect(() => {
     if (!open) return;
     void window.cairn

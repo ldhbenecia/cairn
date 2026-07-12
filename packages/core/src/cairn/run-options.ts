@@ -14,6 +14,6 @@ export interface RunOptions {
   lookbackDays: number;
   sources: readonly RunSource[] | 'all';
   lang: WorklogLang;
-  // 노션 발행만 제외 — journal·통계는 그대로
+  // 노션만 제외 — journal·통계 유지
   skipNotion: boolean;
 }

@@ -24,7 +24,7 @@ export function StandupDialog({
   const [text, setText] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
-  // 페이지당 1회만 생성 — recent 갱신마다 재생성하면 사용자 편집이 덮인다
+  // 페이지당 1회 생성 — recent 갱신 시 편집 덮임 방지
   const builtFor = useRef<string | null>(null);
   const mounted = useRef(true);
 
@@ -41,7 +41,7 @@ export function StandupDialog({
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key !== 'Escape') return;
-      // IME 조합 취소(ESC)는 닫기가 아니다
+      // IME 조합 취소 ESC 제외
       if (e.isComposing || e.keyCode === 229) return;
       onClose();
     };

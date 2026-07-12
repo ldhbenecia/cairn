@@ -15,7 +15,7 @@ export interface SaveResult {
   error?: string;
 }
 
-// 1차 소스는 journal 복사(front-matter 포함, 로컬 온리 동작) — 없으면 노션 fetch 폴백
+// 1차 소스는 journal 복사 — 없으면 노션 fetch 폴백
 export async function syncWorklogToFolder(opts: {
   category: RecentCategory;
   date: string | null;

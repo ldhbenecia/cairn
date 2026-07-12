@@ -37,7 +37,7 @@ export interface RunExtractor {
   journalWriteFailed: boolean;
 }
 
-// core fork-IPC 구조화 이벤트 (ADR 0033) — 송신 타입: core/src/common/parent-events.ts (드리프트 주의)
+// core fork-IPC 이벤트 (ADR 0033) — 송신 타입: core/src/common/parent-events.ts
 export type ParentEvent =
   | { type: 'date-step'; date: string; step: 'collect' | 'summarize' | 'publish' }
   | {
@@ -157,7 +157,7 @@ export function applyParentEvent(state: RunExtractor, event: ParentEvent): RunSt
     case 'backfill-date-start':
     case 'backfill-progress':
     case 'day-done':
-      // 배치 진행 상태는 core-runner-backfill.applyBackfillEvent 소유
+      // 배치 진행은 applyBackfillEvent 소유
       return null;
   }
 }

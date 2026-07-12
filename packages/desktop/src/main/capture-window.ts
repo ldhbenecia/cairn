@@ -6,7 +6,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let captureWin: BrowserWindow | null = null;
 let registeredAccelerator: string | null = null;
-// 로드 완료 전 토글 연타 대응 — 표시 여부의 진실 (빈 창 표시·hide 후 부활 방지)
+// 로드 전 토글 연타 대응 — 표시 여부의 진실
 let wantShow = false;
 
 function createCaptureWindow(): BrowserWindow {
@@ -31,7 +31,7 @@ function createCaptureWindow(): BrowserWindow {
     },
   });
 
-  // 메인 창과 동일한 네비게이션 잠금 — preload 브릿지 노출 차단
+  // 메인 창과 동일한 네비게이션 잠금
   win.webContents.on('will-navigate', (e, url) => {
     const dev = process.env.ELECTRON_RENDERER_URL;
     if ((dev && url.startsWith(dev)) || url.startsWith('file://')) return;
@@ -73,7 +73,7 @@ function present(win: BrowserWindow): void {
 function hidePanel(win: BrowserWindow): void {
   wantShow = false;
   win.hide();
-  // 패널만 떠 있던 경우 이전 앱으로 포커스 반환 (macOS). 메인 창이 보이면 앱 활성 유지
+  // 패널만 떠 있으면 이전 앱으로 포커스 반환 (macOS)
   if (
     process.platform === 'darwin' &&
     !BrowserWindow.getAllWindows().some((w) => w !== win && w.isVisible())
@@ -86,7 +86,7 @@ export function toggleCaptureWindow(): void {
   if (!captureWin) {
     const win = (captureWin = createCaptureWindow());
     wantShow = true;
-    // 렌더러 로드 전 빈 창 깜빡임 방지 — ready 후 표시
+    // 로드 전 빈 창 방지 — ready 후 표시
     win.once('ready-to-show', () => {
       if (wantShow && captureWin === win) present(win);
     });
@@ -104,7 +104,7 @@ export function hideCaptureWindow(): void {
   if (captureWin) hidePanel(captureWin);
 }
 
-// 캡처 창은 bootstrap 시점 설정으로 렌더 — 설정 변경 시 파기해 재생성
+// bootstrap 설정 렌더 — 설정 변경 시 파기·재생성
 export function disposeCaptureWindow(): void {
   captureWin?.destroy();
   captureWin = null;

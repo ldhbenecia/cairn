@@ -14,7 +14,7 @@ export const MAX_MEMO_CHARS = 300;
 export const MAX_MEMOS_PER_DAY = 20;
 const KEEP_DAYS = 60;
 
-// 로컬 오늘 날짜(YYYY-MM-DD) — KST 단정 금지(timezone 룰)
+// 로컬 날짜 — KST 단정 금지 (timezone 룰)
 export function todayLocalIsoDate(now = new Date()): string {
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -58,7 +58,7 @@ export function pruneBefore(file: MemosFile, cutoffDate: string): MemosFile {
 
 export function addMemo(rawText: string): { ok: boolean; count: number } {
   const text = rawText.trim();
-  // 상한 초과는 자르지 않고 거부 — truncate 가 토큰·이메일을 반토막 내면 core 의 egress 패턴 매칭을 피해간다
+  // truncate 금지 — 반토막 나면 core egress 패턴 회피
   if (!text || text.length > MAX_MEMO_CHARS) return { ok: false, count: 0 };
   const now = new Date();
   const date = todayLocalIsoDate(now);
@@ -67,13 +67,13 @@ export function addMemo(rawText: string): { ok: boolean; count: number } {
   );
   try {
     mkdirSync(MEMOS_DIR, { recursive: true });
-    // 락 안에서 read-modify-write — forked core(발행)와의 lost-update 방지 (worklog-stats 와 동일)
+    // 락 안 read-modify-write — forked core 와 lost-update 방지
     return withFileLock(MEMOS_PATH, () => {
       let file: MemosFile = {};
       try {
         file = parseMemosFile(readFileSync(MEMOS_PATH, 'utf8'));
       } catch {
-        // 파일 없음/깨짐 — 빈 상태로 시작
+        /* 파일 없음/깨짐 — 빈 상태 */
       }
       const pruned = pruneBefore(file, cutoff);
       const todayCount = pruned[date]?.length ?? 0;

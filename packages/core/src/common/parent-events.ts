@@ -1,5 +1,5 @@
-// desktop fork(ipc) 전용 구조화 이벤트 (ADR 0033) — CLI 단독 실행은 no-op.
-// 소비 측: packages/desktop/src/main/core-runner-extract.ts (드리프트 주의)
+// desktop fork(ipc) 전용 이벤트 (ADR 0033) — CLI 단독 실행은 no-op
+// 소비 측: packages/desktop/src/main/core-runner-extract.ts
 
 export type ParentEvent =
   | { type: 'date-step'; date: string; step: 'collect' | 'summarize' | 'publish' }
@@ -29,6 +29,6 @@ export function emitParentEvent(event: ParentEvent): void {
   try {
     process.send({ cairn: 1, ...event });
   } catch {
-    // best-effort — 스크래핑 폴백 존재
+    /* best-effort — 스크래핑 폴백 */
   }
 }
