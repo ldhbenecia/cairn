@@ -23,10 +23,13 @@ import { readSettings, type Settings } from './settings';
 import { CAIRN_ROOT } from './setup';
 import { trackPublish, type PublishTrigger } from './telemetry';
 import {
+  applyParentEvent,
   createExtractor,
   deriveFailureHint,
+  parseParentEvent,
   type FailureHint,
   type PublishKind,
+  type RunStep,
 } from './core-runner-extract';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
@@ -44,7 +47,7 @@ export type { PublishKind } from './core-runner-extract';
 
 export type { FailureHint } from './core-runner-extract';
 
-export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
+export type { RunStep } from './core-runner-extract';
 
 export type CoreResult = {
   ok: boolean;
@@ -317,6 +320,14 @@ export async function runCore(
       pushTail(stderrLines, line);
       emit('err', line);
     }
+  });
+
+  // 구조화 이벤트(ADR 0033) — 로그 스크래핑과 병행 소비 (같은 필드에 같은 값, last-write 일관)
+  child.on('message', (raw) => {
+    const event = parseParentEvent(raw);
+    if (!event) return;
+    const step = applyParentEvent(ext, event);
+    if (step) emitStep(step);
   });
 
   return new Promise<CoreResult>((resolvePromise) => {

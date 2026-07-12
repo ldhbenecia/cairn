@@ -4,6 +4,8 @@
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
 
+export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
+
 export type FailureHint = 'auth' | 'quota' | 'network' | 'notion' | 'collect' | null;
 
 export const NO_ACTIVITY_REGEX = /no activity collected/i;
@@ -33,6 +35,83 @@ export interface RunExtractor {
   // 로컬 journal(1차 기록) 쓰기 실패 — 노션 발행이 성공해도 로컬 기록이 통째로 빠질 수 있어
   // 결과가 ok 라도 사용자에게 경고해야 한다 (예: macOS TCC 로 Documents 접근 거부 → EPERM)
   journalWriteFailed: boolean;
+}
+
+// core 의 fork-IPC 구조화 이벤트 (ADR 0033) — 송신 타입: core/src/common/parent-events.ts (드리프트 주의).
+// 로그 스크래핑과 병행 소비하는 전환기 — 같은 필드에 같은 값이라 last-write 일관.
+export type ParentEvent =
+  | { type: 'date-step'; date: string; step: 'collect' | 'summarize' | 'publish' }
+  | {
+      type: 'publish-result';
+      kind: Exclude<PublishKind, null>;
+      pageId: string | null;
+      url: string | null;
+    }
+  | { type: 'journal-written'; fileName: string }
+  | { type: 'journal-write-failed' }
+  | { type: 'no-activity'; date: string }
+  | { type: 'summary-failed'; date: string };
+
+const PUBLISH_KINDS = new Set(['created', 'recreated', 'skipped', 'no-target']);
+const STEPS = new Set(['collect', 'summarize', 'publish']);
+
+// child 'message' payload 검증 — cairn 봉투 + type 별 필드 타입이 맞을 때만 이벤트로 인정
+export function parseParentEvent(raw: unknown): ParentEvent | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const m = raw as Record<string, unknown>;
+  if (m.cairn !== 1 || typeof m.type !== 'string') return null;
+  switch (m.type) {
+    case 'date-step':
+      return typeof m.date === 'string' && typeof m.step === 'string' && STEPS.has(m.step)
+        ? { type: 'date-step', date: m.date, step: m.step as 'collect' | 'summarize' | 'publish' }
+        : null;
+    case 'publish-result':
+      return typeof m.kind === 'string' && PUBLISH_KINDS.has(m.kind)
+        ? {
+            type: 'publish-result',
+            kind: m.kind as Exclude<PublishKind, null>,
+            pageId: typeof m.pageId === 'string' ? m.pageId : null,
+            url: typeof m.url === 'string' ? m.url : null,
+          }
+        : null;
+    case 'journal-written':
+      return typeof m.fileName === 'string' && m.fileName.endsWith('.md')
+        ? { type: 'journal-written', fileName: m.fileName }
+        : null;
+    case 'journal-write-failed':
+      return { type: 'journal-write-failed' };
+    case 'no-activity':
+      return typeof m.date === 'string' ? { type: 'no-activity', date: m.date } : null;
+    case 'summary-failed':
+      return typeof m.date === 'string' ? { type: 'summary-failed', date: m.date } : null;
+    default:
+      return null;
+  }
+}
+
+// 이벤트를 extractor 상태에 반영. run step 브로드캐스트가 필요하면 그 step 을 반환
+export function applyParentEvent(state: RunExtractor, event: ParentEvent): RunStep | null {
+  switch (event.type) {
+    case 'date-step':
+      return event.step;
+    case 'publish-result':
+      state.lastKind = event.kind;
+      if (event.pageId) state.lastPageId = event.pageId;
+      if (event.url) state.lastUrl = event.url;
+      return null;
+    case 'journal-written':
+      state.lastJournalFile = event.fileName;
+      return null;
+    case 'journal-write-failed':
+      state.journalWriteFailed = true;
+      return null;
+    case 'no-activity':
+      state.noActivity = true;
+      return null;
+    case 'summary-failed':
+      state.summaryFailed = true;
+      return null;
+  }
 }
 
 export function createExtractor(): RunExtractor {
