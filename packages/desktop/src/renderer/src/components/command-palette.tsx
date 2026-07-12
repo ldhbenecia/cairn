@@ -1,7 +1,9 @@
 import {
   BarChart3,
   FileText,
+  MessageSquareText,
   Orbit,
+  PenLine,
   Plus,
   Search,
   Settings,
@@ -23,6 +25,8 @@ type Props = {
   onPublish: (mode: CoreMode) => void;
   onOpenPage: (page: RecentPage) => void;
   onAchievements: () => void;
+  onStandup: () => void;
+  onQuickCapture: () => void;
 };
 
 export function CommandPalette({
@@ -33,6 +37,8 @@ export function CommandPalette({
   onPublish,
   onOpenPage,
   onAchievements,
+  onStandup,
+  onQuickCapture,
 }: Props) {
   const { t, settings } = useSettings();
   const [q, setQ] = useState('');
@@ -83,6 +89,18 @@ export function CommandPalette({
         run: () => onPublish('monthly'),
       },
       {
+        id: 'standup',
+        label: t('cmd.standup'),
+        icon: <MessageSquareText size={12} strokeWidth={2} />,
+        run: onStandup,
+      },
+      {
+        id: 'capture',
+        label: t('cmd.capture'),
+        icon: <PenLine size={12} strokeWidth={2} />,
+        run: onQuickCapture,
+      },
+      {
         id: 'view-stats',
         label: t('cmd.stats'),
         icon: <BarChart3 size={12} strokeWidth={2} />,
@@ -117,7 +135,16 @@ export function CommandPalette({
         run: onPreferences,
       },
     ];
-  }, [t, settings.graph.enabled, onPublish, onView, onPreferences, onAchievements]);
+  }, [
+    t,
+    settings.graph.enabled,
+    onPublish,
+    onView,
+    onPreferences,
+    onAchievements,
+    onStandup,
+    onQuickCapture,
+  ]);
 
   const items = useMemo(() => {
     const query = q.trim().toLowerCase();

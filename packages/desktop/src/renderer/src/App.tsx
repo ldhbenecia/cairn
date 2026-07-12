@@ -26,6 +26,7 @@ import { Onboarding } from './components/onboarding';
 import { PreferencesDialog } from './components/preferences-dialog';
 import { AchievementsDialog } from './components/achievements-dialog';
 import { CommandPalette } from './components/command-palette';
+import { StandupDialog } from './components/standup-dialog';
 import { WorklogDrawer } from './components/worklog-drawer';
 import {
   Sidebar,
@@ -73,6 +74,7 @@ export function App() {
   // 팔레트 발행 → worklogs 뷰의 PublishDialog 를 진행 화면으로 여는 신호
   const [publishProgressSignal, setPublishProgressSignal] = useState(0);
   const [achvOpen, setAchvOpen] = useState(false);
+  const [standupOpen, setStandupOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
   const [everSetup, setEverSetup] = useState(window.cairn.initialSetupComplete);
   const [selectedPage, setSelectedPage] = useState<RecentPage | null>(null);
@@ -468,6 +470,8 @@ export function App() {
             }}
             onOpenPage={setSelectedPage}
             onAchievements={() => setAchvOpen(true)}
+            onStandup={() => setStandupOpen(true)}
+            onQuickCapture={() => void window.cairn.capture.open()}
           />
         )}
       </AnimatePresence>
@@ -478,6 +482,11 @@ export function App() {
             recent={recent}
             onClose={() => setAchvOpen(false)}
           />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {standupOpen && (
+          <StandupDialog key="standup" recent={recent} onClose={() => setStandupOpen(false)} />
         )}
       </AnimatePresence>
       <RunToast
