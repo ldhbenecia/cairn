@@ -249,3 +249,43 @@ describe('rollup 일지 0건 판정', () => {
     );
   });
 });
+
+describe('daily precheck API 에러 구분 (페이지 없음과 다름)', () => {
+  const nonForce: RunOptions = { ...dailyOptions, force: false };
+
+  function makePrecheckError(hasDaily: boolean, collectors?: boolean) {
+    const notify = vi.fn().mockResolvedValue(undefined);
+    const service = new OrchestratorService(
+      collectors
+        ? ({ collect: vi.fn().mockResolvedValue({ prs: [] }) } as never)
+        : (unusable('githubCollector') as never),
+      collectors
+        ? ({ collect: vi.fn().mockResolvedValue({ repos: [] }) } as never)
+        : (unusable('localGitCollector') as never),
+      { precheckDaily: vi.fn().mockResolvedValue({ kind: 'precheck-error' }) } as never,
+      unusable('summarizer') as never,
+      { notify } as never,
+      unusable('rollupCollector') as never,
+      unusable('rollupSummarizer') as never,
+      unusable('rollupPublisher') as never,
+      unusable('stats') as never,
+      { hasDaily: vi.fn().mockReturnValue(hasDaily) } as never,
+      unusable('journalSource') as never,
+      unusable('memoSource') as never,
+      logger() as never,
+    );
+    return { service, notify };
+  }
+
+  it('precheck 에러 + 로컬 일지 있음 → 재요약 비용 없이 skip (토큰 만료 시 매 실행 재지출 방지)', async () => {
+    const { service, notify } = makePrecheckError(true);
+    await expect(service.run(nonForce)).resolves.toBeUndefined();
+    expect(notify).toHaveBeenCalledWith('cairn 일지', expect.stringContaining('노션 확인 실패'));
+  });
+
+  it('precheck 에러 + 로컬 일지 없음 → 수집을 계속 진행 (journal-first 라 요약은 로컬에 남는다)', async () => {
+    const { service, notify } = makePrecheckError(false, true);
+    await expect(service.run(nonForce)).resolves.toBeUndefined();
+    expect(notify).toHaveBeenCalledWith('cairn 일지', expect.stringContaining('활동 없음'));
+  });
+});
