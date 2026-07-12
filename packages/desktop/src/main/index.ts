@@ -1,4 +1,13 @@
-import { app, BrowserWindow, dialog, globalShortcut, ipcMain, powerMonitor, shell } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  globalShortcut,
+  ipcMain,
+  Notification,
+  powerMonitor,
+  shell,
+} from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
@@ -25,7 +34,9 @@ import {
 } from './core-runner';
 import { cloudAuthState, cloudSignOut, startCloudSignIn } from './cloud-auth';
 import { syncStats } from './cloud-sync';
+import { parseDeepLink } from './deep-link';
 import { readConfig } from './files';
+import { mt } from './i18n';
 import { fetchPageContent } from './notion-client';
 import { listRecentMerged, readJournalPageContent, JOURNAL_PAGE_PREFIX } from './journal-reader';
 import {
@@ -70,12 +81,41 @@ if (process.platform === 'linux') {
 if (!app.requestSingleInstanceLock()) {
   app.exit(0);
 }
-app.on('second-instance', () => {
+app.on('second-instance', (_e, argv) => {
+  // Windows/Linux 는 딥링크가 두 번째 인스턴스 argv 로 옴
+  const link = argv.find((a) => a.startsWith('cairn://'));
+  if (link) {
+    handleDeepLink(link);
+    return;
+  }
   const win = BrowserWindow.getAllWindows()[0];
   if (!win) return;
   if (win.isMinimized()) win.restore();
   win.show();
   win.focus();
+});
+
+// cairn://capture?text=… — Shortcuts/Raycast 진입점 (roadmap Tier 2). text 없으면 캡처 창 토글
+function handleDeepLink(raw: string): void {
+  const link = parseDeepLink(raw);
+  if (!link) return;
+  if (!link.text) {
+    toggleCaptureWindow();
+    return;
+  }
+  const r = addMemo(link.text);
+  // 딥링크는 화면 피드백이 없어 알림으로 결과 확인 (설정 off 면 조용히)
+  if (!readSettings().notifications || !Notification.isSupported()) return;
+  new Notification({
+    title: mt('capture.deeplinkTitle'),
+    body: r.ok ? mt('capture.deeplinkSaved') : mt('capture.deeplinkFail'),
+  }).show();
+}
+
+// macOS 딥링크 — 앱이 안 떠 있으면 실행 후 전달되므로 ready 를 기다려 처리
+app.on('open-url', (e, url) => {
+  e.preventDefault();
+  void app.whenReady().then(() => handleDeepLink(url));
 });
 
 function createWindow(startHidden: boolean): BrowserWindow {
@@ -303,6 +343,8 @@ void app.whenReady().then(() => {
   const initial = readSettings();
   applyLoginItem(initial.launchAtLogin);
   reconfigureCaptureShortcut(initial.quickCapture.enabled, initial.quickCapture.shortcut);
+  // dev 는 Electron 바이너리가 cairn:// 핸들러로 등록돼 버려 패키지 한정 (login item 과 동일 사유)
+  if (app.isPackaged) app.setAsDefaultProtocolClient('cairn');
   initAutoPublish();
   initTelemetry();
   trackAppLaunched();
