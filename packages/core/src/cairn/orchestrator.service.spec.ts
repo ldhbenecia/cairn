@@ -37,7 +37,8 @@ function makeDaily(overrides: {
     unusable('stats') as never,
     unusable('journalWriter') as never,
     unusable('journalSource') as never,
-    unusable('memoSource') as never,
+    // 활동 0건 판정 전에 메모를 읽는다 (메모-온리 발행) — 이 스펙들은 메모 없음 가정
+    { forDate: vi.fn().mockReturnValue([]) } as never,
     logger() as never,
   );
   return { service, notify };
@@ -272,7 +273,7 @@ describe('daily precheck API 에러 구분 (페이지 없음과 다름)', () => 
       unusable('stats') as never,
       { hasDaily: vi.fn().mockReturnValue(hasDaily) } as never,
       unusable('journalSource') as never,
-      unusable('memoSource') as never,
+      { forDate: vi.fn().mockReturnValue([]) } as never,
       logger() as never,
     );
     return { service, notify };
@@ -287,6 +288,61 @@ describe('daily precheck API 에러 구분 (페이지 없음과 다름)', () => 
   it('precheck 에러 + 로컬 일지 없음 → 수집을 계속 진행 (journal-first 라 요약은 로컬에 남는다)', async () => {
     const { service, notify } = makePrecheckError(false, true);
     await expect(service.run(nonForce)).resolves.toBeUndefined();
+    expect(notify).toHaveBeenCalledWith('cairn 일지', expect.stringContaining('활동 없음'));
+  });
+});
+
+describe('메모-온리 날짜 (활동 0건 + quick capture 메모)', () => {
+  const summary = {
+    paragraph: '메모 기반 기록',
+    shareBullets: [],
+    doneBullets: [],
+    reviewedBullets: [],
+    inProgressBullets: [],
+    notesBullets: ['온보딩 개선 아이디어 논의'],
+  };
+
+  function makeMemoOnly(memos: string[]) {
+    const notify = vi.fn().mockResolvedValue(undefined);
+    const writeDaily = vi.fn().mockReturnValue({ fileName: '2026-07-09.md', path: 'x' });
+    const summarize = vi.fn().mockResolvedValue(summary);
+    const service = new OrchestratorService(
+      { collect: vi.fn().mockResolvedValue(null) } as never,
+      { collect: vi.fn().mockResolvedValue({ repos: [] }) } as never,
+      { publish: vi.fn().mockResolvedValue({ kind: 'no-target' }) } as never,
+      { summarize } as never,
+      { notify } as never,
+      unusable('rollupCollector') as never,
+      unusable('rollupSummarizer') as never,
+      unusable('rollupPublisher') as never,
+      { record: vi.fn() } as never,
+      { writeDaily, hasDaily: vi.fn().mockReturnValue(false) } as never,
+      unusable('journalSource') as never,
+      { forDate: vi.fn().mockReturnValue(memos) } as never,
+      logger() as never,
+    );
+    return { service, notify, writeDaily, summarize };
+  }
+
+  it('메모가 있으면 활동 0건이어도 요약·journal 기록까지 진행한다 (60일 후 메모 소멸 방지)', async () => {
+    const { service, notify, writeDaily, summarize } = makeMemoOnly(['회의에서 방향 정리']);
+    await expect(
+      service.run({ ...dailyOptions, force: false, skipNotion: true }),
+    ).resolves.toBeUndefined();
+    expect(summarize).toHaveBeenCalledWith(
+      expect.objectContaining({ memos: ['회의에서 방향 정리'] }),
+      'ko',
+    );
+    expect(writeDaily).toHaveBeenCalledTimes(1);
+    expect(notify).toHaveBeenCalledWith('cairn 일지', expect.stringContaining('로컬 기록 완료'));
+  });
+
+  it('메모도 없으면 기존대로 활동 없음 스킵', async () => {
+    const { service, notify, writeDaily } = makeMemoOnly([]);
+    await expect(
+      service.run({ ...dailyOptions, force: false, skipNotion: true }),
+    ).resolves.toBeUndefined();
+    expect(writeDaily).not.toHaveBeenCalled();
     expect(notify).toHaveBeenCalledWith('cairn 일지', expect.stringContaining('활동 없음'));
   });
 });
