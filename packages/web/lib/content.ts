@@ -125,8 +125,8 @@ export const content = {
       notionVideo: 'Notion integration — 40-second walkthrough',
       gatekeeperPre: 'macOS note: ',
       gatekeeper:
-        "the app isn't code-signed yet, so the first launch is blocked by Gatekeeper. Right-click the app → Open, or run ",
-      gatekeeperPost: ' once.',
+        'the app isn\'t code-signed yet, so the first launch may be blocked as "damaged" — right-click → Open does not clear it. Run ',
+      gatekeeperPost: ' once in Terminal, then open the app again.',
     },
     faq: {
       eyebrow: 'FAQ',
@@ -284,8 +284,8 @@ export const content = {
       notionVideo: 'Notion integration 연결 — 40초 영상 가이드',
       gatekeeperPre: 'macOS 참고: ',
       gatekeeper:
-        '아직 코드 서명이 안 돼 있어 첫 실행은 Gatekeeper 에 막힙니다. 앱 우클릭 → 열기, 또는 아래를 한 번 실행하세요 ',
-      gatekeeperPost: '.',
+        '아직 코드 서명이 안 돼 있어 첫 실행 시 "손상됨" 안내로 막힐 수 있습니다 — 우클릭 → 열기로는 풀리지 않아요. 터미널에서 ',
+      gatekeeperPost: ' 를 한 번 실행한 뒤 다시 여세요.',
     },
     faq: {
       eyebrow: 'FAQ',
