@@ -26,6 +26,50 @@ describe('parseParentEvent', () => {
     });
   });
 
+  it('백필 진행 이벤트(2단계)를 검증해 파싱한다', () => {
+    expect(
+      parseParentEvent({
+        cairn: 1,
+        type: 'backfill-start',
+        total: 3,
+        dates: ['2026-07-10', '2026-07-11'],
+      }),
+    ).toEqual({ type: 'backfill-start', total: 3, dates: ['2026-07-10', '2026-07-11'] });
+    expect(
+      parseParentEvent({
+        cairn: 1,
+        type: 'backfill-progress',
+        done: 1,
+        total: 3,
+        doneDates: ['2026-07-10'],
+        failedDates: [],
+      }),
+    ).toEqual({
+      type: 'backfill-progress',
+      done: 1,
+      total: 3,
+      doneDates: ['2026-07-10'],
+      failedDates: [],
+    });
+    expect(
+      parseParentEvent({
+        cairn: 1,
+        type: 'day-done',
+        date: '2026-07-10',
+        pr: 2,
+        commit: 5,
+        pageId: null,
+      }),
+    ).toEqual({ type: 'day-done', date: '2026-07-10', pr: 2, commit: 5, pageId: null });
+    // 날짜 형식·수치 타입이 어긋나면 버린다
+    expect(
+      parseParentEvent({ cairn: 1, type: 'backfill-start', total: 3, dates: ['nope'] }),
+    ).toBeNull();
+    expect(
+      parseParentEvent({ cairn: 1, type: 'day-done', date: '2026-07-10', pr: '2', commit: 5 }),
+    ).toBeNull();
+  });
+
   it('봉투 없음·미지 타입·필드 타입 불일치는 버린다', () => {
     expect(parseParentEvent(null)).toBeNull();
     expect(parseParentEvent({ type: 'no-activity', date: '2026-07-12' })).toBeNull();

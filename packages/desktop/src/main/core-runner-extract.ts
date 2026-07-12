@@ -50,10 +50,27 @@ export type ParentEvent =
   | { type: 'journal-written'; fileName: string }
   | { type: 'journal-write-failed' }
   | { type: 'no-activity'; date: string }
-  | { type: 'summary-failed'; date: string };
+  | { type: 'summary-failed'; date: string }
+  | { type: 'backfill-start'; total: number; dates: string[] }
+  | { type: 'backfill-date-start'; date: string }
+  | {
+      type: 'backfill-progress';
+      done: number;
+      total: number;
+      doneDates: string[];
+      failedDates: string[];
+    }
+  | { type: 'day-done'; date: string; pr: number; commit: number; pageId: string | null };
 
 const PUBLISH_KINDS = new Set(['created', 'recreated', 'skipped', 'no-target']);
 const STEPS = new Set(['collect', 'summarize', 'publish']);
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0;
+const dateList = (v: unknown): string[] | null =>
+  Array.isArray(v) && v.every((d) => typeof d === 'string' && ISO_DATE.test(d))
+    ? (v as string[])
+    : null;
 
 // child 'message' payload 검증 — cairn 봉투 + type 별 필드 타입이 맞을 때만 이벤트로 인정
 export function parseParentEvent(raw: unknown): ParentEvent | null {
@@ -84,6 +101,34 @@ export function parseParentEvent(raw: unknown): ParentEvent | null {
       return typeof m.date === 'string' ? { type: 'no-activity', date: m.date } : null;
     case 'summary-failed':
       return typeof m.date === 'string' ? { type: 'summary-failed', date: m.date } : null;
+    case 'backfill-start': {
+      const dates = dateList(m.dates);
+      return isCount(m.total) && dates ? { type: 'backfill-start', total: m.total, dates } : null;
+    }
+    case 'backfill-date-start':
+      return typeof m.date === 'string' && ISO_DATE.test(m.date)
+        ? { type: 'backfill-date-start', date: m.date }
+        : null;
+    case 'backfill-progress': {
+      const doneDates = dateList(m.doneDates);
+      const failedDates = dateList(m.failedDates);
+      return isCount(m.done) && isCount(m.total) && doneDates && failedDates
+        ? { type: 'backfill-progress', done: m.done, total: m.total, doneDates, failedDates }
+        : null;
+    }
+    case 'day-done':
+      return typeof m.date === 'string' &&
+        ISO_DATE.test(m.date) &&
+        isCount(m.pr) &&
+        isCount(m.commit)
+        ? {
+            type: 'day-done',
+            date: m.date,
+            pr: m.pr,
+            commit: m.commit,
+            pageId: typeof m.pageId === 'string' ? m.pageId : null,
+          }
+        : null;
     default:
       return null;
   }
@@ -110,6 +155,12 @@ export function applyParentEvent(state: RunExtractor, event: ParentEvent): RunSt
       return null;
     case 'summary-failed':
       state.summaryFailed = true;
+      return null;
+    case 'backfill-start':
+    case 'backfill-date-start':
+    case 'backfill-progress':
+    case 'day-done':
+      // 배치 진행 상태는 core-runner-backfill.applyBackfillEvent 소유
       return null;
   }
 }

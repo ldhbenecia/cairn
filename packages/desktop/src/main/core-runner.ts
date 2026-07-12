@@ -5,6 +5,7 @@ import { StringDecoder } from 'node:string_decoder';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  applyBackfillEvent,
   getBackfillCountsByDate,
   getBackfillLastPublishedDate,
   getBackfillPagesByDate,
@@ -328,6 +329,7 @@ export async function runCore(
     if (!event) return;
     const step = applyParentEvent(ext, event);
     if (step) emitStep(step);
+    applyBackfillEvent(event, mode);
   });
 
   return new Promise<CoreResult>((resolvePromise) => {
