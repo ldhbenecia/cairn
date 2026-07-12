@@ -127,12 +127,14 @@ export class OrchestratorService {
       { total: backfillTotal, dates: missingDates.join(',') },
       'daily: backfill batch start',
     );
+    emitParentEvent({ type: 'backfill-start', total: backfillTotal, dates: [...missingDates] });
     const results = await withConcurrency<
       string,
       { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' }
     >(missingDates, BACKFILL_CONCURRENCY, async (date) => {
       // 날짜별 "시작" — 요약 중(완료 전)에도 동시 처리 중인 칸 펄스 표시
       this.logger.info({ date }, 'daily: backfill date start');
+      emitParentEvent({ type: 'backfill-date-start', date });
       let result: { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' };
       try {
         const outcome = await this.runDailyForDate(date, options, {
@@ -161,6 +163,13 @@ export class OrchestratorService {
         },
         'daily: backfill progress',
       );
+      emitParentEvent({
+        type: 'backfill-progress',
+        done: backfillDone,
+        total: backfillTotal,
+        doneDates: [...completedDates],
+        failedDates: [...failedDates],
+      });
       return result;
     });
 
@@ -454,6 +463,14 @@ export class OrchestratorService {
       kind: result.kind,
       pageId: 'pageId' in result ? result.pageId : null,
       url: 'url' in result ? result.url : null,
+    });
+    // 배치 UI 의 날짜별 수치·export 대상 산정 소스 ('daily: publish done' 스크래핑 대응)
+    emitParentEvent({
+      type: 'day-done',
+      date,
+      pr: prCount,
+      commit: commitCount,
+      pageId: 'pageId' in result ? result.pageId : null,
     });
 
     if (journalWritten && (result.kind === 'created' || result.kind === 'recreated')) {

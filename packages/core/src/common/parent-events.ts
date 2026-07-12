@@ -14,7 +14,18 @@ export type ParentEvent =
   | { type: 'journal-written'; fileName: string }
   | { type: 'journal-write-failed' }
   | { type: 'no-activity'; date: string }
-  | { type: 'summary-failed'; date: string };
+  | { type: 'summary-failed'; date: string }
+  // 백필 배치 진행 (2단계) — 데스크톱 배치 UI 의 날짜별 행·진행률·수치 소스
+  | { type: 'backfill-start'; total: number; dates: string[] }
+  | { type: 'backfill-date-start'; date: string }
+  | {
+      type: 'backfill-progress';
+      done: number;
+      total: number;
+      doneDates: string[];
+      failedDates: string[];
+    }
+  | { type: 'day-done'; date: string; pr: number; commit: number; pageId: string | null };
 
 export function emitParentEvent(event: ParentEvent): void {
   if (typeof process.send !== 'function') return;

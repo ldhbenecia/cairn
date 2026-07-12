@@ -1,5 +1,6 @@
 import { broadcast } from './broadcast';
 import type { CoreMode } from './core-runner';
+import type { ParentEvent } from './core-runner-extract';
 
 // 백필 배치 진행 — 전체 stdout 스트림 기준 누적(렌더러 200줄 tail 제한에 영향받지 않게)
 export type DateStep = 'collect' | 'summarize' | 'publish';
@@ -18,6 +19,8 @@ let runProgress: RunProgress | null = null;
 let bfTotal = 0;
 let bfDone = 0;
 let bfStarted = 0;
+// 이벤트 소스의 시작 날짜 집합 — 스크래핑 카운터와 이중 집계되지 않게 소스별로 두고 max 사용
+let bfStartedDates = new Set<string>();
 let bfInStat = false;
 let bfLastKey = '';
 let bfDates: string[] = [];
@@ -69,6 +72,7 @@ export function resetBackfillTracking(): void {
   bfTotal = 0;
   bfDone = 0;
   bfStarted = 0;
+  bfStartedDates = new Set();
   bfInStat = false;
   bfLastKey = '';
   bfDates = [];
@@ -190,8 +194,15 @@ export function trackBackfill(line: string, mode: CoreMode): void {
     if (mt) bfTotal = Math.max(bfTotal, Number(mt[1]));
     if (md) bfDone = Math.max(bfDone, Number(md[1]));
   }
+  publishProgress(mode);
+}
+
+// 상태 → 진행 브로드캐스트 (dedupe 포함) — 스크래핑(trackBackfill)과 이벤트(applyBackfillEvent) 공용
+function publishProgress(mode: CoreMode): void {
   if (bfTotal <= 1) return;
-  const active = Math.max(0, Math.min(bfTotal - bfDone, bfStarted - bfDone));
+  // started 는 스크래핑 카운터·이벤트 집합이 같은 사실을 따로 세므로 max 가 참값 (이중 집계 방지)
+  const started = Math.max(bfStarted, bfStartedDates.size);
+  const active = Math.max(0, Math.min(bfTotal - bfDone, started - bfDone));
   const stepSig = Object.entries(bfStepByDate)
     .map(([d, s]) => `${d}:${s}`)
     .sort()
@@ -214,6 +225,40 @@ export function trackBackfill(line: string, mode: CoreMode): void {
     countsByDate: bfCountsByDate,
   };
   broadcast('cairn:run-progress', { mode, ...runProgress });
+}
+
+// 구조화 이벤트(ADR 0033 2단계) — 스크래핑과 같은 상태를 갱신한다.
+// 값 갱신은 전부 멱등(max·length 가드·키 맵)이라 두 소스가 병행돼도 일관
+export function applyBackfillEvent(event: ParentEvent, mode: CoreMode): void {
+  switch (event.type) {
+    case 'backfill-start':
+      bfTotal = Math.max(bfTotal, event.total);
+      if (event.dates.length > bfDates.length) bfDates = event.dates;
+      break;
+    case 'backfill-date-start':
+      bfStartedDates.add(event.date);
+      break;
+    case 'date-step':
+      bfStepByDate = { ...bfStepByDate, [event.date]: event.step };
+      break;
+    case 'backfill-progress':
+      bfDone = Math.max(bfDone, event.done);
+      bfTotal = Math.max(bfTotal, event.total);
+      if (event.doneDates.length >= bfDoneDates.length) bfDoneDates = event.doneDates;
+      if (event.failedDates.length >= bfFailedDates.length) bfFailedDates = event.failedDates;
+      break;
+    case 'day-done':
+      bfCountsByDate = { ...bfCountsByDate, [event.date]: { pr: event.pr, commit: event.commit } };
+      bfLastPublishedDate = event.date;
+      if (event.pageId) bfPagesByDate = { ...bfPagesByDate, [event.date]: event.pageId };
+      break;
+    case 'no-activity':
+      bfCountsByDate = { ...bfCountsByDate, [event.date]: { pr: 0, commit: 0 } };
+      break;
+    default:
+      return;
+  }
+  publishProgress(mode);
 }
 
 export function getRunProgress(): RunProgress | null {
