@@ -168,4 +168,17 @@ describe('buildActivityPayload', () => {
     expect(payload.inProgress.commits).toEqual([]);
     expect(payload.sourceErrors).toEqual({});
   });
+
+  it('memos 는 그대로 payload 에 실리고, 없으면 빈 배열', () => {
+    const withMemos = buildActivityPayload({
+      date: '2026-05-09',
+      github: null,
+      localGit: null,
+      memos: ['온보딩 개선 아이디어 논의', '배포 파이프라인 문서 읽음'],
+    });
+    expect(withMemos.memos).toEqual(['온보딩 개선 아이디어 논의', '배포 파이프라인 문서 읽음']);
+
+    const withoutMemos = buildActivityPayload({ date: '2026-05-09', github: null, localGit: null });
+    expect(withoutMemos.memos).toEqual([]);
+  });
 });

@@ -37,6 +37,7 @@ function makeDaily(overrides: {
     unusable('stats') as never,
     unusable('journalWriter') as never,
     unusable('journalSource') as never,
+    unusable('memoSource') as never,
     logger() as never,
   );
   return { service, notify };
@@ -65,6 +66,7 @@ function makeRepublish(opts: {
     unusable('stats') as never,
     { hasDaily: vi.fn().mockImplementation(opts.hasDaily) } as never,
     { readDailySummary: vi.fn().mockImplementation(opts.readDailySummary) } as never,
+    unusable('memoSource') as never,
     logger() as never,
   );
   return { service, notify, publish };
@@ -84,6 +86,7 @@ function makeRollup(activity: RollupActivity) {
     unusable('stats') as never,
     unusable('journalWriter') as never,
     unusable('journalSource') as never,
+    unusable('memoSource') as never,
     logger() as never,
   );
   return { service, notify };
@@ -210,6 +213,7 @@ describe('journal 재발행 (Notion 발행만 실패했던 날짜 복구)', () =
       unusable('stats') as never,
       { hasDaily: vi.fn().mockReturnValue(true) } as never,
       { readDailySummary: vi.fn().mockReturnValue(summary) } as never,
+      unusable('memoSource') as never,
       logger() as never,
     );
     await expect(service.run(backfillOptions)).resolves.toBeUndefined();

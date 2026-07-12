@@ -1,7 +1,14 @@
-import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electron';
+import { app, BrowserWindow, dialog, globalShortcut, ipcMain, powerMonitor, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
+import {
+  disposeCaptureWindow,
+  hideCaptureWindow,
+  reconfigureCaptureShortcut,
+  toggleCaptureWindow,
+} from './capture-window';
+import { addMemo } from './memo-store';
 import { warmClaudePath } from './claude-path';
 import { exportStatus, pickExportFolder, saveMarkdown, savePdf } from './export';
 import { sendTestNotification } from './notifier';
@@ -112,6 +119,11 @@ function createWindow(startHidden: boolean): BrowserWindow {
     win.hide();
   });
 
+  // dev: 메인 창을 닫으면 숨은 캡처 창 때문에 window-all-closed 가 안 와 앱이 안 죽는 문제 방지
+  win.on('closed', () => {
+    if (!app.isPackaged) disposeCaptureWindow();
+  });
+
   // 창을 다시 열면 Dock 아이콘 복귀 — Cmd+Q 로 트레이 전용 진입 시 빠졌던 Dock 을 되살림 (macOS 전용)
   if (app.isPackaged && process.platform === 'darwin') {
     win.on('show', () => void app.dock?.show());
@@ -205,6 +217,9 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());
   ipcMain.handle('cairn:recent:list', () => listRecentMerged());
+  ipcMain.handle('cairn:memo:add', (_e, text: string) => addMemo(String(text ?? '')));
+  ipcMain.handle('cairn:capture:open', () => toggleCaptureWindow());
+  ipcMain.handle('cairn:capture:hide', () => hideCaptureWindow());
   ipcMain.handle('cairn:notion:page-content', (_e, pageId: string, workspaceLabel: string) =>
     pageId.startsWith(JOURNAL_PAGE_PREFIX)
       ? readJournalPageContent(pageId)
@@ -229,7 +244,14 @@ void app.whenReady().then(() => {
       });
     }
     if (patch.language) reconfigureTray();
+    // 캡처 창은 bootstrap 시점 설정으로 렌더됨 — 언어·테마·강조색·글래스 변경 시 파기해 다음 호출에 재생성
+    if (patch.language || patch.theme || patch.accent || patch.liquidGlass !== undefined) {
+      disposeCaptureWindow();
+    }
     if (patch.launchAtLogin !== undefined) applyLoginItem(next.launchAtLogin);
+    if (patch.quickCapture) {
+      reconfigureCaptureShortcut(next.quickCapture.enabled, next.quickCapture.shortcut);
+    }
     return next;
   });
 
@@ -274,7 +296,9 @@ void app.whenReady().then(() => {
     app.quit();
   });
 
-  applyLoginItem(readSettings().launchAtLogin);
+  const initial = readSettings();
+  applyLoginItem(initial.launchAtLogin);
+  reconfigureCaptureShortcut(initial.quickCapture.enabled, initial.quickCapture.shortcut);
   initAutoPublish();
   initTelemetry();
   trackAppLaunched();
@@ -304,6 +328,10 @@ app.on('before-quit', (e) => {
   }
   killRunning(); // 진행 중 core 자식이 고아로 남지 않게 종료 전 정리
   void shutdownTelemetry();
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
 
 app.on('window-all-closed', () => {

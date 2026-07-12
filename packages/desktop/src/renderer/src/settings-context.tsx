@@ -106,6 +106,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       prompts: { ...prev.prompts, ...(patch.prompts ?? {}) },
       export: { ...prev.export, ...(patch.export ?? {}) },
       graph: { ...prev.graph, ...(patch.graph ?? {}) },
+      quickCapture: { ...prev.quickCapture, ...(patch.quickCapture ?? {}) },
     }));
     void window.cairn.setSettings(patch);
   }, []);

@@ -33,6 +33,7 @@ const STRINGS = {
     'tray.daily': '오늘 일지 발행',
     'tray.weekly': '이번 주 정리',
     'tray.monthly': '이번 달 정리',
+    'tray.capture': '퀵 캡처',
     'tray.dashboard': '대시보드 열기',
     'tray.quit': 'cairn 완전 종료',
 
@@ -70,6 +71,7 @@ const STRINGS = {
     'tray.daily': 'Publish today',
     'tray.weekly': "This week's rollup",
     'tray.monthly': "This month's rollup",
+    'tray.capture': 'Quick capture',
     'tray.dashboard': 'Open dashboard',
     'tray.quit': 'Quit cairn',
 

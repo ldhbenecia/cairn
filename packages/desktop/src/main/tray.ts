@@ -1,4 +1,5 @@
 import { BrowserWindow, Menu, nativeImage, Tray, type MenuItemConstructorOptions } from 'electron';
+import { toggleCaptureWindow } from './capture-window';
 import { runCore, type CoreMode } from './core-runner';
 import { mt } from './i18n';
 import { TRAY_ICON_1X, TRAY_ICON_2X } from './tray-icon';
@@ -65,6 +66,10 @@ function buildMenu(window: BrowserWindow, onQuit: () => void): Menu {
       click: () => triggerCore('monthly'),
     },
     { type: 'separator' },
+    {
+      label: mt('tray.capture'),
+      click: () => toggleCaptureWindow(),
+    },
     {
       label: mt('tray.dashboard'),
       accelerator: 'CommandOrControl+D',
