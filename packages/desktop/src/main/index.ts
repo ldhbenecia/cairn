@@ -35,6 +35,7 @@ import {
   listNotionDatabases,
   probeConnectionAccounts,
   probeGithub,
+  probeLocalRepo,
   probeNotion,
   searchNotionPages,
   parseNotionWorkspacePayload,
@@ -265,6 +266,9 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:onboarding:probe-github', (_e, token: string) => probeGithub(token));
   ipcMain.handle('cairn:onboarding:github-from-gh', () => githubAccountsFromGhCli());
   ipcMain.handle('cairn:onboarding:probe-claude', () => probeClaude());
+  ipcMain.handle('cairn:onboarding:probe-repo', (_e, path: string) =>
+    probeLocalRepo(String(path ?? '')),
+  );
   ipcMain.handle('cairn:connections:accounts', () => probeConnectionAccounts());
   ipcMain.handle('cairn:integrations:add-notion', (_e, raw: unknown) => {
     const parsed = parseNotionWorkspacePayload(raw);

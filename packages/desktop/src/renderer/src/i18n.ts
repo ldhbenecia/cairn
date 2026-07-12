@@ -130,6 +130,9 @@ const STRINGS = {
     'onb.claude.testing': '확인 중... (최대 1분)',
     'onb.repos.desc': '커밋을 수집할 로컬 Git 저장소 경로. (선택)',
     'onb.repos.add': '폴더 추가',
+    'onb.repos.notGit': 'git 저장소가 아니에요 — 커밋을 수집할 수 없어요',
+    'onb.repos.noEmail':
+      '이 저장소에 user.email 이 없어요 — 내 커밋을 못 찾아요 (git config user.email 설정)',
     'onb.review.desc': '아래 내용으로 설정 파일을 작성합니다.',
     'onb.review.github': 'GitHub 계정',
     'onb.review.claude': 'Claude',
@@ -591,6 +594,9 @@ const STRINGS = {
     'onb.claude.testing': 'Checking... (up to 1 min)',
     'onb.repos.desc': 'Local Git repository paths to collect commits from. (optional)',
     'onb.repos.add': 'Add folder',
+    'onb.repos.notGit': 'Not a git repository — commits cannot be collected',
+    'onb.repos.noEmail':
+      'user.email is not set in this repo — your commits cannot be identified (set git config user.email)',
     'onb.review.desc': 'The config file will be written with the following.',
     'onb.review.github': 'GitHub accounts',
     'onb.review.claude': 'Claude',

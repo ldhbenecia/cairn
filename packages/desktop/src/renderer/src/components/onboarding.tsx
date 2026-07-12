@@ -1,5 +1,13 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, ExternalLink, FolderPlus, Loader2, Plus, Trash2 } from 'lucide-react';
+import {
+  Check,
+  ExternalLink,
+  FolderPlus,
+  Loader2,
+  Plus,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
@@ -29,6 +37,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   ]);
   const [anthropicKey, setAnthropicKey] = useState('');
   const [repos, setRepos] = useState<string[]>([]);
+  const [repoWarns, setRepoWarns] = useState<Record<string, 'not-git' | 'no-email'>>({});
   const [finishing, setFinishing] = useState(false);
   const [finishErr, setFinishErr] = useState<string | null>(null);
   const [claudeStatus, setClaudeStatus] = useState<Status>('idle');
@@ -114,7 +123,13 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
 
   async function addRepo() {
     const p = await window.cairn.onboarding.pickFolder();
-    if (p && !repos.includes(p)) setRepos((prev) => [...prev, p]);
+    if (!p || repos.includes(p)) return;
+    setRepos((prev) => [...prev, p]);
+    // 추가 즉시 인라인 검증 — .git 부재·user.email 미설정은 발행 때야 드러나던 문제 (경고만, 차단 안 함)
+    const probe = await window.cairn.onboarding.probeRepo(p);
+    if (!probe.ok && probe.reason) {
+      setRepoWarns((prev) => ({ ...prev, [p]: probe.reason! }));
+    }
   }
 
   return (
@@ -297,17 +312,30 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   {repos.map((r, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-2 rounded-md border border-hairline bg-surface-1 px-3 py-2 text-[13px]"
+                      className="rounded-md border border-hairline bg-surface-1 px-3 py-2 text-[13px]"
                     >
-                      <span className="flex-1 truncate font-mono text-ink-muted">{r}</span>
-                      <button
-                        type="button"
-                        onClick={() => setRepos((p) => p.filter((_, x) => x !== i))}
-                        aria-label={t('onb.field.remove')}
-                        className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink"
-                      >
-                        <Trash2 size={14} strokeWidth={2} />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className="flex-1 truncate font-mono text-ink-muted">{r}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRepos((p) => p.filter((_, x) => x !== i));
+                            setRepoWarns((prev) =>
+                              Object.fromEntries(Object.entries(prev).filter(([k]) => k !== r)),
+                            );
+                          }}
+                          aria-label={t('onb.field.remove')}
+                          className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink"
+                        >
+                          <Trash2 size={14} strokeWidth={2} />
+                        </button>
+                      </div>
+                      {repoWarns[r] && (
+                        <p className="mt-1 flex items-center gap-1.5 text-[12px] text-warning">
+                          <TriangleAlert size={12} strokeWidth={2} className="shrink-0" />
+                          {t(repoWarns[r] === 'not-git' ? 'onb.repos.notGit' : 'onb.repos.noEmail')}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>

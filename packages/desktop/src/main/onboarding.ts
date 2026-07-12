@@ -1,10 +1,10 @@
 import { Client } from '@notionhq/client';
 import { execFile } from 'node:child_process';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { errorMessage } from './error-message';
 import { writeFileAtomic } from './atomic-write';
 import { withFileLock } from './file-lock';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { findInPath, searchPathEnv } from './claude-path';
 import { CONFIG_PATH, ENV_PATH, readEnvFile } from './setup';
@@ -37,6 +37,25 @@ export type OnboardingPayload = {
 };
 
 const isStr = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
+
+export type LocalRepoProbe = { ok: boolean; reason?: 'not-git' | 'no-email' };
+
+// 온보딩에서 로컬 저장소를 추가하는 즉시 인라인 검증 — 발행 시점(collector 의 repos[].error)에야
+// 드러나던 .git 부재·user.email 미설정을 미리 보여준다. git 실행 불가(미설치 등)는 판정 보류(ok)
+export async function probeLocalRepo(path: string): Promise<LocalRepoProbe> {
+  // .git 은 디렉토리(일반)·파일(worktree/submodule) 둘 다 가능 — existsSync 가 모두 커버
+  if (!isStr(path) || !existsSync(join(path, '.git'))) return { ok: false, reason: 'not-git' };
+  try {
+    const { stdout } = await execFileAsync('git', ['-C', path, 'config', 'user.email'], {
+      timeout: 3000,
+    });
+    return stdout.trim() ? { ok: true } : { ok: false, reason: 'no-email' };
+  } catch (err) {
+    // exit 1 = user.email 미설정. ENOENT(git 없음)·타임아웃은 여기서 판정하지 않는다
+    if ((err as { code?: unknown }).code === 1) return { ok: false, reason: 'no-email' };
+    return { ok: true };
+  }
+}
 // .env 에 KEY=VALUE 한 줄로 append 되는 값 — 개행·제어문자가 섞이면 임의 라인 주입이 가능해 거부
 // eslint-disable-next-line no-control-regex
 const hasCtl = (s: string): boolean => /[\x00-\x1f\x7f]/.test(s);
