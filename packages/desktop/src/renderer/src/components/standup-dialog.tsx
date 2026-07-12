@@ -53,10 +53,12 @@ export function StandupDialog({
   useEffect(() => {
     if (!source || builtFor.current === source.pageId) return;
     builtFor.current = source.pageId;
+    setFailed(false);
     void window.cairn
       .pageContent(source.pageId, source.workspaceLabel)
       .then((c) => {
-        if (!mounted.current) return;
+        // stale 응답 가드 — source 가 그새 다른 페이지로 바뀌었으면 버린다
+        if (!mounted.current || builtFor.current !== source.pageId) return;
         setText(
           buildStandupText(c.blocks, source.date ?? '', {
             yesterday: t('standup.yesterday'),
@@ -67,7 +69,7 @@ export function StandupDialog({
         );
       })
       .catch(() => {
-        if (mounted.current) setFailed(true);
+        if (mounted.current && builtFor.current === source.pageId) setFailed(true);
       });
   }, [source, t]);
 

@@ -61,6 +61,8 @@ function Capture() {
         setSaved(false);
         void window.cairn.capture.hide();
       }, 700);
+    } catch {
+      // IPC 실패 — 입력이 그대로 남아 재시도 가능
     } finally {
       saving.current = false;
     }
