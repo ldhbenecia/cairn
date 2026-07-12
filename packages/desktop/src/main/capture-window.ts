@@ -6,6 +6,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let captureWin: BrowserWindow | null = null;
 let registeredAccelerator: string | null = null;
+// 첫 로드 완료 전 토글 연타 대응 — 표시 여부는 이 플래그가 진실 (빈 창 표시/hide 후 부활 방지)
+let wantShow = false;
 
 function createCaptureWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -41,7 +43,9 @@ function createCaptureWindow(): BrowserWindow {
   win.setAlwaysOnTop(true, 'floating');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
-  win.on('blur', () => win.hide());
+  win.on('blur', () => {
+    if (win.isVisible()) hidePanel(win);
+  });
   win.on('closed', () => {
     captureWin = null;
   });
@@ -62,25 +66,44 @@ function positionCaptureWindow(win: BrowserWindow): void {
   win.setPosition(Math.round(x + (width - (w ?? 560)) / 2), Math.round(y + height * 0.2));
 }
 
+function present(win: BrowserWindow): void {
+  positionCaptureWindow(win);
+  win.show();
+  win.focus();
+}
+
+function hidePanel(win: BrowserWindow): void {
+  wantShow = false;
+  win.hide();
+  // 패널만 떠 있던 경우 이전 앱으로 포커스 반환 (macOS). 메인 창이 보이면 앱 활성 유지
+  if (
+    process.platform === 'darwin' &&
+    !BrowserWindow.getAllWindows().some((w) => w !== win && w.isVisible())
+  ) {
+    app.hide();
+  }
+}
+
 export function toggleCaptureWindow(): void {
-  if (captureWin?.isVisible()) {
-    captureWin.hide();
+  if (!captureWin) {
+    const win = (captureWin = createCaptureWindow());
+    wantShow = true;
+    // 첫 생성 직후엔 렌더러 로드 전이라 빈 창이 깜빡인다 — ready 후, 그 사이 취소 안 됐을 때만 표시
+    win.once('ready-to-show', () => {
+      if (wantShow && captureWin === win) present(win);
+    });
     return;
   }
-  const created = captureWin === null;
-  const win = (captureWin ??= createCaptureWindow());
-  const present = (): void => {
-    positionCaptureWindow(win);
-    win.show();
-    win.focus();
-  };
-  // 첫 생성 직후엔 렌더러 로드 전이라 빈 창이 깜빡인다 — ready 후 표시
-  if (created) win.once('ready-to-show', present);
-  else present();
+  if (captureWin.webContents.isLoading()) {
+    wantShow = !wantShow;
+    return;
+  }
+  if (captureWin.isVisible()) hidePanel(captureWin);
+  else present(captureWin);
 }
 
 export function hideCaptureWindow(): void {
-  captureWin?.hide();
+  if (captureWin) hidePanel(captureWin);
 }
 
 // 언어 변경 시 파기 — 캡처 창은 bootstrap-sync 시점 언어로 렌더돼 다음 호출에서 새로 만든다

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Check, Copy, Loader2, MessageSquareText, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import { buildStandupText, pickStandupSource } from '../lib/standup';
 import { useSettings } from '../settings-context';
@@ -23,35 +23,52 @@ export function StandupDialog({
   const { t } = useSettings();
   const [text, setText] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
+  // 페이지당 1회만 생성 — recent 목록 갱신(포커스 리로드·발행 완료)마다 source 참조가 바뀌어
+  // 재생성되면 textarea 의 사용자 편집이 덮인다
+  const builtFor = useRef<string | null>(null);
+  const mounted = useRef(true);
 
   const source = useMemo(() => pickStandupSource(recent?.pages ?? [], todayLocal()), [recent]);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   // 자체 오버레이(Radix 아님)라 ESC 닫기를 직접 — 다른 다이얼로그와 동작 통일
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      // IME 조합 취소(ESC)는 다이얼로그 닫기가 아니다 — 편집 중 유실 방지
+      if (e.isComposing || e.keyCode === 229) return;
+      onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
   useEffect(() => {
-    if (!source) return;
-    let alive = true;
-    void window.cairn.pageContent(source.pageId, source.workspaceLabel).then((c) => {
-      if (!alive) return;
-      setText(
-        buildStandupText(c.blocks, source.date ?? '', {
-          yesterday: t('standup.yesterday'),
-          today: t('standup.today'),
-          blockers: t('standup.blockers'),
-          none: t('standup.none'),
-        }),
-      );
-    });
-    return () => {
-      alive = false;
-    };
+    if (!source || builtFor.current === source.pageId) return;
+    builtFor.current = source.pageId;
+    void window.cairn
+      .pageContent(source.pageId, source.workspaceLabel)
+      .then((c) => {
+        if (!mounted.current) return;
+        setText(
+          buildStandupText(c.blocks, source.date ?? '', {
+            yesterday: t('standup.yesterday'),
+            today: t('standup.today'),
+            blockers: t('standup.blockers'),
+            none: t('standup.none'),
+          }),
+        );
+      })
+      .catch(() => {
+        if (mounted.current) setFailed(true);
+      });
   }, [source, t]);
 
   function copy() {
@@ -106,6 +123,8 @@ export function StandupDialog({
         <div className="px-5 py-4">
           {!source ? (
             <p className="py-10 text-center text-[13px] text-ink-tertiary">{t('standup.empty')}</p>
+          ) : failed ? (
+            <p className="py-10 text-center text-[13px] text-ink-tertiary">{t('standup.failed')}</p>
           ) : text === null ? (
             <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-ink-tertiary">
               <Loader2 size={14} strokeWidth={2} className="animate-spin" />

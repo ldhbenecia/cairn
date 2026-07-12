@@ -34,11 +34,13 @@ export function parseMemosFile(raw: string): MemosFile {
 }
 
 export function memoTextsForDate(file: MemosFile, date: string): string[] {
-  return (file[date] ?? [])
-    .map((e) => e.text.trim())
-    .filter((t) => t.length > 0)
-    .map((t) => t.slice(0, MAX_MEMO_CHARS))
-    .slice(0, MAX_MEMOS_PER_DAY);
+  return (
+    (file[date] ?? [])
+      .map((e) => e.text.trim())
+      // 상한 초과는 자르지 않고 스킵 — truncate 가 토큰·이메일을 반토막 내면 egress 패턴 매칭을 피해간다
+      .filter((t) => t.length > 0 && t.length <= MAX_MEMO_CHARS)
+      .slice(0, MAX_MEMOS_PER_DAY)
+  );
 }
 
 // 자유 텍스트라 마스킹 대신 항목 drop (ADR 0021) — 경로·토큰·이메일이 섞인 메모만 버린다

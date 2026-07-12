@@ -2,21 +2,23 @@ import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Check, PenLine } from 'lucide-react';
 import { translate, type I18nKey } from './i18n';
-import { applyAccent, applyTheme } from './settings-context';
+import { applyAccent, applyGlass, applyTheme } from './settings-context';
 import './styles.css';
 
-// 캡처 창은 SettingsProvider 없이 bootstrap 설정으로 고정 렌더 — 언어 변경 시 main 이 창을 파기한다
+// 캡처 창은 SettingsProvider 없이 bootstrap 설정으로 고정 렌더 — 언어·테마 등 변경 시 main 이 창을 파기한다
 const lang = window.cairn.initialSettings.language;
 const t = (key: I18nKey): string => translate(lang, key);
 
 applyTheme(window.cairn.initialSettings.theme);
 applyAccent(window.cairn.initialSettings.accent);
+applyGlass(window.cairn.initialSettings.liquidGlass);
 
 function Capture() {
   const [text, setText] = useState('');
   const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const savedTimer = useRef<number | null>(null);
+  const saving = useRef(false);
 
   // 창이 다시 뜰 때마다 입력에 포커스
   useEffect(() => {
@@ -46,15 +48,22 @@ function Capture() {
 
   async function submit(): Promise<void> {
     const trimmed = text.trim();
-    if (!trimmed || saved) return;
-    const r = await window.cairn.capture.add(trimmed);
-    if (!r.ok) return;
-    setText('');
-    setSaved(true);
-    savedTimer.current = window.setTimeout(() => {
-      setSaved(false);
-      void window.cairn.capture.hide();
-    }, 700);
+    // saving 가드 — 키 반복 Enter 가 IPC 완료 전에 중복 저장하는 것 방지
+    if (!trimmed || saving.current) return;
+    saving.current = true;
+    try {
+      const r = await window.cairn.capture.add(trimmed);
+      if (!r.ok) return;
+      setText('');
+      setSaved(true);
+      if (savedTimer.current) window.clearTimeout(savedTimer.current);
+      savedTimer.current = window.setTimeout(() => {
+        setSaved(false);
+        void window.cairn.capture.hide();
+      }, 700);
+    } finally {
+      saving.current = false;
+    }
   }
 
   return (
@@ -69,7 +78,16 @@ function Capture() {
           ref={inputRef}
           autoFocus
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          maxLength={300}
+          onChange={(e) => {
+            setText(e.target.value);
+            // 저장 플래시 중 바로 다음 메모를 치기 시작하면 자동 숨김 취소
+            if (savedTimer.current) {
+              window.clearTimeout(savedTimer.current);
+              savedTimer.current = null;
+            }
+            if (saved) setSaved(false);
+          }}
           onKeyDown={(e) => {
             if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
             e.preventDefault();

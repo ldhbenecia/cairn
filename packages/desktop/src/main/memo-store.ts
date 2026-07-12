@@ -10,6 +10,8 @@ const MEMOS_DIR = join(homedir(), '.cairn');
 const MEMOS_PATH = join(MEMOS_DIR, 'memos.json');
 
 export const MAX_MEMO_CHARS = 300;
+// core 읽기 상한(memo-file.ts MAX_MEMOS_PER_DAY)과 동일 — 저장은 됐는데 병합에서 잘리는 항목이 없게
+export const MAX_MEMOS_PER_DAY = 20;
 const KEEP_DAYS = 60;
 
 // 로컬 오늘 날짜(YYYY-MM-DD) — KST 단정 금지(timezone 룰)
@@ -35,7 +37,8 @@ export function parseMemosFile(raw: string): MemosFile {
     for (const e of entries) {
       const text = (e as { text?: unknown } | null)?.text;
       const at = (e as { at?: unknown } | null)?.at;
-      if (typeof text === 'string' && typeof at === 'string') list.push({ text, at });
+      // at 누락은 core 파서와 동일하게 수용 — 손편집된 파일의 항목을 RMW 가 지우지 않게
+      if (typeof text === 'string') list.push({ text, at: typeof at === 'string' ? at : '' });
     }
     if (list.length > 0) out[date] = list;
   }
@@ -56,8 +59,9 @@ export function pruneBefore(file: MemosFile, cutoffDate: string): MemosFile {
 }
 
 export function addMemo(rawText: string): { ok: boolean; count: number } {
-  const text = rawText.trim().slice(0, MAX_MEMO_CHARS);
-  if (!text) return { ok: false, count: 0 };
+  const text = rawText.trim();
+  // 상한 초과는 자르지 않고 거부 — truncate 가 토큰·이메일을 반토막 내면 core 의 egress 패턴 매칭을 피해간다
+  if (!text || text.length > MAX_MEMO_CHARS) return { ok: false, count: 0 };
   const now = new Date();
   const date = todayLocalIsoDate(now);
   const cutoff = todayLocalIsoDate(
@@ -73,7 +77,11 @@ export function addMemo(rawText: string): { ok: boolean; count: number } {
       } catch {
         // 파일 없음/깨짐 — 새로 시작
       }
-      const next = appendMemoEntry(pruneBefore(file, cutoff), date, {
+      const pruned = pruneBefore(file, cutoff);
+      const todayCount = pruned[date]?.length ?? 0;
+      // '저장은 됐는데 병합에서 잘리는' 항목이 안 생기게 core 읽기 상한과 동일하게 거부
+      if (todayCount >= MAX_MEMOS_PER_DAY) return { ok: false, count: todayCount };
+      const next = appendMemoEntry(pruned, date, {
         text,
         at: now.toISOString(),
       });

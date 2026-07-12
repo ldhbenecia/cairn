@@ -42,14 +42,19 @@ describe('memoTextsForDate', () => {
     expect(memoTextsForDate(file, '2026-07-10')).toEqual([]);
   });
 
-  it('항목 수·길이 상한을 적용한다', () => {
-    const long = 'x'.repeat(MAX_MEMO_CHARS + 50);
+  it('항목 수 상한을 적용하고, 길이 초과는 자르지 않고 스킵한다', () => {
+    // truncate 는 토큰·이메일을 반토막 내 egress 패턴 매칭을 피해갈 수 있어 스킵이 정책
+    const long = 'x'.repeat(MAX_MEMO_CHARS + 1);
     const file = {
-      '2026-07-12': Array.from({ length: MAX_MEMOS_PER_DAY + 5 }, () => ({ text: long })),
+      '2026-07-12': [
+        { text: long },
+        ...Array.from({ length: MAX_MEMOS_PER_DAY + 5 }, (_, i) => ({ text: `m${i}` })),
+      ],
     };
     const out = memoTextsForDate(file, '2026-07-12');
     expect(out).toHaveLength(MAX_MEMOS_PER_DAY);
-    expect(out[0]).toHaveLength(MAX_MEMO_CHARS);
+    expect(out[0]).toBe('m0');
+    expect(out).not.toContain(long);
   });
 });
 

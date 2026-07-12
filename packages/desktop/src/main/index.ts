@@ -119,6 +119,11 @@ function createWindow(startHidden: boolean): BrowserWindow {
     win.hide();
   });
 
+  // dev: 메인 창을 닫으면 숨은 캡처 창 때문에 window-all-closed 가 안 와 앱이 안 죽는 문제 방지
+  win.on('closed', () => {
+    if (!app.isPackaged) disposeCaptureWindow();
+  });
+
   // 창을 다시 열면 Dock 아이콘 복귀 — Cmd+Q 로 트레이 전용 진입 시 빠졌던 Dock 을 되살림 (macOS 전용)
   if (app.isPackaged && process.platform === 'darwin') {
     win.on('show', () => void app.dock?.show());
@@ -238,9 +243,9 @@ void app.whenReady().then(() => {
         monthly: next.autoPublish.monthly,
       });
     }
-    if (patch.language) {
-      reconfigureTray();
-      // 캡처 창은 bootstrap 시점 언어로 렌더됨 — 파기해서 다음 호출에 새 언어로
+    if (patch.language) reconfigureTray();
+    // 캡처 창은 bootstrap 시점 설정으로 렌더됨 — 언어·테마·강조색·글래스 변경 시 파기해 다음 호출에 재생성
+    if (patch.language || patch.theme || patch.accent || patch.liquidGlass !== undefined) {
       disposeCaptureWindow();
     }
     if (patch.launchAtLogin !== undefined) applyLoginItem(next.launchAtLogin);
