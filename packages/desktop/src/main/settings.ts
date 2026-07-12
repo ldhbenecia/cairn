@@ -34,6 +34,11 @@ export type GraphConfig = {
   showRollups: boolean;
 };
 
+export type QuickCaptureConfig = {
+  enabled: boolean;
+  shortcut: string;
+};
+
 export type Settings = {
   theme: Theme;
   accent: string;
@@ -48,6 +53,7 @@ export type Settings = {
   summaryModel: SummaryModel;
   export: ExportConfig;
   graph: GraphConfig;
+  quickCapture: QuickCaptureConfig;
 };
 
 const DEFAULTS: Settings = {
@@ -71,6 +77,7 @@ const DEFAULTS: Settings = {
   summaryModel: 'sonnet',
   export: { folder: null, autoSync: false },
   graph: { enabled: true, nodeScale: 1, spread: 1, gravity: 1, labels: 'auto', showRollups: true },
+  quickCapture: { enabled: true, shortcut: 'CommandOrControl+Shift+Space' },
 };
 
 const SETTINGS_PATH = join(homedir(), '.cairn', 'settings.json');
@@ -113,6 +120,7 @@ export function readSettings(): Settings {
       prompts: { ...DEFAULTS.prompts, ...(parsed.prompts ?? {}) },
       export: { ...DEFAULTS.export, ...(parsed.export ?? {}) },
       graph: { ...DEFAULTS.graph, ...(parsed.graph ?? {}) },
+      quickCapture: { ...DEFAULTS.quickCapture, ...(parsed.quickCapture ?? {}) },
     };
   } catch {
     return { ...DEFAULTS, language: machineLanguage() };
@@ -128,6 +136,7 @@ export function writeSettings(patch: Partial<Settings>): Settings {
     prompts: { ...prev.prompts, ...(patch.prompts ?? {}) },
     export: { ...prev.export, ...(patch.export ?? {}) },
     graph: { ...prev.graph, ...(patch.graph ?? {}) },
+    quickCapture: { ...prev.quickCapture, ...(patch.quickCapture ?? {}) },
   };
   writeFileAtomic(SETTINGS_PATH, `${JSON.stringify(next, null, 2)}\n`);
   return next;

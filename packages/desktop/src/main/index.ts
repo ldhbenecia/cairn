@@ -1,7 +1,14 @@
-import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electron';
+import { app, BrowserWindow, dialog, globalShortcut, ipcMain, powerMonitor, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
+import {
+  disposeCaptureWindow,
+  hideCaptureWindow,
+  reconfigureCaptureShortcut,
+  toggleCaptureWindow,
+} from './capture-window';
+import { addMemo } from './memo-store';
 import { warmClaudePath } from './claude-path';
 import { exportStatus, pickExportFolder, saveMarkdown, savePdf } from './export';
 import { sendTestNotification } from './notifier';
@@ -205,6 +212,9 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());
   ipcMain.handle('cairn:recent:list', () => listRecentMerged());
+  ipcMain.handle('cairn:memo:add', (_e, text: string) => addMemo(String(text ?? '')));
+  ipcMain.handle('cairn:capture:open', () => toggleCaptureWindow());
+  ipcMain.handle('cairn:capture:hide', () => hideCaptureWindow());
   ipcMain.handle('cairn:notion:page-content', (_e, pageId: string, workspaceLabel: string) =>
     pageId.startsWith(JOURNAL_PAGE_PREFIX)
       ? readJournalPageContent(pageId)
@@ -228,8 +238,15 @@ void app.whenReady().then(() => {
         monthly: next.autoPublish.monthly,
       });
     }
-    if (patch.language) reconfigureTray();
+    if (patch.language) {
+      reconfigureTray();
+      // 캡처 창은 bootstrap 시점 언어로 렌더됨 — 파기해서 다음 호출에 새 언어로
+      disposeCaptureWindow();
+    }
     if (patch.launchAtLogin !== undefined) applyLoginItem(next.launchAtLogin);
+    if (patch.quickCapture) {
+      reconfigureCaptureShortcut(next.quickCapture.enabled, next.quickCapture.shortcut);
+    }
     return next;
   });
 
@@ -274,7 +291,9 @@ void app.whenReady().then(() => {
     app.quit();
   });
 
-  applyLoginItem(readSettings().launchAtLogin);
+  const initial = readSettings();
+  applyLoginItem(initial.launchAtLogin);
+  reconfigureCaptureShortcut(initial.quickCapture.enabled, initial.quickCapture.shortcut);
   initAutoPublish();
   initTelemetry();
   trackAppLaunched();
@@ -304,6 +323,10 @@ app.on('before-quit', (e) => {
   }
   killRunning(); // 진행 중 core 자식이 고아로 남지 않게 종료 전 정리
   void shutdownTelemetry();
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
 
 app.on('window-all-closed', () => {

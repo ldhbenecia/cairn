@@ -159,6 +159,7 @@ export type GraphConfig = {
   labels: GraphLabels;
   showRollups: boolean;
 };
+export type QuickCaptureConfig = { enabled: boolean; shortcut: string };
 export type Settings = {
   theme: Theme;
   accent: string;
@@ -173,6 +174,7 @@ export type Settings = {
   summaryModel: SummaryModel;
   export: ExportConfig;
   graph: GraphConfig;
+  quickCapture: QuickCaptureConfig;
 };
 
 declare global {
@@ -233,6 +235,11 @@ declare global {
       readConfig: () => Promise<ConfigResult>;
       listRecent: () => Promise<RecentListResult>;
       pageContent: (pageId: string, workspaceLabel: string) => Promise<PageContent>;
+      capture: {
+        add: (text: string) => Promise<{ ok: boolean; count: number }>;
+        open: () => Promise<void>;
+        hide: () => Promise<void>;
+      };
     };
   }
 }
