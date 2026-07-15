@@ -27,6 +27,7 @@ import { PreferencesDialog } from './components/preferences-dialog';
 import { AchievementsDialog } from './components/achievements-dialog';
 import { CommandPalette } from './components/command-palette';
 import { StandupDialog } from './components/standup-dialog';
+import { WrappedDialog } from './components/wrapped-dialog';
 import { WorklogDrawer } from './components/worklog-drawer';
 import {
   Sidebar,
@@ -76,6 +77,7 @@ export function App() {
   const [publishProgressSignal, setPublishProgressSignal] = useState(0);
   const [achvOpen, setAchvOpen] = useState(false);
   const [standupOpen, setStandupOpen] = useState(false);
+  const [wrappedOpen, setWrappedOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
   const [everSetup, setEverSetup] = useState(window.cairn.initialSetupComplete);
   const [selectedPage, setSelectedPage] = useState<RecentPage | null>(null);
@@ -474,6 +476,7 @@ export function App() {
             onAchievements={() => setAchvOpen(true)}
             onStandup={() => setStandupOpen(true)}
             onQuickCapture={() => void window.cairn.capture.open()}
+            onWrapped={() => setWrappedOpen(true)}
           />
         )}
       </AnimatePresence>
@@ -489,6 +492,11 @@ export function App() {
       <AnimatePresence>
         {standupOpen && (
           <StandupDialog key="standup" recent={recent} onClose={() => setStandupOpen(false)} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {wrappedOpen && (
+          <WrappedDialog key="wrapped" recent={recent} onClose={() => setWrappedOpen(false)} />
         )}
       </AnimatePresence>
       <RunToast

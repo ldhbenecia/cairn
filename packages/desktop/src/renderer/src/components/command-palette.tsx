@@ -27,6 +27,7 @@ type Props = {
   onAchievements: () => void;
   onStandup: () => void;
   onQuickCapture: () => void;
+  onWrapped: () => void;
 };
 
 export function CommandPalette({
@@ -39,6 +40,7 @@ export function CommandPalette({
   onAchievements,
   onStandup,
   onQuickCapture,
+  onWrapped,
 }: Props) {
   const { t, settings } = useSettings();
   const [q, setQ] = useState('');
@@ -93,6 +95,12 @@ export function CommandPalette({
         label: t('cmd.publishYear'),
         icon: plus,
         run: () => onPublish('yearly'),
+      },
+      {
+        id: 'wrapped',
+        label: t('cmd.wrapped'),
+        icon: <Sparkles size={12} strokeWidth={2} />,
+        run: onWrapped,
       },
       {
         id: 'standup',
@@ -150,6 +158,7 @@ export function CommandPalette({
     onAchievements,
     onStandup,
     onQuickCapture,
+    onWrapped,
   ]);
 
   const items = useMemo(() => {

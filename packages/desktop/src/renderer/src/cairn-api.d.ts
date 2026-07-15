@@ -240,6 +240,7 @@ declare global {
       revealExportFolder: () => Promise<string>;
       testNotification: () => Promise<{ supported: boolean }>;
       exportPdf: (defaultName: string, html: string) => Promise<SaveResult>;
+      exportPng: (defaultName: string, dataUrl: string) => Promise<SaveResult>;
       repoStars: () => Promise<number | null>;
       onRunLine: (cb: (l: RunLine) => void) => () => void;
       onFocusMode: (cb: (mode: CoreMode) => void) => () => void;

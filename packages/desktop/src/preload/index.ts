@@ -236,6 +236,8 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:notify:test') as Promise<{ supported: boolean }>,
   exportPdf: (defaultName: string, html: string): Promise<SaveResult> =>
     ipcRenderer.invoke('cairn:export:save-pdf', defaultName, html) as Promise<SaveResult>,
+  exportPng: (defaultName: string, dataUrl: string): Promise<SaveResult> =>
+    ipcRenderer.invoke('cairn:export:save-png', defaultName, dataUrl) as Promise<SaveResult>,
   repoStars: (): Promise<number | null> =>
     ipcRenderer.invoke('cairn:repo:stars') as Promise<number | null>,
   onRunLine: (cb: (l: RunLine) => void): (() => void) => {

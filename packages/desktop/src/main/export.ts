@@ -104,6 +104,22 @@ export async function savePdf(defaultName: string, html: string): Promise<SaveRe
   }
 }
 
+export async function savePng(defaultName: string, dataUrl: string): Promise<SaveResult> {
+  const m = /^data:image\/png;base64,(.+)$/.exec(dataUrl);
+  if (!m?.[1]) return { saved: false, error: 'invalid data url' };
+  const r = await dialog.showSaveDialog({
+    defaultPath: join(homedir(), 'Documents', defaultName),
+    filters: [{ name: 'PNG', extensions: ['png'] }],
+  });
+  if (r.canceled || !r.filePath) return { saved: false };
+  try {
+    await writeFile(r.filePath, Buffer.from(m[1], 'base64'));
+    return { saved: true, path: r.filePath };
+  } catch (e) {
+    return { saved: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 export async function saveMarkdown(defaultName: string, content: string): Promise<SaveResult> {
   const r = await dialog.showSaveDialog({
     defaultPath: join(homedir(), 'Documents', defaultName),
