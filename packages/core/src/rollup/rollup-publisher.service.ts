@@ -18,7 +18,7 @@ import { NotionRollupApiClient } from '../notion/notion-rollup-api.client.js';
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
-import { isoWeekLabel, monthLabel, periodRange } from './period-range.js';
+import { isoWeekLabel, monthLabel, periodRange, yearLabel } from './period-range.js';
 
 const ROLLUP_DB_TITLE = 'Rollup (cairn)';
 
@@ -48,7 +48,7 @@ export class RollupPublisherService {
 
   // force 실행에선 orchestrator 가 precheck 자체를 건너뛴다 — 여기선 non-force 만 가정
   async precheck(
-    period: 'weekly' | 'monthly',
+    period: 'weekly' | 'monthly' | 'yearly',
     localDate: string,
   ): Promise<PublishRollupResult | null> {
     const target = this.worklogConfig.findRollupWorkspace();
@@ -249,8 +249,23 @@ function buildTitle(activity: RollupActivity, lang: WorklogLang): string {
     const label = isoWeekLabel(activity.rangeStart);
     return lang === 'en' ? `${label} Weekly rollup` : `${label} 주간 정리`;
   }
-  const label = monthLabel(activity.rangeStart);
-  return lang === 'en' ? `${label} Monthly rollup` : `${label} 월간 정리`;
+  if (activity.period === 'monthly') {
+    const label = monthLabel(activity.rangeStart);
+    return lang === 'en' ? `${label} Monthly rollup` : `${label} 월간 정리`;
+  }
+  const label = yearLabel(activity.rangeStart);
+  return lang === 'en' ? `${label} Yearly rollup` : `${label} 연간 정리`;
+}
+
+const PERIOD_WORD: Record<RollupActivity['period'], { ko: string; en: string }> = {
+  weekly: { ko: '주간', en: 'weekly' },
+  monthly: { ko: '월간', en: 'monthly' },
+  yearly: { ko: '연간', en: 'yearly' },
+};
+
+function metricsLine(activity: RollupActivity): string {
+  const unit = activity.period === 'yearly' ? 'months' : 'dailies';
+  return `gh:${activity.metrics.prCount} / git:${activity.metrics.commitCount} / ${unit}:${activity.metrics.dailyCount}`;
 }
 
 function buildRollupBlocks(
@@ -259,14 +274,7 @@ function buildRollupBlocks(
   lang: WorklogLang,
 ): readonly unknown[] {
   const blocks: unknown[] = [];
-  const period =
-    activity.period === 'weekly'
-      ? lang === 'en'
-        ? 'weekly'
-        : '주간'
-      : lang === 'en'
-        ? 'monthly'
-        : '월간';
+  const period = PERIOD_WORD[activity.period][lang];
 
   const modelLabel = summaryModelLabel(summary.usage?.model);
   blocks.push(
@@ -289,11 +297,7 @@ function buildRollupBlocks(
   }
 
   blocks.push(heading2('Metrics'));
-  blocks.push(
-    paragraph(
-      `gh:${activity.metrics.prCount} / git:${activity.metrics.commitCount} / dailies:${activity.metrics.dailyCount}`,
-    ),
-  );
+  blocks.push(paragraph(metricsLine(activity)));
 
   if (isOperator() && summary.usage) {
     const u = summary.usage;
@@ -310,14 +314,7 @@ function buildRollupFallbackBlocks(
   activity: RollupActivity,
   lang: WorklogLang,
 ): readonly unknown[] {
-  const period =
-    activity.period === 'weekly'
-      ? lang === 'en'
-        ? 'weekly'
-        : '주간'
-      : lang === 'en'
-        ? 'monthly'
-        : '월간';
+  const period = PERIOD_WORD[activity.period][lang];
   return [
     claudeCallout(
       lang === 'en'
@@ -325,8 +322,6 @@ function buildRollupFallbackBlocks(
         : `cairn 이 자동 생성한 ${period} 롤업 (Summarizer 미실행 또는 실패).`,
     ),
     heading2('Metrics'),
-    paragraph(
-      `gh:${activity.metrics.prCount} / git:${activity.metrics.commitCount} / dailies:${activity.metrics.dailyCount}`,
-    ),
+    paragraph(metricsLine(activity)),
   ];
 }

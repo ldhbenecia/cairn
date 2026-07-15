@@ -1,4 +1,4 @@
-export type PromptMode = 'daily' | 'weekly' | 'monthly';
+export type PromptMode = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 const MAX_CUSTOM_PROMPT_CHARS = 4000;
 

@@ -11,6 +11,7 @@ import type {
 } from '../contracts/rollup-activity.types.js';
 import { JournalSourceService } from '../journal/journal-source.service.js';
 import { NotionApiClient } from '../notion/notion-api.client.js';
+import { NotionRollupApiClient } from '../notion/notion-rollup-api.client.js';
 import type { ExtractedBlock, WorklogPageInRange } from '../notion/notion-api.types.js';
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
@@ -30,6 +31,7 @@ interface ParsedSummaryText {
 export class RollupCollectorService {
   constructor(
     private readonly api: NotionApiClient,
+    private readonly rollupApi: NotionRollupApiClient,
     private readonly worklogConfig: WorklogConfigService,
     private readonly secrets: SecretsService,
     private readonly stats: WorklogStatsService,
@@ -40,6 +42,7 @@ export class RollupCollectorService {
 
   async collect(period: RollupPeriod, localDate: string): Promise<RollupActivity> {
     const { start, end } = periodRange(period, localDate);
+    if (period === 'yearly') return this.collectYearly(start, end);
     const target = this.findTarget();
 
     if (!target) {
@@ -152,6 +155,152 @@ export class RollupCollectorService {
   private findTarget(): NotionWorkspaceConfig | undefined {
     // 발행 target 과 같은 워크스페이스에서 daily 를 읽는다 (미연동이면 로컬 journal 수집)
     return this.worklogConfig.findRollupWorkspace();
+  }
+
+  // 연간은 일간 365개가 아니라 월간 정리 12개를 합성 — summarizer 입력 크기 제어.
+  // 메트릭(pr·commit)은 로컬 daily 통계 합산 (진실 소스)
+  private async collectYearly(start: string, end: string): Promise<RollupActivity> {
+    const year = start.slice(0, 4);
+    const { totals, byMonth } = this.yearStats(year);
+    const target = this.findTarget();
+    const token = target ? this.secrets.getEnv(target.tokenEnv) : undefined;
+    const rollupDsId = target?.rollup?.dataSourceId;
+
+    if (!target || !token || !rollupDsId) {
+      this.logger.info(
+        { year, reason: !target ? 'no-workspace' : !token ? 'no-token' : 'no-rollup-ds' },
+        'yearly rollup collects from local journal',
+      );
+      return this.collectYearlyFromJournal(year, start, end, totals, byMonth);
+    }
+
+    this.logger.info(
+      { workspace: target.label, rangeStart: start, rangeEnd: end },
+      'yearly rollup collect start',
+    );
+
+    let pages: Array<{ pageId: string; rangeStart: string; url: string | null }>;
+    try {
+      pages = await this.rollupApi.queryRollupPagesInRange(
+        token,
+        rollupDsId,
+        'monthly',
+        start,
+        end,
+      );
+    } catch (err) {
+      const error = CairnError.from(err, 'notion');
+      this.logger.warn({ error }, 'yearly rollup collect: query failed');
+      return {
+        ...emptyActivity('yearly', start, end),
+        metrics: { ...totals, dailyCount: 0 },
+        error,
+      };
+    }
+    pages = dedupeByDate(pages.map((p) => ({ ...p, date: p.rangeStart }))).map(
+      ({ date: _d, ...rest }) => rest,
+    );
+
+    const dailies: RollupDailyPageMeta[] = [];
+    const summaries: RollupDailySummaryText[] = [];
+    const fetched = await withConcurrency(pages, 4, async (page) => {
+      const monthStat = byMonth.get(page.rangeStart.slice(0, 7)) ?? { pr: 0, commit: 0 };
+      const meta: RollupDailyPageMeta = {
+        date: page.rangeStart,
+        pageId: page.pageId,
+        url: page.url ?? '',
+        prCount: monthStat.pr,
+        commitCount: monthStat.commit,
+      };
+      try {
+        const blocks = await this.api.getPageBlocks(token, page.pageId);
+        const parsed = parseRollupTextFromBlocks(blocks);
+        return { meta, parsed };
+      } catch (err) {
+        this.logger.warn(
+          { month: page.rangeStart, error: CairnError.from(err, 'notion') },
+          'yearly rollup: page body fetch failed — skipping summary text for this month',
+        );
+        return { meta, parsed: null };
+      }
+    });
+    for (const item of fetched) {
+      dailies.push(item.meta);
+      if (item.parsed) {
+        summaries.push({
+          date: item.meta.date,
+          paragraph: item.parsed.paragraph,
+          doneBullets: item.parsed.bullets,
+          reviewedBullets: [],
+          inProgressBullets: [],
+          notesBullets: [],
+        });
+      }
+    }
+
+    const metrics: RollupMetrics = { ...totals, dailyCount: dailies.length };
+    this.logger.info(
+      { rangeStart: start, rangeEnd: end, ...metrics, summariesParsed: summaries.length },
+      'yearly rollup collect done',
+    );
+    return { period: 'yearly', rangeStart: start, rangeEnd: end, dailies, summaries, metrics };
+  }
+
+  private collectYearlyFromJournal(
+    year: string,
+    start: string,
+    end: string,
+    totals: { prCount: number; commitCount: number },
+    byMonth: Map<string, { pr: number; commit: number }>,
+  ): RollupActivity {
+    const entries = this.journalSource.listMonthlyRollupEntries(year);
+    const dailies: RollupDailyPageMeta[] = [];
+    const summaries: RollupDailySummaryText[] = [];
+    for (const entry of entries) {
+      const monthStat = byMonth.get(entry.rangeStart.slice(0, 7)) ?? { pr: 0, commit: 0 };
+      dailies.push({
+        date: entry.rangeStart,
+        pageId: `journal:${entry.fileName}`,
+        url: '',
+        prCount: monthStat.pr,
+        commitCount: monthStat.commit,
+      });
+      const parsed = parseRollupTextFromBlocks(entry.blocks);
+      if (parsed) {
+        summaries.push({
+          date: entry.rangeStart,
+          paragraph: parsed.paragraph,
+          doneBullets: parsed.bullets,
+          reviewedBullets: [],
+          inProgressBullets: [],
+          notesBullets: [],
+        });
+      }
+    }
+    const metrics: RollupMetrics = { ...totals, dailyCount: dailies.length };
+    this.logger.info(
+      { rangeStart: start, rangeEnd: end, ...metrics, summariesParsed: summaries.length },
+      'yearly rollup collect done (journal)',
+    );
+    return { period: 'yearly', rangeStart: start, rangeEnd: end, dailies, summaries, metrics };
+  }
+
+  private yearStats(year: string): {
+    totals: { prCount: number; commitCount: number };
+    byMonth: Map<string, { pr: number; commit: number }>;
+  } {
+    const all = this.stats.readAll();
+    const totals = { prCount: 0, commitCount: 0 };
+    const byMonth = new Map<string, { pr: number; commit: number }>();
+    for (const [key, stat] of Object.entries(all)) {
+      if (!key.startsWith(`daily:${year}-`)) continue;
+      totals.prCount += stat.pr;
+      totals.commitCount += stat.commit;
+      const month = key.slice('daily:'.length, 'daily:'.length + 7);
+      const cur = byMonth.get(month) ?? { pr: 0, commit: 0 };
+      byMonth.set(month, { pr: cur.pr + stat.pr, commit: cur.commit + stat.commit });
+    }
+    return { totals, byMonth };
   }
 
   // 노션 미연동 상태의 롤업 — 로컬 journal 의 daily md 에서 같은 구조로 수집 (ADR 0031)
@@ -274,4 +423,39 @@ function headingToSection(
   if (lc === 'in progress') return 'inprogress';
   if (lc === 'notes') return 'notes';
   return null;
+}
+
+// 월간 정리 페이지(Summary·Highlights·테마 섹션) → 연간 합성 입력.
+// Metrics·Dailies/Monthlies 는 제외, 테마 구분은 평탄화
+export function parseRollupTextFromBlocks(
+  blocks: readonly ExtractedBlock[],
+): { paragraph: string; bullets: string[] } | null {
+  const SKIP = new Set(['metrics', 'dailies', 'monthlies']);
+  let paragraph = '';
+  let pickedParagraph = false;
+  const bullets: string[] = [];
+  let section: 'summary' | 'items' | 'skip' = 'skip';
+
+  for (const block of blocks) {
+    if (block.type === 'heading_2') {
+      const lc = block.text.toLowerCase().trim();
+      section = lc === 'summary' ? 'summary' : SKIP.has(lc) ? 'skip' : 'items';
+      continue;
+    }
+    if (block.type === 'paragraph' && section === 'summary' && !pickedParagraph) {
+      const text = block.text.trim();
+      if (text && text !== '—') {
+        paragraph = text;
+        pickedParagraph = true;
+      }
+      continue;
+    }
+    if (block.type === 'bulleted_list_item' && section === 'items') {
+      const text = block.text.trim();
+      if (text) bullets.push(text);
+    }
+  }
+
+  if (!paragraph && bullets.length === 0) return null;
+  return { paragraph, bullets };
 }

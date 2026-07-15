@@ -14,6 +14,13 @@ export interface JournalDailyEntry {
   blocks: ExtractedBlock[];
 }
 
+export interface JournalMonthlyEntry {
+  // 해당 월의 rangeStart (YYYY-MM-01)
+  rangeStart: string;
+  fileName: string;
+  blocks: ExtractedBlock[];
+}
+
 @Injectable()
 export class JournalSourceService {
   constructor(
@@ -47,6 +54,25 @@ export class JournalSourceService {
         entries.push({ date, fileName, blocks });
       } catch (err) {
         this.logger.warn({ date, err: String(err) }, 'journal daily read failed — skipping');
+      }
+    }
+    return entries;
+  }
+
+  // 연간 롤업 수집용 — 해당 연도의 월간 정리(YYYY-MM.md) 파일들
+  listMonthlyRollupEntries(year: string): JournalMonthlyEntry[] {
+    const folder = this.writer.folder();
+    const entries: JournalMonthlyEntry[] = [];
+    for (let m = 1; m <= 12; m++) {
+      const month = `${year}-${String(m).padStart(2, '0')}`;
+      const fileName = `${month}.md`;
+      const path = join(folder, fileName);
+      if (!existsSync(path)) continue;
+      try {
+        const { blocks } = parseJournalFile(readFileSync(path, 'utf8'));
+        entries.push({ rangeStart: `${month}-01`, fileName, blocks });
+      } catch (err) {
+        this.logger.warn({ month, err: String(err) }, 'journal monthly read failed — skipping');
       }
     }
     return entries;

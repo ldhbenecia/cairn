@@ -33,6 +33,7 @@ export class NotionRollupApiClient {
               options: [
                 { name: 'weekly', color: 'blue' },
                 { name: 'monthly', color: 'purple' },
+                { name: 'yearly', color: 'red' },
               ],
             },
           },
@@ -71,7 +72,7 @@ export class NotionRollupApiClient {
   async findRollupPageByRange(
     token: string,
     dataSourceId: string,
-    period: 'weekly' | 'monthly',
+    period: 'weekly' | 'monthly' | 'yearly',
     rangeStart: string,
     rangeEnd: string,
   ): Promise<ExistingRollupPage | null> {
@@ -94,6 +95,40 @@ export class NotionRollupApiClient {
     const statusProp = props.Status as { select?: { name?: string } | null } | undefined;
     const status = statusProp?.select?.name ?? null;
     return { pageId: first.id, status };
+  }
+
+  // 연간 롤업 수집용 — 기간 내 월간 정리 페이지 목록 (Range start 오름차순)
+  async queryRollupPagesInRange(
+    token: string,
+    dataSourceId: string,
+    period: 'weekly' | 'monthly',
+    rangeStart: string,
+    rangeEnd: string,
+  ): Promise<Array<{ pageId: string; rangeStart: string; url: string | null }>> {
+    const client = this.api.getClient(token);
+    const res = await client.dataSources.query({
+      data_source_id: dataSourceId,
+      filter: {
+        and: [
+          { property: 'Period', select: { equals: period } },
+          { property: 'Range start', date: { on_or_after: rangeStart } },
+          { property: 'Range start', date: { on_or_before: rangeEnd } },
+        ],
+      },
+      sorts: [{ property: 'Range start', direction: 'ascending' }],
+      page_size: 100,
+    });
+    const out: Array<{ pageId: string; rangeStart: string; url: string | null }> = [];
+    for (const page of res.results) {
+      if (!('properties' in page)) continue;
+      const props = (page as { properties: Record<string, unknown> }).properties;
+      const startProp = props['Range start'] as { date?: { start?: string } | null } | undefined;
+      const start = startProp?.date?.start;
+      if (!start) continue;
+      const url = 'url' in page && typeof page.url === 'string' ? page.url : null;
+      out.push({ pageId: page.id, rangeStart: start.slice(0, 10), url });
+    }
+    return out;
   }
 
   async createRollupPage(

@@ -1,7 +1,7 @@
 import type { RollupPeriod } from '../contracts/rollup-activity.types.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
-import { isoWeekLabel, monthLabel } from '../rollup/period-range.js';
+import { isoWeekLabel, monthLabel, yearLabel } from '../rollup/period-range.js';
 
 export interface DailyJournalInput {
   date: string;
@@ -30,7 +30,9 @@ export function dailyFileName(date: string): string {
 }
 
 export function rollupFileName(period: RollupPeriod, rangeStart: string): string {
-  return period === 'weekly' ? `${isoWeekLabel(rangeStart)}.md` : `${monthLabel(rangeStart)}.md`;
+  if (period === 'weekly') return `${isoWeekLabel(rangeStart)}.md`;
+  if (period === 'monthly') return `${monthLabel(rangeStart)}.md`;
+  return `${yearLabel(rangeStart)}.md`;
 }
 
 export function renderDailyJournalMarkdown(input: DailyJournalInput): string {
@@ -55,18 +57,20 @@ export function renderDailyJournalMarkdown(input: DailyJournalInput): string {
   return `${fm}\n# ${title}\n\n${body.join('\n').trimEnd()}\n`;
 }
 
+const ROLLUP_TITLE: Record<RollupPeriod, { ko: string; en: string }> = {
+  weekly: { ko: '주간 정리', en: 'Weekly Rollup' },
+  monthly: { ko: '월간 정리', en: 'Monthly Rollup' },
+  yearly: { ko: '연간 정리', en: 'Yearly Rollup' },
+};
+
+function rollupLabel(period: RollupPeriod, rangeStart: string): string {
+  if (period === 'weekly') return isoWeekLabel(rangeStart);
+  if (period === 'monthly') return monthLabel(rangeStart);
+  return yearLabel(rangeStart);
+}
+
 export function renderRollupJournalMarkdown(input: RollupJournalInput): string {
-  const label =
-    input.period === 'weekly' ? isoWeekLabel(input.rangeStart) : monthLabel(input.rangeStart);
-  const title = `${label} ${
-    input.lang === 'en'
-      ? input.period === 'weekly'
-        ? 'Weekly Rollup'
-        : 'Monthly Rollup'
-      : input.period === 'weekly'
-        ? '주간 정리'
-        : '월간 정리'
-  }`;
+  const title = `${rollupLabel(input.period, input.rangeStart)} ${ROLLUP_TITLE[input.period][input.lang]}`;
   const fm = frontmatter([
     ['date', input.rangeStart],
     ['period', input.period],
@@ -85,7 +89,8 @@ export function renderRollupJournalMarkdown(input: RollupJournalInput): string {
     pushBullets(body, theme.title, theme.items);
   }
   if (input.dailyDates.length > 0) {
-    body.push('## Dailies', '');
+    // yearly 는 월간 정리들을 합성하므로 링크 대상도 월간 파일
+    body.push(input.period === 'yearly' ? '## Monthlies' : '## Dailies', '');
     for (const d of input.dailyDates) body.push(`- [[${d}]]`);
     body.push('');
   }

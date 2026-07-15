@@ -49,7 +49,7 @@ export interface CreateRollupDatabaseResult {
 export interface CreateRollupPageInput {
   token: string;
   dataSourceId: string;
-  period: 'weekly' | 'monthly';
+  period: 'weekly' | 'monthly' | 'yearly';
   rangeStart: string;
   rangeEnd: string;
   title: string;

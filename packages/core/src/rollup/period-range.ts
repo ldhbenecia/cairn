@@ -6,7 +6,9 @@ export interface PeriodRange {
 }
 
 export function periodRange(period: RollupPeriod, localDate: string): PeriodRange {
-  return period === 'weekly' ? isoWeekRange(localDate) : monthRange(localDate);
+  if (period === 'weekly') return isoWeekRange(localDate);
+  if (period === 'monthly') return monthRange(localDate);
+  return yearRange(localDate);
 }
 
 export function isoWeekRange(localDate: string): PeriodRange {
@@ -47,6 +49,15 @@ export function isoWeekLabel(rangeStart: string): string {
 export function monthLabel(rangeStart: string): string {
   const { y, m } = parseLocalDate(rangeStart);
   return `${y}-${String(m).padStart(2, '0')}`;
+}
+
+export function yearRange(localDate: string): PeriodRange {
+  const { y } = parseLocalDate(localDate);
+  return { start: `${y}-01-01`, end: `${y}-12-31` };
+}
+
+export function yearLabel(rangeStart: string): string {
+  return `${parseLocalDate(rangeStart).y}`;
 }
 
 function parseLocalDate(localDate: string): { y: number; m: number; d: number } {

@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { isoWeekLabel, isoWeekRange, monthLabel, monthRange, periodRange } from './period-range.js';
+import {
+  isoWeekLabel,
+  isoWeekRange,
+  monthLabel,
+  monthRange,
+  periodRange,
+  yearLabel,
+  yearRange,
+} from './period-range.js';
 
 describe('isoWeekRange', () => {
   it('Wednesday 2026-04-22 → Mon 2026-04-20 ~ Sun 2026-04-26', () => {
@@ -67,5 +75,16 @@ describe('periodRange dispatcher', () => {
       start: '2026-04-01',
       end: '2026-04-30',
     });
+  });
+});
+
+describe('yearRange / yearLabel', () => {
+  it('연도 경계 (1/1 ~ 12/31)', () => {
+    expect(yearRange('2026-07-15')).toEqual({ start: '2026-01-01', end: '2026-12-31' });
+    expect(yearRange('2026-01-01')).toEqual({ start: '2026-01-01', end: '2026-12-31' });
+  });
+
+  it('yearLabel 은 YYYY', () => {
+    expect(yearLabel('2026-01-01')).toBe('2026');
   });
 });
