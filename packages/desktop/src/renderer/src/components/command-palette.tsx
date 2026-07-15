@@ -1,5 +1,7 @@
 import {
+  Award,
   BarChart3,
+  ChartPie,
   FileText,
   MessageSquareText,
   Orbit,
@@ -7,7 +9,6 @@ import {
   Plus,
   Search,
   Settings,
-  Sparkles,
   SquareArrowOutUpRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -99,7 +100,7 @@ export function CommandPalette({
       {
         id: 'wrapped',
         label: t('cmd.wrapped'),
-        icon: <Sparkles size={12} strokeWidth={2} />,
+        icon: <ChartPie size={12} strokeWidth={2} />,
         run: onWrapped,
       },
       {
@@ -139,7 +140,7 @@ export function CommandPalette({
       {
         id: 'achievements',
         label: t('cmd.achievements'),
-        icon: <Sparkles size={12} strokeWidth={2} />,
+        icon: <Award size={12} strokeWidth={2} />,
         run: onAchievements,
       },
       {

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, CalendarRange, Check, Copy, FileDown, Info, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Award, CalendarRange, Check, Copy, FileDown, Info, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import type { I18nKey } from '../i18n';
@@ -204,7 +204,7 @@ export function AchievementsDialog({
         <div className="flex items-start justify-between border-b border-hairline px-6 py-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="flex size-7 items-center justify-center rounded-lg bg-accent/12 text-accent-hover">
-              <Sparkles size={15} strokeWidth={2} />
+              <Award size={15} strokeWidth={2} />
             </span>
             <div className="min-w-0">
               <p className="text-[15px] font-semibold text-ink">{t('achv.title')}</p>
@@ -334,7 +334,6 @@ export function AchievementsDialog({
                 onClick={() => void compile()}
                 className="flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2.5 text-[13px] font-semibold text-white shadow-sm shadow-accent/25 transition-all hover:bg-accent-hover active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
-                <Sparkles size={14} strokeWidth={2} />
                 {pages.length}
                 {t('achv.worklogs')} {t('achv.compile')}
               </button>

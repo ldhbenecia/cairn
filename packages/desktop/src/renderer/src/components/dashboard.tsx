@@ -1,16 +1,15 @@
 import {
-  Sparkles,
   Activity,
   CalendarCheck,
   CalendarDays,
   CalendarRange,
+  ChartPie,
   Clock,
-  Flame,
+  Gauge,
   GitCommitHorizontal,
   GitPullRequest,
   TrendingDown,
   TrendingUp,
-  Trophy,
 } from 'lucide-react';
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult, RecentPage } from '../cairn-api';
@@ -287,7 +286,7 @@ export function Dashboard({
                 onClick={onOpenWrapped}
                 className="flex items-center gap-1.5 rounded-md border border-hairline bg-surface-1 px-2.5 py-1.5 text-[12.5px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
               >
-                <Sparkles size={13} strokeWidth={2} className="text-accent-hover" />
+                <ChartPie size={13} strokeWidth={2} className="text-accent-hover" />
                 Wrapped
               </button>
             )}
@@ -328,7 +327,7 @@ export function Dashboard({
                   value={data.total.activeDays}
                 />
                 <StatCard
-                  icon={<Flame size={15} strokeWidth={2} />}
+                  icon={<TrendingUp size={15} strokeWidth={2} />}
                   label={t('stats.streak')}
                   value={data.streak.current}
                   hint={`${t('stats.streakLongest')} ${data.streak.longest}`}
@@ -421,7 +420,7 @@ function InsightCards({ insights, t }: { insights: Insights; t: T }) {
       {busiest && (
         <InsightCard
           hue={HUE.amber}
-          icon={<Trophy size={14} strokeWidth={2} />}
+          icon={<Gauge size={14} strokeWidth={2} />}
           label={t('stats.busiestDay')}
           value={busiest.date.slice(5)}
           sub={`${busiest.total}${suffix}`}
