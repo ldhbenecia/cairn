@@ -21,10 +21,14 @@ export function WrappedDialog({
   const [year, setYear] = useState<string | null>(years[0] ?? null);
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [scan, setScan] = useState<{ done: number; total: number } | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [save, setSave] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const projectCache = useRef(new Map<string, Project[]>());
 
   const stats = useMemo(() => (year ? computeWrapped(pages, year) : null), [pages, year]);
+
+  useEffect(() => {
+    if ((!year || !years.includes(year)) && years[0]) setYear(years[0]);
+  }, [years, year]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -36,14 +40,16 @@ export function WrappedDialog({
 
   useEffect(() => {
     if (!year) return;
-    const cached = projectCache.current.get(year);
+    const targets = pages.filter((p) => p.category === 'daily' && p.date?.startsWith(`${year}-`));
+    // 캐시 키에 일지 수 포함 — recent 갱신으로 그 해 일지가 늘면 재스캔
+    const cacheKey = `${year}:${targets.length}`;
+    const cached = projectCache.current.get(cacheKey);
     if (cached) {
       setProjects(cached);
       return;
     }
     let alive = true;
     setProjects(null);
-    const targets = pages.filter((p) => p.category === 'daily' && p.date?.startsWith(`${year}-`));
     setScan({ done: 0, total: targets.length });
     void (async () => {
       const perPage = await pool(
@@ -63,7 +69,7 @@ export function WrappedDialog({
       );
       if (!alive) return;
       const top = topProjects(perPage.flat());
-      projectCache.current.set(year, top);
+      projectCache.current.set(cacheKey, top);
       setProjects(top);
       setScan(null);
     })();
@@ -73,12 +79,25 @@ export function WrappedDialog({
   }, [year, pages]);
 
   async function savePng() {
-    if (!stats) return;
-    const dataUrl = drawShareCard(stats, projects ?? []);
-    const r = await window.cairn.exportPng(`cairn-wrapped-${stats.year}.png`, dataUrl);
-    if (r.saved) {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
+    if (!stats || save === 'saving') return;
+    setSave('saving');
+    try {
+      const dataUrl = drawShareCard(stats, {
+        title: t('wrapped.title'),
+        pr: t('stats.totalPr'),
+        commit: t('stats.totalCommit'),
+        activeDays: t('stats.activeDays'),
+        streak: t('stats.streak'),
+      });
+      const r = await window.cairn.exportPng(`cairn-wrapped-${stats.year}.png`, dataUrl);
+      if (r.saved) {
+        setSave('saved');
+        setTimeout(() => setSave('idle'), 1500);
+      } else {
+        setSave(r.error ? 'error' : 'idle');
+      }
+    } catch {
+      setSave('error');
     }
   }
 
@@ -149,7 +168,7 @@ export function WrappedDialog({
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-3 pb-6">
             <h2 className="text-[26px] font-semibold tracking-[-0.5px] text-ink">
-              {stats.year} Wrapped
+              {stats.year} {t('wrapped.title')}
             </h2>
             <p className="mt-0.5 text-[12.5px] text-ink-tertiary">{t('wrapped.subtitle')}</p>
 
@@ -261,22 +280,28 @@ export function WrappedDialog({
         )}
 
         {stats && stats.activeDays > 0 && (
-          <div className="flex justify-end border-t border-hairline px-6 py-3.5">
+          <div className="flex items-center justify-end gap-3 border-t border-hairline px-6 py-3.5">
+            {save === 'error' && (
+              <span className="text-[12px] text-danger">{t('wrapped.saveFail')}</span>
+            )}
             <button
               type="button"
+              disabled={save === 'saving'}
               onClick={() => void savePng()}
-              className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] transition-colors ${
-                saved
+              className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] transition-colors disabled:opacity-60 ${
+                save === 'saved'
                   ? 'border-success/40 bg-success/10 text-success'
                   : 'border-hairline bg-surface-2 text-ink hover:bg-surface-3'
               }`}
             >
-              {saved ? (
+              {save === 'saved' ? (
                 <Check size={14} strokeWidth={2.5} />
+              ) : save === 'saving' ? (
+                <Loader2 size={14} strokeWidth={2} className="animate-spin" />
               ) : (
                 <Download size={14} strokeWidth={2} />
               )}
-              {saved ? t('achv.saved') : t('wrapped.savePng')}
+              {save === 'saved' ? t('achv.saved') : t('wrapped.savePng')}
             </button>
           </div>
         )}
@@ -305,8 +330,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-// 공유 카드 — 화이트리스트 수치(연도·PR·커밋·활동일·스트릭·repo basename)만. 테마 무관 고정 다크
-function drawShareCard(stats: WrappedStats, projects: Project[]): string {
+type CardLabels = { title: string; pr: string; commit: string; activeDays: string; streak: string };
+
+// 공유 카드 — 화이트리스트 수치(연도·PR·커밋·활동일·스트릭)만, 프로젝트명 등 텍스트 비포함. 테마 무관 고정 다크
+function drawShareCard(stats: WrappedStats, labels: CardLabels): string {
   const W = 840;
   const H = 440;
   const canvas = document.createElement('canvas');
@@ -326,13 +353,13 @@ function drawShareCard(stats: WrappedStats, projects: Project[]): string {
   ctx.fillText('cairn', 56, 62);
   ctx.fillStyle = '#eceef6';
   ctx.font = `700 38px ${sans}`;
-  ctx.fillText(`${stats.year} Wrapped`, 56, 106);
+  ctx.fillText(`${stats.year} ${labels.title}`, 56, 106);
 
   const tiles: [string, number][] = [
-    ['PR', stats.pr],
-    ['Commits', stats.commit],
-    ['Active days', stats.activeDays],
-    ['Longest streak', stats.longestStreak],
+    [labels.pr, stats.pr],
+    [labels.commit, stats.commit],
+    [labels.activeDays, stats.activeDays],
+    [labels.streak, stats.longestStreak],
   ];
   tiles.forEach(([label, value], i) => {
     const x = 56 + i * 185;
@@ -353,20 +380,8 @@ function drawShareCard(stats: WrappedStats, projects: Project[]): string {
   });
   ctx.fillStyle = '#6b7086';
   ctx.font = `500 11px ${mono}`;
-  ctx.fillText('Jan', 56, 360);
-  ctx.fillText('Dec', 56 + 11 * 36, 360);
-
-  if (projects.length > 0) {
-    ctx.fillStyle = '#8a90a6';
-    ctx.font = `500 13px ${sans}`;
-    ctx.fillText('Top projects', 540, 252);
-    ctx.font = `500 13px ${mono}`;
-    projects.slice(0, 3).forEach((p, i) => {
-      ctx.fillStyle = '#c9cddd';
-      const name = p.name.length > 26 ? `${p.name.slice(0, 25)}…` : p.name;
-      ctx.fillText(name, 540, 280 + i * 24);
-    });
-  }
+  ctx.fillText('1', 56 + 6, 360);
+  ctx.fillText('12', 56 + 11 * 36 + 4, 360);
 
   return canvas.toDataURL('image/png');
 }

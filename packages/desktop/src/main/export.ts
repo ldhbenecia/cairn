@@ -104,16 +104,30 @@ export async function savePdf(defaultName: string, html: string): Promise<SaveRe
   }
 }
 
+const PNG_MAX_BYTES = 20 * 1024 * 1024;
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
 export async function savePng(defaultName: string, dataUrl: string): Promise<SaveResult> {
-  const m = /^data:image\/png;base64,(.+)$/.exec(dataUrl);
+  // IPC 경계 검증 — renderer 입력을 신뢰하지 않는다
+  if (typeof defaultName !== 'string' || defaultName.length > 120 || /[/\\]/.test(defaultName)) {
+    return { saved: false, error: 'invalid filename' };
+  }
+  if (typeof dataUrl !== 'string' || dataUrl.length > PNG_MAX_BYTES) {
+    return { saved: false, error: 'invalid data url' };
+  }
+  const m = /^data:image\/png;base64,([A-Za-z0-9+/]+=*)$/.exec(dataUrl);
   if (!m?.[1]) return { saved: false, error: 'invalid data url' };
+  const bytes = Buffer.from(m[1], 'base64');
+  if (bytes.length < PNG_MAGIC.length || !bytes.subarray(0, PNG_MAGIC.length).equals(PNG_MAGIC)) {
+    return { saved: false, error: 'not a png' };
+  }
   const r = await dialog.showSaveDialog({
     defaultPath: join(homedir(), 'Documents', defaultName),
     filters: [{ name: 'PNG', extensions: ['png'] }],
   });
   if (r.canceled || !r.filePath) return { saved: false };
   try {
-    await writeFile(r.filePath, Buffer.from(m[1], 'base64'));
+    await writeFile(r.filePath, bytes);
     return { saved: true, path: r.filePath };
   } catch (e) {
     return { saved: false, error: e instanceof Error ? e.message : String(e) };
