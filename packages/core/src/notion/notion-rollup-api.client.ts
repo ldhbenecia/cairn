@@ -115,7 +115,11 @@ export class NotionRollupApiClient {
           { property: 'Range start', date: { on_or_before: rangeEnd } },
         ],
       },
-      sorts: [{ property: 'Range start', direction: 'ascending' }],
+      sorts: [
+        { property: 'Range start', direction: 'ascending' },
+        // 같은 달 중복(archive 실패 등) 시 dedupe 가 최신 편집본을 남기도록
+        { timestamp: 'last_edited_time', direction: 'descending' },
+      ],
       page_size: 100,
     });
     const out: Array<{ pageId: string; rangeStart: string; url: string | null }> = [];
