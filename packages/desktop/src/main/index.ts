@@ -37,8 +37,13 @@ import { syncStats } from './cloud-sync';
 import { parseDeepLink } from './deep-link';
 import { readConfig } from './files';
 import { mt } from './i18n';
-import { fetchPageContent } from './notion-client';
+import { fetchPageContent, type RecentCategory } from './notion-client';
 import { listRecentMerged, readJournalPageContent, JOURNAL_PAGE_PREFIX } from './journal-reader';
+import {
+  listJournalSnapshots,
+  readJournalSnapshot,
+  restoreJournalSnapshot,
+} from './journal-snapshots';
 import {
   addNotionWorkspace,
   finishOnboarding,
@@ -256,6 +261,19 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:config:read', () => readConfig());
   ipcMain.handle('cairn:recent:list', () => listRecentMerged());
   ipcMain.handle('cairn:memo:add', (_e, text: string) => addMemo(String(text ?? '')));
+  ipcMain.handle('cairn:snapshots:list', (_e, category: RecentCategory, date: string) =>
+    listJournalSnapshots(category, date),
+  );
+  ipcMain.handle(
+    'cairn:snapshots:read',
+    (_e, category: RecentCategory, date: string, stamp: string) =>
+      readJournalSnapshot(category, date, stamp),
+  );
+  ipcMain.handle(
+    'cairn:snapshots:restore',
+    (_e, category: RecentCategory, date: string, stamp: string) =>
+      restoreJournalSnapshot(category, date, stamp),
+  );
   ipcMain.handle('cairn:capture:open', () => toggleCaptureWindow());
   ipcMain.handle('cairn:capture:hide', () => hideCaptureWindow());
   ipcMain.handle('cairn:notion:page-content', (_e, pageId: string, workspaceLabel: string) =>
