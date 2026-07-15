@@ -22,6 +22,7 @@ export function rollupSystemPrompt(
     '- paragraph: 2-5 short sentences capturing the period theme at project level — overall direction + which projects/initiatives moved. Open with the period totals from metrics (PR count, commit count, and dailyCount — active days for weekly/monthly, months covered for yearly).',
     '- themes: 2-6 themed groupings, each with a title and 2-8 items (phrases of work under it). Group by project/initiative, not by date.',
     '- highlights: 3-8 phrases of the most notable items across the period, format "[project] meaningful work unit — outcome/scale".',
+    '- commentary (optional): 2-4 sentences of analysis beyond the recap. When payload.previous is present, compare this period against it — volume shift (PR/commit counts), focus change (vs previous.paragraph). Also call out stuck items: work that appears in inProgress across the period without a matching done. Skip commentary entirely when previous is absent and nothing is stuck. Never invent numbers.',
     '- reviewedBullets in older daily summaries are review/support work — exclude them from themes/highlights; only development work belongs in the rollup.',
     '- Empty arrays are OK if material is thin.',
     '',

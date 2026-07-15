@@ -106,3 +106,31 @@ describe('dropForbiddenSummaries', () => {
     expect(safe).toHaveLength(1);
   });
 });
+
+describe('previous 컨텍스트 / commentary (AI 해설)', () => {
+  it('previous 가 있으면 payload 에 그대로 실린다', () => {
+    const withPrev: RollupActivity = {
+      ...activity,
+      previous: {
+        rangeStart: '2026-04-27',
+        rangeEnd: '2026-05-03',
+        prCount: 3,
+        commitCount: 10,
+        paragraph: '지난주 요약.',
+      },
+    };
+    expect(buildRollupActivityPayload({ activity: withPrev }).previous).toEqual(withPrev.previous);
+    expect(buildRollupActivityPayload({ activity }).previous).toBeUndefined();
+  });
+
+  it('commentary 는 선택 필드 — 있으면 2000자 상한', () => {
+    const base = { paragraph: 'p', themes: [], highlights: [] };
+    expect(submitRollupSchema.safeParse(base).success).toBe(true);
+    expect(submitRollupSchema.safeParse({ ...base, commentary: '전주 대비 증가.' }).success).toBe(
+      true,
+    );
+    expect(submitRollupSchema.safeParse({ ...base, commentary: 'x'.repeat(2001) }).success).toBe(
+      false,
+    );
+  });
+});

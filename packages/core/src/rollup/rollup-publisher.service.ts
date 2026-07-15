@@ -288,6 +288,11 @@ function buildRollupBlocks(
   blocks.push(heading2('Summary'));
   blocks.push(paragraph(summary.paragraph));
 
+  if (summary.commentary) {
+    blocks.push(heading2('Commentary'));
+    blocks.push(paragraph(summary.commentary));
+  }
+
   blocks.push(heading2('Highlights'));
   blocks.push(...bulletsOrEmpty(summary.highlights));
 

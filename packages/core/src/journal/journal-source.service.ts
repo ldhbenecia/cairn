@@ -3,8 +3,9 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ExtractedBlock } from '../notion/notion-api.types.js';
+import type { RollupPeriod } from '../contracts/rollup-activity.types.js';
 import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
-import { dailyFileName } from './journal-markdown.js';
+import { dailyFileName, rollupFileName } from './journal-markdown.js';
 import { blocksToWorklogSummary, parseJournalFile } from './journal-parse.js';
 import { JournalWriterService } from './journal-writer.service.js';
 
@@ -57,6 +58,17 @@ export class JournalSourceService {
       }
     }
     return entries;
+  }
+
+  // AI 해설의 직전 기간 컨텍스트용 — 롤업 journal 하나의 블록 (없으면 null)
+  readRollupBlocks(period: RollupPeriod, rangeStart: string): ExtractedBlock[] | null {
+    const path = join(this.writer.folder(), rollupFileName(period, rangeStart));
+    if (!existsSync(path)) return null;
+    try {
+      return parseJournalFile(readFileSync(path, 'utf8')).blocks;
+    } catch {
+      return null;
+    }
   }
 
   // 연간 롤업 수집용 — 해당 연도의 월간 정리(YYYY-MM.md) 파일들

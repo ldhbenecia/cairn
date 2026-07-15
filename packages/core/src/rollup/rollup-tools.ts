@@ -19,6 +19,8 @@ export const submitRollupSchema = z.object({
     )
     .max(10),
   highlights: z.array(z.string().min(1).max(300)).max(10),
+  // 분석 코멘터리(선택) — 전 기간 대비·정체 항목. 근거 데이터 없으면 생략
+  commentary: z.string().min(1).max(2000).optional(),
 });
 
 export type SubmitRollupInput = z.infer<typeof submitRollupSchema>;
@@ -27,6 +29,13 @@ interface RollupActivityPayload {
   period: 'weekly' | 'monthly' | 'yearly';
   rangeStart: string;
   rangeEnd: string;
+  previous?: {
+    rangeStart: string;
+    rangeEnd: string;
+    prCount: number;
+    commitCount: number;
+    paragraph: string | null;
+  };
   metrics: {
     prCount: number;
     commitCount: number;
@@ -55,6 +64,7 @@ export function buildRollupActivityPayload(input: RollupSummarizerInput): Rollup
     period: a.period,
     rangeStart: a.rangeStart,
     rangeEnd: a.rangeEnd,
+    ...(a.previous ? { previous: a.previous } : {}),
     metrics: a.metrics,
     dailies: a.dailies.map((d) => ({
       date: d.date,

@@ -8,6 +8,7 @@ import type {
   RollupDailySummaryText,
   RollupMetrics,
   RollupPeriod,
+  RollupPreviousContext,
 } from '../contracts/rollup-activity.types.js';
 import { JournalSourceService } from '../journal/journal-source.service.js';
 import { NotionApiClient } from '../notion/notion-api.client.js';
@@ -17,6 +18,7 @@ import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
 import { WorklogStatsService } from '../worklog-stats/worklog-stats.service.js';
+import { assertNoForbiddenPayload } from '../common/sanitize.js';
 import { periodRange } from './period-range.js';
 
 interface ParsedSummaryText {
@@ -42,12 +44,13 @@ export class RollupCollectorService {
 
   async collect(period: RollupPeriod, localDate: string): Promise<RollupActivity> {
     const { start, end } = periodRange(period, localDate);
-    if (period === 'yearly') return this.collectYearly(start, end);
+    const previous = this.previousContext(period, start);
+    if (period === 'yearly') return { ...(await this.collectYearly(start, end)), previous };
     const target = this.findTarget();
 
     if (!target) {
       this.logger.info('no notion workspace — rollup collects from local journal');
-      return this.collectFromJournal(period, start, end);
+      return this.collectFromJournal(period, start, end, previous);
     }
 
     const token = this.secrets.getEnv(target.tokenEnv);
@@ -68,7 +71,7 @@ export class RollupCollectorService {
         { workspace: target.label },
         'rollup collector: worklog.dataSourceId not set — collecting from local journal',
       );
-      return this.collectFromJournal(period, start, end);
+      return this.collectFromJournal(period, start, end, previous);
     }
 
     this.logger.info(
@@ -149,7 +152,7 @@ export class RollupCollectorService {
       'rollup collect done',
     );
 
-    return { period, rangeStart: start, rangeEnd: end, dailies, summaries, metrics };
+    return { period, rangeStart: start, rangeEnd: end, dailies, summaries, metrics, previous };
   }
 
   private findTarget(): NotionWorkspaceConfig | undefined {
@@ -285,6 +288,40 @@ export class RollupCollectorService {
     return { period: 'yearly', rangeStart: start, rangeEnd: end, dailies, summaries, metrics };
   }
 
+  // 직전 기간 컨텍스트 — 메트릭은 로컬 통계 합산, paragraph 는 직전 롤업 journal 의 Summary
+  private previousContext(
+    period: RollupPeriod,
+    rangeStart: string,
+  ): RollupPreviousContext | undefined {
+    const { start, end } = periodRange(period, dayBefore(rangeStart));
+    const totals = this.statsBetween(start, end);
+    let paragraph: string | null = null;
+    const blocks = this.journalSource.readRollupBlocks(period, start);
+    if (blocks) paragraph = parseRollupTextFromBlocks(blocks)?.paragraph ?? null;
+    if (paragraph) {
+      try {
+        assertNoForbiddenPayload(paragraph, 'rollup.previous');
+      } catch {
+        paragraph = null;
+      }
+    }
+    if (totals.prCount === 0 && totals.commitCount === 0 && !paragraph) return undefined;
+    return { rangeStart: start, rangeEnd: end, ...totals, paragraph };
+  }
+
+  private statsBetween(start: string, end: string): { prCount: number; commitCount: number } {
+    const all = this.stats.readAll();
+    const totals = { prCount: 0, commitCount: 0 };
+    for (const [key, stat] of Object.entries(all)) {
+      if (!key.startsWith('daily:')) continue;
+      const date = key.slice('daily:'.length);
+      if (date < start || date > end) continue;
+      totals.prCount += stat.pr;
+      totals.commitCount += stat.commit;
+    }
+    return totals;
+  }
+
   private yearStats(year: string): {
     totals: { prCount: number; commitCount: number };
     byMonth: Map<string, { pr: number; commit: number }>;
@@ -304,7 +341,12 @@ export class RollupCollectorService {
   }
 
   // 노션 미연동 상태의 롤업 — 로컬 journal 의 daily md 에서 같은 구조로 수집 (ADR 0031)
-  private collectFromJournal(period: RollupPeriod, start: string, end: string): RollupActivity {
+  private collectFromJournal(
+    period: RollupPeriod,
+    start: string,
+    end: string,
+    previous?: RollupPreviousContext,
+  ): RollupActivity {
     const entries = this.journalSource.listDailyEntries(start, end);
     const localStats = this.stats.readAll();
 
@@ -337,8 +379,15 @@ export class RollupCollectorService {
       { period, rangeStart: start, rangeEnd: end, ...metrics, summariesParsed: summaries.length },
       'rollup collect done (journal)',
     );
-    return { period, rangeStart: start, rangeEnd: end, dailies, summaries, metrics };
+    return { period, rangeStart: start, rangeEnd: end, dailies, summaries, metrics, previous };
   }
+}
+
+// 문자열 달력 산술 — period-range 와 동일하게 UTC 로만 계산 (로컬 TZ 무관)
+function dayBefore(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const prev = new Date(Date.UTC(y!, m! - 1, d! - 1));
+  return `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}-${String(prev.getUTCDate()).padStart(2, '0')}`;
 }
 
 function emptyActivity(period: RollupPeriod, start: string, end: string): RollupActivity {
@@ -430,7 +479,7 @@ function headingToSection(
 export function parseRollupTextFromBlocks(
   blocks: readonly ExtractedBlock[],
 ): { paragraph: string; bullets: string[] } | null {
-  const SKIP = new Set(['metrics', 'dailies', 'monthlies']);
+  const SKIP = new Set(['metrics', 'dailies', 'monthlies', 'commentary']);
   let paragraph = '';
   let pickedParagraph = false;
   const bullets: string[] = [];
