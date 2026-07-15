@@ -7,13 +7,7 @@ import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogLang } from '../cairn/run-options.js';
 import { enforceBlockEgress } from '../notion/block-egress.js';
 import { NotionApiClient } from '../notion/notion-api.client.js';
-import {
-  bulletsOrEmpty,
-  callout,
-  claudeCallout,
-  heading2,
-  paragraph,
-} from '../notion/notion-blocks.js';
+import { bulletsOrEmpty, claudeCallout, heading2, paragraph } from '../notion/notion-blocks.js';
 import { NotionRollupApiClient } from '../notion/notion-rollup-api.client.js';
 import { SecretsService } from '../secrets/secrets.service.js';
 import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.schema.js';
@@ -309,7 +303,7 @@ function buildRollupBlocks(
     const inK = (u.inputTokens / 1000).toFixed(1);
     const outK = (u.outputTokens / 1000).toFixed(1);
     const cost = u.costUsd.toFixed(4);
-    blocks.push(callout('🪙', `Rollup summarizer usage — ${inK}K in / ${outK}K out / $${cost}`));
+    blocks.push(paragraph(`Rollup summarizer usage — ${inK}K in / ${outK}K out / $${cost}`));
   }
 
   return blocks;

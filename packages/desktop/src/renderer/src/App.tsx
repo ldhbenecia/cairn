@@ -437,6 +437,7 @@ export function App() {
             if (p) setSelectedPage(p);
           }}
           onGoToWorklogs={() => setView('worklogs')}
+          onOpenWrapped={() => setWrappedOpen(true)}
         />
       ) : activeView === 'graph' ? (
         <GraphView recent={recent} onOpen={setSelectedPage} />

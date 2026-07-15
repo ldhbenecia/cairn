@@ -30,7 +30,7 @@ export function rollupSystemPrompt(
     '',
     'Quantify: weave the provided metrics into paragraph, and carry concrete numbers from the daily summaries (counts, %, ms, sizes, before→after) into themes and highlights. NEVER invent or estimate numbers that are not present in the data.',
     '',
-    'Style: synthesize across days (do NOT concatenate per-day bullets verbatim); no branch names or commit type prefixes; group by project and meaningful unit, not by date.',
+    'Style: synthesize across days (do NOT concatenate per-day bullets verbatim); no branch names or commit type prefixes; group by project and meaningful unit, not by date. No emoji anywhere.',
     '',
     'Do not invent items — only summarize what the provided activity data contains. No code bodies, diffs, absolute paths, or tokens. If sourceError is present, mention the limitation briefly in paragraph.',
   ].join('\n');

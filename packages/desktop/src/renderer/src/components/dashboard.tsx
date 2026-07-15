@@ -1,4 +1,5 @@
 import {
+  Sparkles,
   Activity,
   CalendarCheck,
   CalendarDays,
@@ -257,10 +258,12 @@ export function Dashboard({
   recent,
   onPickDate,
   onGoToWorklogs,
+  onOpenWrapped,
 }: {
   recent: RecentListResult | null;
   onPickDate?: (date: string) => void;
   onGoToWorklogs?: () => void;
+  onOpenWrapped?: () => void;
 }) {
   const { t } = useSettings();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -274,9 +277,21 @@ export function Dashboard({
       <div className="h-20 shrink-0 [-webkit-app-region:drag]" />
       <div ref={scrollRef} className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
         <div className="mx-auto w-full max-w-5xl px-6 pb-10">
-          <h1 className="pb-1 text-[20px] font-semibold tracking-[-0.3px] text-ink">
-            {t('stats.title')}
-          </h1>
+          <div className="flex items-start justify-between pb-1">
+            <h1 className="text-[20px] font-semibold tracking-[-0.3px] text-ink">
+              {t('stats.title')}
+            </h1>
+            {onOpenWrapped && (
+              <button
+                type="button"
+                onClick={onOpenWrapped}
+                className="flex items-center gap-1.5 rounded-md border border-hairline bg-surface-1 px-2.5 py-1.5 text-[12.5px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+              >
+                <Sparkles size={13} strokeWidth={2} className="text-accent-hover" />
+                Wrapped
+              </button>
+            )}
+          </div>
           <p className="pb-6 text-[13px] text-ink-tertiary">{t('stats.subtitle')}</p>
 
           {!recent ? (
