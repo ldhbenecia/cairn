@@ -24,7 +24,7 @@ export const submitRollupSchema = z.object({
 export type SubmitRollupInput = z.infer<typeof submitRollupSchema>;
 
 interface RollupActivityPayload {
-  period: 'weekly' | 'monthly';
+  period: 'weekly' | 'monthly' | 'yearly';
   rangeStart: string;
   rangeEnd: string;
   metrics: {

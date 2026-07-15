@@ -89,6 +89,12 @@ export function CommandPalette({
         run: () => onPublish('monthly'),
       },
       {
+        id: 'pub-yearly',
+        label: t('cmd.publishYear'),
+        icon: plus,
+        run: () => onPublish('yearly'),
+      },
+      {
         id: 'standup',
         label: t('cmd.standup'),
         icon: <MessageSquareText size={12} strokeWidth={2} />,

@@ -13,6 +13,7 @@ export type AutoPublish = {
   daily: boolean;
   weekly: boolean;
   monthly: boolean;
+  yearly: boolean;
   time: string;
   backfillDays: number;
   confirmBeforeRun: boolean;
@@ -49,7 +50,12 @@ export type Settings = {
   telemetry: boolean;
   installId: string;
   autoPublish: AutoPublish;
-  prompts: { daily: string | null; weekly: string | null; monthly: string | null };
+  prompts: {
+    daily: string | null;
+    weekly: string | null;
+    monthly: string | null;
+    yearly: string | null;
+  };
   summaryModel: SummaryModel;
   export: ExportConfig;
   graph: GraphConfig;
@@ -69,11 +75,12 @@ const DEFAULTS: Settings = {
     daily: false,
     weekly: false,
     monthly: false,
+    yearly: false,
     time: '19:00',
     backfillDays: 7,
     confirmBeforeRun: false,
   },
-  prompts: { daily: null, weekly: null, monthly: null },
+  prompts: { daily: null, weekly: null, monthly: null, yearly: null },
   summaryModel: 'sonnet',
   export: { folder: null, autoSync: false },
   graph: { enabled: true, nodeScale: 1, spread: 1, gravity: 1, labels: 'auto', showRollups: true },
@@ -113,6 +120,7 @@ export function readSettings(): Settings {
         daily: ap.daily,
         weekly: ap.weekly,
         monthly: ap.monthly,
+        yearly: ap.yearly,
         time: ap.time,
         backfillDays: ap.backfillDays,
         confirmBeforeRun: ap.confirmBeforeRun,

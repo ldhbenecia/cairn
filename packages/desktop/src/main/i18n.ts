@@ -6,6 +6,7 @@ const STRINGS = {
     'mode.daily': '오늘 일지',
     'mode.weekly': '이번 주 정리',
     'mode.monthly': '이번 달 정리',
+    'mode.yearly': '연간 정리',
 
     'notify.failSuffix': '실패',
     'notify.fail.auth': '토큰 인증 실패 — 연결 탭에서 확인',
@@ -48,6 +49,7 @@ const STRINGS = {
     'mode.daily': "Today's worklog",
     'mode.weekly': "This week's rollup",
     'mode.monthly': "This month's rollup",
+    'mode.yearly': 'Yearly rollup',
 
     'notify.failSuffix': 'failed',
     'notify.fail.auth': 'Token auth failed — check Connections',

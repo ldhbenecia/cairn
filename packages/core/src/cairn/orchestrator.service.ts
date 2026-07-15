@@ -577,7 +577,10 @@ export class OrchestratorService {
     }
   }
 
-  private async runRollup(period: 'weekly' | 'monthly', options: RunOptions): Promise<void> {
+  private async runRollup(
+    period: 'weekly' | 'monthly' | 'yearly',
+    options: RunOptions,
+  ): Promise<void> {
     if (!options.dryRun && !options.force) {
       const pre = options.skipNotion
         ? ({ kind: 'no-target' } as const)
@@ -644,11 +647,12 @@ export class OrchestratorService {
       }
       this.logger.info(
         { period, rangeStart: activity.rangeStart, rangeEnd: activity.rangeEnd },
-        'rollup: no daily pages in range — skipping summarizer + publisher',
+        'rollup: no source pages in range — skipping summarizer + publisher',
       );
+      const missing = period === 'yearly' ? '월간 정리 없음' : '일지 없음';
       await this.notification.notify(
         titleKor,
-        `${activity.rangeStart} ~ ${activity.rangeEnd} 일지 없음 — ${periodKor} 생략`,
+        `${activity.rangeStart} ~ ${activity.rangeEnd} ${missing} — ${periodKor} 생략`,
       );
       return;
     }
@@ -674,7 +678,8 @@ export class OrchestratorService {
       rangeEnd: activity.rangeEnd,
       lang: options.lang,
       summary,
-      dailyDates: activity.dailies.map((d) => d.date),
+      // yearly 는 월간 파일([[YYYY-MM]])로 링크
+      dailyDates: activity.dailies.map((d) => (period === 'yearly' ? d.date.slice(0, 7) : d.date)),
       prCount: activity.metrics.prCount,
       commitCount: activity.metrics.commitCount,
     };
@@ -731,7 +736,7 @@ export class OrchestratorService {
   }
 
   private async notifyRollup(
-    period: 'weekly' | 'monthly',
+    period: 'weekly' | 'monthly' | 'yearly',
     rangeStart: string,
     rangeEnd: string,
     result: PublishRollupResult,
@@ -763,8 +768,10 @@ function wantsSource(sources: RunOptions['sources'], source: RunSource): boolean
   return sources === 'all' || sources.includes(source);
 }
 
-function rollupKor(period: 'weekly' | 'monthly'): string {
-  return period === 'weekly' ? '주간 정리' : '월간 정리';
+function rollupKor(period: 'weekly' | 'monthly' | 'yearly'): string {
+  if (period === 'weekly') return '주간 정리';
+  if (period === 'monthly') return '월간 정리';
+  return '연간 정리';
 }
 
 function generatePastDates(today: string, days: number): string[] {

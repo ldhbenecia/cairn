@@ -90,9 +90,12 @@ function isoWeekEnd(date: string): string {
 }
 
 function buildGraph(pages: RecentPage[], showRollups: boolean): Graph {
-  const dated = pages.filter((p) => p.date !== null && (showRollups || p.category === 'daily'));
+  // yearly 는 그래프 미표시 — 연 1개 노드는 시각적 의미가 약함
+  const dated = pages.filter(
+    (p) => p.date !== null && p.category !== 'yearly' && (showRollups || p.category === 'daily'),
+  );
   const nodes: GraphNode[] = dated.map((page, i) => {
-    const kind = page.category;
+    const kind = page.category as Kind;
     const activity = (page.pr ?? 0) + (page.commit ?? 0);
     const r =
       kind === 'monthly'

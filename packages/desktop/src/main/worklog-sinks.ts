@@ -30,6 +30,7 @@ export function journalFileNameFor(category: RecentCategory, date: string): stri
     const label = isoWeekLabel(date);
     return label ? `${label}.md` : null;
   }
+  if (category === 'yearly') return `${date.slice(0, 4)}.md`;
   return `${date.slice(0, 7)}.md`;
 }
 
@@ -37,7 +38,7 @@ export function journalFileNameFor(category: RecentCategory, date: string): stri
 export function buildExportIndex(names: readonly string[]): Set<string> {
   const index = new Set<string>();
   for (const name of names) {
-    const m = /^(\d{4}-\d{2}-\d{2})(?:-(weekly|monthly))?\.md$/.exec(name);
+    const m = /^(\d{4}-\d{2}-\d{2})(?:-(weekly|monthly|yearly))?\.md$/.exec(name);
     if (!m?.[1]) continue;
     const key = exportIndexKey((m[2] as RecentCategory | undefined) ?? 'daily', m[1]);
     if (key) index.add(key);
@@ -52,5 +53,6 @@ export function exportIndexKey(category: RecentCategory, date: string): string |
     const label = isoWeekLabel(date);
     return label ? `weekly:${label}` : null;
   }
+  if (category === 'yearly') return `yearly:${date.slice(0, 4)}`;
   return `monthly:${date.slice(0, 7)}`;
 }

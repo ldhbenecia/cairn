@@ -5,6 +5,7 @@ import {
   monthAnchorsToPublish,
   msUntilLocalTime,
   weekAnchorsToPublish,
+  yearAnchorsToPublish,
 } from './auto-publish-schedule';
 import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
 import { notifyAutoConfirm, notifyAutoStart } from './notifier';
@@ -50,7 +51,8 @@ function scheduleFailureRetry(): void {
   scheduleRetry();
 }
 
-const anyAutoOn = (cfg: AutoPublish): boolean => cfg.daily || cfg.weekly || cfg.monthly;
+const anyAutoOn = (cfg: AutoPublish): boolean =>
+  cfg.daily || cfg.weekly || cfg.monthly || cfg.yearly;
 
 type DueRun = {
   mode: CoreMode;
@@ -84,6 +86,11 @@ function dueRuns(cfg: AutoPublish, state: AutoPublishState): DueRun[] {
   if (cfg.monthly) {
     for (const anchor of monthAnchorsToPublish(state.monthly, now)) {
       runs.push({ mode: 'monthly', options: { date: anchor }, rollupField: 'monthly', anchor });
+    }
+  }
+  if (cfg.yearly) {
+    for (const anchor of yearAnchorsToPublish(state.yearly, now)) {
+      runs.push({ mode: 'yearly', options: { date: anchor }, rollupField: 'yearly', anchor });
     }
   }
   return runs;

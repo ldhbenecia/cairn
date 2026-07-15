@@ -1,6 +1,6 @@
 import type { CairnError } from '../common/error.js';
 
-export type RollupPeriod = 'weekly' | 'monthly';
+export type RollupPeriod = 'weekly' | 'monthly' | 'yearly';
 
 export interface RollupDailyPageMeta {
   date: string;

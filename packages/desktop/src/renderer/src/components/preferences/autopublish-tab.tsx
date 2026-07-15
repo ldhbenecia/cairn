@@ -15,7 +15,7 @@ const timeToMinutes = (t: string): number => {
 export function AutoPublishTab() {
   const { settings, update, t } = useSettings();
   const ap = settings.autoPublish;
-  const anyOn = ap.daily || ap.weekly || ap.monthly;
+  const anyOn = ap.daily || ap.weekly || ap.monthly || ap.yearly;
   const set = (patch: Partial<typeof ap>): void => update({ autoPublish: { ...ap, ...patch } });
 
   return (
@@ -37,6 +37,9 @@ export function AutoPublishTab() {
       </Field>
       <Field label={t('prefs.autoPublish.monthly')} desc={t('prefs.autoPublish.monthlyDesc')}>
         <Toggle checked={ap.monthly} onChange={(v) => set({ monthly: v })} />
+      </Field>
+      <Field label={t('prefs.autoPublish.yearly')} desc={t('prefs.autoPublish.yearlyDesc')}>
+        <Toggle checked={ap.yearly} onChange={(v) => set({ yearly: v })} />
       </Field>
 
       <Field

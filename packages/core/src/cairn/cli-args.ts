@@ -2,7 +2,7 @@ import { parseArgs } from 'node:util';
 import { todayLocalIsoDate } from '../common/date-window.js';
 import type { RunMode, RunOptions, RunSource, WorklogLang } from './run-options.js';
 
-const VALID_MODES: readonly RunMode[] = ['daily', 'weekly', 'monthly'];
+const VALID_MODES: readonly RunMode[] = ['daily', 'weekly', 'monthly', 'yearly'];
 const VALID_SOURCES: readonly RunSource[] = ['github', 'local-git'];
 const VALID_LANGS: readonly WorklogLang[] = ['ko', 'en'];
 
@@ -50,6 +50,8 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
 function defaultDateForMode(mode: RunMode): string {
   if (mode === 'weekly') return localIsoDateOffset(-7);
   if (mode === 'monthly') return localIsoDateOffset(-5);
+  // 1월 초 실행이 전년도를 가리키도록
+  if (mode === 'yearly') return localIsoDateOffset(-10);
   return todayLocalIsoDate();
 }
 

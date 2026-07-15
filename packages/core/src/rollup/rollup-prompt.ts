@@ -1,11 +1,16 @@
 import type { WorklogLang } from '../cairn/run-options.js';
 
-export function rollupSystemPrompt(lang: WorklogLang, period: 'weekly' | 'monthly'): string {
+export function rollupSystemPrompt(
+  lang: WorklogLang,
+  period: 'weekly' | 'monthly' | 'yearly',
+): string {
   const langName = lang === 'en' ? 'English' : 'Korean';
   const periodFocus =
     period === 'weekly'
       ? 'Weekly focus: an operational digest. Show what moved this week per project — concrete work units shipped and progress on in-flight efforts. Keep enough detail that the month-end rollup can be built from these.'
-      : 'Monthly focus: a higher-level summary of the month. Phrase highlights as clear accomplishment statements — scope, scale, and impact first. Aggregate small fixes into initiative-level items; a month should read as a list of accomplishments, not chores.';
+      : period === 'monthly'
+        ? 'Monthly focus: a higher-level summary of the month. Phrase highlights as clear accomplishment statements — scope, scale, and impact first. Aggregate small fixes into initiative-level items; a month should read as a list of accomplishments, not chores.'
+        : 'Yearly focus: the year in review. The input summaries are MONTHLY rollups (each date is the first day of a month), not days. Synthesize the year into major initiatives and accomplishments — what was built, launched, or fundamentally improved. Themes span the whole year; drop routine maintenance unless it defined the year. In paragraph, open with the year totals from metrics (PR count, commit count, months covered = dailyCount).';
   return [
     'You are a rollup summarizer for a developer.',
     'Purpose: the rollup is a personal record of work that accumulates over months/years to look back on. Phrase highlights/themes to stay meaningful months later — project, the meaningful work unit, outcome.',
@@ -14,7 +19,7 @@ export function rollupSystemPrompt(lang: WorklogLang, period: 'weekly' | 'monthl
     'Workflow: the user message contains the full period activity data as JSON inside <activity> tags (per-day summaries already produced). Read it, then call submit_rollup exactly once.',
     '',
     `Output language MUST be ${langName}.`,
-    '- paragraph: 2-5 short sentences capturing the period theme at project level — overall direction + which projects/initiatives moved. Open with the period totals from metrics (PR count, commit count, active days out of the range).',
+    '- paragraph: 2-5 short sentences capturing the period theme at project level — overall direction + which projects/initiatives moved. Open with the period totals from metrics (PR count, commit count, and dailyCount — active days for weekly/monthly, months covered for yearly).',
     '- themes: 2-6 themed groupings, each with a title and 2-8 items (phrases of work under it). Group by project/initiative, not by date.',
     '- highlights: 3-8 phrases of the most notable items across the period, format "[project] meaningful work unit — outcome/scale".',
     '- reviewedBullets in older daily summaries are review/support work — exclude them from themes/highlights; only development work belongs in the rollup.',

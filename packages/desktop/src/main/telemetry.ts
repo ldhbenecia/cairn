@@ -7,7 +7,7 @@ declare const __WORKSPACE_VERSION__: string;
 const KEY = process.env.CAIRN_POSTHOG_KEY ?? 'phc_sCEqcPmP6EduVvxNTSGGrhoMRn9jNNd4vRV7ntzWKFeM';
 const HOST = process.env.CAIRN_POSTHOG_HOST ?? 'https://us.i.posthog.com';
 
-type PublishMode = 'daily' | 'weekly' | 'monthly';
+type PublishMode = 'daily' | 'weekly' | 'monthly' | 'yearly';
 type PublishOutcome = 'ok' | 'fail' | 'no-activity';
 export type PublishTrigger = 'manual' | 'scheduled';
 

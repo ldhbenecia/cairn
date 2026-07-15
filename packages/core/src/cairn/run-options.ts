@@ -1,4 +1,4 @@
-export type RunMode = 'daily' | 'weekly' | 'monthly';
+export type RunMode = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export type RunSource = 'github' | 'local-git';
 

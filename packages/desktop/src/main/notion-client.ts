@@ -32,7 +32,7 @@ function ensureEnvLoaded(): void {
   }
 }
 
-export type RecentCategory = 'daily' | 'weekly' | 'monthly';
+export type RecentCategory = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export type WorklogSink = 'journal' | 'notion' | 'obsidian';
 
@@ -103,6 +103,12 @@ function getNotion(token: string): Client {
 function readTitle(props: Record<string, unknown>): string {
   const p = props.Title as { title?: Array<{ plain_text?: string }> } | undefined;
   return p?.title?.map((t) => t.plain_text ?? '').join('') || '(no title)';
+}
+
+function rollupCategory(period: string | null): RecentCategory {
+  if (period === 'monthly') return 'monthly';
+  if (period === 'yearly') return 'yearly';
+  return 'weekly';
 }
 
 function readSelect(props: Record<string, unknown>, key: string): string | null {
@@ -262,8 +268,7 @@ async function listRollupPages(
         title: readTitle(props),
         date: readDate(props, 'Range end') ?? readDate(props, 'Range start'),
         status: readSelect(props, 'Status'),
-        category:
-          readSelect(props, 'Period') === 'monthly' ? ('monthly' as const) : ('weekly' as const),
+        category: rollupCategory(readSelect(props, 'Period')),
         pr: null,
         commit: null,
         hours: null,
