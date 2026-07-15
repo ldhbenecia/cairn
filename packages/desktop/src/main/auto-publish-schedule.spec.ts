@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  lastCompletedYearAnchor,
+  yearAnchorsToPublish,
   isScheduledTimeReached,
   lastCompletedMonthAnchor,
   lastCompletedWeekAnchor,
@@ -130,5 +132,27 @@ describe('monthAnchorsToPublish (놓친 월 catch-up)', () => {
   it('연 경계', () => {
     const feb = new Date(2026, 1, 10); // 2026-02 → anchor 2026-01-31
     expect(monthAnchorsToPublish('2025-11-30', feb)).toEqual(['2025-12-31', '2026-01-31']);
+  });
+});
+
+describe('yearAnchorsToPublish', () => {
+  it('최초(anchor 없음)엔 직전 연도 하나만', () => {
+    expect(yearAnchorsToPublish(undefined, new Date(2026, 0, 3))).toEqual(['2025-12-31']);
+  });
+
+  it('놓친 연도 catch-up — 오래된 순', () => {
+    expect(yearAnchorsToPublish('2023-12-31', new Date(2026, 0, 3))).toEqual([
+      '2024-12-31',
+      '2025-12-31',
+    ]);
+  });
+
+  it('이미 최신이면 빈 목록', () => {
+    expect(yearAnchorsToPublish('2025-12-31', new Date(2026, 6, 15))).toEqual([]);
+  });
+
+  it('anchor 는 한 해 내내 작년 12/31', () => {
+    expect(lastCompletedYearAnchor(new Date(2026, 6, 15))).toBe('2025-12-31');
+    expect(lastCompletedYearAnchor(new Date(2026, 11, 31))).toBe('2025-12-31');
   });
 });

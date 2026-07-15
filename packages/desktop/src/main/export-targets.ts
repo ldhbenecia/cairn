@@ -1,5 +1,5 @@
 export type ExportTarget = {
-  category: 'daily' | 'weekly' | 'monthly';
+  category: 'daily' | 'weekly' | 'monthly' | 'yearly';
   date: string;
   fileBase: string;
   pageId: string | null;
@@ -7,7 +7,7 @@ export type ExportTarget = {
 
 // 노션 pageId 비의존 — 로컬 온리 autoSync
 export function buildExportTargets(input: {
-  mode: 'daily' | 'weekly' | 'monthly';
+  mode: 'daily' | 'weekly' | 'monthly' | 'yearly';
   fallbackDate: string;
   lastPageId: string | null;
   lastJournalFile: string | null;

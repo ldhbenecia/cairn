@@ -9,6 +9,7 @@ export type AutoPublish = {
   daily: boolean;
   weekly: boolean;
   monthly: boolean;
+  yearly: boolean;
   time: string;
   backfillDays: number;
   confirmBeforeRun: boolean;
@@ -34,7 +35,12 @@ export type Settings = {
   telemetry: boolean;
   installId: string;
   autoPublish: AutoPublish;
-  prompts: { daily: string | null; weekly: string | null; monthly: string | null };
+  prompts: {
+    daily: string | null;
+    weekly: string | null;
+    monthly: string | null;
+    yearly: string | null;
+  };
   summaryModel: SummaryModel;
   export: ExportConfig;
   graph: GraphConfig;
@@ -48,7 +54,7 @@ const boot = ipcRenderer.sendSync('cairn:bootstrap-sync') as {
   setupComplete: boolean;
 };
 
-export type CoreMode = 'daily' | 'weekly' | 'monthly';
+export type CoreMode = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export type CoreRunOptions = {
   backfillDays?: number;
@@ -103,7 +109,7 @@ export type RecentPage = {
   title: string;
   date: string | null;
   status: string | null;
-  category: 'daily' | 'weekly' | 'monthly';
+  category: 'daily' | 'weekly' | 'monthly' | 'yearly';
   pr: number | null;
   commit: number | null;
   hours: number[] | null;

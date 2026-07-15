@@ -51,6 +51,7 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
   daily: null,
   weekly: null,
   monthly: null,
+  yearly: null,
 };
 
 const RECENT_CACHE_KEY = 'cairn:recentCache:v1';
@@ -382,6 +383,7 @@ export function App() {
       daily: pages.filter((p) => p.category === 'daily').length,
       weekly: pages.filter((p) => p.category === 'weekly').length,
       monthly: pages.filter((p) => p.category === 'monthly').length,
+      yearly: pages.filter((p) => p.category === 'yearly').length,
     };
   }, [recent]);
 

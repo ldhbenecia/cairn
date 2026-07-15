@@ -21,6 +21,7 @@ const FILE_PATTERNS: { re: RegExp; category: RecentCategory }[] = [
   { re: /^\d{4}-\d{2}-\d{2}\.md$/, category: 'daily' },
   { re: /^\d{4}-W\d{2}\.md$/, category: 'weekly' },
   { re: /^\d{4}-\d{2}\.md$/, category: 'monthly' },
+  { re: /^\d{4}\.md$/, category: 'yearly' },
 ];
 
 export async function journalFolder(): Promise<string> {

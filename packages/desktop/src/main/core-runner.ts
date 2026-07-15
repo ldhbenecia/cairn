@@ -35,7 +35,7 @@ import {
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 
-export type CoreMode = 'daily' | 'weekly' | 'monthly';
+export type CoreMode = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export type CoreRunOptions = {
   backfillDays?: number;
@@ -138,6 +138,7 @@ function promptEnv(prompts: Settings['prompts']): Record<string, string> {
   if (prompts.daily?.trim()) env.CAIRN_PROMPT_DAILY = prompts.daily;
   if (prompts.weekly?.trim()) env.CAIRN_PROMPT_WEEKLY = prompts.weekly;
   if (prompts.monthly?.trim()) env.CAIRN_PROMPT_MONTHLY = prompts.monthly;
+  if (prompts.yearly?.trim()) env.CAIRN_PROMPT_YEARLY = prompts.yearly;
   return env;
 }
 

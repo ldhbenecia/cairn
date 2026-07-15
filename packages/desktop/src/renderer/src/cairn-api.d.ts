@@ -1,4 +1,4 @@
-export type CoreMode = 'daily' | 'weekly' | 'monthly';
+export type CoreMode = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export type CoreRunOptions = {
   backfillDays?: number;
@@ -46,7 +46,7 @@ export type ExportStatus = {
 
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 
-export type RecentCategory = 'daily' | 'weekly' | 'monthly';
+export type RecentCategory = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export type WorklogSink = 'journal' | 'notion' | 'obsidian';
 
@@ -151,6 +151,7 @@ export type AutoPublish = {
   daily: boolean;
   weekly: boolean;
   monthly: boolean;
+  yearly: boolean;
   time: string;
   backfillDays: number;
   confirmBeforeRun: boolean;
@@ -176,7 +177,12 @@ export type Settings = {
   telemetry: boolean;
   installId: string;
   autoPublish: AutoPublish;
-  prompts: { daily: string | null; weekly: string | null; monthly: string | null };
+  prompts: {
+    daily: string | null;
+    weekly: string | null;
+    monthly: string | null;
+    yearly: string | null;
+  };
   summaryModel: SummaryModel;
   export: ExportConfig;
   graph: GraphConfig;

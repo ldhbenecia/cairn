@@ -5,7 +5,12 @@ import { writeFileAtomic } from './atomic-write';
 
 const STATE_PATH = join(homedir(), '.cairn', 'auto-publish-state.json');
 
-export type AutoPublishState = { daily?: string; weekly?: string; monthly?: string };
+export type AutoPublishState = {
+  daily?: string;
+  weekly?: string;
+  monthly?: string;
+  yearly?: string;
+};
 
 export function readAutoPublishState(): AutoPublishState {
   try {

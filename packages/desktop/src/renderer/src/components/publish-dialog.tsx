@@ -1,5 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import {
+  CalendarCheck,
   CalendarClock,
   CalendarDays,
   CalendarRange,
@@ -39,7 +40,7 @@ function mostRecentFailed(
   sessions: Record<CoreMode, RunSession | null>,
 ): { mode: CoreMode; endedAt: number } | null {
   let best: { mode: CoreMode; endedAt: number } | null = null;
-  for (const mode of ['daily', 'weekly', 'monthly'] as CoreMode[]) {
+  for (const mode of ['daily', 'weekly', 'monthly', 'yearly'] as CoreMode[]) {
     const s = sessions[mode];
     if (s?.state !== 'done' || !s.endedAt) continue;
     const failed = !!s.error || (!!s.result && (!s.result.ok || s.result.summaryFailed));
@@ -52,6 +53,7 @@ const MODE_OPTIONS: { mode: CoreMode; key: I18nKey; sub: I18nKey; icon: LucideIc
   { mode: 'daily', key: 'publish.today', sub: 'publish.scope.daily', icon: CalendarDays },
   { mode: 'weekly', key: 'publish.week', sub: 'publish.scope.weekly', icon: CalendarRange },
   { mode: 'monthly', key: 'publish.month', sub: 'publish.scope.monthly', icon: CalendarClock },
+  { mode: 'yearly', key: 'publish.year', sub: 'publish.scope.yearly', icon: CalendarCheck },
 ];
 
 const DAILY_BACKFILL_DAYS = 7;
@@ -244,7 +246,7 @@ export function PublishDialog({
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
                   {t('publish.scope')}
                 </p>
-                <div className="mb-4 grid grid-cols-3 gap-2">
+                <div className="mb-4 grid grid-cols-4 gap-2">
                   {MODE_OPTIONS.map((o) => {
                     const selected = mode === o.mode;
                     const Icon = o.icon;

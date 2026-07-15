@@ -347,6 +347,7 @@ const CATEGORY_STYLE: Record<RecentCategory, string> = {
   daily: 'chip-daily',
   weekly: 'chip-weekly',
   monthly: 'chip-monthly',
+  yearly: 'chip-yearly',
 };
 
 const STATUS_STYLE: Record<string, string> = {
