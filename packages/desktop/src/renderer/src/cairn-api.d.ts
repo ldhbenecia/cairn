@@ -47,6 +47,7 @@ export type ExportStatus = {
 export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
 
 export type RecentCategory = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type JournalSnapshotMeta = { stamp: string; at: string };
 
 export type WorklogSink = 'journal' | 'notion' | 'obsidian';
 
@@ -252,6 +253,19 @@ declare global {
         add: (text: string) => Promise<{ ok: boolean; count: number }>;
         open: () => Promise<void>;
         hide: () => Promise<void>;
+      };
+      snapshots: {
+        list: (category: RecentCategory, date: string) => Promise<JournalSnapshotMeta[]>;
+        read: (
+          category: RecentCategory,
+          date: string,
+          stamp: string,
+        ) => Promise<{ content: string | null }>;
+        restore: (
+          category: RecentCategory,
+          date: string,
+          stamp: string,
+        ) => Promise<{ ok: boolean }>;
       };
     };
   }

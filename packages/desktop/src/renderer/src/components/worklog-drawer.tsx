@@ -6,6 +6,7 @@ import {
   ExternalLink,
   FileDown,
   FileText,
+  History,
   Loader2,
   MoreHorizontal,
   X,
@@ -16,6 +17,7 @@ import { pageSinks, sinkLabel } from '../lib/sinks';
 import { blocksToMarkdown } from '../../../shared/markdown';
 import { blocksToHtml } from '../../../shared/html';
 import { useSettings } from '../settings-context';
+import { SnapshotDialog } from './snapshot-dialog';
 
 type Props = { page: RecentPage; onClose: () => void };
 
@@ -75,6 +77,8 @@ export function WorklogDrawer({ page, onClose }: Props) {
     void window.cairn.exportPdf(`${page.date ?? 'cairn-worklog'}.pdf`, html);
   }
 
+  const [snapOpen, setSnapOpen] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuClosing, setMenuClosing] = useState(false);
   const closeMenu = (): void => {
@@ -123,6 +127,15 @@ export function WorklogDrawer({ page, onClose }: Props) {
         closeMenu();
       },
     },
+    pageSinks(page).includes('journal') && {
+      key: 'history',
+      icon: <History size={15} strokeWidth={2} />,
+      label: t('drawer.menuHistory'),
+      run: () => {
+        setSnapOpen(true);
+        closeMenu();
+      },
+    },
     page.url && {
       key: 'notion',
       icon: <ExternalLink size={15} strokeWidth={2} />,
@@ -163,7 +176,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
     return () => {
       alive = false;
     };
-  }, [page.pageId, page.workspaceLabel]);
+  }, [page.pageId, page.workspaceLabel, reloadTick]);
 
   const resizeCleanup = useRef<(() => void) | null>(null);
   useEffect(() => () => resizeCleanup.current?.(), []);
@@ -302,6 +315,13 @@ export function WorklogDrawer({ page, onClose }: Props) {
           )}
         </div>
       </div>
+      {snapOpen && (
+        <SnapshotDialog
+          page={page}
+          onClose={() => setSnapOpen(false)}
+          onRestored={() => setReloadTick((n) => n + 1)}
+        />
+      )}
     </div>
   );
 }

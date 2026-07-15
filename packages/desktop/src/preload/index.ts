@@ -284,4 +284,18 @@ contextBridge.exposeInMainWorld('cairn', {
     open: (): Promise<void> => ipcRenderer.invoke('cairn:capture:open') as Promise<void>,
     hide: (): Promise<void> => ipcRenderer.invoke('cairn:capture:hide') as Promise<void>,
   },
+  snapshots: {
+    list: (category: string, date: string): Promise<{ stamp: string; at: string }[]> =>
+      ipcRenderer.invoke('cairn:snapshots:list', category, date) as Promise<
+        { stamp: string; at: string }[]
+      >,
+    read: (category: string, date: string, stamp: string): Promise<{ content: string | null }> =>
+      ipcRenderer.invoke('cairn:snapshots:read', category, date, stamp) as Promise<{
+        content: string | null;
+      }>,
+    restore: (category: string, date: string, stamp: string): Promise<{ ok: boolean }> =>
+      ipcRenderer.invoke('cairn:snapshots:restore', category, date, stamp) as Promise<{
+        ok: boolean;
+      }>,
+  },
 });
