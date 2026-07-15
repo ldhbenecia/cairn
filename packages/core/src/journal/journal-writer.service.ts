@@ -13,6 +13,7 @@ import {
   type DailyJournalInput,
   type RollupJournalInput,
 } from './journal-markdown.js';
+import { saveSnapshotIfChanged } from './journal-snapshot.js';
 
 export interface JournalWriteResult {
   fileName: string;
@@ -62,6 +63,14 @@ export class JournalWriterService {
     const folder = this.folder();
     mkdirSync(folder, { recursive: true });
     const path = join(folder, fileName);
+    try {
+      // 재발행이 이전본(사용자 편집 포함)을 지우지 않게 — 실패해도 발행은 계속
+      if (saveSnapshotIfChanged(path, fileName, content)) {
+        this.logger.info({ fileName }, 'journal snapshot saved');
+      }
+    } catch (err) {
+      this.logger.warn({ fileName, err: String(err) }, 'journal snapshot failed');
+    }
     const tmp = `${path}.${process.pid}.tmp`;
     writeFileSync(tmp, content, 'utf8');
     renameSync(tmp, path);
