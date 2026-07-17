@@ -196,10 +196,8 @@ export function PublishDialog({
           }`}
         >
           <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
-            <Dialog.Title className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.2px] text-ink">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-accent/12 text-accent-hover">
-                <CalendarDays size={15} strokeWidth={2} />
-              </span>
+            <Dialog.Title className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.2px] text-ink">
+              <CalendarDays size={15} strokeWidth={2} className="text-ink-tertiary" />
               {t('publish.title')}
             </Dialog.Title>
             <Dialog.Close
@@ -258,7 +256,7 @@ export function PublishDialog({
                         className={[
                           'relative flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3.5 transition-all active:scale-[0.98]',
                           selected
-                            ? 'border-accent bg-accent/10 shadow-sm shadow-accent/15'
+                            ? 'border-accent bg-accent/10'
                             : 'border-hairline hover:border-hairline-strong hover:bg-surface-2/60',
                         ].join(' ')}
                       >
@@ -285,7 +283,7 @@ export function PublishDialog({
                   })}
                 </div>
 
-                <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-hairline bg-surface-2/50 px-3.5 py-3">
+                <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-hairline px-3.5 py-3">
                   <div className="flex min-w-0 flex-col">
                     <span className="text-[13px] font-medium text-ink">{t('publish.date')}</span>
                     <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
@@ -347,10 +345,10 @@ export function PublishDialog({
                     });
                   }}
                   className={[
-                    'flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all active:scale-[0.99]',
+                    'flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-[13px] font-medium transition-all active:scale-[0.98]',
                     busy
                       ? 'cursor-not-allowed bg-accent-focus text-white/70'
-                      : 'bg-accent text-white shadow-sm shadow-accent/25 hover:bg-accent-hover',
+                      : 'bg-accent text-white hover:bg-accent-hover',
                   ].join(' ')}
                 >
                   {!busy && <Send size={15} strokeWidth={2.25} />}

@@ -206,22 +206,22 @@ export function Result({
         {isSuccess && (result.prCount > 0 || result.commitCount > 0) && (
           <div className="mt-1 grid grid-cols-2 gap-2.5">
             <div className="flex items-center gap-2.5 rounded-lg border border-hairline bg-surface-1 px-3.5 py-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sky-500/12 text-sky-400">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-ink-subtle">
                 <GitPullRequest size={15} strokeWidth={2} />
               </span>
               <div className="min-w-0">
-                <p className="text-[17px] leading-tight font-semibold text-ink tabular-nums">
+                <p className="font-mono text-[17px] leading-tight font-semibold text-ink tabular-nums">
                   {result.prCount}
                 </p>
                 <p className="text-[11px] text-ink-tertiary">PR</p>
               </div>
             </div>
             <div className="flex items-center gap-2.5 rounded-lg border border-hairline bg-surface-1 px-3.5 py-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/12 text-emerald-400">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-ink-subtle">
                 <GitCommitHorizontal size={15} strokeWidth={2} />
               </span>
               <div className="min-w-0">
-                <p className="text-[17px] leading-tight font-semibold text-ink tabular-nums">
+                <p className="font-mono text-[17px] leading-tight font-semibold text-ink tabular-nums">
                   {result.commitCount}
                 </p>
                 <p className="text-[11px] text-ink-tertiary">{t('publish.collected.commits')}</p>
