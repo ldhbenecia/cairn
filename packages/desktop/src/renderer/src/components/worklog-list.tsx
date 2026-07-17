@@ -351,10 +351,16 @@ const CATEGORY_DOT: Record<RecentCategory, string> = {
 };
 
 // 제목의 날짜 프리픽스("2026-07-17 작업 일지"·"2026-W29 주간 정리")는 우측 mono 라벨로 옮겨 이중 표기 제거
-const TITLE_DATE_RE = /^(\d{4}(?:-(?:W\d{2}|\d{2}))?(?:-\d{2})?)\s+(.+)$/;
+// 카테고리별 정확한 날짜 형식만 분리 — '2026 roadmap' 같은 커스텀 제목 오분리 방지
+const TITLE_DATE_RE: Record<RecentCategory, RegExp> = {
+  daily: /^(\d{4}-\d{2}-\d{2})\s+(.+)$/,
+  weekly: /^(\d{4}-W\d{2})\s+(.+)$/,
+  monthly: /^(\d{4}-\d{2})\s+(.+)$/,
+  yearly: /^(\d{4})\s+(.+)$/,
+};
 
 function splitTitle(page: RecentPage): { title: string; dateLabel: string } {
-  const m = TITLE_DATE_RE.exec(page.title);
+  const m = TITLE_DATE_RE[page.category].exec(page.title);
   if (m) return { title: m[2]!, dateLabel: m[1]! };
   return { title: page.title, dateLabel: page.date ?? '—' };
 }
@@ -415,6 +421,8 @@ function PageRow({
     >
       <span
         className={['size-1.5 shrink-0 rounded-full', CATEGORY_DOT[page.category]].join(' ')}
+        role="img"
+        aria-label={t(catKey(page.category))}
         title={t(catKey(page.category))}
       />
       <span className="min-w-0 flex-1 truncate font-medium text-ink">{title}</span>
@@ -450,7 +458,7 @@ function SinkStack({ page, t }: { page: RecentPage; t: T }) {
   const sinks = pageSinks(page);
   return (
     <span
-      className="hidden w-12 shrink-0 items-center justify-end opacity-0 transition-opacity group-hover:opacity-100 sm:flex"
+      className="hidden w-12 shrink-0 items-center justify-end opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 sm:flex"
       title={sinks.map((s) => sinkLabel(s, page, t('source.localDesc'))).join(' · ')}
     >
       {sinks.map((s) => (
