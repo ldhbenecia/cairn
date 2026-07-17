@@ -11,7 +11,7 @@ export function Section({
 }) {
   return (
     <section>
-      <div className="flex items-center justify-between pb-1">
+      <div className="flex items-center justify-between pb-1.5">
         <p className="text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
           {label}
         </p>

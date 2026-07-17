@@ -1,17 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import type { LucideIcon } from 'lucide-react';
-import {
-  Bell,
-  Blocks,
-  CalendarClock,
-  CreditCard,
-  Info,
-  Link2,
-  MessageSquare,
-  Monitor,
-  SquarePen,
-  X,
-} from 'lucide-react';
+import { X } from 'lucide-react';
 import { useState } from 'react';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
@@ -37,16 +25,16 @@ type TabId =
   | 'about';
 
 // 사용 빈도순 — 발행 스케줄·연동이 일상 조작, 소스 연결·결제는 설정 후 거의 안 봄
-const TABS: { id: TabId; icon: LucideIcon; labelKey: I18nKey }[] = [
-  { id: 'appearance', icon: Monitor, labelKey: 'prefs.appearance' },
-  { id: 'autopublish', icon: CalendarClock, labelKey: 'prefs.autoPublish' },
-  { id: 'integrations', icon: Blocks, labelKey: 'prefs.integrations' },
-  { id: 'prompts', icon: SquarePen, labelKey: 'prefs.prompts' },
-  { id: 'notifications', icon: Bell, labelKey: 'prefs.notifications' },
-  { id: 'connections', icon: Link2, labelKey: 'prefs.connections' },
-  { id: 'billing', icon: CreditCard, labelKey: 'prefs.billing' },
-  { id: 'feedback', icon: MessageSquare, labelKey: 'prefs.feedback' },
-  { id: 'about', icon: Info, labelKey: 'prefs.about' },
+const TABS: { id: TabId; labelKey: I18nKey }[] = [
+  { id: 'appearance', labelKey: 'prefs.appearance' },
+  { id: 'autopublish', labelKey: 'prefs.autoPublish' },
+  { id: 'integrations', labelKey: 'prefs.integrations' },
+  { id: 'prompts', labelKey: 'prefs.prompts' },
+  { id: 'notifications', labelKey: 'prefs.notifications' },
+  { id: 'connections', labelKey: 'prefs.connections' },
+  { id: 'billing', labelKey: 'prefs.billing' },
+  { id: 'feedback', labelKey: 'prefs.feedback' },
+  { id: 'about', labelKey: 'prefs.about' },
 ];
 
 const TAB_DESC: Partial<Record<TabId, I18nKey>> = {
@@ -97,19 +85,18 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup, blockEscap
                 {t('prefs.title')}
               </p>
             </Dialog.Title>
-            {TABS.map(({ id, icon: Icon, labelKey }) => (
+            {TABS.map(({ id, labelKey }) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setTab(id)}
                 className={[
-                  'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition-colors',
+                  'rounded-md px-2.5 py-1.5 text-left text-[13px] transition-colors',
                   tab === id
                     ? 'bg-surface-2 font-medium text-ink'
                     : 'text-ink-subtle hover:bg-surface-2/60 hover:text-ink-muted',
                 ].join(' ')}
               >
-                <Icon size={15} strokeWidth={2} />
                 {t(labelKey)}
               </button>
             ))}
@@ -127,7 +114,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup, blockEscap
             </Dialog.Close>
             <div className="h-full overflow-y-auto px-6 py-5 [scrollbar-gutter:stable]">
               <div key={tab} className="panel-enter max-w-[560px]">
-                <header className="pb-4">
+                <header className="pb-5">
                   <h2 className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
                     {t(active.labelKey)}
                   </h2>
