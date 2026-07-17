@@ -5,9 +5,9 @@ import {
   CalendarRange,
   ChartColumn,
   LayoutList,
+  Command,
   LogIn,
   Orbit,
-  Search,
   LogOut,
   Settings2,
   type LucideIcon,
@@ -66,23 +66,19 @@ export function Sidebar({
         <AccountTop onOpenPreferences={onOpenPreferences} />
       </div>
 
-      <div className="px-4 pb-3">
+      <div className="flex flex-1 flex-col gap-0.5 px-4">
         <button
           type="button"
           onClick={onOpenPalette}
-          className="flex w-full items-center gap-2 rounded-md border border-hairline bg-surface-2/50 px-2.5 py-1.5 text-left transition-colors hover:bg-surface-2 [-webkit-app-region:no-drag]"
+          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-[13px] font-medium leading-[1.3] text-ink-subtle transition-colors hover:bg-surface-2/60 hover:text-ink-muted [-webkit-app-region:no-drag]"
         >
-          <Search size={13} strokeWidth={2} className="shrink-0 text-ink-tertiary" />
-          <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-tertiary">
-            {t('nav.palette')}
-          </span>
+          <Command size={15} strokeWidth={1.75} />
+          <span className="min-w-0 flex-1 truncate">{t('nav.palette')}</span>
           <kbd className="shrink-0 rounded border border-hairline-strong bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-tertiary">
             ⌘K
           </kbd>
         </button>
-      </div>
-
-      <div className="flex flex-1 flex-col gap-0.5 px-4">
+        <div className="mx-2 mb-1.5 mt-2 h-px bg-hairline" />
         <FilterItem
           icon={ChartColumn}
           label={t('nav.stats')}
