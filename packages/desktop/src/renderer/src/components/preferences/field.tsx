@@ -73,7 +73,7 @@ export function Segmented<T extends string>({
           className={[
             'rounded-md px-3 py-1 text-[12.5px] font-medium transition-colors',
             grow ? 'flex-1' : '',
-            value === o.value ? 'bg-accent text-white' : 'text-ink-subtle hover:text-ink-muted',
+            value === o.value ? 'bg-surface-3 text-ink' : 'text-ink-subtle hover:text-ink-muted',
           ].join(' ')}
         >
           {o.label}

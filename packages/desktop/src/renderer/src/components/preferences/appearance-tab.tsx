@@ -143,7 +143,9 @@ function ThemeCard({
       <span
         className={[
           'relative block h-16 w-24 overflow-hidden rounded-lg border-2 transition-colors',
-          selected ? 'border-accent' : 'border-hairline group-hover:border-hairline-strong',
+          selected
+            ? 'border-hairline-tertiary'
+            : 'border-hairline group-hover:border-hairline-strong',
         ].join(' ')}
       >
         {value === 'system' ? <AutoMock /> : <Mock variant={value} />}
@@ -203,7 +205,9 @@ function GlassCard({
       <span
         className={[
           'relative block h-16 w-24 overflow-hidden rounded-lg border-2 transition-colors',
-          selected ? 'border-accent' : 'border-hairline group-hover:border-hairline-strong',
+          selected
+            ? 'border-hairline-tertiary'
+            : 'border-hairline group-hover:border-hairline-strong',
         ].join(' ')}
       >
         <GlassMock glass={glass} />

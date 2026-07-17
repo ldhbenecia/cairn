@@ -480,7 +480,7 @@ export function DateRangePicker({
                           isEdge
                             ? 'rounded-md bg-accent font-medium text-white'
                             : inRange
-                              ? 'bg-accent/15 text-ink'
+                              ? 'bg-surface-3 text-ink'
                               : isFuture
                                 ? 'cursor-not-allowed rounded-md text-ink-tertiary/40'
                                 : 'rounded-md text-ink-muted hover:bg-surface-2 hover:text-ink',

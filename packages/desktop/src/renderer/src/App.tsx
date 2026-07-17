@@ -428,7 +428,7 @@ export function App() {
       />
       <div
         onMouseDown={startResize}
-        className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/40 [-webkit-app-region:no-drag]"
+        className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-hairline-tertiary [-webkit-app-region:no-drag]"
       />
       {activeView === 'stats' ? (
         <Dashboard

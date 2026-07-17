@@ -206,7 +206,7 @@ export function WorklogList({
                 'inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] whitespace-nowrap transition-colors',
                 groupBy === 'none'
                   ? 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
-                  : 'bg-accent/15 text-ink',
+                  : 'bg-surface-3 text-ink',
               ].join(' ')}
             >
               <ListTree size={12} strokeWidth={2} />
@@ -410,7 +410,7 @@ function PageRow({
       onClick={() => onOpen(page)}
       className={[
         'group flex h-10 w-full items-center gap-3 px-3 text-left text-[13px] transition-[background-color]',
-        selected ? 'bg-surface-2 ring-1 ring-accent/50 ring-inset' : 'hover:bg-surface-2',
+        selected ? 'bg-surface-3 ring-1 ring-hairline-strong ring-inset' : 'hover:bg-surface-2',
       ].join(' ')}
     >
       <span

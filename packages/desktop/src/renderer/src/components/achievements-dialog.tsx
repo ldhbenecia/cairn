@@ -234,7 +234,7 @@ export function AchievementsDialog({
                       className={[
                         'relative flex flex-col items-start rounded-xl border px-4 py-3.5 text-left transition-all active:scale-[0.99]',
                         selected
-                          ? 'border-accent bg-accent/10'
+                          ? 'border-hairline-tertiary bg-surface-2'
                           : 'border-hairline hover:border-hairline-strong hover:bg-surface-2/60',
                       ].join(' ')}
                     >
@@ -279,7 +279,7 @@ export function AchievementsDialog({
                 className={[
                   'relative flex cursor-pointer flex-col items-start rounded-xl border px-4 py-3.5 text-left transition-all active:scale-[0.99]',
                   days === 'custom'
-                    ? 'border-accent bg-accent/10'
+                    ? 'border-hairline-tertiary bg-surface-2'
                     : 'border-hairline hover:border-hairline-strong hover:bg-surface-2/60',
                 ].join(' ')}
               >
@@ -320,7 +320,7 @@ export function AchievementsDialog({
               </div>
 
               <div className="flex items-start gap-2.5 rounded-xl border border-hairline bg-surface-2/40 px-3.5 py-3">
-                <Info size={15} strokeWidth={2} className="mt-px shrink-0 text-accent-hover" />
+                <Info size={15} strokeWidth={2} className="mt-px shrink-0 text-ink-subtle" />
                 <span className="text-[11.5px] leading-relaxed text-ink-muted">
                   {t('achv.info')}
                 </span>
@@ -379,7 +379,7 @@ export function AchievementsDialog({
               </div>
               <p className="mt-4 text-[14px] font-medium text-ink">{t('achv.scanning')}</p>
               <p className="mt-1 text-[11.5px] text-ink-tertiary tabular-nums">
-                <span className="font-mono text-accent-hover">{scanDone}</span> / {scanTotal}
+                <span className="font-mono text-ink">{scanDone}</span> / {scanTotal}
                 {t('achv.worklogs')}
               </p>
               <div className="mt-4 flex h-[132px] w-full flex-col justify-end gap-1.5 overflow-hidden rounded-xl border border-hairline bg-surface-2/40 px-3.5 py-3">
@@ -455,7 +455,7 @@ export function AchievementsDialog({
                         return (
                           <div
                             key={i}
-                            className="mt-3 mb-1 text-[12.5px] font-semibold text-accent-hover first:mt-0"
+                            className="mt-3 mb-1 text-[12.5px] font-semibold text-ink first:mt-0"
                           >
                             {line}
                           </div>

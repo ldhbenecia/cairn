@@ -32,7 +32,7 @@ export function BillingTab() {
                 {t('billing.free.desc')}
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-accent/12 px-2 py-0.5 text-[10px] font-medium tracking-wide text-accent-hover uppercase">
+            <span className="shrink-0 rounded-full bg-surface-3 px-2 py-0.5 text-[10px] font-medium tracking-wide text-ink-muted uppercase">
               {t('billing.current')}
             </span>
           </div>
@@ -82,7 +82,7 @@ export function BillingTab() {
           <ul className="flex flex-col gap-3 text-[12.5px] leading-snug text-ink-muted">
             {PRO_FEATURES.map((k) => (
               <li key={k} className="flex items-start gap-2.5">
-                <Check size={13} strokeWidth={2} className="mt-0.5 shrink-0 text-accent-hover" />
+                <Check size={13} strokeWidth={2} className="mt-0.5 shrink-0 text-ink-tertiary" />
                 {t(k)}
               </li>
             ))}

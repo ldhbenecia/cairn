@@ -143,7 +143,7 @@ export function WrappedDialog({
                 className={[
                   'rounded-md px-2 py-1 font-mono text-[12px] transition-colors',
                   year === y
-                    ? 'bg-accent/15 text-accent-hover'
+                    ? 'bg-surface-3 text-ink'
                     : 'text-ink-tertiary hover:bg-surface-2 hover:text-ink',
                 ].join(' ')}
               >
@@ -190,7 +190,7 @@ export function WrappedDialog({
                       className="group relative flex flex-1 flex-col items-center gap-1.5"
                     >
                       {isMax && (
-                        <span className="absolute -top-4 font-mono text-[10px] text-accent-hover">
+                        <span className="absolute -top-4 font-mono text-[10px] text-ink">
                           {total.toLocaleString()}
                         </span>
                       )}

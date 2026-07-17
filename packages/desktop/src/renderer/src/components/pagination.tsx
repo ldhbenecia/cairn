@@ -108,7 +108,7 @@ export function Pagination({ totalPages, currentPage, onPageChange, maxVisiblePa
           initial={false}
           animate={{ left: underline.left, width: underline.width }}
           transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-          className="pointer-events-none absolute bottom-0 h-0.5 rounded-full bg-accent"
+          className="pointer-events-none absolute bottom-0 h-0.5 rounded-full bg-ink"
         />
       </div>
 

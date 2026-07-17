@@ -137,7 +137,7 @@ export function SnapshotDialog({
                   className={[
                     'rounded-md border px-2.5 py-1 font-mono text-[11.5px] transition-colors',
                     selected === s.stamp
-                      ? 'border-accent/50 bg-accent/15 text-ink'
+                      ? 'border-hairline-strong bg-surface-3 text-ink'
                       : 'border-hairline text-ink-muted hover:bg-surface-2 hover:text-ink',
                   ].join(' ')}
                 >

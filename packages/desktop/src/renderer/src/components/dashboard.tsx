@@ -283,7 +283,7 @@ export function Dashboard({
                 onClick={onOpenWrapped}
                 className="flex items-center gap-1.5 rounded-md border border-hairline bg-surface-1 px-2.5 py-1.5 text-[12.5px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
               >
-                <ChartPie size={13} strokeWidth={2} className="text-accent-hover" />
+                <ChartPie size={13} strokeWidth={2} />
                 {t('wrapped.title')}
               </button>
             )}
@@ -533,7 +533,7 @@ function CumulativeChart({ series, t }: { series: CumPoint[]; t: T }) {
       <div className="rounded-lg border border-hairline bg-surface-1 p-4">
         <div className="mb-2 flex items-baseline justify-between gap-2">
           <p className="text-[11px] text-ink-tertiary">{t('stats.cumulativeHint')}</p>
-          <span className="font-mono text-[20px] font-semibold tracking-[-0.5px] text-accent tabular-nums">
+          <span className="font-mono text-[20px] font-semibold tracking-[-0.5px] text-ink tabular-nums">
             {maxV}
           </span>
         </div>

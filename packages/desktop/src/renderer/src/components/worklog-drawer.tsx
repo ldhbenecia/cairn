@@ -236,7 +236,7 @@ export function WorklogDrawer({ page, onClose }: Props) {
       >
         <div
           onMouseDown={startResize}
-          className="absolute top-0 left-0 z-10 h-full w-1 cursor-col-resize hover:bg-accent/40 [-webkit-app-region:no-drag]"
+          className="absolute top-0 left-0 z-10 h-full w-1 cursor-col-resize hover:bg-hairline-tertiary [-webkit-app-region:no-drag]"
         />
         <div className="flex items-start gap-3 border-b border-hairline px-6 py-4 [-webkit-app-region:drag]">
           <div className="min-w-0 flex-1 cursor-text select-text [-webkit-app-region:no-drag]">

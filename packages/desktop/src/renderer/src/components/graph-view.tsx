@@ -749,7 +749,7 @@ function LabelChip({
       className={[
         'rounded-md border px-2 py-1 text-[11.5px] transition-colors',
         active
-          ? 'border-accent/50 bg-accent/15 text-ink'
+          ? 'border-hairline-strong bg-surface-3 text-ink'
           : 'border-hairline text-ink-subtle hover:bg-surface-2 hover:text-ink',
       ].join(' ')}
     >

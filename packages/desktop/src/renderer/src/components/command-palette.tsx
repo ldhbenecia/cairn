@@ -260,12 +260,10 @@ export function CommandPalette({
                 onMouseEnter={() => setSel(i)}
                 onClick={() => run(it)}
                 className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-[13px] transition-colors ${
-                  i === sel ? 'bg-accent/15 text-ink' : 'text-ink-muted'
+                  i === sel ? 'bg-surface-3 text-ink' : 'text-ink-muted'
                 }`}
               >
-                <span className={i === sel ? 'text-accent-hover' : 'text-ink-tertiary'}>
-                  {it.icon}
-                </span>
+                <span className={i === sel ? 'text-ink' : 'text-ink-tertiary'}>{it.icon}</span>
                 <span className="min-w-0 flex-1 truncate">{it.label}</span>
                 {it.hint && (
                   <span className="shrink-0 text-[11px] text-ink-tertiary">{it.hint}</span>

@@ -264,7 +264,7 @@ function StepRow({
                 key={detail}
                 className={[
                   'hint-fade mt-1 font-mono text-[11px]',
-                  status === 'active' ? 'text-accent-hover' : 'text-ink-tertiary',
+                  status === 'active' ? 'text-ink-muted' : 'text-ink-tertiary',
                 ].join(' ')}
               >
                 {detail}
@@ -385,7 +385,7 @@ function CompactRow({ d, i, t }: { d: PanelDate; i: number; t: T }) {
       className={[
         // 트리 행과 동일 메트릭 — 레이아웃 전환 시 모달 크기가 출렁이지 않게
         'flex items-center gap-2.5 rounded-lg px-2 py-2',
-        d.status === 'active' ? 'bg-accent/[0.06]' : '',
+        d.status === 'active' ? 'bg-surface-2' : '',
       ].join(' ')}
     >
       <span className="flex size-[18px] shrink-0 items-center justify-center">
