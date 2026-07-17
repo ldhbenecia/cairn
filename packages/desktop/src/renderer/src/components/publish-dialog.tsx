@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { CalendarDays, Loader2, Plus, Send, X } from 'lucide-react';
+import { CalendarDays, Check, Loader2, Plus, Send, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RunSession } from '../App';
 import type { CoreMode, CoreRunOptions, SummaryModel } from '../cairn-api';
@@ -9,7 +9,6 @@ import { DatePicker } from './date-picker';
 import { Segmented } from './preferences/field';
 import { Progress } from './publish-dialog-progress';
 import { CancelledCard, ErrorCard, Result } from './publish-dialog-result';
-import { Toggle } from './toggle';
 
 type Props = {
   sessions: Record<CoreMode, RunSession | null>;
@@ -238,48 +237,43 @@ export function PublishDialog({
                   onChange={setMode}
                 />
 
-                <div className="mt-2 mb-3 divide-y divide-hairline">
-                  <div className="flex items-center justify-between gap-3 py-2.5">
-                    <div className="flex min-w-0 flex-col">
-                      <span className="text-[13px] text-ink">{t('publish.date')}</span>
-                      <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
-                    </div>
-                    <DatePicker
-                      value={date}
-                      max={todayIso()}
-                      disabled={busy}
-                      onChange={(iso) => {
-                        dateTouched.current = true;
-                        setDate(iso);
-                      }}
-                    />
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 flex-col">
+                    <span className="text-[13px] text-ink">{t('publish.date')}</span>
+                    <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
                   </div>
-                  <div className="flex items-center justify-between gap-3 py-2.5">
-                    <span
-                      className={`text-[13px] ${mode === 'daily' && isToday ? 'text-ink' : 'text-ink-tertiary'}`}
-                    >
-                      {t('publish.backfill')}
-                    </span>
-                    <Toggle
-                      checked={mode === 'daily' && isToday && includeBackfill}
-                      onChange={setIncludeBackfill}
-                      disabled={busy || mode !== 'daily' || !isToday}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-3 py-2.5">
-                    <span className="text-[13px] text-ink">{t('publish.force')}</span>
-                    <Toggle checked={force} onChange={setForce} disabled={busy} />
-                  </div>
+                  <DatePicker
+                    value={date}
+                    max={todayIso()}
+                    disabled={busy}
+                    onChange={(iso) => {
+                      dateTouched.current = true;
+                      setDate(iso);
+                    }}
+                  />
+                </div>
+
+                <div className="mt-4 mb-4 flex flex-col gap-2.5">
+                  <CheckRow
+                    label={t('publish.backfill')}
+                    checked={mode === 'daily' && isToday && includeBackfill}
+                    onChange={setIncludeBackfill}
+                    disabled={busy || mode !== 'daily' || !isToday}
+                  />
+                  <CheckRow
+                    label={t('publish.force')}
+                    checked={force}
+                    onChange={setForce}
+                    disabled={busy}
+                  />
                   {notionConnected && (
-                    <div className="flex items-center justify-between gap-3 py-2.5">
-                      <div className="flex min-w-0 flex-col">
-                        <span className="text-[13px] text-ink">{t('publish.skipNotion')}</span>
-                        <span className="text-[11px] text-ink-tertiary">
-                          {t('publish.skipNotionDesc')}
-                        </span>
-                      </div>
-                      <Toggle checked={skipNotion} onChange={setSkipNotion} disabled={busy} />
-                    </div>
+                    <CheckRow
+                      label={t('publish.skipNotion')}
+                      desc={t('publish.skipNotionDesc')}
+                      checked={skipNotion}
+                      onChange={setSkipNotion}
+                      disabled={busy}
+                    />
                   )}
                 </div>
 
@@ -314,5 +308,43 @@ export function PublishDialog({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+function CheckRow({
+  label,
+  desc,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  desc?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-start gap-2.5 text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
+    >
+      <span
+        className={[
+          'flex size-4 shrink-0 items-center justify-center rounded border transition-colors',
+          checked ? 'border-accent bg-accent text-white' : 'border-hairline-strong',
+        ].join(' ')}
+      >
+        {checked && <Check size={11} strokeWidth={3} />}
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="text-[13px] leading-4 text-ink">{label}</span>
+        {desc && <span className="mt-0.5 text-[11px] text-ink-tertiary">{desc}</span>}
+      </span>
+    </button>
   );
 }
