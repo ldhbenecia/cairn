@@ -207,9 +207,7 @@ export function WrappedDialog({
                         }}
                         title={`${stats.year}-${String(i + 1).padStart(2, '0')} · ${total.toLocaleString()}`}
                       />
-                      <span className="font-mono text-[10px] text-ink-tertiary">
-                        {i % 3 === 0 ? i + 1 : ''}
-                      </span>
+                      <span className="font-mono text-[10px] text-ink-tertiary">{i + 1}</span>
                     </div>
                   );
                 })}
@@ -380,8 +378,9 @@ function drawShareCard(stats: WrappedStats, labels: CardLabels): string {
   });
   ctx.fillStyle = '#6b7086';
   ctx.font = `500 11px ${mono}`;
-  ctx.fillText('1', 56 + 6, 360);
-  ctx.fillText('12', 56 + 11 * 36 + 4, 360);
+  ctx.textAlign = 'center';
+  for (let i = 0; i < 12; i++) ctx.fillText(String(i + 1), 68 + i * 36, 360);
+  ctx.textAlign = 'left';
 
   return canvas.toDataURL('image/png');
 }
