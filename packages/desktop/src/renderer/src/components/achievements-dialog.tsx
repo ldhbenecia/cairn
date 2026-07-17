@@ -202,14 +202,12 @@ export function AchievementsDialog({
         }`}
       >
         <div className="flex items-start justify-between border-b border-hairline px-6 py-4">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-accent/12 text-accent-hover">
-              <Award size={15} strokeWidth={2} />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[15px] font-semibold text-ink">{t('achv.title')}</p>
-              <p className="mt-0.5 text-[12px] text-ink-tertiary">{t('achv.subtitle')}</p>
-            </div>
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+              <Award size={15} strokeWidth={2} className="text-ink-tertiary" />
+              {t('achv.title')}
+            </p>
+            <p className="mt-0.5 text-[12px] text-ink-tertiary">{t('achv.subtitle')}</p>
           </div>
           <button
             type="button"
@@ -236,7 +234,7 @@ export function AchievementsDialog({
                       className={[
                         'relative flex flex-col items-start rounded-xl border px-4 py-3.5 text-left transition-all active:scale-[0.99]',
                         selected
-                          ? 'border-accent bg-accent/10 shadow-sm shadow-accent/15'
+                          ? 'border-accent bg-accent/10'
                           : 'border-hairline hover:border-hairline-strong hover:bg-surface-2/60',
                       ].join(' ')}
                     >
@@ -281,7 +279,7 @@ export function AchievementsDialog({
                 className={[
                   'relative flex cursor-pointer flex-col items-start rounded-xl border px-4 py-3.5 text-left transition-all active:scale-[0.99]',
                   days === 'custom'
-                    ? 'border-accent bg-accent/10 shadow-sm shadow-accent/15'
+                    ? 'border-accent bg-accent/10'
                     : 'border-hairline hover:border-hairline-strong hover:bg-surface-2/60',
                 ].join(' ')}
               >
@@ -332,7 +330,7 @@ export function AchievementsDialog({
                 type="button"
                 disabled={pages.length === 0}
                 onClick={() => void compile()}
-                className="flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2.5 text-[13px] font-semibold text-white shadow-sm shadow-accent/25 transition-all hover:bg-accent-hover active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                className="flex items-center justify-center gap-2 rounded-md bg-accent px-3 py-2.5 text-[13px] font-medium text-white transition-all hover:bg-accent-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {pages.length}
                 {t('achv.worklogs')} {t('achv.compile')}
@@ -407,7 +405,7 @@ export function AchievementsDialog({
                     {t('achv.complete')}
                   </span>
                   {stats && (
-                    <span className="rounded-md bg-accent/10 px-2.5 py-1 font-mono text-[11.5px] text-accent-hover">
+                    <span className="rounded-md bg-surface-2 px-2.5 py-1 font-mono text-[11.5px] text-ink-muted">
                       {stats.worklogs}
                       {t('achv.worklogs')} · {stats.done} {t('achv.done')} · PR {stats.pr} ·{' '}
                       {t('achv.commits')} {stats.commit}
@@ -417,12 +415,7 @@ export function AchievementsDialog({
 
                 <div className="overflow-hidden rounded-xl border border-hairline bg-canvas">
                   <div className="flex items-center gap-2 border-b border-hairline bg-surface-2/40 px-3.5 py-2.5">
-                    <span className="size-2.5 rounded-full bg-[#ff5f57]" />
-                    <span className="size-2.5 rounded-full bg-[#febc2e]" />
-                    <span className="size-2.5 rounded-full bg-[#28c840]" />
-                    <span className="ml-1.5 font-mono text-[11.5px] text-ink-subtle">
-                      {filename}
-                    </span>
+                    <span className="font-mono text-[11.5px] text-ink-subtle">{filename}</span>
                     <button
                       type="button"
                       onClick={saveMd}
