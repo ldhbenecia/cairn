@@ -17,6 +17,7 @@ import type {
   RunStep,
 } from './cairn-api';
 import { AnimatePresence } from 'framer-motion';
+import { prefetchReportsScan } from './lib/reports-scan';
 import { resetRunLines } from './lib/run-line-store';
 import { RunToast, type RunToastData } from './components/run-toast';
 import { useSettings } from './settings-context';
@@ -156,7 +157,10 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    void loadRecent();
+    // 로드 후 idle 시점에 기간별 정리 기본 기간(월)을 미리 스캔 — 뷰 첫 진입 시 스피너 제거
+    void loadRecent().then((r) => {
+      window.setTimeout(() => prefetchReportsScan(r), 3000);
+    });
   }, [loadRecent]);
 
   useEffect(() => {
@@ -237,6 +241,8 @@ export function App() {
       void loadRecent().then((r) => {
         // 언마운트 후 늦게 도착한 콜백이 새 타이머를 걸지 않도록 (누수·불필요 IPC 방지)
         if (!active) return;
+        // 발행 직후 기간별 정리 기본 기간 재검증 — 다음 뷰 진입 시 최신 상태 즉시 표시
+        prefetchReportsScan(r);
         const pid = result.publishPageId;
         const found = !pid || (r?.pages ?? []).some((p) => p.pageId === pid);
         if (found) return;

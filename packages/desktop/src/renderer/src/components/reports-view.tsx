@@ -1,9 +1,8 @@
 import { Check, Copy, FileDown, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { RecentListResult, RecentPage } from '../cairn-api';
+import type { RecentListResult } from '../cairn-api';
 import type { I18nKey } from '../i18n';
-import { pool, sectionBullets } from '../lib/blocks';
 import {
   buildLanes,
   dayIndex,
@@ -15,6 +14,7 @@ import {
   type DoneItem,
   type Lane,
 } from '../lib/reports';
+import { cachedScan, dailyTargets, startScan, type PerDay } from '../lib/reports-scan';
 import { useSettings } from '../settings-context';
 import { DateRangePicker } from './date-picker';
 
@@ -27,8 +27,6 @@ const RANGE_PILLS: { key: RangeKey; labelKey: I18nKey }[] = [
   { key: 365, labelKey: 'reports.range.year' },
   { key: 'custom', labelKey: 'achv.range.custom' },
 ];
-
-type PerDay = { date: string; bullets: string[] };
 
 const RING_R = 26;
 const RING_C = 2 * Math.PI * RING_R;
@@ -44,26 +42,19 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
   const until = range === 'custom' ? customTo : todayLocal();
 
   const pages = useMemo(() => recent?.pages ?? [], [recent]);
-  const targets = useMemo(
-    () =>
-      pages.filter(
-        (p) => p.category === 'daily' && p.date != null && p.date >= since && p.date <= until,
-      ),
-    [pages, since, until],
-  );
+  const targets = useMemo(() => dailyTargets(pages, since, until), [pages, since, until]);
 
   const [perDay, setPerDay] = useState<PerDay[] | null>(null);
   const [scan, setScan] = useState<{ done: number; total: number } | null>(null);
-  // 기간별 스캔 캐시 — 키에 일지 수 포함, recent 갱신으로 기간 내 일지가 늘면 재스캔 (wrapped 와 동일 UX)
-  const cache = useRef(new Map<string, PerDay[]>());
 
+  // 모듈 레벨 캐시(reports-scan) — 뷰 재진입 시 즉시 렌더, 일지 수가 달라졌으면 이전 결과를
+  // 보여둔 채 뒤에서 재스캔 (stale-while-revalidate). 스피너는 캐시가 전혀 없을 때만
   useEffect(() => {
-    const key = `${since}:${until}:${targets.length}`;
-    const cached = cache.current.get(key);
-    if (cached) {
-      setPerDay(cached);
+    const entry = cachedScan(since, until);
+    if (entry) {
+      setPerDay(entry.rows);
       setScan(null);
-      return;
+      if (entry.count === targets.length) return;
     }
     if (targets.length === 0) {
       setPerDay([]);
@@ -71,30 +62,17 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
       return;
     }
     let alive = true;
-    setPerDay(null);
-    setScan({ done: 0, total: targets.length });
-    void (async () => {
-      const rows = await pool(
-        targets,
-        4,
-        async (p: RecentPage) => {
-          const date = p.date as string;
-          try {
-            const c = await window.cairn.pageContent(p.pageId, p.workspaceLabel);
-            return { date, bullets: sectionBullets(c.blocks, 'done') };
-          } catch {
-            return { date, bullets: [] as string[] };
-          }
-        },
-        (done, total) => {
-          if (alive) setScan({ done, total });
-        },
-      );
+    if (!entry) {
+      setPerDay(null);
+      setScan({ done: 0, total: targets.length });
+    }
+    void startScan(since, until, targets, (done, total) => {
+      if (alive && !entry) setScan({ done, total });
+    }).then((rows) => {
       if (!alive) return;
-      cache.current.set(key, rows);
       setPerDay(rows);
       setScan(null);
-    })();
+    });
     return () => {
       alive = false;
     };
