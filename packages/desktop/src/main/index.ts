@@ -45,6 +45,13 @@ import {
   restoreJournalSnapshot,
 } from './journal-snapshots';
 import {
+  getJournalBackupStatus,
+  initJournalBackup,
+  reconfigureJournalBackup,
+  runJournalBackupNow,
+  scheduleJournalBackup,
+} from './journal-git-backup';
+import {
   addNotionWorkspace,
   finishOnboarding,
   githubAccountsFromGhCli,
@@ -274,9 +281,14 @@ void app.whenReady().then(() => {
   );
   ipcMain.handle(
     'cairn:snapshots:restore',
-    (_e, category: RecentCategory, date: string, stamp: string) =>
-      restoreJournalSnapshot(category, date, stamp),
+    async (_e, category: RecentCategory, date: string, stamp: string) => {
+      const r = await restoreJournalSnapshot(category, date, stamp);
+      if (r.ok) scheduleJournalBackup();
+      return r;
+    },
   );
+  ipcMain.handle('cairn:backup:status', () => getJournalBackupStatus());
+  ipcMain.handle('cairn:backup:now', () => runJournalBackupNow());
   ipcMain.handle('cairn:capture:open', () => toggleCaptureWindow());
   ipcMain.handle('cairn:capture:hide', () => hideCaptureWindow());
   ipcMain.handle('cairn:notion:page-content', (_e, pageId: string, workspaceLabel: string) =>
@@ -293,6 +305,8 @@ void app.whenReady().then(() => {
     };
   });
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {
+    // IPC 경계 — truthy 문자열이 백업을 켜는 것 방지
+    if (patch.backup) patch.backup = { enabled: patch.backup.enabled === true };
     const next = writeSettings(patch);
     if (patch.autoPublish) {
       reconfigureAutoPublish();
@@ -310,6 +324,7 @@ void app.whenReady().then(() => {
     if (patch.quickCapture) {
       reconfigureCaptureShortcut(next.quickCapture.enabled, next.quickCapture.shortcut);
     }
+    if (patch.backup) reconfigureJournalBackup();
     return next;
   });
 
@@ -363,6 +378,7 @@ void app.whenReady().then(() => {
   // dev 는 Electron 바이너리 등록 — 패키지 한정
   if (app.isPackaged) app.setAsDefaultProtocolClient('cairn');
   initAutoPublish();
+  initJournalBackup();
   initTelemetry();
   trackAppLaunched();
   initUpdater();

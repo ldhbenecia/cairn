@@ -20,6 +20,7 @@ import { claudeEnv } from './claude-path';
 import { syncWorklogToFolder } from './export';
 import { buildExportTargets, type ExportTarget } from './export-targets';
 import { sendResultNotification } from './notifier';
+import { scheduleJournalBackup } from './journal-git-backup';
 import { readSettings, type Settings } from './settings';
 import { CAIRN_ROOT } from './setup';
 import { trackPublish, type PublishTrigger } from './telemetry';
@@ -417,6 +418,7 @@ export async function runCore(
           // 로그 스트림은 export 실패 라인까지 파일에 남도록 export 완료 후 close
           void runExportSync(targets, emit).finally(closeRunLog);
           exportPending = true;
+          scheduleJournalBackup();
         }
         broadcastRunDone(mode, result);
       } finally {

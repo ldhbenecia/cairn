@@ -25,6 +25,13 @@ export type GraphConfig = {
   showRollups: boolean;
 };
 export type QuickCaptureConfig = { enabled: boolean; shortcut: string };
+export type BackupConfig = { enabled: boolean };
+export type BackupStatus = {
+  state: 'disabled' | 'no-git' | 'no-repo' | 'idle' | 'syncing';
+  hasRemote: boolean;
+  lastBackupAt: number | null;
+  error: 'pull-failed' | 'identity-missing' | 'commit-failed' | 'push-failed' | null;
+};
 export type Settings = {
   theme: Theme;
   accent: string;
@@ -45,6 +52,7 @@ export type Settings = {
   export: ExportConfig;
   graph: GraphConfig;
   quickCapture: QuickCaptureConfig;
+  backup: BackupConfig;
 };
 
 // 무플래시: 첫 페인트 전 동기로 설정을 받는다 (sandbox preload 라 fs 불가 → sendSync)
@@ -285,6 +293,12 @@ contextBridge.exposeInMainWorld('cairn', {
       ipcRenderer.invoke('cairn:memo:add', text) as Promise<{ ok: boolean; count: number }>,
     open: (): Promise<void> => ipcRenderer.invoke('cairn:capture:open') as Promise<void>,
     hide: (): Promise<void> => ipcRenderer.invoke('cairn:capture:hide') as Promise<void>,
+  },
+  backup: {
+    status: (): Promise<BackupStatus> =>
+      ipcRenderer.invoke('cairn:backup:status') as Promise<BackupStatus>,
+    now: (): Promise<BackupStatus> =>
+      ipcRenderer.invoke('cairn:backup:now') as Promise<BackupStatus>,
   },
   snapshots: {
     list: (category: string, date: string): Promise<{ stamp: string; at: string }[]> =>

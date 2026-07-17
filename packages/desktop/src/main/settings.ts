@@ -40,6 +40,10 @@ export type QuickCaptureConfig = {
   shortcut: string;
 };
 
+export type BackupConfig = {
+  enabled: boolean;
+};
+
 export type Settings = {
   theme: Theme;
   accent: string;
@@ -60,6 +64,7 @@ export type Settings = {
   export: ExportConfig;
   graph: GraphConfig;
   quickCapture: QuickCaptureConfig;
+  backup: BackupConfig;
 };
 
 const DEFAULTS: Settings = {
@@ -85,6 +90,7 @@ const DEFAULTS: Settings = {
   export: { folder: null, autoSync: false },
   graph: { enabled: true, nodeScale: 1, spread: 1, gravity: 1, labels: 'auto', showRollups: true },
   quickCapture: { enabled: true, shortcut: 'CommandOrControl+Shift+Space' },
+  backup: { enabled: false },
 };
 
 const SETTINGS_PATH = join(homedir(), '.cairn', 'settings.json');
@@ -129,6 +135,7 @@ export function readSettings(): Settings {
       export: { ...DEFAULTS.export, ...(parsed.export ?? {}) },
       graph: { ...DEFAULTS.graph, ...(parsed.graph ?? {}) },
       quickCapture: { ...DEFAULTS.quickCapture, ...(parsed.quickCapture ?? {}) },
+      backup: { ...DEFAULTS.backup, ...(parsed.backup ?? {}) },
     };
   } catch {
     return { ...DEFAULTS, language: machineLanguage() };
@@ -145,6 +152,7 @@ export function writeSettings(patch: Partial<Settings>): Settings {
     export: { ...prev.export, ...(patch.export ?? {}) },
     graph: { ...prev.graph, ...(patch.graph ?? {}) },
     quickCapture: { ...prev.quickCapture, ...(patch.quickCapture ?? {}) },
+    backup: { ...prev.backup, ...(patch.backup ?? {}) },
   };
   writeFileAtomic(SETTINGS_PATH, `${JSON.stringify(next, null, 2)}\n`);
   return next;

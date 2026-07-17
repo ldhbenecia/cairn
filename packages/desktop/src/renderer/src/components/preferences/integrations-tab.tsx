@@ -1,6 +1,14 @@
-import { Check, ExternalLink, FolderSearch, Loader2, NotebookPen, X } from 'lucide-react';
+import {
+  Check,
+  ExternalLink,
+  FolderSearch,
+  GitBranch,
+  Loader2,
+  NotebookPen,
+  X,
+} from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { ExportStatus, NotionWorkspacePayload } from '../../cairn-api';
+import type { BackupStatus, ExportStatus, NotionWorkspacePayload } from '../../cairn-api';
 import { useSettings } from '../../settings-context';
 import { ICloudMark, NotionMark, ObsidianMark } from '../brand-icons';
 import { NotionCard, type NotionEntry } from '../onboarding-cards';
@@ -414,6 +422,75 @@ function ObsidianIntegrationCard() {
   );
 }
 
+function GitBackupCard() {
+  const { settings, update, t } = useSettings();
+  const enabled = settings.backup.enabled;
+  const [status, setStatus] = useState<BackupStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = (): void => {
+    void window.cairn.backup.status().then(setStatus);
+  };
+
+  useEffect(() => {
+    if (!enabled) return;
+    refresh();
+    // 시작 pull/디바운스 커밋이 뒤에서 도는 동안 상태 반영
+    const id = window.setInterval(refresh, 5000);
+    return () => window.clearInterval(id);
+  }, [enabled]);
+
+  const backupNow = async (): Promise<void> => {
+    setBusy(true);
+    try {
+      setStatus(await window.cairn.backup.now());
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const line = (s: BackupStatus): string => {
+    if (s.state === 'no-git') return t('backup.noGit');
+    if (s.state === 'no-repo') return t('backup.noRepo');
+    if (s.state === 'syncing') return t('backup.syncing');
+    if (s.error === 'pull-failed') return t('backup.errPull');
+    if (s.error === 'identity-missing') return t('backup.errIdentity');
+    if (s.error === 'commit-failed') return t('backup.errCommit');
+    if (s.error === 'push-failed') return t('backup.errPush');
+    const last = s.lastBackupAt
+      ? `${t('backup.last')} ${fmtLastSync(s.lastBackupAt)}`
+      : t('backup.waiting');
+    return s.hasRemote ? last : `${last} · ${t('backup.noRemote')}`;
+  };
+  const isErr = status?.state === 'no-repo' || status?.state === 'no-git' || !!status?.error;
+
+  return (
+    <ServiceCard
+      icon={<GitBranch size={19} strokeWidth={1.8} className="text-ink-muted" />}
+      title={t('backup.title')}
+      desc={t('backup.desc')}
+      action={<Toggle checked={enabled} onChange={(v) => update({ backup: { enabled: v } })} />}
+    >
+      {enabled && status && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-hairline pt-3 text-[12px]">
+          <span className={isErr ? 'text-danger' : 'text-ink-tertiary'}>{line(status)}</span>
+          <button
+            type="button"
+            disabled={busy || status.state === 'syncing'}
+            onClick={() => void backupNow()}
+            className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+          >
+            {(busy || status.state === 'syncing') && (
+              <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+            )}
+            {t('backup.now')}
+          </button>
+        </div>
+      )}
+    </ServiceCard>
+  );
+}
+
 function ComingSoonCard({
   icon,
   tileClass,
@@ -452,6 +529,7 @@ export function IntegrationsTab() {
       <div className="flex flex-col gap-3">
         <NotionIntegrationCard />
         <ObsidianIntegrationCard />
+        <GitBackupCard />
         <ComingSoonCard
           icon={<ICloudMark size={20} />}
           tileClass="bg-[#3693F3]/10"

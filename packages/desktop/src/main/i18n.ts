@@ -34,6 +34,9 @@ const STRINGS = {
     'capture.deeplinkSaved': '메모 저장됨 — 발행 시 일지에 병합',
     'capture.deeplinkFail': '메모 저장 안 됨 — 비어 있거나 300자 초과',
 
+    'backup.pullFailTitle': '일지 백업 중단',
+    'backup.pullFailBody': '원격과 갈라짐 — journal 폴더에서 직접 pull 로 해소하세요',
+
     'tray.tooltip': 'cairn — 자동 작업 일지',
     'tray.daily': '오늘 일지 발행',
     'tray.weekly': '이번 주 정리',
@@ -76,6 +79,10 @@ const STRINGS = {
     'capture.deeplinkTitle': 'Quick capture',
     'capture.deeplinkSaved': 'Memo saved — merged at publish',
     'capture.deeplinkFail': 'Memo not saved — empty or over 300 chars',
+
+    'backup.pullFailTitle': 'Journal backup paused',
+    'backup.pullFailBody':
+      'Diverged from remote — resolve with a manual pull in the journal folder',
 
     'tray.tooltip': 'cairn — automatic worklog',
     'tray.daily': 'Publish today',
