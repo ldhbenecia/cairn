@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, Maximize2, X } from 'lucide-react';
 import type { PageContent, RecentPage } from '../cairn-api';
 import { pageSinks, sinkLabel } from '../lib/sinks';
 import { useSettings } from '../settings-context';
 import { JournalBlocks } from './worklog-content';
 import { WorklogActions } from './worklog-actions';
 
-type Props = { page: RecentPage; onClose: () => void };
+type Props = { page: RecentPage; onClose: () => void; onExpand: () => void };
 
-export function WorklogDrawer({ page, onClose }: Props) {
+export function WorklogDrawer({ page, onClose, onExpand }: Props) {
   const { t } = useSettings();
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -116,6 +116,15 @@ export function WorklogDrawer({ page, onClose }: Props) {
                 .join(' · ')}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={onExpand}
+            title={t('drawer.expand')}
+            aria-label={t('drawer.expand')}
+            className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink [-webkit-app-region:no-drag]"
+          >
+            <Maximize2 size={14} strokeWidth={2} />
+          </button>
           <WorklogActions
             page={page}
             content={content}

@@ -28,6 +28,7 @@ import { CommandPalette } from './components/command-palette';
 import { ReportsView } from './components/reports-view';
 import { StandupDialog } from './components/standup-dialog';
 import { WrappedDialog } from './components/wrapped-dialog';
+import { WorklogDetailView } from './components/worklog-detail-view';
 import { WorklogDrawer } from './components/worklog-drawer';
 import {
   Sidebar,
@@ -80,6 +81,8 @@ export function App() {
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
   const [everSetup, setEverSetup] = useState(window.cairn.initialSetupComplete);
   const [selectedPage, setSelectedPage] = useState<RecentPage | null>(null);
+  // 일지 상세 표시 모드 — 드로어(기본) 또는 메인 영역 전체(Linear 이슈 상세)
+  const [detailFull, setDetailFull] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = Number(localStorage.getItem('cairn:sidebarWidth'));
     return saved >= 200 && saved <= 420 ? saved : 248;
@@ -96,6 +99,12 @@ export function App() {
   const { t, settings } = useSettings();
   // 그래프 뷰를 설정에서 끈 상태로 view 가 graph 에 남아 있으면 목록으로 폴백
   const activeView = view === 'graph' && !settings.graph.enabled ? 'worklogs' : view;
+
+  // 어디서 열든 새 일지는 드로어부터 — 전체 화면은 드로어의 확장 버튼으로만 진입
+  const openPage = useCallback((p: RecentPage) => {
+    setDetailFull(false);
+    setSelectedPage(p);
+  }, []);
 
   const loadRecent = useCallback(async () => {
     const r = await window.cairn.listRecent();
@@ -116,12 +125,12 @@ export function App() {
         inState ?? (await loadRecent().catch(() => null))?.pages.find((p) => p.pageId === pageId);
       if (page) {
         setView('worklogs');
-        setSelectedPage(page);
+        openPage(page);
       } else if (url) {
         void window.cairn.openExternal(url);
       }
     },
-    [loadRecent],
+    [loadRecent, openPage],
   );
 
   useEffect(() => {
@@ -433,18 +442,26 @@ export function App() {
         onMouseDown={startResize}
         className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-hairline-tertiary [-webkit-app-region:no-drag]"
       />
-      {activeView === 'stats' ? (
+      {selectedPage && detailFull ? (
+        <WorklogDetailView
+          page={selectedPage}
+          onBack={() => {
+            setDetailFull(false);
+            setSelectedPage(null);
+          }}
+        />
+      ) : activeView === 'stats' ? (
         <Dashboard
           recent={recent}
           onPickDate={(date) => {
             const p = recent?.pages.find((x) => x.category === 'daily' && x.date === date);
-            if (p) setSelectedPage(p);
+            if (p) openPage(p);
           }}
           onGoToWorklogs={() => setView('worklogs')}
           onOpenWrapped={() => setWrappedOpen(true)}
         />
       ) : activeView === 'graph' ? (
-        <GraphView recent={recent} onOpen={setSelectedPage} />
+        <GraphView recent={recent} onOpen={openPage} />
       ) : activeView === 'reports' ? (
         <ReportsView recent={recent} />
       ) : (
@@ -456,13 +473,19 @@ export function App() {
           onTrigger={trigger}
           onOpenPublished={(pageId, url) => void openPublishedPage(pageId, url)}
           onReload={loadRecent}
-          onOpen={setSelectedPage}
+          onOpen={openPage}
           drawerOpen={selectedPage !== null}
           publishProgressSignal={publishProgressSignal}
           onConsumePublishSignal={() => setPublishProgressSignal(0)}
         />
       )}
-      {selectedPage && <WorklogDrawer page={selectedPage} onClose={() => setSelectedPage(null)} />}
+      {selectedPage && !detailFull && (
+        <WorklogDrawer
+          page={selectedPage}
+          onClose={() => setSelectedPage(null)}
+          onExpand={() => setDetailFull(true)}
+        />
+      )}
       <AnimatePresence>
         {cmdkOpen && (
           <CommandPalette
@@ -478,7 +501,7 @@ export function App() {
               setPublishProgressSignal((n) => n + 1);
               void trigger(mode);
             }}
-            onOpenPage={setSelectedPage}
+            onOpenPage={openPage}
             onStandup={() => setStandupOpen(true)}
             onQuickCapture={() => void window.cairn.capture.open()}
             onWrapped={() => setWrappedOpen(true)}
