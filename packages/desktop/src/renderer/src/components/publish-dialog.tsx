@@ -1,22 +1,12 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import {
-  CalendarCheck,
-  CalendarClock,
-  CalendarDays,
-  CalendarRange,
-  Check,
-  type LucideIcon,
-  Loader2,
-  Plus,
-  Send,
-  X,
-} from 'lucide-react';
+import { CalendarDays, Loader2, Plus, Send, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RunSession } from '../App';
 import type { CoreMode, CoreRunOptions, SummaryModel } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { DatePicker } from './date-picker';
+import { Segmented } from './preferences/field';
 import { Progress } from './publish-dialog-progress';
 import { CancelledCard, ErrorCard, Result } from './publish-dialog-result';
 import { Toggle } from './toggle';
@@ -49,11 +39,11 @@ function mostRecentFailed(
   return best;
 }
 
-const MODE_OPTIONS: { mode: CoreMode; key: I18nKey; sub: I18nKey; icon: LucideIcon }[] = [
-  { mode: 'daily', key: 'publish.today', sub: 'publish.scope.daily', icon: CalendarDays },
-  { mode: 'weekly', key: 'publish.week', sub: 'publish.scope.weekly', icon: CalendarRange },
-  { mode: 'monthly', key: 'publish.month', sub: 'publish.scope.monthly', icon: CalendarClock },
-  { mode: 'yearly', key: 'publish.year', sub: 'publish.scope.yearly', icon: CalendarCheck },
+const MODE_OPTIONS: { mode: CoreMode; key: I18nKey }[] = [
+  { mode: 'daily', key: 'publish.today' },
+  { mode: 'weekly', key: 'publish.week' },
+  { mode: 'monthly', key: 'publish.month' },
+  { mode: 'yearly', key: 'publish.year' },
 ];
 
 const DAILY_BACKFILL_DAYS = 7;
@@ -208,7 +198,7 @@ export function PublishDialog({
             </Dialog.Close>
           </div>
 
-          <div className="overflow-y-auto px-6 py-5">
+          <div className="overflow-y-auto px-6 py-4">
             {showProgress && isDone && session?.error ? (
               <ErrorCard
                 message={session.error}
@@ -241,66 +231,30 @@ export function PublishDialog({
               />
             ) : (
               <>
-                <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
-                  {t('publish.scope')}
-                </p>
-                <div className="mb-4 grid grid-cols-4 gap-2">
-                  {MODE_OPTIONS.map((o) => {
-                    const selected = mode === o.mode;
-                    const Icon = o.icon;
-                    return (
-                      <button
-                        key={o.mode}
-                        type="button"
-                        onClick={() => setMode(o.mode)}
-                        className={[
-                          'relative flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3.5 transition-all active:scale-[0.98]',
-                          selected
-                            ? 'border-accent bg-accent/10'
-                            : 'border-hairline hover:border-hairline-strong hover:bg-surface-2/60',
-                        ].join(' ')}
-                      >
-                        {selected && (
-                          <Check
-                            size={13}
-                            strokeWidth={3}
-                            className="absolute top-2 right-2 text-accent"
-                          />
-                        )}
-                        <Icon
-                          size={20}
-                          strokeWidth={1.75}
-                          className={selected ? 'text-accent' : 'text-ink-tertiary'}
-                        />
-                        <span
-                          className={`text-[13px] font-medium ${selected ? 'text-ink' : 'text-ink-muted'}`}
-                        >
-                          {t(o.key)}
-                        </span>
-                        <span className="text-[11px] text-ink-tertiary">{t(o.sub)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <Segmented
+                  grow
+                  options={MODE_OPTIONS.map((o) => ({ value: o.mode, label: t(o.key) }))}
+                  value={mode}
+                  onChange={setMode}
+                />
 
-                <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-hairline px-3.5 py-3">
-                  <div className="flex min-w-0 flex-col">
-                    <span className="text-[13px] font-medium text-ink">{t('publish.date')}</span>
-                    <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
+                <div className="mt-2 mb-3 divide-y divide-hairline">
+                  <div className="flex items-center justify-between gap-3 py-2.5">
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-[13px] text-ink">{t('publish.date')}</span>
+                      <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
+                    </div>
+                    <DatePicker
+                      value={date}
+                      max={todayIso()}
+                      disabled={busy}
+                      onChange={(iso) => {
+                        dateTouched.current = true;
+                        setDate(iso);
+                      }}
+                    />
                   </div>
-                  <DatePicker
-                    value={date}
-                    max={todayIso()}
-                    disabled={busy}
-                    onChange={(iso) => {
-                      dateTouched.current = true;
-                      setDate(iso);
-                    }}
-                  />
-                </div>
-
-                <div className="mb-5 flex flex-col divide-y divide-hairline overflow-hidden rounded-lg border border-hairline">
-                  <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-3 py-2.5">
                     <span
                       className={`text-[13px] ${mode === 'daily' && isToday ? 'text-ink' : 'text-ink-tertiary'}`}
                     >
@@ -312,12 +266,12 @@ export function PublishDialog({
                       disabled={busy || mode !== 'daily' || !isToday}
                     />
                   </div>
-                  <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-3 py-2.5">
                     <span className="text-[13px] text-ink">{t('publish.force')}</span>
                     <Toggle checked={force} onChange={setForce} disabled={busy} />
                   </div>
                   {notionConnected && (
-                    <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                    <div className="flex items-center justify-between gap-3 py-2.5">
                       <div className="flex min-w-0 flex-col">
                         <span className="text-[13px] text-ink">{t('publish.skipNotion')}</span>
                         <span className="text-[11px] text-ink-tertiary">

@@ -56,10 +56,12 @@ export function Segmented<T extends string>({
   options,
   value,
   onChange,
+  grow = false,
 }: {
   options: { value: T; label: string }[];
   value: T;
   onChange: (v: T) => void;
+  grow?: boolean;
 }) {
   return (
     <div className="flex gap-0.5 rounded-lg bg-surface-2 p-0.5">
@@ -70,6 +72,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(o.value)}
           className={[
             'rounded-md px-3 py-1 text-[12.5px] font-medium transition-colors',
+            grow ? 'flex-1' : '',
             value === o.value ? 'bg-accent text-white' : 'text-ink-subtle hover:text-ink-muted',
           ].join(' ')}
         >
