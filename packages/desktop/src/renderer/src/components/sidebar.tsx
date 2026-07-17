@@ -62,15 +62,15 @@ export function Sidebar({
   return (
     <nav style={{ width }} className="flex shrink-0 flex-col border-r border-hairline bg-surface-1">
       <div className="h-20 [-webkit-app-region:drag]" />
-      <div className="px-4 pb-5 [-webkit-app-region:drag]">
+      <div className="px-3.5 pb-5 [-webkit-app-region:drag]">
         <AccountTop onOpenPreferences={onOpenPreferences} />
       </div>
 
-      <div className="flex flex-1 flex-col gap-0.5 px-4">
+      <div className="flex flex-1 flex-col gap-0.5 px-3.5">
         <button
           type="button"
           onClick={onOpenPalette}
-          className="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-left text-[13px] font-medium leading-[1.3] text-ink-subtle transition-colors hover:bg-surface-2/60 hover:text-ink-muted [-webkit-app-region:no-drag]"
+          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-[13px] font-medium leading-[1.3] text-ink-subtle transition-colors hover:bg-surface-2/60 hover:text-ink-muted [-webkit-app-region:no-drag]"
         >
           <Command size={15} strokeWidth={1.75} />
           <span className="min-w-0 flex-1 truncate">{t('nav.palette')}</span>
@@ -94,7 +94,7 @@ export function Sidebar({
           />
         )}
 
-        <div className="px-2 pb-2 pt-6 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
+        <div className="px-2 pb-2.5 pt-7 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
           {t('brand.worklog')}
         </div>
         {FILTERS.map((f) => (
@@ -109,7 +109,7 @@ export function Sidebar({
         ))}
       </div>
 
-      <div className="px-4 pb-4">
+      <div className="px-3.5 pb-4">
         <FilterItem
           icon={Settings2}
           label={t('nav.preferences')}
@@ -259,7 +259,7 @@ function FilterItem({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className={[
-        'relative flex items-center gap-2.5 rounded-md px-3 py-1.5 text-left text-[13px] font-medium leading-[1.3] transition-colors [-webkit-app-region:no-drag]',
+        'relative flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-[13px] font-medium leading-[1.3] transition-colors [-webkit-app-region:no-drag]',
         active
           ? 'bg-surface-2 text-ink'
           : hover
