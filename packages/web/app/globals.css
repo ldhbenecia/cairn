@@ -105,6 +105,14 @@ body::after {
   pointer-events: none;
 }
 
+/* 에디토리얼 세리프 디스플레이 — 히어로·섹션 타이틀 전용 (본문은 Inter 유지).
+   레퍼런스: orchid.ai·jace.ai·nudgeo (2026-07 실사, docs/plans/2026-07-17-design-refresh.md) */
+.font-display {
+  font-family: var(--font-serif-display), ui-serif, Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
 /* 스크롤 진입 페이드업 — 잔잔한 모션 */
 @keyframes rise {
   from {

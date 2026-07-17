@@ -2,10 +2,17 @@ import './globals.css';
 
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
+import { Instrument_Serif } from 'next/font/google';
 import { headers } from 'next/headers';
 
 import { REPO_URL } from '../lib/github';
 import { SITE_URL } from '../lib/site';
+
+const serif = Instrument_Serif({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-serif-display',
+});
 
 const TITLE = 'cairn — your daily dev work, stacked into a worklog';
 const DESC =
@@ -78,7 +85,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const pathname = (await headers()).get('x-pathname') ?? '';
   const lang = pathname.startsWith('/ko') ? 'ko' : 'en';
   return (
-    <html lang={lang}>
+    <html lang={lang} className={serif.variable}>
       <head>
         <link rel="preconnect" href="https://rsms.me/" />
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
