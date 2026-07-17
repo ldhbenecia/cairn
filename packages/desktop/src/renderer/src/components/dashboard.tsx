@@ -366,7 +366,7 @@ function StatTile({ label, value, hint }: { label: string; value: number; hint?:
   return (
     <div className="flex flex-col gap-2 px-4 py-4">
       <span className="text-[11.5px] text-ink-tertiary">{label}</span>
-      <span className="font-mono text-[26px] leading-none font-semibold tracking-[-0.5px] text-ink tabular-nums">
+      <span className="text-[28px] leading-none font-semibold tracking-[-0.5px] text-ink tabular-nums">
         {value.toLocaleString()}
       </span>
       {hint && <span className="text-[11px] text-ink-tertiary">{hint}</span>}
@@ -486,7 +486,7 @@ function InsightCard({
         <span style={{ color: hue }}>{icon}</span>
         {label}
       </span>
-      <span className="font-mono text-[18px] font-semibold tracking-[-0.3px] text-ink tabular-nums">
+      <span className="text-[18px] font-semibold tracking-[-0.3px] text-ink tabular-nums">
         {value}
       </span>
       {sub && (
@@ -533,7 +533,7 @@ function CumulativeChart({ series, t }: { series: CumPoint[]; t: T }) {
       <div className="rounded-lg border border-hairline bg-surface-1 p-4">
         <div className="mb-2 flex items-baseline justify-between gap-2">
           <p className="text-[11px] text-ink-tertiary">{t('stats.cumulativeHint')}</p>
-          <span className="font-mono text-[20px] font-semibold tracking-[-0.5px] text-ink tabular-nums">
+          <span className="text-[20px] font-semibold tracking-[-0.5px] text-ink tabular-nums">
             {maxV}
           </span>
         </div>
