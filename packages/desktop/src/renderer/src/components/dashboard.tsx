@@ -1,13 +1,10 @@
 import {
   Activity,
-  CalendarCheck,
   CalendarDays,
   CalendarRange,
   ChartPie,
   Clock,
   Gauge,
-  GitCommitHorizontal,
-  GitPullRequest,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
@@ -310,28 +307,17 @@ export function Dashboard({
             </div>
           ) : (
             <div className="flex flex-col gap-6">
-              <Reveal className="dash-rise grid grid-cols-2 gap-3 sm:grid-cols-4" root={scrollRef}>
-                <StatCard
-                  icon={<GitPullRequest size={15} strokeWidth={2} />}
-                  label={t('stats.totalPr')}
-                  value={data.total.pr}
-                />
-                <StatCard
-                  icon={<GitCommitHorizontal size={15} strokeWidth={2} />}
-                  label={t('stats.totalCommit')}
-                  value={data.total.commit}
-                />
-                <StatCard
-                  icon={<CalendarCheck size={15} strokeWidth={2} />}
-                  label={t('stats.activeDays')}
-                  value={data.total.activeDays}
-                />
-                <StatCard
-                  icon={<TrendingUp size={15} strokeWidth={2} />}
-                  label={t('stats.streak')}
-                  value={data.streak.current}
-                  hint={`${t('stats.streakLongest')} ${data.streak.longest}`}
-                />
+              <Reveal className="dash-rise" root={scrollRef}>
+                <div className="grid grid-cols-4 divide-x divide-hairline overflow-hidden rounded-lg border border-hairline bg-surface-1">
+                  <StatTile label={t('stats.totalPr')} value={data.total.pr} />
+                  <StatTile label={t('stats.totalCommit')} value={data.total.commit} />
+                  <StatTile label={t('stats.activeDays')} value={data.total.activeDays} />
+                  <StatTile
+                    label={t('stats.streak')}
+                    value={data.streak.current}
+                    hint={`${t('stats.streakLongest')} ${data.streak.longest}`}
+                  />
+                </div>
               </Reveal>
 
               <Reveal className="dash-rise" root={scrollRef}>
@@ -376,27 +362,25 @@ export function Dashboard({
   );
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  hint?: string;
-}) {
+function StatTile({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-lg border border-hairline bg-surface-1 px-4 py-3.5">
-      <span className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
-        {icon}
-        {label}
-      </span>
-      <span className="font-mono text-[24px] font-semibold tracking-[-0.5px] text-ink">
-        {value}
+    <div className="flex flex-col gap-2 px-4 py-4">
+      <span className="text-[11.5px] text-ink-tertiary">{label}</span>
+      <span className="font-mono text-[26px] leading-none font-semibold tracking-[-0.5px] text-ink tabular-nums">
+        {value.toLocaleString()}
       </span>
       {hint && <span className="text-[11px] text-ink-tertiary">{hint}</span>}
+    </div>
+  );
+}
+
+function SectionHead({ label, right }: { label: string; right?: ReactNode }) {
+  return (
+    <div className="mb-2 flex items-center justify-between">
+      <span className="text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
+        {label}
+      </span>
+      {right}
     </div>
   );
 }
@@ -416,7 +400,7 @@ function InsightCards({ insights, t }: { insights: Insights; t: T }) {
       : `${weekUp ? '+' : ''}${weekDelta}% · ${t('stats.vsLastWeek')}`;
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="grid grid-flow-col auto-cols-fr divide-x divide-hairline overflow-hidden rounded-lg border border-hairline bg-surface-1">
       {busiest && (
         <InsightCard
           hue={HUE.amber}
@@ -497,7 +481,7 @@ function InsightCard({
   subIcon?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-lg border border-hairline bg-surface-1 px-4 py-3.5">
+    <div className="flex flex-col gap-1.5 px-4 py-3.5">
       <span className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
         <span style={{ color: hue }}>{icon}</span>
         {label}
@@ -544,45 +528,47 @@ function CumulativeChart({ series, t }: { series: CumPoint[]; t: T }) {
     .join(' ')} L${x(n - 1).toFixed(1)},${baseY} Z`;
 
   return (
-    <div className="rounded-lg border border-hairline bg-surface-1 p-4">
-      <div className="mb-1 flex items-baseline gap-2">
-        <span className="text-[13px] font-medium text-ink-muted">{t('stats.cumulative')}</span>
-        <span className="ml-auto font-mono text-[20px] font-semibold tracking-[-0.5px] text-accent">
-          {maxV}
-        </span>
+    <div>
+      <SectionHead label={t('stats.cumulative')} />
+      <div className="rounded-lg border border-hairline bg-surface-1 p-4">
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <p className="text-[11px] text-ink-tertiary">{t('stats.cumulativeHint')}</p>
+          <span className="font-mono text-[20px] font-semibold tracking-[-0.5px] text-accent tabular-nums">
+            {maxV}
+          </span>
+        </div>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full"
+          role="img"
+          aria-label={t('stats.cumulative')}
+        >
+          <defs>
+            <linearGradient id="cum-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-accent)" stopOpacity={0.26} />
+              <stop offset="100%" stopColor="var(--color-accent)" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <path className="area-fade" d={area} fill="url(#cum-fill)" />
+          <path
+            className="line-draw"
+            d={line}
+            pathLength={1}
+            fill="none"
+            stroke="var(--color-accent)"
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          <circle
+            className="area-fade"
+            cx={x(n - 1)}
+            cy={y(maxV)}
+            r={3.5}
+            fill="var(--color-accent)"
+          />
+        </svg>
       </div>
-      <p className="mb-2 text-[11px] text-ink-tertiary">{t('stats.cumulativeHint')}</p>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="w-full"
-        role="img"
-        aria-label={t('stats.cumulative')}
-      >
-        <defs>
-          <linearGradient id="cum-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-accent)" stopOpacity={0.26} />
-            <stop offset="100%" stopColor="var(--color-accent)" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <path className="area-fade" d={area} fill="url(#cum-fill)" />
-        <path
-          className="line-draw"
-          d={line}
-          pathLength={1}
-          fill="none"
-          stroke="var(--color-accent)"
-          strokeWidth={2}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        <circle
-          className="area-fade"
-          cx={x(n - 1)}
-          cy={y(maxV)}
-          r={3.5}
-          fill="var(--color-accent)"
-        />
-      </svg>
     </div>
   );
 }
@@ -642,76 +628,80 @@ function Heatmap({
   const [tip, setTip] = useState<{ label: string; x: number; y: number } | null>(null);
 
   return (
-    <div ref={wrapRef} className="relative rounded-lg border border-hairline bg-surface-1 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-[13px] font-medium text-ink-muted">{t('stats.heatmap')}</span>
-        <span className="flex items-center gap-1 text-[11px] text-ink-tertiary">
-          {t('stats.less')}
-          {LEVEL_BG.map((bg, i) => (
-            <span key={i} className="size-2.5 rounded-sm" style={{ background: bg }} />
-          ))}
-          {t('stats.more')}
-        </span>
-      </div>
-      <div className="overflow-x-auto pb-1">
-        <div className="flex gap-1.5">
-          <div className="flex shrink-0 flex-col" style={{ gap: CELL_GAP }}>
-            {['', t('stats.dow.mon'), '', t('stats.dow.wed'), '', t('stats.dow.fri'), ''].map(
-              (d, i) => (
-                <span
-                  key={i}
-                  className="text-right text-[9px] text-ink-tertiary"
-                  style={{ height: CELL, width: 16, lineHeight: `${CELL}px` }}
-                >
-                  {d}
-                </span>
-              ),
-            )}
-          </div>
-          <div className="flex" style={{ gap: CELL_GAP }}>
-            {weeks.cols.map((col, ci) => (
-              <div key={ci} className="flex flex-col" style={{ gap: CELL_GAP }}>
-                {col.map((cell) => {
-                  const clickable = !cell.future && cell.total > 0 && !!onPickDate;
-                  return (
-                    <span
-                      key={cell.date}
-                      className={`rounded-[2px] transition-transform hover:scale-125 ${clickable ? 'cursor-pointer' : ''}`}
-                      style={{
-                        width: CELL,
-                        height: CELL,
-                        background: cell.future ? 'transparent' : LEVEL_BG[level(cell.total)],
-                      }}
-                      onClick={() => clickable && onPickDate?.(cell.date)}
-                      onMouseEnter={(e) => {
-                        if (cell.future) return;
-                        const wrap = wrapRef.current;
-                        if (!wrap) return;
-                        const r = e.currentTarget.getBoundingClientRect();
-                        const cr = wrap.getBoundingClientRect();
-                        setTip({
-                          label: `${cell.date} · ${cell.total}${t('stats.countSuffix')}`,
-                          x: r.left - cr.left + r.width / 2,
-                          y: r.top - cr.top,
-                        });
-                      }}
-                      onMouseLeave={() => setTip(null)}
-                    />
-                  );
-                })}
-              </div>
+    <div>
+      <SectionHead
+        label={t('stats.heatmap')}
+        right={
+          <span className="flex items-center gap-1 text-[11px] text-ink-tertiary">
+            {t('stats.less')}
+            {LEVEL_BG.map((bg, i) => (
+              <span key={i} className="size-2.5 rounded-sm" style={{ background: bg }} />
             ))}
+            {t('stats.more')}
+          </span>
+        }
+      />
+      <div ref={wrapRef} className="relative rounded-lg border border-hairline bg-surface-1 p-4">
+        <div className="overflow-x-auto pb-1">
+          <div className="flex gap-1.5">
+            <div className="flex shrink-0 flex-col" style={{ gap: CELL_GAP }}>
+              {['', t('stats.dow.mon'), '', t('stats.dow.wed'), '', t('stats.dow.fri'), ''].map(
+                (d, i) => (
+                  <span
+                    key={i}
+                    className="text-right text-[9px] text-ink-tertiary"
+                    style={{ height: CELL, width: 16, lineHeight: `${CELL}px` }}
+                  >
+                    {d}
+                  </span>
+                ),
+              )}
+            </div>
+            <div className="flex" style={{ gap: CELL_GAP }}>
+              {weeks.cols.map((col, ci) => (
+                <div key={ci} className="flex flex-col" style={{ gap: CELL_GAP }}>
+                  {col.map((cell) => {
+                    const clickable = !cell.future && cell.total > 0 && !!onPickDate;
+                    return (
+                      <span
+                        key={cell.date}
+                        className={`rounded-[2px] transition-transform hover:scale-125 ${clickable ? 'cursor-pointer' : ''}`}
+                        style={{
+                          width: CELL,
+                          height: CELL,
+                          background: cell.future ? 'transparent' : LEVEL_BG[level(cell.total)],
+                        }}
+                        onClick={() => clickable && onPickDate?.(cell.date)}
+                        onMouseEnter={(e) => {
+                          if (cell.future) return;
+                          const wrap = wrapRef.current;
+                          if (!wrap) return;
+                          const r = e.currentTarget.getBoundingClientRect();
+                          const cr = wrap.getBoundingClientRect();
+                          setTip({
+                            label: `${cell.date} · ${cell.total}${t('stats.countSuffix')}`,
+                            x: r.left - cr.left + r.width / 2,
+                            y: r.top - cr.top,
+                          });
+                        }}
+                        onMouseLeave={() => setTip(null)}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+        {tip && (
+          <div
+            className="floating-panel pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-full rounded-md border border-hairline bg-surface-3 px-2 py-1 text-[11px] font-medium whitespace-nowrap text-ink shadow-lg shadow-black/40"
+            style={{ left: tip.x, top: tip.y - 7 }}
+          >
+            {tip.label}
+          </div>
+        )}
       </div>
-      {tip && (
-        <div
-          className="floating-panel pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-full rounded-md border border-hairline bg-surface-3 px-2 py-1 text-[11px] font-medium whitespace-nowrap text-ink shadow-lg shadow-black/40"
-          style={{ left: tip.x, top: tip.y - 7 }}
-        >
-          {tip.label}
-        </div>
-      )}
     </div>
   );
 }
@@ -731,75 +721,86 @@ function MonthlyChart({ months, t }: { months: MonthBucket[]; t: T }) {
   const baseY = padT + plotH;
 
   return (
-    <div className="h-full rounded-lg border border-hairline bg-surface-1 p-4">
-      <div className="mb-3 flex items-center gap-4 text-[12px] text-ink-muted">
-        <span className="text-[13px] font-medium">{t('stats.monthly')}</span>
-        <span className="ml-auto flex items-center gap-1.5">
-          <span className="size-2.5 rounded-sm bg-accent" />
-          {t('stats.totalPr')}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span
-            className="size-2.5 rounded-sm"
-            style={{ background: 'var(--color-chart-companion)' }}
-          />
-          {t('stats.totalCommit')}
-        </span>
+    <div className="flex h-full flex-col">
+      <SectionHead
+        label={t('stats.monthly')}
+        right={
+          <span className="flex items-center gap-3 text-[11px] text-ink-tertiary">
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-sm bg-accent" />
+              {t('stats.totalPr')}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span
+                className="size-2.5 rounded-sm"
+                style={{ background: 'var(--color-chart-companion)' }}
+              />
+              {t('stats.totalCommit')}
+            </span>
+          </span>
+        }
+      />
+      <div className="flex-1 rounded-lg border border-hairline bg-surface-1 p-4">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full"
+          role="img"
+          aria-label={t('stats.chartAlt')}
+        >
+          {[0.25, 0.5, 0.75, 1].map((f) => (
+            <line
+              key={f}
+              x1={padL}
+              x2={W - padL}
+              y1={baseY - plotH * f}
+              y2={baseY - plotH * f}
+              stroke="var(--color-hairline)"
+              strokeWidth={1}
+            />
+          ))}
+          {months.map((m, i) => {
+            const cx = padL + slot * i + slot / 2;
+            const prH = (m.pr / max) * plotH;
+            const commitH = (m.commit / max) * plotH;
+            return (
+              <g key={m.month}>
+                <rect
+                  className="bar-v"
+                  style={{ animationDelay: `${i * 45}ms` }}
+                  x={cx - barW - gap / 2}
+                  y={baseY - prH}
+                  width={barW}
+                  height={prH}
+                  rx={2}
+                  fill="var(--color-accent)"
+                >
+                  <title>{`${m.month} · PR ${m.pr}`}</title>
+                </rect>
+                <rect
+                  className="bar-v"
+                  style={{ animationDelay: `${i * 45 + 60}ms` }}
+                  x={cx + gap / 2}
+                  y={baseY - commitH}
+                  width={barW}
+                  height={commitH}
+                  rx={2}
+                  fill="var(--color-chart-companion)"
+                >
+                  <title>{`${m.month} · commit ${m.commit}`}</title>
+                </rect>
+                <text
+                  x={cx}
+                  y={H - 7}
+                  textAnchor="middle"
+                  className="fill-[var(--color-ink-tertiary)] text-[11px]"
+                >
+                  {m.month.slice(5)}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={t('stats.chartAlt')}>
-        {[0.25, 0.5, 0.75, 1].map((f) => (
-          <line
-            key={f}
-            x1={padL}
-            x2={W - padL}
-            y1={baseY - plotH * f}
-            y2={baseY - plotH * f}
-            stroke="var(--color-hairline)"
-            strokeWidth={1}
-          />
-        ))}
-        {months.map((m, i) => {
-          const cx = padL + slot * i + slot / 2;
-          const prH = (m.pr / max) * plotH;
-          const commitH = (m.commit / max) * plotH;
-          return (
-            <g key={m.month}>
-              <rect
-                className="bar-v"
-                style={{ animationDelay: `${i * 45}ms` }}
-                x={cx - barW - gap / 2}
-                y={baseY - prH}
-                width={barW}
-                height={prH}
-                rx={2}
-                fill="var(--color-accent)"
-              >
-                <title>{`${m.month} · PR ${m.pr}`}</title>
-              </rect>
-              <rect
-                className="bar-v"
-                style={{ animationDelay: `${i * 45 + 60}ms` }}
-                x={cx + gap / 2}
-                y={baseY - commitH}
-                width={barW}
-                height={commitH}
-                rx={2}
-                fill="var(--color-chart-companion)"
-              >
-                <title>{`${m.month} · commit ${m.commit}`}</title>
-              </rect>
-              <text
-                x={cx}
-                y={H - 7}
-                textAnchor="middle"
-                className="fill-[var(--color-ink-tertiary)] text-[11px]"
-              >
-                {m.month.slice(5)}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
     </div>
   );
 }
@@ -820,9 +821,9 @@ function TimeOfDayChart({ hours, t }: { hours: number[]; t: T }) {
   });
   const max = Math.max(1, ...buckets);
   return (
-    <div className="rounded-lg border border-hairline bg-surface-1 p-4">
-      <span className="text-[13px] font-medium text-ink-muted">{t('stats.timeOfDay')}</span>
-      <div className="mt-3 flex flex-col gap-1.5">
+    <div>
+      <SectionHead label={t('stats.timeOfDay')} />
+      <div className="flex flex-col gap-1.5 rounded-lg border border-hairline bg-surface-1 p-4">
         {TOD_PERIODS.map((p, i) => (
           <div key={i} className="flex items-center gap-2">
             {/* EN 라벨(Late night·Afternoon)이 안 들어가던 폭 — nowrap + 여유 폭 */}
@@ -861,9 +862,9 @@ function WeekdayChart({ weekday, t }: { weekday: number[]; t: T }) {
     t('stats.dow.sat'),
   ];
   return (
-    <div className="h-full rounded-lg border border-hairline bg-surface-1 p-4">
-      <span className="text-[13px] font-medium text-ink-muted">{t('stats.weekday')}</span>
-      <div className="mt-3 flex flex-col gap-1.5">
+    <div className="flex h-full flex-col">
+      <SectionHead label={t('stats.weekday')} />
+      <div className="flex flex-1 flex-col gap-1.5 rounded-lg border border-hairline bg-surface-1 p-4">
         {weekday.map((v, i) => (
           <div key={i} className="flex items-center gap-2">
             <span className="w-7 shrink-0 text-[11px] text-ink-tertiary">{labels[i]}</span>
