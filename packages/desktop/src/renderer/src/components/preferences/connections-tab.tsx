@@ -216,7 +216,7 @@ function Row({
       onToggle={onToggle ?? (() => {})}
       header={header}
       disabled={!canExpand}
-      triggerClassName="px-1.5 py-3"
+      triggerClassName="px-1.5 py-2.5"
       aria-label={`${label}: ${summary}`}
     >
       <div className="space-y-1 py-1 pl-4.5 pr-2">

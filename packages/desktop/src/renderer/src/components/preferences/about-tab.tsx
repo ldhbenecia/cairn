@@ -66,7 +66,7 @@ export function AboutTab() {
               icon="plus"
               open={openFaq === i}
               onToggle={() => setOpenFaq((cur) => (cur === i ? null : i))}
-              triggerClassName="px-2 py-3.5"
+              triggerClassName="px-2 py-3"
               header={<span className="text-ink-muted">{t(`faq.q${i + 1}` as I18nKey)}</span>}
             >
               <p className="max-w-[560px] px-2 pt-0.5 pb-4 text-[12.5px] leading-relaxed text-ink-tertiary">

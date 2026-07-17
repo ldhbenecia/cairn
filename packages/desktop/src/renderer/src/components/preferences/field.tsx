@@ -38,7 +38,7 @@ export function Field({
   return (
     <div
       className={[
-        'py-4 transition-opacity',
+        'py-3 transition-opacity',
         stacked ? 'flex flex-col gap-3' : 'flex items-center justify-between gap-6',
         dim ? 'opacity-40' : '',
       ].join(' ')}
