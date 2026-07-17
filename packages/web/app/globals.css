@@ -108,8 +108,9 @@ body::after {
 /* 에디토리얼 세리프 디스플레이 — 히어로·섹션 타이틀 전용 (본문은 Inter 유지) */
 .font-display {
   font-family: var(--font-serif-display), ui-serif, Georgia, serif;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-weight: 470;
+  letter-spacing: -0.015em;
+  font-variation-settings: 'opsz' 90, 'SOFT' 40;
 }
 
 /* 스크롤 진입 페이드업 — 잔잔한 모션 */

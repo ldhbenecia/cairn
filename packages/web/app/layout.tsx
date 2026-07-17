@@ -2,15 +2,15 @@ import './globals.css';
 
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
-import { Instrument_Serif } from 'next/font/google';
+import { Fraunces } from 'next/font/google';
 import { headers } from 'next/headers';
 
 import { REPO_URL } from '../lib/github';
 import { SITE_URL } from '../lib/site';
 
-const serif = Instrument_Serif({
-  weight: '400',
+const serif = Fraunces({
   subsets: ['latin'],
+  axes: ['SOFT', 'opsz'],
   variable: '--font-serif-display',
 });
 
