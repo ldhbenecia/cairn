@@ -60,7 +60,7 @@ export function PromptsTab() {
                 onClick={() => update({ summaryModel: m.id })}
                 className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 transition-all duration-200 ease-out active:scale-[0.96] ${
                   selected
-                    ? 'border-accent/60 bg-accent/10 text-ink shadow-sm shadow-accent/15'
+                    ? 'border-accent/60 bg-accent/10 text-ink'
                     : 'border-hairline bg-surface-2 text-ink-muted hover:border-ink-tertiary hover:bg-surface-3'
                 }`}
               >

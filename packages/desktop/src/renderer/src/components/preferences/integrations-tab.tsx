@@ -532,13 +532,11 @@ export function IntegrationsTab() {
         <GitBackupCard />
         <ComingSoonCard
           icon={<ICloudMark size={20} />}
-          tileClass="bg-[#3693F3]/10"
           title={t('integrations.icloud.title')}
           desc={t('integrations.icloud.desc')}
         />
         <ComingSoonCard
-          icon={<NotebookPen size={19} strokeWidth={1.8} className="text-warning" />}
-          tileClass="bg-warning/10"
+          icon={<NotebookPen size={19} strokeWidth={1.8} className="text-ink-muted" />}
           title={t('integrations.notes.title')}
           desc={t('integrations.notes.desc')}
         />
