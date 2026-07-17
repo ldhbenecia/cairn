@@ -1,11 +1,12 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-canvas: #010102;
-  --color-surface-1: #0f1011;
-  --color-surface-2: #141516;
-  --color-surface-3: #18191a;
-  --color-surface-4: #191a1b;
+  /* 다크 표면 램프 — Linear 앱 톤: 순흑이 아니라 아주 짙은 무채 그레이의 명도 층위 */
+  --color-canvas: #08090a;
+  --color-surface-1: #101012;
+  --color-surface-2: #17171a;
+  --color-surface-3: #1c1c1f;
+  --color-surface-4: #212124;
   --color-hairline: #23252a;
   --color-hairline-strong: #34343a;
   --color-hairline-tertiary: #3e3e44;
@@ -331,7 +332,7 @@ textarea {
    backdrop-filter 가 합성되지 않는 환경(실측)에선 sharp 한 반투명 유리로 보인다 —
    dialog-overlay 가 뒤를 어둡게 깔아줘 가독성 유지. */
 [data-glass='on'] .glass-panel {
-  /* 틴트를 surface-1(#0f1011, 거의 검정) 대신 살짝 밝은 쿨그레이로 — 검은 반투명 '카드'가 아니라
+  /* 틴트를 surface-1(#101012, 거의 검정) 대신 살짝 밝은 쿨그레이로 — 검은 반투명 '카드'가 아니라
      빛을 머금은 유리로 읽히게. 40~52% 불투명도라 packaged(blur 미합성)에서도 가독성 유지.
      backdrop-filter 의 brightness 가 뒤 콘텐츠를 들어올려 굴절감을 살린다(육안 검증). */
   background: linear-gradient(155deg, rgba(38, 42, 52, 0.3), rgba(28, 31, 40, 0.42));

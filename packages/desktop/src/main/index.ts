@@ -136,7 +136,7 @@ function createWindow(startHidden: boolean): BrowserWindow {
     show: false,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 18, y: 24 },
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#08090a',
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
       sandbox: true,

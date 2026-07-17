@@ -34,11 +34,15 @@ All colors are CSS custom properties resolved by theme. Tailwind utilities map t
 
 | Token | Dark | Light | Role |
 |---|---|---|---|
-| `--color-canvas` | `#010102` | `#f2f2f8` | App background (deepest plane) |
-| `--color-surface-1` | `#0f1011` | `#ffffff` | Cards, dialogs (raised plane) |
-| `--color-surface-2` | `#141516` | `#eaeaf2` | Inset wells, inputs, hover fills |
-| `--color-surface-3` | `#18191a` | `#e2e2ee` | Deeper wells / active |
-| `--color-surface-4` | `#191a1b` | `#d8d8e6` | Deepest well |
+| `--color-canvas` | `#08090a` | `#f2f2f8` | App background (deepest plane) |
+| `--color-surface-1` | `#101012` | `#ffffff` | Cards, dialogs (raised plane) |
+| `--color-surface-2` | `#17171a` | `#eaeaf2` | Inset wells, inputs, hover fills |
+| `--color-surface-3` | `#1c1c1f` | `#e2e2ee` | Deeper wells / active |
+| `--color-surface-4` | `#212124` | `#d8d8e6` | Deepest well |
+
+Dark surfaces follow the Linear app tone: not pure black — a ramp of very deep neutral grays
+whose even lightness steps (not borders) carry the plane hierarchy. The window pre-paint
+background (`main/index.ts` `backgroundColor`) matches `canvas`.
 | `--color-hairline` | `#23252a` | `#dfdfe9` | Default 1px borders/dividers |
 | `--color-hairline-strong` | `#34343a` | `#d2d2df` | Emphasized dividers / input framing |
 | `--color-hairline-tertiary` | `#3e3e44` | `#c2c2d0` | High-contrast rules |
