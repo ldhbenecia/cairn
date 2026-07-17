@@ -281,6 +281,11 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                 <p className="mb-1 px-1 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
                   {t('reports.byRepo')}
                 </p>
+                <div className="mb-4 flex items-center gap-3 border-b border-hairline px-1 pb-1.5 text-[10.5px] font-medium tracking-wider text-ink-tertiary uppercase">
+                  <span className="min-w-0 flex-1">{t('reports.repoCol')}</span>
+                  <span className="w-10 shrink-0 text-right">{t('reports.itemsCol')}</span>
+                  <span className="w-24 shrink-0 text-right">{t('reports.activityCol')}</span>
+                </div>
                 <div className="flex flex-col gap-6">
                   {lanes.map((lane) => (
                     <section
@@ -290,13 +295,14 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                       }}
                       className="scroll-mt-3"
                     >
-                      <header className="flex items-baseline gap-2 px-1 pb-1">
-                        <h3 className="min-w-0 truncate text-[13px] font-semibold text-ink">
+                      <header className="flex items-center gap-3 px-1 pb-1">
+                        <h3 className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
                           {laneLabel(lane.repo)}
                         </h3>
-                        <span className="shrink-0 font-mono text-[11px] text-ink-tertiary tabular-nums">
+                        <span className="w-10 shrink-0 text-right font-mono text-[11px] text-ink-tertiary tabular-nums">
                           {lane.count}
                         </span>
+                        <ActivitySpark since={since} until={until} dates={lane.dates} />
                       </header>
                       <div className="divide-y divide-hairline">
                         {(itemsByLane.get(laneKey(lane.repo)) ?? []).map((it, i) => (
@@ -319,6 +325,22 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
         </div>
       </div>
     </section>
+  );
+}
+
+// 레포 헤더 행 우측의 기간 활동 미니 표시 — Timeline 도트 문법의 축소판
+function ActivitySpark({ since, until, dates }: { since: string; until: string; dates: string[] }) {
+  const span = daySpan(since, until);
+  return (
+    <span className="relative h-4 w-24 shrink-0" aria-hidden="true">
+      {dates.map((d) => (
+        <span
+          key={d}
+          style={{ left: `${((dayIndex(since, d) + 0.5) / span) * 100}%` }}
+          className="absolute top-1/2 size-[4px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink-subtle"
+        />
+      ))}
+    </span>
   );
 }
 
