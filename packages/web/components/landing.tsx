@@ -27,6 +27,15 @@ const HL_PERSIST = [true, false, false, false, false];
 
 export async function Landing({ lang }: { lang: Lang }) {
   const c = content[lang];
+  // Instrument Serif 는 한글 글리프가 없어 ko 타이틀은 sans 유지 — 히어로만 영문 세리프
+  const headClass =
+    lang === 'ko'
+      ? 'text-[clamp(26px,3.4vw,36px)] font-semibold tracking-[-0.025em]'
+      : 'font-display text-[clamp(32px,4.4vw,46px)] leading-[1.08]';
+  const ctaClass =
+    lang === 'ko'
+      ? 'text-[clamp(27px,3.8vw,40px)] font-semibold tracking-[-0.03em]'
+      : 'font-display text-[clamp(34px,4.6vw,50px)] leading-[1.08]';
   const { stars, latestTag } = await getRepoStats();
   const download = RELEASES_LATEST;
   const unblockCmd = 'xattr -d com.apple.quarantine /Applications/Cairn.app';
@@ -41,33 +50,33 @@ export async function Landing({ lang }: { lang: Lang }) {
   });
 
   return (
-    <div id="top" className="pt-14">
+    <div id="top" className="pt-16">
       <Nav stars={stars} lang={lang} />
 
-      <section className="relative px-6 pt-16 pb-20 sm:pt-24">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-10">
+      <section className="relative px-6 pt-20 pb-16 sm:pt-28">
+        <div className="mx-auto max-w-6xl">
           <div className="reveal">
             <a
               href={REPO_URL}
               target="_blank"
               rel="noreferrer"
-              className="mb-7 inline-flex items-center gap-2 rounded-full border border-hairline-strong bg-surface-1 py-1.5 pr-3.5 pl-2.5 text-[12.5px] font-medium text-ink-muted transition-colors hover:border-ink-subtle hover:text-ink"
+              className="mb-8 inline-flex items-center gap-2.5 font-mono text-[12px] tracking-wider text-ink-tertiary uppercase transition-colors hover:text-ink-subtle"
             >
               <span className="size-1.5 rounded-full bg-accent" />
               {c.hero.badge}
             </a>
-            <h1 className="text-[clamp(38px,5vw,60px)] leading-[1.05] font-semibold tracking-[-0.04em]">
+            <h1 className="font-display max-w-4xl text-[clamp(52px,8vw,96px)] leading-[1.02] text-balance">
               {c.hero.h1a}
               <br />
               <span className="text-ink-subtle">{c.hero.h1b}</span>
             </h1>
-            <p className="mt-6 max-w-lg text-[16.5px] leading-relaxed text-ink-subtle">
+            <p className="mt-7 max-w-xl text-[15.5px] leading-relaxed text-ink-subtle">
               {c.hero.lead}
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-2.5">
+            <div className="mt-9 flex flex-wrap items-center gap-3">
               <a
                 href={download}
-                className="rounded-lg bg-accent px-5 py-2.5 text-[14.5px] font-semibold text-white transition-colors hover:bg-accent-hover"
+                className="rounded-full bg-accent px-6 py-2.5 text-[14.5px] font-semibold text-white transition-colors hover:bg-accent-hover"
               >
                 {c.hero.download}
               </a>
@@ -75,16 +84,16 @@ export async function Landing({ lang }: { lang: Lang }) {
                 href={REPO_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-lg border border-hairline-strong bg-surface-1 px-5 py-2.5 text-[14.5px] font-semibold text-ink-muted transition-colors hover:border-ink-subtle hover:text-ink"
+                className="rounded-full border border-hairline-strong px-6 py-2.5 text-[14.5px] font-medium text-ink-muted transition-colors hover:border-ink-subtle hover:text-ink"
               >
                 {c.hero.source}
               </a>
+              <span className="font-mono text-[12.5px] text-ink-tertiary">
+                {latestTag ? `${latestTag} · ` : ''}
+                {c.hero.sub}
+              </span>
             </div>
-            <p className="mt-5 font-mono text-[12.5px] text-ink-tertiary">
-              {latestTag ? `${latestTag} · ` : ''}
-              {c.hero.sub}
-            </p>
-            <div className="mt-5 max-w-md">
+            <div className="mt-6 max-w-md">
               <p className="mb-2 text-[12.5px] leading-relaxed text-ink-tertiary">
                 {c.hero.unsigned}
               </p>
@@ -92,15 +101,7 @@ export async function Landing({ lang }: { lang: Lang }) {
             </div>
           </div>
 
-          <div className="reveal relative" style={{ animationDelay: '0.1s' }}>
-            <div
-              className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-70"
-              style={{
-                background:
-                  'radial-gradient(60% 60% at 70% 30%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 70%)',
-                filter: 'blur(36px)',
-              }}
-            />
+          <div className="reveal relative mt-16" style={{ animationDelay: '0.12s' }}>
             <HeroVideo
               src={VIDEO.intro}
               poster={`/statistic_${lang === 'ko' ? 'ko' : 'us'}.png`}
@@ -112,7 +113,12 @@ export async function Landing({ lang }: { lang: Lang }) {
       </section>
 
       <section id="how" className="mx-auto max-w-6xl scroll-mt-14 px-6 py-24">
-        <SectionHead eyebrow={c.how.eyebrow} title={c.how.title} lead={c.how.lead} />
+        <SectionHead
+          eyebrow={c.how.eyebrow}
+          title={c.how.title}
+          lead={c.how.lead}
+          titleClass={headClass}
+        />
         <div className="mt-14 grid grid-cols-1 gap-3 md:grid-cols-4 md:grid-rows-2">
           <Reveal className="md:col-span-2 md:row-span-2">
             <div className="card-hover group/c relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-hairline bg-surface-1 p-8">
@@ -147,14 +153,6 @@ export async function Landing({ lang }: { lang: Lang }) {
         </div>
 
         <Reveal delay={0.1} className="relative mx-auto mt-10 max-w-4xl">
-          <div
-            className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-50"
-            style={{
-              background:
-                'radial-gradient(50% 50% at 50% 30%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 70%)',
-              filter: 'blur(40px)',
-            }}
-          />
           <Screenshot
             src={`/summarizing_${lang === 'ko' ? 'ko' : 'us'}.png`}
             alt="cairn publishing a worklog"
@@ -167,6 +165,7 @@ export async function Landing({ lang }: { lang: Lang }) {
           eyebrow={c.highlights.eyebrow}
           title={c.highlights.title}
           lead={c.highlights.lead}
+          titleClass={headClass}
         />
         <Reveal className="mt-10">
           <BentoGrid items={highlightItems} />
@@ -175,7 +174,12 @@ export async function Landing({ lang }: { lang: Lang }) {
 
       <section id="output" className="scroll-mt-14 border-y border-hairline bg-surface-1/40">
         <div className="mx-auto max-w-6xl px-6 py-24">
-          <SectionHead eyebrow={c.output.eyebrow} title={c.output.title} lead={c.output.lead} />
+          <SectionHead
+            eyebrow={c.output.eyebrow}
+            title={c.output.title}
+            lead={c.output.lead}
+            titleClass={headClass}
+          />
           <ul className="mx-auto mt-8 flex max-w-3xl flex-wrap justify-center gap-2.5">
             {c.output.ticks.map((t) => (
               <li
@@ -188,14 +192,6 @@ export async function Landing({ lang }: { lang: Lang }) {
             ))}
           </ul>
           <Reveal delay={0.08} className="relative mt-14">
-            <div
-              className="pointer-events-none absolute -inset-x-4 -top-10 bottom-0 -z-10 opacity-60 sm:-inset-x-10"
-              style={{
-                background:
-                  'radial-gradient(50% 50% at 50% 25%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 70%)',
-                filter: 'blur(44px)',
-              }}
-            />
             <Screenshot
               src={`/worklog_${lang === 'ko' ? 'ko' : 'us'}.png`}
               alt="a published cairn worklog in Notion"
@@ -205,7 +201,12 @@ export async function Landing({ lang }: { lang: Lang }) {
       </section>
 
       <section id="setup" className="mx-auto max-w-6xl scroll-mt-14 px-6 py-24">
-        <SectionHead eyebrow={c.setup.eyebrow} title={c.setup.title} lead={c.setup.lead} />
+        <SectionHead
+          eyebrow={c.setup.eyebrow}
+          title={c.setup.title}
+          lead={c.setup.lead}
+          titleClass={headClass}
+        />
         <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
           <SetupCard tag="Notion" title={c.setup.notion.title}>
             <li>
@@ -261,7 +262,12 @@ export async function Landing({ lang }: { lang: Lang }) {
       </section>
 
       <section id="faq" className="mx-auto max-w-6xl scroll-mt-14 px-6 pb-24">
-        <SectionHead eyebrow={c.faq.eyebrow} title={c.faq.title} lead={c.faq.lead} />
+        <SectionHead
+          eyebrow={c.faq.eyebrow}
+          title={c.faq.title}
+          lead={c.faq.lead}
+          titleClass={headClass}
+        />
         <Reveal delay={0.06} className="mx-auto mt-12 max-w-2xl">
           <Accordion items={c.faq.items} idPrefix="faq" />
         </Reveal>
@@ -276,12 +282,10 @@ export async function Landing({ lang }: { lang: Lang }) {
                 'linear-gradient(to right, transparent, color-mix(in srgb, var(--color-accent) 60%, transparent), transparent)',
             }}
           />
-          <h2 className="text-[clamp(28px,4vw,42px)] font-semibold tracking-[-0.03em] text-balance">
-            {c.cta.title}
-          </h2>
+          <h2 className={`${ctaClass} text-balance`}>{c.cta.title}</h2>
           <a
             href={download}
-            className="mt-8 inline-block rounded-lg bg-accent px-6 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-accent-hover"
+            className="mt-8 inline-block rounded-full bg-accent px-7 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-accent-hover"
           >
             {c.cta.button}
           </a>
@@ -387,16 +391,24 @@ function BentoTile({
   );
 }
 
-function SectionHead({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: string }) {
+function SectionHead({
+  eyebrow,
+  title,
+  lead,
+  titleClass,
+}: {
+  eyebrow: string;
+  title: string;
+  lead: string;
+  titleClass: string;
+}) {
   return (
     <div className="text-center">
       <p className="mb-3.5 inline-flex items-center gap-2 font-mono text-[12px] tracking-wider text-ink-tertiary uppercase">
         <span className="size-1 rounded-full bg-accent" />
         {eyebrow}
       </p>
-      <h2 className="text-[clamp(27px,3.6vw,38px)] font-semibold tracking-[-0.025em] text-balance">
-        {title}
-      </h2>
+      <h2 className={`${titleClass} text-balance`}>{title}</h2>
       <p className="mx-auto mt-4 max-w-xl text-[15.5px] leading-relaxed text-ink-subtle text-balance">
         {lead}
       </p>

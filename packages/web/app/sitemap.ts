@@ -32,6 +32,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
         languages: { en: `${SITE_URL}/setup/notion`, ko: `${SITE_URL}/ko/setup/notion` },
       },
     },
+    { url: `${SITE_URL}/pricing`, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${SITE_URL}/ko/pricing`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${SITE_URL}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${SITE_URL}/terms`, changeFrequency: 'yearly', priority: 0.3 },
   ];
