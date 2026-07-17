@@ -497,18 +497,14 @@ function InsightCard({
   subIcon?: React.ReactNode;
 }) {
   return (
-    <div
-      className="flex flex-col gap-1.5 rounded-lg border px-4 py-3.5"
-      style={{
-        borderColor: `color-mix(in srgb, ${hue} 28%, var(--color-hairline))`,
-        background: `color-mix(in srgb, ${hue} 6%, var(--color-surface-1))`,
-      }}
-    >
-      <span className="flex items-center gap-1.5 text-[12px]" style={{ color: hue }}>
-        {icon}
+    <div className="flex flex-col gap-1.5 rounded-lg border border-hairline bg-surface-1 px-4 py-3.5">
+      <span className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
+        <span style={{ color: hue }}>{icon}</span>
         {label}
       </span>
-      <span className="text-[18px] font-semibold tracking-[-0.3px] text-ink">{value}</span>
+      <span className="font-mono text-[18px] font-semibold tracking-[-0.3px] text-ink tabular-nums">
+        {value}
+      </span>
       {sub && (
         <span
           className="flex items-center gap-1 text-[11px]"
