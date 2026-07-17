@@ -350,8 +350,8 @@ const CATEGORY_DOT: Record<RecentCategory, string> = {
   yearly: 'dot-yearly',
 };
 
-// 제목의 날짜 프리픽스("2026-07-17 작업 일지"·"2026-W29 주간 정리")는 우측 mono 라벨로 옮겨 이중 표기 제거
-// 카테고리별 정확한 날짜 형식만 분리 — '2026 roadmap' 같은 커스텀 제목 오분리 방지
+// 날짜 프리픽스 제목("2026-07-17 작업 일지")은 날짜가 행 제목 — "작업 일지" 같은 카테고리 접미는
+// 모든 행에 반복되므로 제거(카테고리는 도트+aria 가 표현). 커스텀 제목('2026 roadmap' 등)은 그대로
 const TITLE_DATE_RE: Record<RecentCategory, RegExp> = {
   daily: /^(\d{4}-\d{2}-\d{2})\s+(.+)$/,
   weekly: /^(\d{4}-W\d{2})\s+(.+)$/,
@@ -359,10 +359,9 @@ const TITLE_DATE_RE: Record<RecentCategory, RegExp> = {
   yearly: /^(\d{4})\s+(.+)$/,
 };
 
-function splitTitle(page: RecentPage): { title: string; dateLabel: string } {
+function rowTitle(page: RecentPage): string {
   const m = TITLE_DATE_RE[page.category].exec(page.title);
-  if (m) return { title: m[2]!, dateLabel: m[1]! };
-  return { title: page.title, dateLabel: page.date ?? '—' };
+  return m ? m[1]! : page.title;
 }
 
 type Group = { key: string; label: string; rows: RecentPage[] };
@@ -404,7 +403,7 @@ function PageRow({
 }) {
   const counts =
     page.pr !== null || page.commit !== null ? { gh: page.pr ?? 0, git: page.commit ?? 0 } : null;
-  const { title, dateLabel } = splitTitle(page);
+  const title = rowTitle(page);
   const ref = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: 'nearest' });
@@ -447,9 +446,6 @@ function PageRow({
         </span>
       )}
       <SinkStack page={page} t={t} />
-      <span className="shrink-0 font-mono text-[12px] whitespace-nowrap text-ink-tertiary tabular-nums">
-        {dateLabel}
-      </span>
     </button>
   );
 }
