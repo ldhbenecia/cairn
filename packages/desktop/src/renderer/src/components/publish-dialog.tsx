@@ -24,7 +24,8 @@ type Props = {
 // 최근 실패 결과를 오픈 시 자동 회수할 시간 창 (30분) — 그 이후는 stale 로 안 띄운다
 const RECALL_WINDOW_MS = 30 * 60_000;
 
-// 가장 최근에 '실패'로 끝난 완료 세션 — !ok / 요약 실패 / 에러. 성공은 회수 대상 아님
+// 가장 최근에 '실패'로 끝난 완료 세션 — !ok / 요약 실패 / 에러. 성공은 회수 대상 아님.
+// 사용자 취소도 제외 — 취소는 exit!=0 이라 ok=false 지만 본인이 방금 한 행동이라 다시 띄울 게 없다
 function mostRecentFailed(
   sessions: Record<CoreMode, RunSession | null>,
 ): { mode: CoreMode; endedAt: number } | null {
@@ -32,7 +33,8 @@ function mostRecentFailed(
   for (const mode of ['daily', 'weekly', 'monthly', 'yearly'] as CoreMode[]) {
     const s = sessions[mode];
     if (s?.state !== 'done' || !s.endedAt) continue;
-    const failed = !!s.error || (!!s.result && (!s.result.ok || s.result.summaryFailed));
+    const failed =
+      !!s.error || (!!s.result && !s.result.cancelled && (!s.result.ok || s.result.summaryFailed));
     if (failed && (!best || s.endedAt > best.endedAt)) best = { mode, endedAt: s.endedAt };
   }
   return best;
@@ -131,6 +133,14 @@ export function PublishDialog({
   const isRunning = session?.state === 'running';
   const isDone = session?.state === 'done';
   const wide = showProgress && (isRunning || isDone || busy);
+
+  // 결과·취소·에러 화면을 연 채로 본 세션은 확인된 것으로 기록 —
+  // 닫고 다시 열 때 recall 경로가 같은 결과를 또 띄우지 않게 (취소 화면 재표시 버그)
+  useEffect(() => {
+    if (open && showProgress && isDone && session?.endedAt) {
+      recalledEndedAt.current = session.endedAt;
+    }
+  }, [open, showProgress, isDone, session]);
 
   return (
     <Dialog.Root
