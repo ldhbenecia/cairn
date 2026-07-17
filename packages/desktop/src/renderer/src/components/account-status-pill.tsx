@@ -10,7 +10,7 @@ export function AccountStatusPill({ className = '' }: { className?: string }) {
   const state = !signedIn ? 'local' : online ? 'cloud' : 'offline';
   const tone = {
     cloud: 'bg-accent/15 text-accent',
-    offline: 'bg-amber-500/15 text-amber-400',
+    offline: 'bg-warning/15 text-warning',
     local: 'bg-surface-2 text-ink-tertiary',
   }[state];
   const label = {

@@ -71,7 +71,7 @@ const DSTEP_DESC: Record<DateStep, I18nKey> = {
 type Layout = 'tree' | 'compact';
 
 const STATUS_BADGE: Record<DStatus, { key: I18nKey; cls: string }> = {
-  done: { key: 'publish.status.done', cls: 'bg-emerald-500/15 text-emerald-400' },
+  done: { key: 'publish.status.done', cls: 'bg-success/15 text-success' },
   active: { key: 'publish.status.active', cls: 'bg-accent/15 text-accent-hover' },
   pending: { key: 'publish.status.pending', cls: 'bg-surface-2 text-ink-tertiary' },
   failed: { key: 'publish.status.failed', cls: 'bg-danger/15 text-danger' },
@@ -89,7 +89,7 @@ function StatusIcon({ status, size }: { status: DStatus; size: number }) {
         className="flex items-center justify-center"
       >
         {status === 'done' ? (
-          <CheckCircle2 size={size} strokeWidth={2.25} className="text-emerald-400" />
+          <CheckCircle2 size={size} strokeWidth={2.25} className="text-success" />
         ) : status === 'failed' ? (
           <XCircle size={size} strokeWidth={2.25} className="text-danger" />
         ) : status === 'active' ? (
@@ -412,7 +412,7 @@ function CompactRow({ d, i, t }: { d: PanelDate; i: number; t: T }) {
             className={[
               'rounded-md px-1.5 py-0.5 text-[10px] font-medium',
               s.status === 'done'
-                ? 'bg-emerald-500/12 text-emerald-400'
+                ? 'bg-success/12 text-success'
                 : s.status === 'failed'
                   ? 'bg-danger/12 text-danger'
                   : s.status === 'active'
@@ -584,7 +584,7 @@ export function Progress({
             </ul>
             <div className="flex items-center gap-2.5 border-t border-hairline pt-3">
               <span
-                className={`size-1.5 shrink-0 rounded-full ${allDone ? 'bg-emerald-400' : 'batch-pulse bg-accent'}`}
+                className={`size-1.5 shrink-0 rounded-full ${allDone ? 'bg-success' : 'batch-pulse bg-accent'}`}
               />
               <span
                 key={currentAction}

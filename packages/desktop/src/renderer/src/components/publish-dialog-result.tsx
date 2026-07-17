@@ -182,7 +182,7 @@ export function Result({
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 380, damping: 20, delay: 0.05 }}
-          className="flex size-12 items-center justify-center rounded-full bg-emerald-500/12 text-emerald-400"
+          className="flex size-12 items-center justify-center rounded-full bg-success/12 text-success"
         >
           <Check size={22} strokeWidth={2.5} />
         </motion.span>

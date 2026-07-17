@@ -56,10 +56,10 @@ export function RunToast({
                   className={[
                     'flex size-8 shrink-0 items-center justify-center rounded-lg',
                     ok
-                      ? 'bg-emerald-500/12 text-emerald-400'
+                      ? 'bg-success/12 text-success'
                       : neutral
                         ? 'bg-surface-2 text-ink-tertiary'
-                        : 'bg-rose-500/12 text-rose-400',
+                        : 'bg-danger/12 text-danger',
                   ].join(' ')}
                 >
                   {ok ? (
