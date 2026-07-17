@@ -2,7 +2,7 @@ import { Minus, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSettings } from '../../settings-context';
 import { Toggle } from '../toggle';
-import { Field } from './field';
+import { Field, Section } from './field';
 
 const BACKFILL_DAYS = [0, 1, 2, 3, 5, 7, 10, 14, 30];
 const pad2 = (n: number): string => String(n).padStart(2, '0');
@@ -19,65 +19,72 @@ export function AutoPublishTab() {
   const set = (patch: Partial<typeof ap>): void => update({ autoPublish: { ...ap, ...patch } });
 
   return (
-    <div className="divide-y divide-hairline">
-      <Field label={t('prefs.launchAtLogin')} desc={t('prefs.launchAtLogin.desc')}>
-        <Toggle checked={settings.launchAtLogin} onChange={(v) => update({ launchAtLogin: v })} />
-      </Field>
-      <Field label={t('prefs.quickCapture')} desc={t('prefs.quickCapture.desc')}>
-        <Toggle
-          checked={settings.quickCapture.enabled}
-          onChange={(v) => update({ quickCapture: { ...settings.quickCapture, enabled: v } })}
-        />
-      </Field>
-      <Field label={t('prefs.autoPublish.daily')} desc={t('prefs.autoPublish.dailyDesc')}>
-        <Toggle checked={ap.daily} onChange={(v) => set({ daily: v })} />
-      </Field>
-      <Field label={t('prefs.autoPublish.weekly')} desc={t('prefs.autoPublish.weeklyDesc')}>
-        <Toggle checked={ap.weekly} onChange={(v) => set({ weekly: v })} />
-      </Field>
-      <Field label={t('prefs.autoPublish.monthly')} desc={t('prefs.autoPublish.monthlyDesc')}>
-        <Toggle checked={ap.monthly} onChange={(v) => set({ monthly: v })} />
-      </Field>
-      <Field label={t('prefs.autoPublish.yearly')} desc={t('prefs.autoPublish.yearlyDesc')}>
-        <Toggle checked={ap.yearly} onChange={(v) => set({ yearly: v })} />
-      </Field>
+    <div className="flex flex-col gap-9">
+      <Section label={t('prefs.section.general')}>
+        <Field label={t('prefs.launchAtLogin')} desc={t('prefs.launchAtLogin.desc')}>
+          <Toggle checked={settings.launchAtLogin} onChange={(v) => update({ launchAtLogin: v })} />
+        </Field>
+        <Field label={t('prefs.quickCapture')} desc={t('prefs.quickCapture.desc')}>
+          <Toggle
+            checked={settings.quickCapture.enabled}
+            onChange={(v) => update({ quickCapture: { ...settings.quickCapture, enabled: v } })}
+          />
+        </Field>
+      </Section>
 
-      <Field
-        label={t('prefs.autoPublish.time')}
-        desc={t('prefs.autoPublish.timeDesc')}
-        dim={!anyOn}
-      >
-        <TimeField value={ap.time} disabled={!anyOn} onChange={(v) => set({ time: v })} />
-      </Field>
+      <Section label={t('prefs.section.schedule')}>
+        <Field label={t('prefs.autoPublish.daily')} desc={t('prefs.autoPublish.dailyDesc')}>
+          <Toggle checked={ap.daily} onChange={(v) => set({ daily: v })} />
+        </Field>
+        <Field label={t('prefs.autoPublish.weekly')} desc={t('prefs.autoPublish.weeklyDesc')}>
+          <Toggle checked={ap.weekly} onChange={(v) => set({ weekly: v })} />
+        </Field>
+        <Field label={t('prefs.autoPublish.monthly')} desc={t('prefs.autoPublish.monthlyDesc')}>
+          <Toggle checked={ap.monthly} onChange={(v) => set({ monthly: v })} />
+        </Field>
+        <Field label={t('prefs.autoPublish.yearly')} desc={t('prefs.autoPublish.yearlyDesc')}>
+          <Toggle checked={ap.yearly} onChange={(v) => set({ yearly: v })} />
+        </Field>
+      </Section>
 
-      <Field
-        label={t('prefs.autoPublish.backfill')}
-        desc={t('prefs.autoPublish.backfillDesc')}
-        dim={!ap.daily}
-      >
-        <ChipGroup
-          value={ap.backfillDays}
-          options={BACKFILL_DAYS}
-          disabled={!ap.daily}
-          onChange={(d) => set({ backfillDays: d })}
-        />
-      </Field>
+      <Section label={t('prefs.section.options')}>
+        <Field
+          label={t('prefs.autoPublish.time')}
+          desc={t('prefs.autoPublish.timeDesc')}
+          dim={!anyOn}
+        >
+          <TimeField value={ap.time} disabled={!anyOn} onChange={(v) => set({ time: v })} />
+        </Field>
 
-      <Field
-        label={t('prefs.autoPublish.confirm')}
-        desc={t('prefs.autoPublish.confirmDesc')}
-        dim={!anyOn}
-      >
-        <Toggle
-          checked={ap.confirmBeforeRun}
-          disabled={!anyOn}
-          onChange={(v) => set({ confirmBeforeRun: v })}
-        />
-      </Field>
+        <Field
+          label={t('prefs.autoPublish.backfill')}
+          desc={t('prefs.autoPublish.backfillDesc')}
+          dim={!ap.daily}
+        >
+          <ChipGroup
+            value={ap.backfillDays}
+            options={BACKFILL_DAYS}
+            disabled={!ap.daily}
+            onChange={(d) => set({ backfillDays: d })}
+          />
+        </Field>
 
-      <p className="pt-5 text-[12px] leading-relaxed text-ink-tertiary">
-        {t('prefs.autoPublish.credit')}
-      </p>
+        <Field
+          label={t('prefs.autoPublish.confirm')}
+          desc={t('prefs.autoPublish.confirmDesc')}
+          dim={!anyOn}
+        >
+          <Toggle
+            checked={ap.confirmBeforeRun}
+            disabled={!anyOn}
+            onChange={(v) => set({ confirmBeforeRun: v })}
+          />
+        </Field>
+
+        <p className="pt-4 text-[12px] leading-relaxed text-ink-tertiary">
+          {t('prefs.autoPublish.credit')}
+        </p>
+      </Section>
     </div>
   );
 }

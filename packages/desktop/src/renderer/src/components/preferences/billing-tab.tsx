@@ -1,7 +1,6 @@
 import { Check } from 'lucide-react';
 import type { I18nKey } from '../../i18n';
 import { useSettings } from '../../settings-context';
-import { Field } from './field';
 
 const FREE_FEATURES: I18nKey[] = [
   'billing.free.f1',
@@ -24,10 +23,6 @@ export function BillingTab() {
   const { t } = useSettings();
   return (
     <div>
-      <Field label={t('prefs.billing')} desc={t('billing.lead')}>
-        <span />
-      </Field>
-
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex flex-col rounded-xl border border-hairline bg-surface-1 p-6 transition-colors hover:border-hairline-strong">
           <div className="mb-5 flex items-start justify-between">

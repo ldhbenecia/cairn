@@ -5,7 +5,7 @@ import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';
 import { ClaudeMark, GithubMark, NotionMark } from '../brand-icons';
 import { AccordionItem } from '../accordion';
-import { Field } from './field';
+import { Section } from './field';
 
 type ParsedConfig = {
   notionWorkspaces?: { label: string }[];
@@ -100,58 +100,53 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
   const repoItems: Item[] = repos.map((p) => ({ primary: basename(p), secondary: p }));
 
   return (
-    <div className="divide-y divide-hairline">
-      <Field label={t('prefs.connections')} desc={t('prefs.conn.localDataNote')}>
-        <AccountStatusPill />
-      </Field>
-      <div className="py-5">
-        <div className="space-y-0.5 rounded-lg border border-hairline bg-surface-1 p-1.5">
-          <Row
-            icon={
-              <span className="flex size-[15px] shrink-0 items-center justify-center rounded-[3px] border border-black/10 bg-white text-black">
-                <NotionMark size={10} />
-              </span>
-            }
-            label="Notion"
-            items={notionItems}
-            expanded={open.has('notion')}
-            onToggle={() => toggle('notion')}
-          />
-          <Row
-            icon={
-              <span className="flex shrink-0 text-ink">
-                <GithubMark size={14} />
-              </span>
-            }
-            label="GitHub"
-            items={githubItems}
-            expanded={open.has('github')}
-            onToggle={() => toggle('github')}
-          />
-          <Row
-            icon={<ClaudeMark size={13} />}
-            label="Claude"
-            pending={claude === 'checking'}
-            ok={claude === 'ok'}
-            onRefresh={claude === 'checking' ? undefined : refreshClaude}
-          />
-          <Row
-            icon={<FolderGit2 size={13} className="shrink-0 text-ink-muted" />}
-            label={t('prefs.conn.localGit')}
-            items={repoItems}
-            expanded={open.has('repos')}
-            onToggle={() => toggle('repos')}
-          />
-        </div>
+    <Section label={t('prefs.section.sources')} action={<AccountStatusPill />}>
+      <Row
+        icon={
+          <span className="flex size-[15px] shrink-0 items-center justify-center rounded-[3px] border border-black/10 bg-white text-black">
+            <NotionMark size={10} />
+          </span>
+        }
+        label="Notion"
+        items={notionItems}
+        expanded={open.has('notion')}
+        onToggle={() => toggle('notion')}
+      />
+      <Row
+        icon={
+          <span className="flex shrink-0 text-ink">
+            <GithubMark size={14} />
+          </span>
+        }
+        label="GitHub"
+        items={githubItems}
+        expanded={open.has('github')}
+        onToggle={() => toggle('github')}
+      />
+      <Row
+        icon={<ClaudeMark size={13} />}
+        label="Claude"
+        pending={claude === 'checking'}
+        ok={claude === 'ok'}
+        onRefresh={claude === 'checking' ? undefined : refreshClaude}
+      />
+      <Row
+        icon={<FolderGit2 size={13} className="shrink-0 text-ink-muted" />}
+        label={t('prefs.conn.localGit')}
+        items={repoItems}
+        expanded={open.has('repos')}
+        onToggle={() => toggle('repos')}
+      />
+      <div className="pt-4">
         <button
           type="button"
           onClick={onRerun}
-          className="mt-3 rounded-md border border-hairline px-3 py-1.5 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+          className="rounded-md border border-hairline px-3 py-1.5 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
         >
           {t('prefs.rerunSetup')}
         </button>
       </div>
-    </div>
+    </Section>
   );
 }
 
@@ -221,6 +216,7 @@ function Row({
       onToggle={onToggle ?? (() => {})}
       header={header}
       disabled={!canExpand}
+      triggerClassName="px-1.5 py-3"
       aria-label={`${label}: ${summary}`}
     >
       <div className="space-y-1 py-1 pl-4.5 pr-2">

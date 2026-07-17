@@ -2,7 +2,7 @@ import { Check } from 'lucide-react';
 import { useState } from 'react';
 import { useSettings } from '../../settings-context';
 import { Toggle } from '../toggle';
-import { Field } from './field';
+import { Field, Section } from './field';
 
 export function NotificationsTab() {
   const { settings, update, t } = useSettings();
@@ -16,7 +16,7 @@ export function NotificationsTab() {
   };
 
   return (
-    <div className="divide-y divide-hairline">
+    <Section label={t('prefs.section.general')}>
       <Field label={t('prefs.notifications')} desc={t('prefs.notifications.desc')}>
         <Toggle checked={settings.notifications} onChange={(v) => update({ notifications: v })} />
       </Field>
@@ -52,6 +52,6 @@ export function NotificationsTab() {
           {sent === 'ok' ? t('prefs.notifications.sentHint') : t('prefs.notifications.unsupported')}
         </p>
       )}
-    </div>
+    </Section>
   );
 }

@@ -5,7 +5,7 @@ import type { I18nKey } from '../../i18n';
 import { Accordion, AccordionItem } from '../accordion';
 import { Toggle } from '../toggle';
 import { REPO_URL } from './constants';
-import { Field } from './field';
+import { Field, Section } from './field';
 
 const FAQ_COUNT = 6;
 
@@ -25,7 +25,7 @@ export function AboutTab() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-9">
       <button
         type="button"
         aria-label={t('prefs.about.repo')}
@@ -58,8 +58,7 @@ export function AboutTab() {
         )}
       </button>
 
-      <div className="py-1">
-        <p className="mb-3 text-[13px] font-medium text-ink">{t('faq.title')}</p>
+      <Section label={t('faq.title')}>
         <Accordion>
           {Array.from({ length: FAQ_COUNT }, (_, i) => (
             <AccordionItem
@@ -76,14 +75,14 @@ export function AboutTab() {
             </AccordionItem>
           ))}
         </Accordion>
-      </div>
+      </Section>
 
-      <div className="divide-y divide-hairline">
+      <Section label={t('prefs.section.privacy')}>
         <Field label={t('prefs.telemetry')} desc={t('prefs.telemetry.desc')}>
           <Toggle checked={settings.telemetry} onChange={(v) => update({ telemetry: v })} />
         </Field>
-      </div>
-      <p className="text-[12px] leading-relaxed text-ink-tertiary">{t('prefs.privacy')}</p>
+        <p className="pt-4 text-[12px] leading-relaxed text-ink-tertiary">{t('prefs.privacy')}</p>
+      </Section>
     </div>
   );
 }
