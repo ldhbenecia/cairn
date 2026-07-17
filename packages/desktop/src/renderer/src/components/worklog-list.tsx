@@ -196,36 +196,41 @@ export function WorklogList({
           </span>
 
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            {/* Linear 상단 문법 — 텍스트 버튼 나열 대신 아이콘 전용, 현재 상태는 title 로 */}
             <button
               type="button"
               onClick={() => setGroupBy((g) => GROUP_NEXT[g])}
+              title={t(GROUP_LABEL_KEY[groupBy])}
+              aria-label={t(GROUP_LABEL_KEY[groupBy])}
               className={[
-                'inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] whitespace-nowrap transition-colors',
+                'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
                 groupBy === 'none'
                   ? 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
                   : 'bg-surface-3 text-ink',
               ].join(' ')}
             >
-              <ListTree size={12} strokeWidth={2} />
-              {t(GROUP_LABEL_KEY[groupBy])}
+              <ListTree size={14} strokeWidth={2} />
             </button>
             <button
               type="button"
               onClick={() => setDesc((v) => !v)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+              title={desc ? t('list.sort.desc') : t('list.sort.asc')}
+              aria-label={desc ? t('list.sort.desc') : t('list.sort.asc')}
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
             >
-              <ArrowDownUp size={12} strokeWidth={2} />
-              {desc ? t('list.sort.desc') : t('list.sort.asc')}
+              <ArrowDownUp size={14} strokeWidth={2} />
             </button>
             <button
               type="button"
               onClick={() => void reload()}
               disabled={loading}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+              title={t('list.reload')}
+              aria-label={t('list.reload')}
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
             >
-              <RefreshCw size={12} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
-              {t('list.reload')}
+              <RefreshCw size={14} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
             </button>
+            <div className="mx-1 h-4 w-px shrink-0 bg-hairline" />
             <PublishDialog
               sessions={sessions}
               runningMode={runningMode}
