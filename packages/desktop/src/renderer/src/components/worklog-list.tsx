@@ -198,15 +198,15 @@ export function WorklogList({
             {t('list.count')}
           </span>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={() => setGroupBy((g) => GROUP_NEXT[g])}
               className={[
-                'inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1.5 text-[12px] whitespace-nowrap transition-colors',
+                'inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] whitespace-nowrap transition-colors',
                 groupBy === 'none'
-                  ? 'border-hairline text-ink-muted hover:bg-surface-2 hover:text-ink'
-                  : 'border-accent/50 bg-accent/15 text-ink',
+                  ? 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
+                  : 'bg-accent/15 text-ink',
               ].join(' ')}
             >
               <ListTree size={12} strokeWidth={2} />
@@ -215,7 +215,7 @@ export function WorklogList({
             <button
               type="button"
               onClick={() => setDesc((v) => !v)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-muted hover:bg-surface-2 hover:text-ink"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
             >
               <ArrowDownUp size={12} strokeWidth={2} />
               {desc ? t('list.sort.desc') : t('list.sort.asc')}
@@ -224,7 +224,7 @@ export function WorklogList({
               type="button"
               onClick={() => void reload()}
               disabled={loading}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
             >
               <RefreshCw size={12} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
               {t('list.reload')}
@@ -232,7 +232,7 @@ export function WorklogList({
             <button
               type="button"
               onClick={onAchievements}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-muted hover:bg-surface-2 hover:text-ink"
+              className="mr-1 inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
             >
               <Award size={12} strokeWidth={2} />
               {t('list.achievements')}
@@ -257,17 +257,17 @@ export function WorklogList({
               {t('list.loading')}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-lg border border-hairline bg-surface-1 py-16 text-center text-[12px] text-ink-tertiary">
+            <div className="rounded-lg border border-hairline py-16 text-center text-[12px] text-ink-tertiary">
               {pages.length === 0 ? t('list.empty') : t('list.emptyFiltered')}
             </div>
           ) : groups ? (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-6">
               {groups.map((g) => (
                 <div key={g.key}>
                   <button
                     type="button"
                     onClick={() => toggleGroup(g.key)}
-                    className="mb-1.5 flex w-full items-center gap-1.5 px-1 text-[12px] font-medium text-ink-subtle hover:text-ink"
+                    className="mb-2 flex w-full items-center gap-1.5 px-1 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase transition-colors hover:text-ink"
                   >
                     <ChevronDown
                       size={13}
@@ -281,7 +281,7 @@ export function WorklogList({
                     <span className="font-mono text-ink-tertiary">{g.rows.length}</span>
                   </button>
                   {!collapsed.has(g.key) && (
-                    <div className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
+                    <div className="overflow-hidden rounded-lg border border-hairline divide-y divide-hairline">
                       {g.rows.map((p) => (
                         <PageRow
                           key={p.pageId}
@@ -302,7 +302,7 @@ export function WorklogList({
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="overflow-hidden rounded-lg border border-hairline bg-surface-1"
+              className="overflow-hidden rounded-lg border border-hairline divide-y divide-hairline"
             >
               {visible.map((p) => (
                 <PageRow
@@ -404,11 +404,14 @@ function PageRow({
       type="button"
       onClick={() => onOpen(page)}
       className={[
-        'flex w-full items-center gap-4 border-b border-hairline px-4 py-3.5 text-left text-[13px] transition-[background-color] last:border-b-0',
+        'flex w-full items-center gap-3 px-4 py-3 text-left text-[13px] transition-[background-color]',
         selected ? 'bg-surface-2 ring-1 ring-accent/50 ring-inset' : 'hover:bg-surface-2',
       ].join(' ')}
     >
-      <span className="min-w-0 flex-1 truncate text-ink">{page.title}</span>
+      <span className="w-20 shrink-0 font-mono text-[12px] text-ink-tertiary tabular-nums">
+        {page.date ?? '—'}
+      </span>
+      <span className="min-w-0 flex-1 truncate font-medium text-ink">{page.title}</span>
       {counts && (
         <span className="hidden shrink-0 items-center gap-2.5 font-mono text-[11px] text-ink-tertiary lg:flex">
           <span className="flex items-center gap-1" title="GitHub PR">
@@ -428,9 +431,6 @@ function PageRow({
         ].join(' ')}
       >
         {t(catKey(page.category))}
-      </span>
-      <span className="w-22 shrink-0 text-right font-mono text-[12px] text-ink-muted">
-        {page.date ?? '—'}
       </span>
       {page.status && (
         <span
@@ -459,7 +459,7 @@ function SinkStack({ page, t }: { page: RecentPage; t: T }) {
         <span
           key={s}
           className={[
-            'flex size-3.5 shrink-0 items-center justify-center rounded-full ring-2 ring-surface-1 first:ml-0 -ml-1.5',
+            'flex size-3.5 shrink-0 items-center justify-center rounded-full ring-2 ring-canvas first:ml-0 -ml-1.5',
             SINK_TILE[s],
           ].join(' ')}
         >
