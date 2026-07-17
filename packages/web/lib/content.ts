@@ -2,7 +2,53 @@ export type Lang = 'en' | 'ko';
 
 export const content = {
   en: {
-    nav: { how: 'How it works', worklog: 'Worklog', setup: 'Setup' },
+    nav: { how: 'How it works', worklog: 'Worklog', setup: 'Setup', pricing: 'Pricing' },
+    pricing: {
+      eyebrow: 'Pricing',
+      title: 'Free to stack. Pro when you need more.',
+      lead: 'The core loop — collect, summarize, journal — is free and open source. Pro unlocks the power features, once.',
+      footnote:
+        'Pro is a one-time purchase with a license key — no subscription. You bring your own Claude account and tokens on every plan; cairn never meters your model usage.',
+      back: 'Back to home',
+      free: {
+        name: 'Free',
+        price: '$0',
+        note: 'forever',
+        features: [
+          'GitHub (1 account) + local git collection',
+          'Claude summaries, any model',
+          'Local Markdown journal',
+          'Notion publishing (1 workspace)',
+          'Daily · weekly · monthly rollups',
+          'Dashboard & graph view',
+          'Backfill up to 7 days',
+        ],
+        cta: 'Download',
+      },
+      pro: {
+        name: 'Pro',
+        price: '$29',
+        note: 'one-time',
+        features: [
+          'Everything in Free',
+          'Custom prompts per period',
+          'Multiple GitHub accounts',
+          'Multiple Notion workspaces',
+          'Unlimited backfill',
+          'Yearly rollup + Wrapped',
+          'Graph customization',
+        ],
+        cta: 'Buy Pro',
+        ctaSoon: 'Checkout opening soon',
+      },
+      cloud: {
+        name: 'Cloud',
+        price: '—',
+        note: 'coming later',
+        features: ['End-to-end encrypted sync', 'Cloud backup', 'Long-term snapshot retention'],
+        cta: 'Planned',
+      },
+    },
     hero: {
       badge: 'Open source · free · runs on your machine',
       h1a: 'Your daily work,',
@@ -163,7 +209,53 @@ export const content = {
     footer: { docs: 'Docs', privacy: 'Privacy Policy', terms: 'Terms of Service' },
   },
   ko: {
-    nav: { how: '작동 방식', worklog: '일지', setup: '설정' },
+    nav: { how: '작동 방식', worklog: '일지', setup: '설정', pricing: '요금제' },
+    pricing: {
+      eyebrow: 'Pricing',
+      title: '핵심은 무료, 더 필요할 때만 Pro.',
+      lead: '수집 → 요약 → 일지 코어 루프는 무료 오픈소스입니다. Pro 는 파워 기능을 한 번의 결제로 엽니다.',
+      footnote:
+        'Pro 는 라이선스 키 방식의 일회성 구매입니다 — 구독 아님. 모든 플랜에서 Claude 계정·토큰은 본인 것을 쓰고, cairn 은 모델 사용량에 과금하지 않습니다.',
+      back: '홈으로',
+      free: {
+        name: 'Free',
+        price: '$0',
+        note: '영원히',
+        features: [
+          'GitHub 1계정 + 로컬 git 수집',
+          'Claude 요약 — 모델 자유 선택',
+          '로컬 마크다운 일지',
+          '노션 발행 (1워크스페이스)',
+          '일간 · 주간 · 월간 롤업',
+          '대시보드 · 그래프 뷰',
+          '백필 7일',
+        ],
+        cta: '다운로드',
+      },
+      pro: {
+        name: 'Pro',
+        price: '$29',
+        note: '일회성',
+        features: [
+          'Free 의 전부',
+          '기간별 커스텀 프롬프트',
+          '멀티 GitHub 계정',
+          '멀티 노션 워크스페이스',
+          '백필 무제한',
+          '연간 롤업 + Wrapped',
+          '그래프 커스터마이징',
+        ],
+        cta: 'Pro 구매',
+        ctaSoon: '결제 준비 중',
+      },
+      cloud: {
+        name: 'Cloud',
+        price: '—',
+        note: '나중에',
+        features: ['E2E 암호화 동기화', '클라우드 백업', '스냅샷 장기 보존'],
+        cta: '계획됨',
+      },
+    },
     hero: {
       badge: '오픈소스 · 무료 · 내 컴퓨터에서 실행',
       h1a: 'Your daily work,',

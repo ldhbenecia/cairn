@@ -17,6 +17,7 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
     { href: '#how', label: c.how },
     { href: '#output', label: c.worklog },
     { href: lang === 'ko' ? '/ko/setup/notion' : '/setup/notion', label: c.setup },
+    { href: lang === 'ko' ? '/ko/pricing' : '/pricing', label: c.pricing },
   ];
 
   // fixed (sticky X) — body { overflow-x: hidden } 이 sticky 의 스크롤 컨테이너를 body 로 만들어 고정이 풀림
