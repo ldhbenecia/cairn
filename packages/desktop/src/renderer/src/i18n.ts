@@ -372,6 +372,9 @@ const STRINGS = {
     'prefs.notifications.test': '알림 테스트',
     'prefs.notifications.testDesc': '안 뜨면 macOS 시스템 설정 → 알림에서 cairn 허용 확인',
     'prefs.notifications.testBtn': '테스트 알림 보내기',
+    'prefs.notifications.sendBtn': '보내기',
+    'prefs.notifications.macos': 'macOS 알림 설정',
+    'prefs.notifications.openBtn': '열기',
     'prefs.notifications.openSettings': 'macOS 알림 설정 열기',
     'prefs.notifications.sent': '보냈어요',
     'prefs.notifications.sentHint':
@@ -908,6 +911,9 @@ const STRINGS = {
     'prefs.notifications.testDesc':
       'If nothing shows, allow cairn in macOS System Settings → Notifications',
     'prefs.notifications.testBtn': 'Send a test notification',
+    'prefs.notifications.sendBtn': 'Send',
+    'prefs.notifications.macos': 'macOS notification settings',
+    'prefs.notifications.openBtn': 'Open',
     'prefs.notifications.openSettings': 'Open macOS notification settings',
     'prefs.notifications.sent': 'Sent',
     'prefs.notifications.sentHint':
