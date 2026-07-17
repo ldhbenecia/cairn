@@ -168,6 +168,13 @@ export type GraphConfig = {
   showRollups: boolean;
 };
 export type QuickCaptureConfig = { enabled: boolean; shortcut: string };
+export type BackupConfig = { enabled: boolean };
+export type BackupStatus = {
+  state: 'disabled' | 'no-git' | 'no-repo' | 'idle' | 'syncing';
+  hasRemote: boolean;
+  lastBackupAt: number | null;
+  error: 'pull-failed' | 'identity-missing' | 'commit-failed' | 'push-failed' | null;
+};
 export type Settings = {
   theme: Theme;
   accent: string;
@@ -188,6 +195,7 @@ export type Settings = {
   export: ExportConfig;
   graph: GraphConfig;
   quickCapture: QuickCaptureConfig;
+  backup: BackupConfig;
 };
 
 declare global {
@@ -249,6 +257,10 @@ declare global {
       readConfig: () => Promise<ConfigResult>;
       listRecent: () => Promise<RecentListResult>;
       pageContent: (pageId: string, workspaceLabel: string) => Promise<PageContent>;
+      backup: {
+        status: () => Promise<BackupStatus>;
+        now: () => Promise<BackupStatus>;
+      };
       capture: {
         add: (text: string) => Promise<{ ok: boolean; count: number }>;
         open: () => Promise<void>;
