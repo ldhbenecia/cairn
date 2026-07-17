@@ -27,6 +27,15 @@ const HL_PERSIST = [true, false, false, false, false];
 
 export async function Landing({ lang }: { lang: Lang }) {
   const c = content[lang];
+  // Instrument Serif 는 한글 글리프가 없어 ko 타이틀은 sans 유지 (nudgeo KR 패턴 — 히어로만 영문 세리프)
+  const headClass =
+    lang === 'ko'
+      ? 'text-[clamp(26px,3.4vw,36px)] font-semibold tracking-[-0.025em]'
+      : 'font-display text-[clamp(32px,4.4vw,46px)] leading-[1.08]';
+  const ctaClass =
+    lang === 'ko'
+      ? 'text-[clamp(27px,3.8vw,40px)] font-semibold tracking-[-0.03em]'
+      : 'font-display text-[clamp(34px,4.6vw,50px)] leading-[1.08]';
   const { stars, latestTag } = await getRepoStats();
   const download = RELEASES_LATEST;
   const unblockCmd = 'xattr -d com.apple.quarantine /Applications/Cairn.app';
@@ -98,7 +107,12 @@ export async function Landing({ lang }: { lang: Lang }) {
       </section>
 
       <section id="how" className="mx-auto max-w-6xl scroll-mt-14 px-6 py-24">
-        <SectionHead eyebrow={c.how.eyebrow} title={c.how.title} lead={c.how.lead} />
+        <SectionHead
+          eyebrow={c.how.eyebrow}
+          title={c.how.title}
+          lead={c.how.lead}
+          titleClass={headClass}
+        />
         <div className="mt-14 grid grid-cols-1 gap-3 md:grid-cols-4 md:grid-rows-2">
           <Reveal className="md:col-span-2 md:row-span-2">
             <div className="card-hover group/c relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-hairline bg-surface-1 p-8">
@@ -145,6 +159,7 @@ export async function Landing({ lang }: { lang: Lang }) {
           eyebrow={c.highlights.eyebrow}
           title={c.highlights.title}
           lead={c.highlights.lead}
+          titleClass={headClass}
         />
         <Reveal className="mt-10">
           <BentoGrid items={highlightItems} />
@@ -153,7 +168,12 @@ export async function Landing({ lang }: { lang: Lang }) {
 
       <section id="output" className="scroll-mt-14 border-y border-hairline bg-surface-1/40">
         <div className="mx-auto max-w-6xl px-6 py-24">
-          <SectionHead eyebrow={c.output.eyebrow} title={c.output.title} lead={c.output.lead} />
+          <SectionHead
+            eyebrow={c.output.eyebrow}
+            title={c.output.title}
+            lead={c.output.lead}
+            titleClass={headClass}
+          />
           <ul className="mx-auto mt-8 flex max-w-3xl flex-wrap justify-center gap-2.5">
             {c.output.ticks.map((t) => (
               <li
@@ -175,7 +195,12 @@ export async function Landing({ lang }: { lang: Lang }) {
       </section>
 
       <section id="setup" className="mx-auto max-w-6xl scroll-mt-14 px-6 py-24">
-        <SectionHead eyebrow={c.setup.eyebrow} title={c.setup.title} lead={c.setup.lead} />
+        <SectionHead
+          eyebrow={c.setup.eyebrow}
+          title={c.setup.title}
+          lead={c.setup.lead}
+          titleClass={headClass}
+        />
         <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
           <SetupCard tag="Notion" title={c.setup.notion.title}>
             <li>
@@ -231,7 +256,12 @@ export async function Landing({ lang }: { lang: Lang }) {
       </section>
 
       <section id="faq" className="mx-auto max-w-6xl scroll-mt-14 px-6 pb-24">
-        <SectionHead eyebrow={c.faq.eyebrow} title={c.faq.title} lead={c.faq.lead} />
+        <SectionHead
+          eyebrow={c.faq.eyebrow}
+          title={c.faq.title}
+          lead={c.faq.lead}
+          titleClass={headClass}
+        />
         <Reveal delay={0.06} className="mx-auto mt-12 max-w-2xl">
           <Accordion items={c.faq.items} idPrefix="faq" />
         </Reveal>
@@ -246,9 +276,7 @@ export async function Landing({ lang }: { lang: Lang }) {
                 'linear-gradient(to right, transparent, color-mix(in srgb, var(--color-accent) 60%, transparent), transparent)',
             }}
           />
-          <h2 className="font-display text-[clamp(34px,4.6vw,50px)] leading-[1.08] text-balance">
-            {c.cta.title}
-          </h2>
+          <h2 className={`${ctaClass} text-balance`}>{c.cta.title}</h2>
           <a
             href={download}
             className="mt-8 inline-block rounded-full bg-accent px-7 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-accent-hover"
@@ -357,16 +385,24 @@ function BentoTile({
   );
 }
 
-function SectionHead({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: string }) {
+function SectionHead({
+  eyebrow,
+  title,
+  lead,
+  titleClass,
+}: {
+  eyebrow: string;
+  title: string;
+  lead: string;
+  titleClass: string;
+}) {
   return (
     <div className="text-center">
       <p className="mb-3.5 inline-flex items-center gap-2 font-mono text-[12px] tracking-wider text-ink-tertiary uppercase">
         <span className="size-1 rounded-full bg-accent" />
         {eyebrow}
       </p>
-      <h2 className="font-display text-[clamp(32px,4.4vw,46px)] leading-[1.08] text-balance">
-        {title}
-      </h2>
+      <h2 className={`${titleClass} text-balance`}>{title}</h2>
       <p className="mx-auto mt-4 max-w-xl text-[15.5px] leading-relaxed text-ink-subtle text-balance">
         {lead}
       </p>
