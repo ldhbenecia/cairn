@@ -287,7 +287,7 @@ export function Dashboard({
                 className="flex items-center gap-1.5 rounded-md border border-hairline bg-surface-1 px-2.5 py-1.5 text-[12.5px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
               >
                 <ChartPie size={13} strokeWidth={2} className="text-accent-hover" />
-                Wrapped
+                {t('wrapped.title')}
               </button>
             )}
           </div>
