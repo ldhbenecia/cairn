@@ -261,7 +261,7 @@ export function AchievementsDialog({
                       </span>
                       <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-surface-2">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-accent to-accent-hover"
+                          className="h-full rounded-full bg-accent"
                           style={{ width: `${Math.round((count / maxCount) * 100)}%` }}
                         />
                       </div>
