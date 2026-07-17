@@ -24,8 +24,8 @@ import { Dashboard } from './components/dashboard';
 import { GraphView } from './components/graph-view';
 import { Onboarding } from './components/onboarding';
 import { PreferencesDialog } from './components/preferences-dialog';
-import { AchievementsDialog } from './components/achievements-dialog';
 import { CommandPalette } from './components/command-palette';
+import { ReportsView } from './components/reports-view';
 import { StandupDialog } from './components/standup-dialog';
 import { WrappedDialog } from './components/wrapped-dialog';
 import { WorklogDrawer } from './components/worklog-drawer';
@@ -75,7 +75,6 @@ export function App() {
   const [cmdkOpen, setCmdkOpen] = useState(false);
   // 팔레트 발행 → worklogs 뷰의 PublishDialog 를 진행 화면으로 여는 신호
   const [publishProgressSignal, setPublishProgressSignal] = useState(0);
-  const [achvOpen, setAchvOpen] = useState(false);
   const [standupOpen, setStandupOpen] = useState(false);
   const [wrappedOpen, setWrappedOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
@@ -423,6 +422,10 @@ export function App() {
           setPrefsOpen(false);
           setView('graph');
         }}
+        onOpenReports={() => {
+          setPrefsOpen(false);
+          setView('reports');
+        }}
         onOpenPreferences={() => setPrefsOpen(true)}
         onOpenPalette={() => setCmdkOpen(true)}
       />
@@ -442,6 +445,8 @@ export function App() {
         />
       ) : activeView === 'graph' ? (
         <GraphView recent={recent} onOpen={setSelectedPage} />
+      ) : activeView === 'reports' ? (
+        <ReportsView recent={recent} />
       ) : (
         <WorklogList
           recent={recent}
@@ -452,7 +457,6 @@ export function App() {
           onOpenPublished={(pageId, url) => void openPublishedPage(pageId, url)}
           onReload={loadRecent}
           onOpen={setSelectedPage}
-          onAchievements={() => setAchvOpen(true)}
           drawerOpen={selectedPage !== null}
           publishProgressSignal={publishProgressSignal}
           onConsumePublishSignal={() => setPublishProgressSignal(0)}
@@ -475,19 +479,9 @@ export function App() {
               void trigger(mode);
             }}
             onOpenPage={setSelectedPage}
-            onAchievements={() => setAchvOpen(true)}
             onStandup={() => setStandupOpen(true)}
             onQuickCapture={() => void window.cairn.capture.open()}
             onWrapped={() => setWrappedOpen(true)}
-          />
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {achvOpen && (
-          <AchievementsDialog
-            key="achievements"
-            recent={recent}
-            onClose={() => setAchvOpen(false)}
           />
         )}
       </AnimatePresence>

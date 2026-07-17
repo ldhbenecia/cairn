@@ -1,6 +1,5 @@
 import {
   ArrowDownUp,
-  Award,
   ChevronDown,
   GitCommitHorizontal,
   GitPullRequest,
@@ -44,7 +43,6 @@ type Props = {
   onOpenPublished: (pageId: string, url: string | null) => void;
   onReload: () => Promise<unknown>;
   onOpen: (page: RecentPage) => void;
-  onAchievements: () => void;
   drawerOpen: boolean;
 };
 
@@ -74,7 +72,6 @@ export function WorklogList({
   onOpenPublished,
   onReload,
   onOpen,
-  onAchievements,
   drawerOpen,
 }: Props) {
   const { t } = useSettings();
@@ -140,7 +137,7 @@ export function WorklogList({
     if (drawerOpen) return;
     const onKey = (e: KeyboardEvent): void => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      // CommandPalette·AchievementsDialog 등 App 소유 오버레이 상태는 prop 으로 안 내려옴 —
+      // CommandPalette·StandupDialog 등 App 소유 오버레이 상태는 prop 으로 안 내려옴 —
       // 열린 오버레이는 전부 role="dialog"(radix) 또는 fixed inset-0 레이어로만 마운트되므로 DOM 으로 감지
       if (document.querySelector('[role="dialog"]')) return;
       if (e.key === 'ArrowDown') {
@@ -228,14 +225,6 @@ export function WorklogList({
             >
               <RefreshCw size={12} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
               {t('list.reload')}
-            </button>
-            <button
-              type="button"
-              onClick={onAchievements}
-              className="mr-1 inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
-            >
-              <Award size={12} strokeWidth={2} />
-              {t('list.achievements')}
             </button>
             <PublishDialog
               sessions={sessions}

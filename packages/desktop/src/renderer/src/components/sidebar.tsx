@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CalendarRange,
   ChartColumn,
+  ChartGantt,
   LayoutList,
   Command,
   LogIn,
@@ -20,7 +21,7 @@ import { AccountStatusPill } from './account-status-pill';
 import { BrandMark } from './brand-mark';
 
 export type WorklogFilter = 'all' | 'daily' | 'weekly' | 'monthly' | 'yearly';
-export type MainView = 'worklogs' | 'stats' | 'graph';
+export type MainView = 'worklogs' | 'stats' | 'graph' | 'reports';
 
 export type FilterCounts = Record<WorklogFilter, number>;
 
@@ -41,6 +42,7 @@ type Props = {
   onFilterChange: (f: WorklogFilter) => void;
   onOpenStats: () => void;
   onOpenGraph: () => void;
+  onOpenReports: () => void;
   onOpenPreferences: () => void;
   onOpenPalette: () => void;
 };
@@ -54,6 +56,7 @@ export function Sidebar({
   onFilterChange,
   onOpenStats,
   onOpenGraph,
+  onOpenReports,
   onOpenPreferences,
   onOpenPalette,
 }: Props) {
@@ -93,6 +96,12 @@ export function Sidebar({
             onClick={onOpenGraph}
           />
         )}
+        <FilterItem
+          icon={ChartGantt}
+          label={t('nav.reports')}
+          active={!preferencesActive && view === 'reports'}
+          onClick={onOpenReports}
+        />
 
         <div className="px-2 pb-2.5 pt-7 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
           {t('brand.worklog')}

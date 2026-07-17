@@ -1,6 +1,6 @@
 import {
-  Award,
   BarChart3,
+  ChartGantt,
   ChartPie,
   FileText,
   MessageSquareText,
@@ -15,17 +15,17 @@ import { motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CoreMode, RecentListResult, RecentPage } from '../cairn-api';
 import { useSettings } from '../settings-context';
+import type { MainView } from './sidebar';
 
 type Cmd = { id: string; label: string; hint?: string; icon: React.ReactNode; run: () => void };
 
 type Props = {
   recent: RecentListResult | null;
   onClose: () => void;
-  onView: (v: 'stats' | 'worklogs' | 'graph') => void;
+  onView: (v: MainView) => void;
   onPreferences: () => void;
   onPublish: (mode: CoreMode) => void;
   onOpenPage: (page: RecentPage) => void;
-  onAchievements: () => void;
   onStandup: () => void;
   onQuickCapture: () => void;
   onWrapped: () => void;
@@ -38,7 +38,6 @@ export function CommandPalette({
   onPreferences,
   onPublish,
   onOpenPage,
-  onAchievements,
   onStandup,
   onQuickCapture,
   onWrapped,
@@ -138,10 +137,10 @@ export function CommandPalette({
           ]
         : []),
       {
-        id: 'achievements',
+        id: 'view-reports',
         label: t('cmd.achievements'),
-        icon: <Award size={12} strokeWidth={2} />,
-        run: onAchievements,
+        icon: <ChartGantt size={12} strokeWidth={2} />,
+        run: () => onView('reports'),
       },
       {
         id: 'prefs',
@@ -156,7 +155,6 @@ export function CommandPalette({
     onPublish,
     onView,
     onPreferences,
-    onAchievements,
     onStandup,
     onQuickCapture,
     onWrapped,
