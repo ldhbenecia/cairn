@@ -261,13 +261,13 @@ export function WorklogList({
               {pages.length === 0 ? t('list.empty') : t('list.emptyFiltered')}
             </div>
           ) : groups ? (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-5">
               {groups.map((g) => (
                 <div key={g.key}>
                   <button
                     type="button"
                     onClick={() => toggleGroup(g.key)}
-                    className="mb-2 flex w-full items-center gap-1.5 px-1 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase transition-colors hover:text-ink"
+                    className="mb-1 flex w-full items-center gap-1.5 px-1 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase transition-colors hover:text-ink"
                   >
                     <ChevronDown
                       size={13}
@@ -281,7 +281,7 @@ export function WorklogList({
                     <span className="font-mono text-ink-tertiary">{g.rows.length}</span>
                   </button>
                   {!collapsed.has(g.key) && (
-                    <div className="overflow-hidden rounded-lg border border-hairline divide-y divide-hairline">
+                    <div className="divide-y divide-hairline">
                       {g.rows.map((p) => (
                         <PageRow
                           key={p.pageId}
@@ -302,7 +302,7 @@ export function WorklogList({
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="overflow-hidden rounded-lg border border-hairline divide-y divide-hairline"
+              className="divide-y divide-hairline"
             >
               {visible.map((p) => (
                 <PageRow
@@ -343,17 +343,21 @@ export function WorklogList({
   );
 }
 
-const CATEGORY_STYLE: Record<RecentCategory, string> = {
-  daily: 'chip-daily',
-  weekly: 'chip-weekly',
-  monthly: 'chip-monthly',
-  yearly: 'chip-yearly',
+const CATEGORY_DOT: Record<RecentCategory, string> = {
+  daily: 'dot-daily',
+  weekly: 'dot-weekly',
+  monthly: 'dot-monthly',
+  yearly: 'dot-yearly',
 };
 
-const STATUS_STYLE: Record<string, string> = {
-  draft: 'chip-draft',
-  final: 'chip-final',
-};
+// 제목의 날짜 프리픽스("2026-07-17 작업 일지"·"2026-W29 주간 정리")는 우측 mono 라벨로 옮겨 이중 표기 제거
+const TITLE_DATE_RE = /^(\d{4}(?:-(?:W\d{2}|\d{2}))?(?:-\d{2})?)\s+(.+)$/;
+
+function splitTitle(page: RecentPage): { title: string; dateLabel: string } {
+  const m = TITLE_DATE_RE.exec(page.title);
+  if (m) return { title: m[2]!, dateLabel: m[1]! };
+  return { title: page.title, dateLabel: page.date ?? '—' };
+}
 
 type Group = { key: string; label: string; rows: RecentPage[] };
 
@@ -394,6 +398,7 @@ function PageRow({
 }) {
   const counts =
     page.pr !== null || page.commit !== null ? { gh: page.pr ?? 0, git: page.commit ?? 0 } : null;
+  const { title, dateLabel } = splitTitle(page);
   const ref = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: 'nearest' });
@@ -404,14 +409,15 @@ function PageRow({
       type="button"
       onClick={() => onOpen(page)}
       className={[
-        'flex w-full items-center gap-3 px-4 py-3 text-left text-[13px] transition-[background-color]',
+        'group flex h-10 w-full items-center gap-3 px-3 text-left text-[13px] transition-[background-color]',
         selected ? 'bg-surface-2 ring-1 ring-accent/50 ring-inset' : 'hover:bg-surface-2',
       ].join(' ')}
     >
-      <span className="w-20 shrink-0 font-mono text-[12px] text-ink-tertiary tabular-nums">
-        {page.date ?? '—'}
-      </span>
-      <span className="min-w-0 flex-1 truncate font-medium text-ink">{page.title}</span>
+      <span
+        className={['size-1.5 shrink-0 rounded-full', CATEGORY_DOT[page.category]].join(' ')}
+        title={t(catKey(page.category))}
+      />
+      <span className="min-w-0 flex-1 truncate font-medium text-ink">{title}</span>
       {counts && (
         <span className="hidden shrink-0 items-center gap-2.5 font-mono text-[11px] text-ink-tertiary lg:flex">
           <span className="flex items-center gap-1" title="GitHub PR">
@@ -424,26 +430,18 @@ function PageRow({
           </span>
         </span>
       )}
-      <span
-        className={[
-          'shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium',
-          CATEGORY_STYLE[page.category],
-        ].join(' ')}
-      >
-        {t(catKey(page.category))}
-      </span>
-      {page.status && (
+      {page.status && page.status !== 'final' && (
         <span
           title={page.status}
-          className={[
-            'max-w-24 shrink-0 truncate rounded-md border px-2 py-0.5 text-center text-[11px] font-medium',
-            STATUS_STYLE[page.status] ?? 'border-hairline text-ink-tertiary',
-          ].join(' ')}
+          className="max-w-24 shrink-0 truncate text-[11px] text-ink-tertiary"
         >
           {page.status}
         </span>
       )}
       <SinkStack page={page} t={t} />
+      <span className="shrink-0 font-mono text-[12px] whitespace-nowrap text-ink-tertiary tabular-nums">
+        {dateLabel}
+      </span>
     </button>
   );
 }
@@ -452,7 +450,7 @@ function SinkStack({ page, t }: { page: RecentPage; t: T }) {
   const sinks = pageSinks(page);
   return (
     <span
-      className="hidden w-12 shrink-0 items-center justify-end sm:flex"
+      className="hidden w-12 shrink-0 items-center justify-end opacity-0 transition-opacity group-hover:opacity-100 sm:flex"
       title={sinks.map((s) => sinkLabel(s, page, t('source.localDesc'))).join(' · ')}
     >
       {sinks.map((s) => (
