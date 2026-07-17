@@ -14,7 +14,6 @@ import { enforceBlockEgress } from './block-egress.js';
 import { NotionApiClient } from './notion-api.client.js';
 import {
   bulletItem,
-  callout,
   claudeCallout,
   codeBlock,
   heading2,
@@ -356,7 +355,7 @@ function buildSummaryBlocks(
     const inK = (u.inputTokens / 1000).toFixed(1);
     const outK = (u.outputTokens / 1000).toFixed(1);
     const cost = u.costUsd.toFixed(4);
-    blocks.push(callout('🪙', `Summarizer usage — ${inK}K in / ${outK}K out / $${cost}`));
+    blocks.push(paragraph(`Summarizer usage — ${inK}K in / ${outK}K out / $${cost}`));
   }
 
   if (isOperator()) {

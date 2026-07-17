@@ -84,6 +84,7 @@ export function renderRollupJournalMarkdown(input: RollupJournalInput): string {
   ]);
   const s = input.summary;
   const body: string[] = ['## Summary', '', s.paragraph, ''];
+  if (s.commentary) body.push('## Commentary', '', s.commentary, '');
   pushBullets(body, 'Highlights', s.highlights);
   for (const theme of s.themes) {
     pushBullets(body, theme.title, theme.items);

@@ -40,7 +40,8 @@ function createCaptureWindow(): BrowserWindow {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
   win.setAlwaysOnTop(true, 'floating');
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // visibleOnFullScreen 은 macOS 에서 dock 아이콘 숨김을 요구해 dock 이 사라진다 — 미사용
+  win.setVisibleOnAllWorkspaces(true);
 
   win.on('blur', () => {
     if (win.isVisible()) hidePanel(win);

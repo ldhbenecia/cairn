@@ -9,5 +9,6 @@ export interface RollupSummary {
   paragraph: string;
   themes: readonly RollupTheme[];
   highlights: readonly string[];
+  commentary?: string;
   usage?: WorklogSummaryUsage;
 }

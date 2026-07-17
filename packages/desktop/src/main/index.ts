@@ -19,7 +19,7 @@ import {
 } from './capture-window';
 import { addMemo } from './memo-store';
 import { warmClaudePath } from './claude-path';
-import { exportStatus, pickExportFolder, saveMarkdown, savePdf } from './export';
+import { exportStatus, pickExportFolder, saveMarkdown, savePdf, savePng } from './export';
 import { sendTestNotification } from './notifier';
 import {
   busyState,
@@ -238,6 +238,9 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:notify:test', () => sendTestNotification());
   ipcMain.handle('cairn:export:save-pdf', (_e, defaultName: string, html: string) =>
     savePdf(defaultName, html),
+  );
+  ipcMain.handle('cairn:export:save-png', (_e, defaultName: string, dataUrl: string) =>
+    savePng(defaultName, dataUrl),
   );
   ipcMain.handle('cairn:open-external', (_e, url: string) => {
     try {

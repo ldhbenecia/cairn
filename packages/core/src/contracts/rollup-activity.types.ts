@@ -25,6 +25,15 @@ export interface RollupMetrics {
   dailyCount: number;
 }
 
+// AI 해설(commentary)용 직전 기간 컨텍스트 — 메트릭은 로컬 통계, paragraph 는 직전 롤업 journal
+export interface RollupPreviousContext {
+  rangeStart: string;
+  rangeEnd: string;
+  prCount: number;
+  commitCount: number;
+  paragraph: string | null;
+}
+
 export interface RollupActivity {
   period: RollupPeriod;
   rangeStart: string;
@@ -32,5 +41,6 @@ export interface RollupActivity {
   dailies: readonly RollupDailyPageMeta[];
   summaries: readonly RollupDailySummaryText[];
   metrics: RollupMetrics;
+  previous?: RollupPreviousContext;
   error?: CairnError;
 }

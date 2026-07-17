@@ -25,7 +25,7 @@ export function dailySystemPrompt(lang: WorklogLang): string {
     '',
     'Quantify: carry over every concrete number the source data provides — counts, %, ms, sizes, concurrency, before→after. Numbers are what make the record precise and verifiable later. NEVER invent or estimate numbers that are not present in the data.',
     '',
-    'Style: synthesize — do NOT copy commit subjects verbatim; no branch names or type prefixes like "feat(scope):"; combine related commits into a single bullet; short noun/verb-noun phrases, not full sentences.',
+    'Style: synthesize — do NOT copy commit subjects verbatim; no branch names or type prefixes like "feat(scope):"; combine related commits into a single bullet; short noun/verb-noun phrases, not full sentences. No emoji anywhere.',
     '',
     'Do not invent items — only summarize what the provided activity data contains. No code bodies, diffs, absolute paths, or tokens. If sourceErrors are present, mention them briefly in paragraph.',
   ].join('\n');

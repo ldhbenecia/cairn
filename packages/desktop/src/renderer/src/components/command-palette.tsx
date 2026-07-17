@@ -1,5 +1,7 @@
 import {
+  Award,
   BarChart3,
+  ChartPie,
   FileText,
   MessageSquareText,
   Orbit,
@@ -7,7 +9,6 @@ import {
   Plus,
   Search,
   Settings,
-  Sparkles,
   SquareArrowOutUpRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -27,6 +28,7 @@ type Props = {
   onAchievements: () => void;
   onStandup: () => void;
   onQuickCapture: () => void;
+  onWrapped: () => void;
 };
 
 export function CommandPalette({
@@ -39,6 +41,7 @@ export function CommandPalette({
   onAchievements,
   onStandup,
   onQuickCapture,
+  onWrapped,
 }: Props) {
   const { t, settings } = useSettings();
   const [q, setQ] = useState('');
@@ -95,6 +98,12 @@ export function CommandPalette({
         run: () => onPublish('yearly'),
       },
       {
+        id: 'wrapped',
+        label: t('cmd.wrapped'),
+        icon: <ChartPie size={12} strokeWidth={2} />,
+        run: onWrapped,
+      },
+      {
         id: 'standup',
         label: t('cmd.standup'),
         icon: <MessageSquareText size={12} strokeWidth={2} />,
@@ -131,7 +140,7 @@ export function CommandPalette({
       {
         id: 'achievements',
         label: t('cmd.achievements'),
-        icon: <Sparkles size={12} strokeWidth={2} />,
+        icon: <Award size={12} strokeWidth={2} />,
         run: onAchievements,
       },
       {
@@ -150,6 +159,7 @@ export function CommandPalette({
     onAchievements,
     onStandup,
     onQuickCapture,
+    onWrapped,
   ]);
 
   const items = useMemo(() => {

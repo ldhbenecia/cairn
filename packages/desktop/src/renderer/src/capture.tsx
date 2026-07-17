@@ -13,6 +13,11 @@ applyTheme(window.cairn.initialSettings.theme);
 applyAccent(window.cairn.initialSettings.accent);
 applyGlass(window.cairn.initialSettings.liquidGlass);
 
+// 투명 창 — styles.css 의 html/body/#root canvas 배경을 인라인으로 무효화 (이중 박스 방지)
+for (const el of [document.documentElement, document.body, document.getElementById('root')!]) {
+  el.style.background = 'transparent';
+}
+
 function Capture() {
   const [text, setText] = useState('');
   const [saved, setSaved] = useState(false);

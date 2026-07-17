@@ -1,5 +1,6 @@
 import {
   ArrowDownUp,
+  Award,
   ChevronDown,
   GitCommitHorizontal,
   GitPullRequest,
@@ -8,7 +9,6 @@ import {
   Loader2,
   RefreshCw,
   Search,
-  Sparkles,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -234,7 +234,7 @@ export function WorklogList({
               onClick={onAchievements}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-muted hover:bg-surface-2 hover:text-ink"
             >
-              <Sparkles size={12} strokeWidth={2} />
+              <Award size={12} strokeWidth={2} />
               {t('list.achievements')}
             </button>
             <PublishDialog
