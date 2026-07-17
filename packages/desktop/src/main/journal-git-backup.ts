@@ -48,8 +48,8 @@ export function createJournalBackup(deps: BackupDeps): {
     error: null,
   };
   let timer: NodeJS.Timeout | null = null;
-  let running = false;
-  let queued = false;
+  // 요청 직렬화 체인 — 동시 요청은 순서대로, 각 호출의 pull 의도 보존
+  let chain: Promise<void> = Promise.resolve();
   // pull 충돌 알림은 error 진입 시 1회만 — 매 발행마다 반복 알림 방지
   let pullNotified = false;
 
@@ -86,7 +86,7 @@ export function createJournalBackup(deps: BackupDeps): {
     } catch {
       hasRemote = false;
     }
-    status = { ...status, state: 'syncing', hasRemote };
+    status = { ...status, state: 'syncing', hasRemote, error: null };
 
     if (pull && hasRemote) {
       try {
@@ -105,12 +105,18 @@ export function createJournalBackup(deps: BackupDeps): {
 
     try {
       await git(dir, ['config', 'user.email']);
+      await git(dir, ['config', 'user.name']);
     } catch {
       status = { ...status, state: 'idle', error: 'identity-missing' };
       return;
     }
 
-    await git(dir, ['add', '-A']).catch(() => {});
+    try {
+      await git(dir, ['add', '-A']);
+    } catch {
+      status = { ...status, state: 'idle', error: 'commit-failed' };
+      return;
+    }
     let changed = false;
     try {
       await git(dir, ['diff', '--cached', '--quiet']);
@@ -140,23 +146,16 @@ export function createJournalBackup(deps: BackupDeps): {
     status = { ...status, state: 'idle' };
   }
 
-  async function run(pull: boolean): Promise<void> {
-    if (running) {
-      queued = true;
-      return;
-    }
-    running = true;
-    try {
-      await doRun(pull);
-    } catch {
-      status = { ...status, state: 'idle' };
-    } finally {
-      running = false;
-      if (queued) {
-        queued = false;
-        void run(false);
+  function run(pull: boolean): Promise<void> {
+    const next = chain.then(async () => {
+      try {
+        await doRun(pull);
+      } catch {
+        status = { ...status, state: 'idle' };
       }
-    }
+    });
+    chain = next;
+    return next;
   }
 
   return {

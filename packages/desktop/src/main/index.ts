@@ -302,6 +302,8 @@ void app.whenReady().then(() => {
     };
   });
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {
+    // IPC 경계 — truthy 문자열이 백업을 켜는 것 방지
+    if (patch.backup) patch.backup = { enabled: patch.backup.enabled === true };
     const next = writeSettings(patch);
     if (patch.autoPublish) {
       reconfigureAutoPublish();
