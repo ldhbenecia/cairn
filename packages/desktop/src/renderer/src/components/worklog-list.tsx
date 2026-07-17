@@ -1,6 +1,8 @@
 import {
   ArrowDownUp,
+  CheckCircle2,
   ChevronDown,
+  Circle,
   GitCommitHorizontal,
   GitPullRequest,
   HardDrive,
@@ -398,6 +400,7 @@ function PageRow({
   const counts =
     page.pr !== null || page.commit !== null ? { gh: page.pr ?? 0, git: page.commit ?? 0 } : null;
   const title = rowTitle(page);
+  const status = page.status ?? t('list.statusNone');
   const ref = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: 'nearest' });
@@ -412,34 +415,46 @@ function PageRow({
         selected ? 'bg-surface-3 ring-1 ring-hairline-strong ring-inset' : 'hover:bg-surface-2',
       ].join(' ')}
     >
-      <span
-        className={['size-1.5 shrink-0 rounded-full', CATEGORY_DOT[page.category]].join(' ')}
-        role="img"
-        aria-label={t(catKey(page.category))}
-        title={t(catKey(page.category))}
-      />
+      <span className="flex shrink-0 items-center" role="img" aria-label={status} title={status}>
+        {page.status === 'final' ? (
+          <CheckCircle2 size={14} strokeWidth={2} className="text-success" />
+        ) : (
+          <Circle size={14} strokeWidth={2} className="text-ink-tertiary" />
+        )}
+      </span>
       <span className="min-w-0 flex-1 truncate font-medium text-ink">{title}</span>
       {counts && (
-        <span className="hidden shrink-0 items-center gap-2.5 font-mono text-[11px] text-ink-tertiary lg:flex">
-          <span className="flex items-center gap-1" title="GitHub PR">
+        <span className="hidden shrink-0 items-center gap-1.5 lg:flex">
+          <span
+            className="flex items-center gap-1 rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-tertiary"
+            title="GitHub PR"
+          >
             <GitPullRequest size={11} strokeWidth={2} />
             {counts.gh}
           </span>
-          <span className="flex items-center gap-1" title="commits">
+          <span
+            className="flex items-center gap-1 rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-tertiary"
+            title="commits"
+          >
             <GitCommitHorizontal size={11} strokeWidth={2} />
             {counts.git}
           </span>
         </span>
       )}
-      {page.status && page.status !== 'final' && (
+      <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-hairline px-2 py-0.5 text-[11px] text-ink-muted">
         <span
-          title={page.status}
-          className="max-w-24 shrink-0 truncate text-[11px] text-ink-tertiary"
-        >
-          {page.status}
+          className={['size-1.5 rounded-full', CATEGORY_DOT[page.category]].join(' ')}
+          aria-hidden="true"
+        />
+        {t(catKey(page.category))}
+      </span>
+      <SinkStack page={page} t={t} />
+      {/* 날짜 프리픽스 제목은 날짜가 곧 행 제목 — 커스텀 제목일 때만 우측 mono 날짜로 보충 (이중 표기 방지) */}
+      {title === page.title && page.date && page.date !== title && (
+        <span className="shrink-0 font-mono text-[11px] whitespace-nowrap text-ink-tertiary tabular-nums">
+          {page.date}
         </span>
       )}
-      <SinkStack page={page} t={t} />
     </button>
   );
 }
