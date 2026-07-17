@@ -424,6 +424,7 @@ export function App() {
           setView('graph');
         }}
         onOpenPreferences={() => setPrefsOpen(true)}
+        onOpenPalette={() => setCmdkOpen(true)}
       />
       <div
         onMouseDown={startResize}

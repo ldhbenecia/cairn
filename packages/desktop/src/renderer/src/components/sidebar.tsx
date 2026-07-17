@@ -7,6 +7,7 @@ import {
   LayoutList,
   LogIn,
   Orbit,
+  Search,
   LogOut,
   Settings2,
   type LucideIcon,
@@ -41,6 +42,7 @@ type Props = {
   onOpenStats: () => void;
   onOpenGraph: () => void;
   onOpenPreferences: () => void;
+  onOpenPalette: () => void;
 };
 
 export function Sidebar({
@@ -53,6 +55,7 @@ export function Sidebar({
   onOpenStats,
   onOpenGraph,
   onOpenPreferences,
+  onOpenPalette,
 }: Props) {
   const { t, settings } = useSettings();
   const worklogActive = !preferencesActive && view === 'worklogs';
@@ -61,6 +64,22 @@ export function Sidebar({
       <div className="h-20 [-webkit-app-region:drag]" />
       <div className="px-4 pb-5 [-webkit-app-region:drag]">
         <AccountTop onOpenPreferences={onOpenPreferences} />
+      </div>
+
+      <div className="px-4 pb-3">
+        <button
+          type="button"
+          onClick={onOpenPalette}
+          className="flex w-full items-center gap-2 rounded-md border border-hairline bg-surface-2/50 px-2.5 py-1.5 text-left transition-colors hover:bg-surface-2 [-webkit-app-region:no-drag]"
+        >
+          <Search size={13} strokeWidth={2} className="shrink-0 text-ink-tertiary" />
+          <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-tertiary">
+            {t('nav.palette')}
+          </span>
+          <kbd className="shrink-0 rounded border border-hairline-strong bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-tertiary">
+            ⌘K
+          </kbd>
+        </button>
       </div>
 
       <div className="flex flex-1 flex-col gap-0.5 px-4">
