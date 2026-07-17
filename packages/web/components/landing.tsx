@@ -27,7 +27,7 @@ const HL_PERSIST = [true, false, false, false, false];
 
 export async function Landing({ lang }: { lang: Lang }) {
   const c = content[lang];
-  // Instrument Serif 는 한글 글리프가 없어 ko 타이틀은 sans 유지 (nudgeo KR 패턴 — 히어로만 영문 세리프)
+  // Instrument Serif 는 한글 글리프가 없어 ko 타이틀은 sans 유지 — 히어로만 영문 세리프
   const headClass =
     lang === 'ko'
       ? 'text-[clamp(26px,3.4vw,36px)] font-semibold tracking-[-0.025em]'
@@ -92,6 +92,12 @@ export async function Landing({ lang }: { lang: Lang }) {
                 {latestTag ? `${latestTag} · ` : ''}
                 {c.hero.sub}
               </span>
+            </div>
+            <div className="mt-6 max-w-md">
+              <p className="mb-2 text-[12.5px] leading-relaxed text-ink-tertiary">
+                {c.hero.unsigned}
+              </p>
+              <CopyCommand command={unblockCmd} copyLabel={c.hero.copyCmd} />
             </div>
           </div>
 
