@@ -277,7 +277,7 @@ export function WorklogList({
                     <span className="font-mono text-ink-tertiary">{g.rows.length}</span>
                   </button>
                   {!collapsed.has(g.key) && (
-                    <div className="divide-y divide-hairline">
+                    <div>
                       {g.rows.map((p) => (
                         <PageRow
                           key={p.pageId}
@@ -298,7 +298,6 @@ export function WorklogList({
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="divide-y divide-hairline"
             >
               {visible.map((p) => (
                 <PageRow
@@ -411,7 +410,7 @@ function PageRow({
       type="button"
       onClick={() => onOpen(page)}
       className={[
-        'group flex h-10 w-full items-center gap-3 px-3 text-left text-[13px] transition-[background-color]',
+        'group flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-[13px] transition-[background-color]',
         selected ? 'bg-surface-3 ring-1 ring-hairline-strong ring-inset' : 'hover:bg-surface-2',
       ].join(' ')}
     >
