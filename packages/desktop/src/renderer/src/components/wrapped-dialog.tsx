@@ -134,17 +134,18 @@ export function WrappedDialog({
         className="glass-panel flex max-h-[84vh] w-[620px] max-w-[92vw] flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50"
       >
         <div className="flex items-center justify-between px-6 pt-5">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-0.5">
             {years.map((y) => (
               <button
                 key={y}
                 type="button"
+                aria-pressed={year === y}
                 onClick={() => setYear(y)}
                 className={[
-                  'rounded-md px-2 py-1 font-mono text-[12px] transition-colors',
+                  'rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors',
                   year === y
                     ? 'bg-surface-3 text-ink'
-                    : 'text-ink-tertiary hover:bg-surface-2 hover:text-ink',
+                    : 'text-ink-subtle hover:bg-surface-2 hover:text-ink-muted',
                 ].join(' ')}
               >
                 {y}
@@ -249,7 +250,7 @@ export function WrappedDialog({
                 <div className="flex flex-col gap-2">
                   {projects.map((p) => (
                     <div key={p.name} className="flex items-center gap-3">
-                      <span className="w-[176px] shrink-0 truncate text-right font-mono text-[12px] text-ink">
+                      <span className="w-[176px] shrink-0 truncate text-right text-[12px] font-medium text-ink">
                         {p.name}
                       </span>
                       <div className="h-[6px] min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
@@ -278,7 +279,7 @@ export function WrappedDialog({
         )}
 
         {stats && stats.activeDays > 0 && (
-          <div className="flex items-center justify-end gap-3 border-t border-hairline px-6 py-3.5">
+          <div className="flex items-center justify-end gap-3 border-t border-hairline px-6 py-3">
             {save === 'error' && (
               <span className="text-[12px] text-danger">{t('wrapped.saveFail')}</span>
             )}
@@ -286,10 +287,10 @@ export function WrappedDialog({
               type="button"
               disabled={save === 'saving'}
               onClick={() => void savePng()}
-              className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] transition-colors disabled:opacity-60 ${
+              className={`flex h-8 items-center gap-1.5 rounded-md px-4 text-[13px] font-medium transition-all active:scale-[0.98] disabled:opacity-60 ${
                 save === 'saved'
-                  ? 'border-success/40 bg-success/10 text-success'
-                  : 'border-hairline bg-surface-2 text-ink hover:bg-surface-3'
+                  ? 'bg-surface-2 text-success'
+                  : 'bg-surface-2 text-ink hover:bg-surface-3'
               }`}
             >
               {save === 'saved' ? (
@@ -310,9 +311,9 @@ export function WrappedDialog({
 
 function Tile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex flex-col gap-1.5 px-4 py-3.5">
+    <div className="flex flex-col gap-2 px-4 py-4">
       <span className="text-[11.5px] text-ink-tertiary">{label}</span>
-      <span className="font-mono text-[24px] leading-none font-semibold tracking-[-0.5px] text-ink tabular-nums">
+      <span className="text-[28px] leading-none font-semibold tracking-[-0.5px] text-ink tabular-nums">
         {value.toLocaleString()}
       </span>
     </div>
@@ -322,7 +323,9 @@ function Tile({ label, value }: { label: string; value: number }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-7">
-      <p className="mb-3 text-[12px] font-medium text-ink-muted">{title}</p>
+      <p className="mb-3 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
+        {title}
+      </p>
       {children}
     </div>
   );
