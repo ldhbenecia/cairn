@@ -38,13 +38,19 @@ export function WorklogDrawer({ page, onClose, onExpand }: Props) {
   useEffect(() => {
     let alive = true;
     setContent(null);
-    void window.cairn.pageContent(page.pageId, page.workspaceLabel).then((c) => {
-      if (alive) setContent(c);
-    });
+    // 조회 실패 시 무한 로딩 방지 — warning 경로로 오류 문구 표시 (t 는 언어 변경 시에만 재생성)
+    void window.cairn.pageContent(page.pageId, page.workspaceLabel).then(
+      (c) => {
+        if (alive) setContent(c);
+      },
+      () => {
+        if (alive) setContent({ blocks: [], warning: t('drawer.loadError') });
+      },
+    );
     return () => {
       alive = false;
     };
-  }, [page.pageId, page.workspaceLabel, reloadTick]);
+  }, [page.pageId, page.workspaceLabel, reloadTick, t]);
 
   const resizeCleanup = useRef<(() => void) | null>(null);
   useEffect(() => () => resizeCleanup.current?.(), []);

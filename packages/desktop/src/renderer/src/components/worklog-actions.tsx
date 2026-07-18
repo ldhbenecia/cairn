@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Check,
   Copy,
@@ -38,6 +38,7 @@ export function WorklogActions({
   const [snapOpen, setSnapOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuClosing, setMenuClosing] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const shareText = useMemo(() => (content ? extractShareText(content.blocks) : null), [content]);
   const markdown = useMemo(
@@ -63,8 +64,19 @@ export function WorklogActions({
   useEffect(() => {
     if (!menuOpen || menuClosing) return;
     const onDown = (): void => closeMenu();
+    // ESC 는 메뉴가 소비(capture + stopPropagation) — 상위 드로어/상세 뷰까지 닫히지 않게
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      closeMenu();
+      triggerRef.current?.focus();
+    };
     document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKey, true);
+    };
   }, [menuOpen, menuClosing]);
 
   function copyShare() {
@@ -159,10 +171,13 @@ export function WorklogActions({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => (menuOpen ? closeMenu() : setMenuOpen(true))}
           title={t('drawer.actions')}
           aria-label={t('drawer.actions')}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
           className={`flex size-7 items-center justify-center rounded-md transition-colors ${
             menuOpen ? 'bg-surface-2 text-ink' : 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
           }`}
@@ -171,12 +186,14 @@ export function WorklogActions({
         </button>
         {menuOpen && (
           <div
+            role="menu"
             className={`${menuClosing ? 'popover-out' : 'popover-in'} glass-panel absolute top-full right-0 z-30 mt-1.5 w-48 rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40`}
           >
             {actions.map((a) => (
               <button
                 key={a.key}
                 type="button"
+                role="menuitem"
                 onClick={a.run}
                 className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
               >

@@ -17,7 +17,7 @@ import type {
   RunStep,
 } from './cairn-api';
 import { AnimatePresence } from 'framer-motion';
-import { prefetchReportsScan } from './lib/reports-scan';
+import { invalidateReportsScan, prefetchReportsScan } from './lib/reports-scan';
 import { resetRunLines } from './lib/run-line-store';
 import { RunToast, type RunToastData } from './components/run-toast';
 import { useSettings } from './settings-context';
@@ -105,6 +105,14 @@ export function App() {
   const openPage = useCallback((p: RecentPage) => {
     setDetailFull(false);
     setSelectedPage(p);
+  }, []);
+
+  // 명시적 뷰 전환은 전체 화면 상세·드로어 상태도 함께 정리 — detailFull 분기가 새 뷰를 가리는 문제 방지
+  const switchView = useCallback((v: MainView) => {
+    setPrefsOpen(false);
+    setSelectedPage(null);
+    setDetailFull(false);
+    setView(v);
   }, []);
 
   const loadRecent = useCallback(async () => {
@@ -241,7 +249,8 @@ export function App() {
       void loadRecent().then((r) => {
         // 언마운트 후 늦게 도착한 콜백이 새 타이머를 걸지 않도록 (누수·불필요 IPC 방지)
         if (!active) return;
-        // 발행 직후 기간별 정리 기본 기간 재검증 — 다음 뷰 진입 시 최신 상태 즉시 표시
+        // 발행 직후 기간별 정리 캐시 무효화 후 기본 기간 재스캔 — 재발행(count 불변)도 반영
+        invalidateReportsScan();
         prefetchReportsScan(r);
         const pid = result.publishPageId;
         const found = !pid || (r?.pages ?? []).some((p) => p.pageId === pid);
@@ -318,12 +327,11 @@ export function App() {
 
   useEffect(() => {
     const off = window.cairn.onFocusMode((focused) => {
-      setPrefsOpen(false);
-      setView('worklogs');
+      switchView('worklogs');
       setFilter(focused);
     });
     return off;
-  }, []);
+  }, [switchView]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -425,22 +433,12 @@ export function App() {
         counts={counts}
         preferencesActive={prefsOpen}
         onFilterChange={(f) => {
-          setPrefsOpen(false);
-          setView('worklogs');
+          switchView('worklogs');
           setFilter(f);
         }}
-        onOpenStats={() => {
-          setPrefsOpen(false);
-          setView('stats');
-        }}
-        onOpenGraph={() => {
-          setPrefsOpen(false);
-          setView('graph');
-        }}
-        onOpenReports={() => {
-          setPrefsOpen(false);
-          setView('reports');
-        }}
+        onOpenStats={() => switchView('stats')}
+        onOpenGraph={() => switchView('graph')}
+        onOpenReports={() => switchView('reports')}
         onOpenPreferences={() => setPrefsOpen(true)}
         onOpenPalette={() => setCmdkOpen(true)}
       />
@@ -498,12 +496,12 @@ export function App() {
             key="command-palette"
             recent={recent}
             onClose={() => setCmdkOpen(false)}
-            onView={setView}
+            onView={switchView}
             onPreferences={() => setPrefsOpen(true)}
             onPublish={(mode) => {
               // 대시보드/그래프 뷰에서 팔레트로 발행하면 진행 표시가 없어 무반응처럼 보이던 문제 —
               // worklogs 뷰로 전환하고 진행 다이얼로그를 열어 스피너/단계를 보여준다
-              setView('worklogs');
+              switchView('worklogs');
               setPublishProgressSignal((n) => n + 1);
               void trigger(mode);
             }}
