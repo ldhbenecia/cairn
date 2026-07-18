@@ -1,10 +1,11 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { Check, Loader2, Plus, X } from 'lucide-react';
+import { Check, Loader2, Lock, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RunSession } from '../App';
 import type { CoreMode, CoreRunOptions, SummaryModel } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
+import { useCloudAuth } from '../use-cloud-auth';
 import { DatePicker } from './date-picker';
 import { Segmented } from './preferences/field';
 import { Progress } from './publish-dialog-progress';
@@ -71,6 +72,7 @@ export function PublishDialog({
   onConsumeSignal,
 }: Props) {
   const { t, settings } = useSettings();
+  const { signedIn } = useCloudAuth();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<CoreMode>('daily');
   const [date, setDate] = useState<string>(todayIso);
@@ -83,6 +85,11 @@ export function PublishDialog({
   // 최근 실패 결과를 오픈 시 1회만 자동 회수 — 같은 결과를 재오픈 때마다 다시 띄우지 않게
   const recalledEndedAt = useRef(0);
   const isToday = date === todayIso();
+
+  // 미로그인 게이팅 — 일간만 허용. 로그아웃으로 잠긴 모드가 남지 않게 일간으로 되돌림
+  useEffect(() => {
+    if (!signedIn && mode !== 'daily') setMode('daily');
+  }, [signedIn, mode]);
 
   // 열 때마다 재조회 — 연동 변경 반영
   useEffect(() => {
@@ -244,10 +251,28 @@ export function PublishDialog({
               <>
                 <Segmented
                   grow
-                  options={MODE_OPTIONS.map((o) => ({ value: o.mode, label: t(o.key) }))}
+                  options={MODE_OPTIONS.map((o) => ({
+                    value: o.mode,
+                    label: t(o.key),
+                    ...(signedIn || o.mode === 'daily'
+                      ? {}
+                      : { disabled: true, icon: <Lock size={11} strokeWidth={2} /> }),
+                  }))}
                   value={mode}
                   onChange={setMode}
                 />
+                {!signedIn && (
+                  <p className="mt-2 flex items-center gap-1.5 px-0.5 text-[11.5px] text-ink-tertiary">
+                    {t('publish.gate.notice')}
+                    <button
+                      type="button"
+                      onClick={() => void window.cairn.cloud.signIn().catch(() => {})}
+                      className="font-medium text-ink-muted underline underline-offset-2 transition-colors hover:text-ink"
+                    >
+                      {t('account.signIn')}
+                    </button>
+                  </p>
+                )}
 
                 <div
                   role="group"
@@ -277,9 +302,9 @@ export function PublishDialog({
                 <div className="mt-4 flex flex-col gap-3">
                   <CheckRow
                     label={t('publish.backfill')}
-                    checked={mode === 'daily' && isToday && includeBackfill}
+                    checked={signedIn && mode === 'daily' && isToday && includeBackfill}
                     onChange={setIncludeBackfill}
-                    disabled={busy || mode !== 'daily' || !isToday}
+                    disabled={busy || !signedIn || mode !== 'daily' || !isToday}
                   />
                   <CheckRow
                     label={t('publish.force')}
@@ -315,7 +340,9 @@ export function PublishDialog({
                   setShowProgress(true);
                   void onTrigger(mode, {
                     backfillDays:
-                      mode === 'daily' && isToday && includeBackfill ? DAILY_BACKFILL_DAYS : 0,
+                      signedIn && mode === 'daily' && isToday && includeBackfill
+                        ? DAILY_BACKFILL_DAYS
+                        : 0,
                     force,
                     ...(isToday ? {} : { date }),
                     ...(notionConnected && skipNotion ? { skipNotion: true } : {}),

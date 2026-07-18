@@ -58,7 +58,7 @@ export function Segmented<T extends string>({
   onChange,
   grow = false,
 }: {
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; disabled?: boolean; icon?: ReactNode }[];
   value: T;
   onChange: (v: T) => void;
   grow?: boolean;
@@ -70,13 +70,19 @@ export function Segmented<T extends string>({
           key={o.value}
           type="button"
           aria-pressed={value === o.value}
+          disabled={o.disabled}
           onClick={() => onChange(o.value)}
           className={[
-            'rounded-md px-3 py-1 text-[12.5px] font-medium transition-colors',
+            'flex items-center justify-center gap-1 rounded-md px-3 py-1 text-[12.5px] font-medium transition-colors',
             grow ? 'flex-1' : '',
-            value === o.value ? 'bg-surface-3 text-ink' : 'text-ink-subtle hover:text-ink-muted',
+            value === o.value
+              ? 'bg-surface-3 text-ink'
+              : o.disabled
+                ? 'cursor-not-allowed text-ink-subtle opacity-45'
+                : 'text-ink-subtle hover:text-ink-muted',
           ].join(' ')}
         >
+          {o.icon}
           {o.label}
         </button>
       ))}
