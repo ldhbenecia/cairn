@@ -162,7 +162,6 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
         <span className="min-w-0 truncate text-[15px] font-semibold tracking-[-0.2px] text-ink">
           cairn
         </span>
-        <AccountStatusPill />
         <button
           type="button"
           onClick={() => void window.cairn.cloud.signIn().catch(() => {})}
@@ -189,15 +188,17 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
         <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-ink">
           {user.name}
         </span>
-        <AccountStatusPill className="mr-0.5" />
       </button>
       {open && (
         <div
           className={`floating-panel ${closing ? 'popover-out' : 'popover-in'} absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40 [transform-origin:top]`}
         >
-          <p className="truncate px-2.5 py-1.5 text-[12px] leading-tight text-ink-tertiary">
-            {user.email}
-          </p>
+          <div className="flex items-center gap-2 px-2.5 py-1.5">
+            <p className="min-w-0 flex-1 truncate text-[12px] leading-tight text-ink-tertiary">
+              {user.email}
+            </p>
+            <AccountStatusPill />
+          </div>
           <div className="my-1 h-px bg-hairline" />
           <button
             type="button"
