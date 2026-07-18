@@ -6,10 +6,10 @@ import {
   ChartColumn,
   ChartGantt,
   LayoutList,
-  Command,
   LogIn,
   Orbit,
   LogOut,
+  Search,
   Settings2,
   type LucideIcon,
 } from 'lucide-react';
@@ -65,23 +65,23 @@ export function Sidebar({
   return (
     <nav style={{ width }} className="flex shrink-0 flex-col border-r border-hairline bg-surface-1">
       <div className="h-20 [-webkit-app-region:drag]" />
-      <div className="px-3.5 pb-5 [-webkit-app-region:drag]">
-        <AccountTop onOpenPreferences={onOpenPreferences} />
-      </div>
-
-      <div className="flex flex-1 flex-col gap-0.5 px-3.5">
+      <div className="flex items-center gap-1.5 px-3.5 [-webkit-app-region:drag]">
+        <div className="min-w-0 flex-1">
+          <AccountTop onOpenPreferences={onOpenPreferences} />
+        </div>
         <button
           type="button"
           onClick={onOpenPalette}
-          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-[13px] font-medium leading-[1.3] text-ink-subtle transition-colors hover:bg-surface-2/60 hover:text-ink-muted [-webkit-app-region:no-drag]"
+          title={`${t('nav.palette')} ⌘K`}
+          aria-label={`${t('nav.palette')} ⌘K`}
+          className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink [-webkit-app-region:no-drag]"
         >
-          <Command size={15} strokeWidth={1.75} />
-          <span className="min-w-0 flex-1 truncate">{t('nav.palette')}</span>
-          <kbd className="shrink-0 rounded border border-hairline-strong bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-tertiary">
-            ⌘K
-          </kbd>
+          <Search size={14} strokeWidth={2} />
         </button>
-        <div className="mx-2 mb-1.5 mt-2 h-px bg-hairline" />
+      </div>
+      <div className="mx-5 my-3 h-px bg-hairline" />
+
+      <div className="flex flex-1 flex-col gap-0.5 px-3.5">
         <FilterItem
           icon={ChartColumn}
           label={t('nav.stats')}
