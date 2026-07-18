@@ -34,6 +34,9 @@ const RING_C = 2 * Math.PI * RING_R;
 
 const laneKey = (repo: string | null): string => repo ?? '__none';
 
+// 레인(레포) 고정 팔레트 — 카테고리 도트 색상환(indigo/sky/violet) + teal/amber 확장, 레포 순서 배정
+const LANE_COLORS = ['#5b61e6', '#2f6fa8', '#7c4aa8', '#2f8f7f', '#a8862f'];
+
 // 상세 뷰 — 날짜 내림차순으로 정렬된 항목을 날짜별 섹션으로 묶는다
 function groupByDate(rows: readonly DoneItem[]): { date: string; items: DoneItem[] }[] {
   const groups: { date: string; items: DoneItem[] }[] = [];
@@ -520,10 +523,11 @@ function Timeline({
         ))}
       </div>
 
-      <div className="relative">
-        {lanes.map((lane) => {
+      <div className="relative flex flex-col gap-4">
+        {lanes.map((lane, idx) => {
+          const color = LANE_COLORS[idx % LANE_COLORS.length]!;
           const segments = laneSegments(lane.dates);
-          // 라벨은 첫 세그먼트 시작 위에 고정 — 우측 끝 레인만 잘리지 않게 최소 폭 확보
+          // 라벨 행은 첫 세그먼트 시작 x 에 정렬 — 우측 끝 레인만 잘리지 않게 클램프
           const labelLeft = Math.min((dayIndex(since, lane.dates[0]!) / span) * 100, 78);
           return (
             <button
@@ -531,12 +535,17 @@ function Timeline({
               type="button"
               onClick={() => onLaneClick(lane)}
               title={`${laneLabel(lane.repo)} · ${lane.count}`}
-              className="group relative block h-[64px] w-full rounded-md text-left transition-[background-color] hover:bg-surface-2/40"
+              className="group relative block w-full rounded-md py-1.5 text-left transition-[background-color] hover:bg-surface-2/40"
             >
               <span
-                style={{ left: `${labelLeft}%`, maxWidth: `${100 - labelLeft}%` }}
-                className="absolute top-1.5 flex items-baseline gap-1.5 pl-0.5 whitespace-nowrap"
+                style={{ marginLeft: `${labelLeft}%`, maxWidth: `${100 - labelLeft}%` }}
+                className="flex w-fit items-baseline gap-1.5 pl-0.5 whitespace-nowrap"
               >
+                <span
+                  style={{ background: color }}
+                  className="size-1.5 shrink-0 self-center rounded-full"
+                  aria-hidden="true"
+                />
                 <span className="truncate text-[13px] font-medium text-ink-muted transition-colors group-hover:text-ink">
                   {laneLabel(lane.repo)}
                 </span>
@@ -544,17 +553,21 @@ function Timeline({
                   {lane.count}
                 </span>
               </span>
-              {segments.map((seg) => (
-                <span
-                  key={seg.from}
-                  style={{
-                    left: `${(dayIndex(since, seg.from) / span) * 100}%`,
-                    width: `${(daySpan(seg.from, seg.to) / span) * 100}%`,
-                    minWidth: 6,
-                  }}
-                  className="absolute bottom-2 h-6 rounded-md border border-hairline bg-surface-2"
-                />
-              ))}
+              <span className="relative mt-1 block h-6">
+                {segments.map((seg) => (
+                  <span
+                    key={seg.from}
+                    style={{
+                      left: `${(dayIndex(since, seg.from) / span) * 100}%`,
+                      width: `${(daySpan(seg.from, seg.to) / span) * 100}%`,
+                      minWidth: 12,
+                      background: `${color}24`,
+                      borderColor: `${color}40`,
+                    }}
+                    className="absolute inset-y-0 rounded-md border"
+                  />
+                ))}
+              </span>
             </button>
           );
         })}
