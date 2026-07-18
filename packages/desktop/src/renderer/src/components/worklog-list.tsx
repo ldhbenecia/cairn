@@ -1,8 +1,6 @@
 import {
   ArrowDownUp,
-  CheckCircle2,
   ChevronDown,
-  Circle,
   GitCommitHorizontal,
   GitPullRequest,
   HardDrive,
@@ -359,6 +357,27 @@ function rowTitle(page: RecentPage): string {
   return m ? m[1]! : page.title;
 }
 
+// 우측 날짜 — 로케일 무관 고정 영어 단축형 (Jul 17)
+const MONTHS_EN = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+function shortDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${MONTHS_EN[Number(m[2]) - 1]} ${Number(m[3])}` : iso;
+}
+
 type Group = { key: string; label: string; rows: RecentPage[] };
 
 function groupRows(rows: RecentPage[], groupBy: GroupBy, t: T): Group[] | null {
@@ -399,7 +418,6 @@ function PageRow({
   const counts =
     page.pr !== null || page.commit !== null ? { gh: page.pr ?? 0, git: page.commit ?? 0 } : null;
   const title = rowTitle(page);
-  const status = page.status ?? t('list.statusNone');
   const ref = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: 'nearest' });
@@ -414,13 +432,6 @@ function PageRow({
         selected ? 'bg-surface-3 ring-1 ring-hairline-strong ring-inset' : 'hover:bg-surface-2',
       ].join(' ')}
     >
-      <span className="flex shrink-0 items-center" role="img" aria-label={status} title={status}>
-        {page.status === 'final' ? (
-          <CheckCircle2 size={14} strokeWidth={2} className="text-success" />
-        ) : (
-          <Circle size={14} strokeWidth={2} className="text-ink-tertiary" />
-        )}
-      </span>
       <span className="min-w-0 flex-1 truncate font-medium text-ink">{title}</span>
       {counts && (
         <span className="hidden shrink-0 items-center gap-1.5 lg:flex">
@@ -448,10 +459,9 @@ function PageRow({
         {t(catKey(page.category))}
       </span>
       <SinkStack page={page} t={t} />
-      {/* 날짜 프리픽스 제목은 날짜가 곧 행 제목 — 커스텀 제목일 때만 우측 mono 날짜로 보충 (이중 표기 방지) */}
-      {title === page.title && page.date && page.date !== title && (
-        <span className="shrink-0 font-mono text-[11px] whitespace-nowrap text-ink-tertiary tabular-nums">
-          {page.date}
+      {page.date && (
+        <span className="shrink-0 text-[12px] whitespace-nowrap text-ink-tertiary">
+          {shortDate(page.date)}
         </span>
       )}
     </button>
@@ -462,7 +472,7 @@ function SinkStack({ page, t }: { page: RecentPage; t: T }) {
   const sinks = pageSinks(page);
   return (
     <span
-      className="hidden w-12 shrink-0 items-center justify-end opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 sm:flex"
+      className="hidden w-12 shrink-0 items-center justify-end sm:flex"
       title={sinks.map((s) => sinkLabel(s, page, t('source.localDesc'))).join(' · ')}
     >
       {sinks.map((s) => (
