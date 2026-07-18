@@ -46,7 +46,21 @@ export function addDays(iso: string, days: number): string {
   return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
 }
 
-export type Lane = { repo: string | null; count: number; dates: string[] };
+// 레인(레포) 고정 팔레트 — 카테고리 도트 색상환(indigo/sky/violet) + teal/amber 확장, 레포 순서 배정
+export const LANE_COLORS = ['#5b61e6', '#2f6fa8', '#7c4aa8', '#2f8f7f', '#a8862f'];
+
+export type LanePeak = { date: string; count: number };
+
+export type Lane = { repo: string | null; count: number; dates: string[]; peaks: LanePeak[] };
+
+// 마일스톤 후보 — 2건 이상인 날만(전부 1건이면 상위일이 무의미) 건수 내림차순 상위 2곳
+function lanePeaks(days: ReadonlyMap<string, number>): LanePeak[] {
+  return [...days.entries()]
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 2)
+    .map(([date, count]) => ({ date, count }));
+}
 
 // 항목 많은 레포 순 정렬, 프리픽스 없는 묶음(null)은 마지막
 export function buildLanes(items: readonly DoneItem[]): Lane[] {
@@ -61,6 +75,7 @@ export function buildLanes(items: readonly DoneItem[]): Lane[] {
       repo,
       count: [...days.values()].reduce((a, b) => a + b, 0),
       dates: [...days.keys()].sort(),
+      peaks: lanePeaks(days),
     }))
     .sort((a, b) => {
       if ((a.repo === null) !== (b.repo === null)) return a.repo === null ? 1 : -1;
@@ -68,33 +83,23 @@ export function buildLanes(items: readonly DoneItem[]): Lane[] {
     });
 }
 
-export type LaneSegment = { from: string; to: string };
-
-// 정렬된 활동일을 연속 구간으로 병합 — 하루라도 비면 구간이 끊긴다 (타임라인 세그먼트 바)
-export function laneSegments(dates: readonly string[]): LaneSegment[] {
-  const segments: LaneSegment[] = [];
-  for (const date of dates) {
-    const last = segments[segments.length - 1];
-    if (last && dayIndex(last.to, date) === 1) last.to = date;
-    else segments.push({ from: date, to: date });
-  }
-  return segments;
-}
-
 export type TimelineTick = { date: string; pos: number };
 
-// 기간 길이에 따라 주(월요일) 또는 월(1일) 경계 눈금 — pos 는 0..1 (기간 좌측 경계 기준)
-export function timelineTicks(
-  since: string,
-  until: string,
-): { unit: 'week' | 'month'; ticks: TimelineTick[] } {
+export type TimelineAxis = { months: TimelineTick[]; days: TimelineTick[] };
+
+// Linear 문법 2단 날짜 축 — 위: 월 라벨(기간 시작 + 매월 1일), 아래: 일 눈금(주 단위 월요일,
+// 2주 이하 기간은 매일). 좁은 첫 달 조각은 라벨 겹침 방지로 드랍, 긴 기간은 주 눈금을 성기게(≤26개)
+export function timelineAxis(since: string, until: string): TimelineAxis {
   const span = daySpan(since, until);
-  const weekly = span <= 45;
-  const ticks: TimelineTick[] = [];
-  for (let i = 1; i < span; i++) {
-    const date = addDays(since, i);
-    const hit = weekly ? new Date(utcMs(date)).getUTCDay() === 1 : date.endsWith('-01');
-    if (hit) ticks.push({ date, pos: i / span });
+  const daily = span <= 14;
+  const months: TimelineTick[] = [{ date: since, pos: 0 }];
+  const dayTicks: TimelineTick[] = [];
+  for (let i = 0; i < span; i++) {
+    const date = i === 0 ? since : addDays(since, i);
+    if (i > 0 && date.endsWith('-01')) months.push({ date, pos: i / span });
+    if (daily || new Date(utcMs(date)).getUTCDay() === 1) dayTicks.push({ date, pos: i / span });
   }
-  return { unit: weekly ? 'week' : 'month', ticks };
+  if (months.length > 1 && months[1]!.pos < 0.06) months.shift();
+  const step = Math.max(1, Math.ceil(dayTicks.length / 26));
+  return { months, days: dayTicks.filter((_, i) => i % step === 0) };
 }

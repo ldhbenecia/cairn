@@ -7,10 +7,10 @@ import {
   buildLanes,
   dayIndex,
   daySpan,
-  laneSegments,
+  LANE_COLORS,
   localDateDaysAgo,
   parseDoneBullet,
-  timelineTicks,
+  timelineAxis,
   todayLocal,
   type DoneItem,
   type Lane,
@@ -33,9 +33,6 @@ const RING_R = 26;
 const RING_C = 2 * Math.PI * RING_R;
 
 const laneKey = (repo: string | null): string => repo ?? '__none';
-
-// 레인(레포) 고정 팔레트 — 카테고리 도트 색상환(indigo/sky/violet) + teal/amber 확장, 레포 순서 배정
-const LANE_COLORS = ['#5b61e6', '#2f6fa8', '#7c4aa8', '#2f8f7f', '#a8862f'];
 
 // 상세 뷰 — 날짜 내림차순으로 정렬된 항목을 날짜별 섹션으로 묶는다
 function groupByDate(rows: readonly DoneItem[]): { date: string; items: DoneItem[] }[] {
@@ -69,7 +66,7 @@ function DoneText({ text }: { text: string }) {
 }
 
 export function ReportsView({ recent }: { recent: RecentListResult | null }) {
-  const { t, settings } = useSettings();
+  const { t } = useSettings();
   const [range, setRange] = useState<RangeKey>(30);
   const [customFrom, setCustomFrom] = useState<string>(() => localDateDaysAgo(30));
   const [customTo, setCustomTo] = useState<string>(todayLocal);
@@ -366,7 +363,6 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                   since={since}
                   until={until}
                   lanes={lanes}
-                  lang={settings.language}
                   laneLabel={laneLabel}
                   onLaneClick={(lane) => setSelectedRepo(laneKey(lane.repo))}
                 />
@@ -472,36 +468,41 @@ function ScanRing({ done, total, label }: { done: number; total: number; label: 
   );
 }
 
+// 월 라벨 — Linear 축 문법 그대로 영문 3글자 대문자 고정 (APR/MAY)
+const monthLabel = (date: string): string =>
+  new Date(2000, Number(date.slice(5, 7)) - 1, 1)
+    .toLocaleDateString('en-US', { month: 'short' })
+    .toUpperCase();
+
 function Timeline({
   since,
   until,
   lanes,
-  lang,
   laneLabel,
   onLaneClick,
 }: {
   since: string;
   until: string;
   lanes: Lane[];
-  lang: string;
   laneLabel: (repo: string | null) => string;
   onLaneClick: (lane: Lane) => void;
 }) {
   const span = daySpan(since, until);
-  const { unit, ticks } = timelineTicks(since, until);
-  const tickLabel = (date: string): string => {
-    if (unit === 'week') return `${date.slice(5, 7)}.${date.slice(8, 10)}`;
-    const m = Number(date.slice(5, 7));
-    return lang === 'ko'
-      ? `${m}월`
-      : new Date(2000, m - 1, 1).toLocaleDateString('en-US', { month: 'short' });
-  };
+  const axis = timelineAxis(since, until);
+  // 색은 buildLanes(건수순) 인덱스로 고정 — 레포별 작업 테이블·Wrapped 팔레트와 배정이 일치
+  const colorOf = new Map(
+    lanes.map((l, i) => [laneKey(l.repo), LANE_COLORS[i % LANE_COLORS.length]!]),
+  );
+  // 표시 순서는 시작일 순 — 바가 좌상단에서 우하단으로 계단식 스태거
+  const ordered = [...lanes].sort(
+    (a, b) => a.dates[0]!.localeCompare(b.dates[0]!) || b.count - a.count,
+  );
 
   return (
     <div className="relative">
-      {/* 세로 점선 hairline — 축 라벨 아래부터 섹션 전체 높이 관통 (풀블리드, 박스 없음) */}
-      <div className="pointer-events-none absolute inset-x-0 top-6 bottom-0">
-        {ticks.map((tk) => (
+      {/* 세로 점선 hairline — 축 아래부터 섹션 전체 높이 관통 (풀블리드, 박스 없음) */}
+      <div className="pointer-events-none absolute inset-x-0 top-10 bottom-0">
+        {axis.days.map((tk) => (
           <span
             key={tk.date}
             style={{ left: `${tk.pos * 100}%` }}
@@ -511,24 +512,35 @@ function Timeline({
         ))}
       </div>
 
-      <div className="relative h-6">
-        {ticks.map((tk) => (
+      <div className="relative h-10">
+        {axis.months.map((tk) => (
           <span
             key={tk.date}
             style={{ left: `${tk.pos * 100}%` }}
-            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-[10px] text-ink-tertiary"
+            className="absolute top-0 pl-1 text-[13px] font-medium tracking-[0.4px] whitespace-nowrap text-ink-subtle"
           >
-            {tickLabel(tk.date)}
+            {monthLabel(tk.date)}
+          </span>
+        ))}
+        {axis.days.map((tk) => (
+          <span
+            key={tk.date}
+            style={{ left: `${tk.pos * 100}%` }}
+            className="absolute bottom-0.5 -translate-x-1/2 text-[12px] text-ink-tertiary tabular-nums"
+          >
+            {Number(tk.date.slice(8, 10))}
           </span>
         ))}
       </div>
 
-      <div className="relative flex flex-col gap-4">
-        {lanes.map((lane, idx) => {
-          const color = LANE_COLORS[idx % LANE_COLORS.length]!;
-          const segments = laneSegments(lane.dates);
-          // 라벨 행은 첫 세그먼트 시작 x 에 정렬 — 우측 끝 레인만 잘리지 않게 클램프
-          const labelLeft = Math.min((dayIndex(since, lane.dates[0]!) / span) * 100, 78);
+      <div className="relative mt-3 flex flex-col gap-6">
+        {ordered.map((lane) => {
+          const color = colorOf.get(laneKey(lane.repo))!;
+          const first = lane.dates[0]!;
+          const last = lane.dates[lane.dates.length - 1]!;
+          const left = (dayIndex(since, first) / span) * 100;
+          // 라벨 행은 바 시작 x 에 정렬 — 우측 끝 레인만 잘리지 않게 클램프
+          const labelLeft = Math.min(left, 78);
           return (
             <button
               key={laneKey(lane.repo)}
@@ -553,18 +565,26 @@ function Timeline({
                   {lane.count}
                 </span>
               </span>
-              <span className="relative mt-1 block h-6">
-                {segments.map((seg) => (
+              <span className="relative mt-1.5 block h-7">
+                <span
+                  style={{
+                    left: `${left}%`,
+                    width: `${(daySpan(first, last) / span) * 100}%`,
+                    minWidth: 12,
+                    background: `color-mix(in srgb, ${color} 8%, var(--color-surface-1))`,
+                    borderColor: `${color}4d`,
+                  }}
+                  className="absolute inset-y-0 rounded-md border"
+                />
+                {lane.peaks.map((p) => (
                   <span
-                    key={seg.from}
+                    key={p.date}
+                    title={`${p.date} · ${p.count}`}
                     style={{
-                      left: `${(dayIndex(since, seg.from) / span) * 100}%`,
-                      width: `${(daySpan(seg.from, seg.to) / span) * 100}%`,
-                      minWidth: 12,
-                      background: `${color}24`,
-                      borderColor: `${color}40`,
+                      left: `${((dayIndex(since, p.date) + 0.5) / span) * 100}%`,
+                      background: color,
                     }}
-                    className="absolute inset-y-0 rounded-md border"
+                    className="absolute top-1/2 size-[7px] -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1.5px]"
                   />
                 ))}
               </span>

@@ -1,13 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  addDays,
-  buildLanes,
-  dayIndex,
-  daySpan,
-  laneSegments,
-  parseDoneBullet,
-  timelineTicks,
-} from './reports';
+import { addDays, buildLanes, dayIndex, daySpan, parseDoneBullet, timelineAxis } from './reports';
 
 describe('parseDoneBullet', () => {
   it('[repo] 프리픽스 — repo 와 본문 분리', () => {
@@ -59,42 +51,66 @@ describe('buildLanes', () => {
     expect(lanes[0]!.dates).toEqual(['2026-07-02', '2026-07-03']);
     expect(lanes[0]!.count).toBe(2);
   });
-});
 
-describe('laneSegments', () => {
-  it('연속 활동일 병합, 공백에서 끊김', () => {
-    expect(
-      laneSegments(['2026-07-01', '2026-07-02', '2026-07-03', '2026-07-05', '2026-07-08']),
-    ).toEqual([
-      { from: '2026-07-01', to: '2026-07-03' },
-      { from: '2026-07-05', to: '2026-07-05' },
-      { from: '2026-07-08', to: '2026-07-08' },
+  it('peaks — 2건 이상인 날만 건수순 상위 2곳', () => {
+    const lanes = buildLanes([
+      { date: '2026-07-01', repo: 'a', text: 'x' },
+      { date: '2026-07-02', repo: 'a', text: 'x' },
+      { date: '2026-07-02', repo: 'a', text: 'x' },
+      { date: '2026-07-02', repo: 'a', text: 'x' },
+      { date: '2026-07-04', repo: 'a', text: 'x' },
+      { date: '2026-07-04', repo: 'a', text: 'x' },
+      { date: '2026-07-06', repo: 'a', text: 'x' },
+      { date: '2026-07-06', repo: 'a', text: 'x' },
+    ]);
+    expect(lanes[0]!.peaks).toEqual([
+      { date: '2026-07-02', count: 3 },
+      { date: '2026-07-04', count: 2 },
     ]);
   });
 
-  it('월 경계를 넘는 연속 구간', () => {
-    expect(laneSegments(['2026-06-30', '2026-07-01'])).toEqual([
-      { from: '2026-06-30', to: '2026-07-01' },
+  it('peaks — 전부 1건이면 비어 있음', () => {
+    const lanes = buildLanes([
+      { date: '2026-07-01', repo: 'a', text: 'x' },
+      { date: '2026-07-02', repo: 'a', text: 'x' },
     ]);
-  });
-
-  it('빈 배열', () => {
-    expect(laneSegments([])).toEqual([]);
+    expect(lanes[0]!.peaks).toEqual([]);
   });
 });
 
-describe('timelineTicks', () => {
-  it('45일 이하 — 월요일 주 눈금', () => {
+describe('timelineAxis', () => {
+  it('월 라벨 — 기간 시작 + 매월 1일', () => {
+    const { months } = timelineAxis('2026-05-15', '2026-07-14');
+    expect(months.map((t) => t.date)).toEqual(['2026-05-15', '2026-06-01', '2026-07-01']);
+    expect(months[0]!.pos).toBe(0);
+  });
+
+  it('첫 달 조각이 좁으면 시작 라벨 드랍', () => {
+    const { months } = timelineAxis('2026-06-30', '2026-08-31');
+    expect(months.map((t) => t.date)).toEqual(['2026-07-01', '2026-08-01']);
+  });
+
+  it('일 눈금 — 2주 초과는 월요일 주 단위', () => {
     // 2026-07-06 은 월요일
-    const { unit, ticks } = timelineTicks('2026-07-01', '2026-07-14');
-    expect(unit).toBe('week');
-    expect(ticks.map((t) => t.date)).toEqual(['2026-07-06', '2026-07-13']);
-    expect(ticks[0]!.pos).toBeCloseTo(5 / 14);
+    const { days } = timelineAxis('2026-07-01', '2026-07-31');
+    expect(days.map((t) => t.date)).toEqual([
+      '2026-07-06',
+      '2026-07-13',
+      '2026-07-20',
+      '2026-07-27',
+    ]);
+    expect(days[0]!.pos).toBeCloseTo(5 / 31);
   });
 
-  it('45일 초과 — 매월 1일 눈금', () => {
-    const { unit, ticks } = timelineTicks('2026-05-15', '2026-07-14');
-    expect(unit).toBe('month');
-    expect(ticks.map((t) => t.date)).toEqual(['2026-06-01', '2026-07-01']);
+  it('일 눈금 — 2주 이하는 매일', () => {
+    const { days } = timelineAxis('2026-07-01', '2026-07-07');
+    expect(days.map((t) => t.date)).toHaveLength(7);
+    expect(days[0]!.date).toBe('2026-07-01');
+  });
+
+  it('일 눈금 — 연 단위 기간은 성기게 (26개 이하)', () => {
+    const { days } = timelineAxis('2025-07-19', '2026-07-18');
+    expect(days.length).toBeLessThanOrEqual(26);
+    expect(days.length).toBeGreaterThan(20);
   });
 });
