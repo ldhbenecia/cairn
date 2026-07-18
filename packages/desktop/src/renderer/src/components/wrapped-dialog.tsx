@@ -3,6 +3,7 @@ import { Check, Download, Loader2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult, RecentPage } from '../cairn-api';
 import { pool, sectionBullets } from '../lib/blocks';
+import { LANE_COLORS } from '../lib/reports';
 import { availableYears, computeWrapped, topProjects, type WrappedStats } from '../lib/wrapped';
 import { useSettings } from '../settings-context';
 
@@ -103,7 +104,6 @@ export function WrappedDialog({
 
   const monthMax = stats ? Math.max(1, ...stats.byMonth.map((m) => m.pr + m.commit)) : 1;
   const dowMax = stats ? Math.max(1, ...stats.byWeekday) : 1;
-  const projectMax = projects && projects.length > 0 ? projects[0]!.count : 1;
   const DOW_KEYS = [
     'stats.dow.sun',
     'stats.dow.mon',
@@ -133,51 +133,55 @@ export function WrappedDialog({
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         className="glass-panel flex max-h-[84vh] w-[620px] max-w-[92vw] flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50"
       >
-        <div className="flex items-center justify-between px-6 pt-5">
-          <div className="flex items-center gap-0.5">
-            {years.map((y) => (
-              <button
-                key={y}
-                type="button"
-                aria-pressed={year === y}
-                onClick={() => setYear(y)}
-                className={[
-                  'rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors',
-                  year === y
-                    ? 'bg-surface-3 text-ink'
-                    : 'text-ink-subtle hover:bg-surface-2 hover:text-ink-muted',
-                ].join(' ')}
-              >
-                {y}
-              </button>
-            ))}
-          </div>
+        <div className="relative shrink-0 px-6 pt-6 pb-1">
           <button
             type="button"
             onClick={onClose}
             title={t('drawer.close')}
-            className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+            className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
           >
             <X size={15} strokeWidth={2} />
           </button>
+          <p className="text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
+            {t('wrapped.title')}
+          </p>
+          <h2 className="mt-1 text-[40px] leading-none font-semibold tracking-[-1.2px] text-ink tabular-nums">
+            {year ?? '—'}
+          </h2>
+          <p className="mt-2 text-[12.5px] text-ink-tertiary">{t('wrapped.subtitle')}</p>
+          {years.length > 1 && (
+            <div className="absolute right-4 bottom-1 flex items-center gap-0.5">
+              {years.map((y) => (
+                <button
+                  key={y}
+                  type="button"
+                  aria-pressed={year === y}
+                  onClick={() => setYear(y)}
+                  className={[
+                    'rounded-md px-2 py-1 text-[11.5px] font-medium transition-colors',
+                    year === y
+                      ? 'bg-surface-3 text-ink'
+                      : 'text-ink-subtle hover:bg-surface-2 hover:text-ink-muted',
+                  ].join(' ')}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {!stats || stats.activeDays === 0 ? (
-          <p className="px-6 py-16 text-center text-[13px] text-ink-tertiary">
+          <p className="px-6 py-14 text-center text-[13px] text-ink-tertiary">
             {t('wrapped.empty')}
           </p>
         ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-3 pb-6">
-            <h2 className="text-[26px] font-semibold tracking-[-0.5px] text-ink">
-              {stats.year} {t('wrapped.title')}
-            </h2>
-            <p className="mt-0.5 text-[12.5px] text-ink-tertiary">{t('wrapped.subtitle')}</p>
-
-            <div className="mt-5 grid grid-cols-4 divide-x divide-hairline rounded-lg border border-hairline">
-              <Tile label={t('stats.totalPr')} value={stats.pr} />
-              <Tile label={t('stats.totalCommit')} value={stats.commit} />
-              <Tile label={t('stats.activeDays')} value={stats.activeDays} />
-              <Tile label={t('stats.streak')} value={stats.longestStreak} />
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-5 pb-6">
+            <div className="flex divide-x divide-hairline">
+              <Stat label={t('stats.totalPr')} value={stats.pr} />
+              <Stat label={t('stats.totalCommit')} value={stats.commit} />
+              <Stat label={t('stats.activeDays')} value={stats.activeDays} />
+              <Stat label={t('stats.streak')} value={stats.longestStreak} />
             </div>
 
             <Section title={t('wrapped.byMonth')}>
@@ -200,7 +204,7 @@ export function WrappedDialog({
                           isMax
                             ? 'bg-accent'
                             : total > 0
-                              ? 'bg-accent/35 group-hover:bg-accent/55'
+                              ? 'bg-hairline-strong group-hover:bg-hairline-tertiary'
                               : 'bg-surface-3'
                         }`}
                         style={{
@@ -208,11 +212,46 @@ export function WrappedDialog({
                         }}
                         title={`${stats.year}-${String(i + 1).padStart(2, '0')} · ${total.toLocaleString()}`}
                       />
-                      <span className="font-mono text-[10px] text-ink-tertiary">{i + 1}</span>
+                      <span className="font-mono text-[10px] text-ink-tertiary tabular-nums">
+                        {i + 1}
+                      </span>
                     </div>
                   );
                 })}
               </div>
+            </Section>
+
+            <Section title={t('wrapped.top')}>
+              {projects === null ? (
+                <div className="flex items-center gap-2 py-2 text-[12px] text-ink-tertiary">
+                  <Loader2 size={13} strokeWidth={2} className="animate-spin" />
+                  {t('achv.scanning')}
+                  {scan && ` ${scan.done}/${scan.total}`}
+                </div>
+              ) : projects.length === 0 ? (
+                <p className="py-2 text-[12px] text-ink-tertiary">{t('wrapped.topEmpty')}</p>
+              ) : (
+                <div className="-mx-2">
+                  {projects.map((p, i) => (
+                    <div
+                      key={p.name}
+                      className="flex h-9 items-center gap-2.5 rounded-md px-2 transition-[background-color] hover:bg-surface-2"
+                    >
+                      <span
+                        style={{ background: LANE_COLORS[i % LANE_COLORS.length] }}
+                        className="size-1.5 shrink-0 rounded-full"
+                        aria-hidden="true"
+                      />
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">
+                        {p.name}
+                      </span>
+                      <span className="shrink-0 font-mono text-[11.5px] text-ink-tertiary tabular-nums">
+                        {p.count.toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Section>
 
             <Section title={t('stats.weekday')}>
@@ -235,37 +274,6 @@ export function WrappedDialog({
                   );
                 })}
               </div>
-            </Section>
-
-            <Section title={t('wrapped.top')}>
-              {projects === null ? (
-                <div className="flex items-center gap-2 py-2 text-[12px] text-ink-tertiary">
-                  <Loader2 size={13} strokeWidth={2} className="animate-spin" />
-                  {t('achv.scanning')}
-                  {scan && ` ${scan.done}/${scan.total}`}
-                </div>
-              ) : projects.length === 0 ? (
-                <p className="py-2 text-[12px] text-ink-tertiary">{t('wrapped.topEmpty')}</p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {projects.map((p) => (
-                    <div key={p.name} className="flex items-center gap-3">
-                      <span className="w-[176px] shrink-0 truncate text-right text-[12px] font-medium text-ink">
-                        {p.name}
-                      </span>
-                      <div className="h-[6px] min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
-                        <div
-                          className="h-full rounded-full bg-accent/70"
-                          style={{ width: `${Math.max(3, (p.count / projectMax) * 100)}%` }}
-                        />
-                      </div>
-                      <span className="w-10 shrink-0 font-mono text-[11.5px] text-ink-tertiary">
-                        {p.count.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </Section>
 
             {stats.busiestDay && (
@@ -309,9 +317,9 @@ export function WrappedDialog({
   );
 }
 
-function Tile({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex flex-col gap-2 px-4 py-4">
+    <div className="flex flex-1 flex-col gap-1.5 px-5 first:pl-0 last:pr-0">
       <span className="text-[11.5px] text-ink-tertiary">{label}</span>
       <span className="text-[28px] leading-none font-semibold tracking-[-0.5px] text-ink tabular-nums">
         {value.toLocaleString()}
