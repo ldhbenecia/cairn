@@ -1,6 +1,6 @@
 import { ArrowLeft, Check, Copy, FileDown, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import {
@@ -474,6 +474,18 @@ const monthLabel = (date: string): string =>
     .toLocaleDateString('en-US', { month: 'short' })
     .toUpperCase();
 
+// 마일스톤 라벨 — 다이아 아래 날짜 단축 표기, 월 라벨과 같은 en-US 고정 ('Jul 4')
+const peakLabel = (date: string): string =>
+  new Date(
+    Number(date.slice(0, 4)),
+    Number(date.slice(5, 7)) - 1,
+    Number(date.slice(8, 10)),
+  ).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+// 진행 중 판정 — 마지막 활동일이 기간 끝 3일 이내(오늘 포함). 문자열 달력 산술이라 TZ 무관
+const isOngoing = (last: string, until: string): boolean =>
+  dayIndex(last, until) <= 3 || last === todayLocal();
+
 function Timeline({
   since,
   until,
@@ -498,8 +510,19 @@ function Timeline({
     (a, b) => a.dates[0]!.localeCompare(b.dates[0]!) || b.count - a.count,
   );
 
+  // 트랙 실측 폭 — 마일스톤 라벨 겹침 판정(px)용
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [trackWidth, setTrackWidth] = useState(0);
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setTrackWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div className="relative">
+    <div ref={trackRef} className="relative">
       {/* 세로 점선 hairline — 축 아래부터 섹션 전체 높이 관통 (풀블리드, 박스 없음) */}
       <div className="pointer-events-none absolute inset-x-0 top-10 bottom-0">
         {axis.days.map((tk) => (
@@ -541,6 +564,16 @@ function Timeline({
           const left = (dayIndex(since, first) / span) * 100;
           // 라벨 행은 바 시작 x 에 정렬 — 우측 끝 레인만 잘리지 않게 클램프
           const labelLeft = Math.min(left, 78);
+          // 진행 중이면 바를 기간 끝까지 연장 후 오른쪽 끝을 페이드로 오픈
+          const ongoing = isOngoing(last, until);
+          const barEnd = ongoing ? until : last;
+          // 다이아 라벨 — 날짜순, 앞 라벨과 60px 미만이면 뒤 것 생략 (실측 전엔 모두 표시)
+          const peaksByDate = [...lane.peaks].sort((a, b) => a.date.localeCompare(b.date));
+          const labeledPeaks = peaksByDate.filter((p, i) => {
+            if (i === 0 || trackWidth === 0) return true;
+            const gap = dayIndex(peaksByDate[i - 1]!.date, p.date);
+            return (gap / span) * trackWidth >= 60;
+          });
           return (
             <button
               key={laneKey(lane.repo)}
@@ -569,10 +602,14 @@ function Timeline({
                 <span
                   style={{
                     left: `${left}%`,
-                    width: `${(daySpan(first, last) / span) * 100}%`,
+                    width: `${(daySpan(first, barEnd) / span) * 100}%`,
                     minWidth: 12,
                     background: `color-mix(in srgb, ${color} 8%, var(--color-surface-1))`,
                     borderColor: `${color}4d`,
+                    // 진행 중 — 마지막 ~48px 를 mask 로 페이드 (보더째 흐려짐), 짧은 바는 절반 보전
+                    maskImage: ongoing
+                      ? 'linear-gradient(to right, #000 max(50%, 100% - 48px), transparent)'
+                      : undefined,
                   }}
                   className="absolute inset-y-0 rounded-md border"
                 />
@@ -588,6 +625,19 @@ function Timeline({
                   />
                 ))}
               </span>
+              {labeledPeaks.length > 0 && (
+                <span className="relative mt-1 block h-3.5">
+                  {labeledPeaks.map((p) => (
+                    <span
+                      key={p.date}
+                      style={{ left: `${((dayIndex(since, p.date) + 0.5) / span) * 100}%` }}
+                      className="absolute top-0 -translate-x-1/2 text-[11px] whitespace-nowrap text-ink-tertiary"
+                    >
+                      {peakLabel(p.date)}
+                    </span>
+                  ))}
+                </span>
+              )}
             </button>
           );
         })}
