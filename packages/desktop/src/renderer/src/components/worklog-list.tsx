@@ -426,14 +426,14 @@ function PageRow({
         <span className="hidden shrink-0 items-center gap-1.5 lg:flex">
           <span
             className="flex items-center gap-1 rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-tertiary"
-            title="GitHub PR"
+            title={t('stats.totalPr')}
           >
             <GitPullRequest size={11} strokeWidth={2} />
             {counts.gh}
           </span>
           <span
             className="flex items-center gap-1 rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-tertiary"
-            title="commits"
+            title={t('achv.commits')}
           >
             <GitCommitHorizontal size={11} strokeWidth={2} />
             {counts.git}

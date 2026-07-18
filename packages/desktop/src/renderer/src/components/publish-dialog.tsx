@@ -247,10 +247,19 @@ export function PublishDialog({
                   onChange={setMode}
                 />
 
-                <div className="mt-3 flex items-center justify-between gap-3">
+                <div
+                  role="group"
+                  aria-labelledby="publish-date-label"
+                  aria-describedby="publish-date-hint"
+                  className="mt-3 flex items-center justify-between gap-3"
+                >
                   <div className="flex min-w-0 flex-col">
-                    <span className="text-[13px] text-ink">{t('publish.date')}</span>
-                    <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
+                    <span id="publish-date-label" className="text-[13px] text-ink">
+                      {t('publish.date')}
+                    </span>
+                    <span id="publish-date-hint" className="text-[11px] text-ink-tertiary">
+                      {t('publish.dateHint')}
+                    </span>
                   </div>
                   <DatePicker
                     value={date}

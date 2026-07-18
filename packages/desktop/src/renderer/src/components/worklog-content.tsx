@@ -20,8 +20,9 @@ export function JournalBlocks({
   );
 }
 
-// 발행 일지는 plain text 라 링크 annotation 이 없어, 평문 URL 을 직접 링크화
-const URL_SPLIT = /(https?:\/\/[^\s)]+)/g;
+// 발행 일지는 plain text 라 링크 annotation 이 없어, 평문 URL 을 직접 링크화.
+// 문장 끝에 붙는 후행 문장부호(마침표·쉼표 등)는 링크 대상에서 제외해 평문으로 남긴다
+const URL_SPLIT = /(https?:\/\/[^\s)]*[^\s).,;:!?'"])/g;
 function linkify(text: string): ReactNode[] {
   return text.split(URL_SPLIT).map((part, i) =>
     /^https?:\/\//.test(part) ? (

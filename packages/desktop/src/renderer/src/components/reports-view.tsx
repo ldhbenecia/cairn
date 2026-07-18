@@ -185,6 +185,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
               <button
                 key={p.key}
                 type="button"
+                aria-pressed={range === p.key}
                 onClick={() => setRange(p.key)}
                 className={[
                   'rounded-md px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap transition-colors',
