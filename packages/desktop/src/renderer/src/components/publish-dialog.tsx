@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { CalendarDays, Check, Loader2, Plus, Send, X } from 'lucide-react';
+import { Check, Loader2, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RunSession } from '../App';
 import type { CoreMode, CoreRunOptions, SummaryModel } from '../cairn-api';
@@ -133,6 +133,9 @@ export function PublishDialog({
   const isRunning = session?.state === 'running';
   const isDone = session?.state === 'done';
   const wide = showProgress && (isRunning || isDone || busy);
+  // 폼 화면(결과·진행 화면이 아닐 때)에만 하단 footer CTA 를 보인다
+  const formShown =
+    !showProgress || (!(isDone && (session?.error || session?.result)) && !isRunning && !busy);
 
   // 결과·취소·에러 화면을 연 채로 본 세션은 확인된 것으로 기록 —
   // 닫고 다시 열 때 recall 경로가 같은 결과를 또 띄우지 않게 (취소 화면 재표시 버그)
@@ -195,8 +198,7 @@ export function PublishDialog({
           }`}
         >
           <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
-            <Dialog.Title className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.2px] text-ink">
-              <CalendarDays size={15} strokeWidth={2} className="text-ink-tertiary" />
+            <Dialog.Title className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
               {t('publish.title')}
             </Dialog.Title>
             <Dialog.Close
@@ -251,7 +253,7 @@ export function PublishDialog({
                   role="group"
                   aria-labelledby="publish-date-label"
                   aria-describedby="publish-date-hint"
-                  className="mt-3 flex items-center justify-between gap-3"
+                  className="mt-4 flex items-center justify-between gap-3"
                 >
                   <div className="flex min-w-0 flex-col">
                     <span id="publish-date-label" className="text-[13px] text-ink">
@@ -272,7 +274,7 @@ export function PublishDialog({
                   />
                 </div>
 
-                <div className="mt-4 mb-4 flex flex-col gap-2.5">
+                <div className="mt-4 flex flex-col gap-3">
                   <CheckRow
                     label={t('publish.backfill')}
                     checked={mode === 'daily' && isToday && includeBackfill}
@@ -295,35 +297,41 @@ export function PublishDialog({
                     />
                   )}
                 </div>
-
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => {
-                    // 이전 외부 발행에서 latch 된 mode 가 새 수동 발행 화면을 끌고 가지 않게 (#236 리뷰)
-                    setWatchedExternal(null);
-                    setShowProgress(true);
-                    void onTrigger(mode, {
-                      backfillDays:
-                        mode === 'daily' && isToday && includeBackfill ? DAILY_BACKFILL_DAYS : 0,
-                      force,
-                      ...(isToday ? {} : { date }),
-                      ...(notionConnected && skipNotion ? { skipNotion: true } : {}),
-                    });
-                  }}
-                  className={[
-                    'flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-[13px] font-medium transition-all active:scale-[0.98]',
-                    busy
-                      ? 'cursor-not-allowed bg-accent-focus text-white/70'
-                      : 'bg-accent text-white hover:bg-accent-hover',
-                  ].join(' ')}
-                >
-                  {!busy && <Send size={15} strokeWidth={2.25} />}
-                  {busy ? t('publish.busy') : t('publish.start')}
-                </button>
               </>
             )}
           </div>
+
+          {formShown && (
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-hairline px-6 py-3">
+              <Dialog.Close className="flex h-8 items-center rounded-md px-4 text-[13px] font-medium text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink">
+                {t('publish.close')}
+              </Dialog.Close>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  // 이전 외부 발행에서 latch 된 mode 가 새 수동 발행 화면을 끌고 가지 않게 (#236 리뷰)
+                  setWatchedExternal(null);
+                  setShowProgress(true);
+                  void onTrigger(mode, {
+                    backfillDays:
+                      mode === 'daily' && isToday && includeBackfill ? DAILY_BACKFILL_DAYS : 0,
+                    force,
+                    ...(isToday ? {} : { date }),
+                    ...(notionConnected && skipNotion ? { skipNotion: true } : {}),
+                  });
+                }}
+                className={[
+                  'flex h-8 items-center rounded-md px-4 text-[13px] font-medium transition-all active:scale-[0.98]',
+                  busy
+                    ? 'cursor-not-allowed bg-accent-focus text-white/70'
+                    : 'bg-accent text-white hover:bg-accent-hover',
+                ].join(' ')}
+              >
+                {busy ? t('publish.busy') : t('publish.start')}
+              </button>
+            </div>
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
