@@ -1,6 +1,6 @@
 import {
   BarChart3,
-  ChartGantt,
+  Box,
   ChartPie,
   FileText,
   MessageSquareText,
@@ -139,7 +139,7 @@ export function CommandPalette({
       {
         id: 'view-reports',
         label: t('cmd.achievements'),
-        icon: <ChartGantt size={12} strokeWidth={2} />,
+        icon: <Box size={12} strokeWidth={2} />,
         run: () => onView('reports'),
       },
       {

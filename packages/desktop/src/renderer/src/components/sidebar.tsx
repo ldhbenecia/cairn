@@ -1,10 +1,10 @@
 import {
+  Box,
   CalendarCheck,
   CalendarClock,
   CalendarDays,
   CalendarRange,
   ChartColumn,
-  ChartGantt,
   LayoutList,
   LogIn,
   Orbit,
@@ -97,7 +97,7 @@ export function Sidebar({
           />
         )}
         <FilterItem
-          icon={ChartGantt}
+          icon={Box}
           label={t('nav.reports')}
           active={!preferencesActive && view === 'reports'}
           onClick={onOpenReports}

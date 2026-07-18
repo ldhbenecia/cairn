@@ -1,6 +1,6 @@
-import { Check, Copy, FileDown, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, Copy, FileDown, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import {
@@ -154,17 +154,26 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
     });
   }
 
-  const sectionRefs = useRef(new Map<string, HTMLElement | null>());
-  const scrollToLane = (lane: Lane): void => {
-    sectionRefs.current.get(laneKey(lane.repo))?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  };
+  // 상세 진입 상태 — 기간 필터가 바뀌어도 유지, 데이터(itemsByLane)만 새 기간 기준으로 갱신
+  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedRepo === null) return;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      if (document.querySelector('[role="dialog"]')) return;
+      setSelectedRepo(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedRepo]);
 
   const laneLabel = (repo: string | null): string => repo ?? t('reports.noRepo');
   const scanning = scan !== null && perDay === null;
   const ready = perDay !== null;
+
+  const detailRows = selectedRepo !== null ? (itemsByLane.get(selectedRepo) ?? []) : [];
+  const detailDays = new Set(detailRows.map((r) => r.date)).size;
 
   return (
     <section className="flex flex-1 flex-col overflow-hidden bg-canvas">
@@ -244,6 +253,51 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
             </div>
           ) : scanning ? (
             <ScanRing done={scan?.done ?? 0} total={scan?.total ?? 0} label={t('achv.scanning')} />
+          ) : ready && selectedRepo !== null ? (
+            <div key={selectedRepo} className="panel-enter flex flex-col gap-5">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRepo(null)}
+                  title={t('reports.back')}
+                  aria-label={t('reports.back')}
+                  className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+                >
+                  <ArrowLeft size={15} strokeWidth={2} />
+                </button>
+                <div className="min-w-0">
+                  <h2 className="truncate text-[15px] font-semibold tracking-[-0.2px] text-ink">
+                    {laneLabel(selectedRepo === '__none' ? null : selectedRepo)}
+                  </h2>
+                  <p className="mt-0.5 font-mono text-[11.5px] text-ink-tertiary tabular-nums">
+                    {t('reports.detail.stats')
+                      .replace('{n}', String(detailRows.length))
+                      .replace('{d}', String(detailDays))}
+                  </p>
+                </div>
+              </div>
+              {detailRows.length === 0 ? (
+                <div className="py-16 text-center text-[12px] text-ink-tertiary">
+                  {t('achv.empty')}
+                </div>
+              ) : (
+                <div>
+                  {detailRows.map((it, i) => (
+                    <div
+                      key={i}
+                      className="flex min-h-9 items-center gap-3 rounded-md px-2 py-1.5 transition-[background-color] hover:bg-surface-2"
+                    >
+                      <span className="min-w-0 flex-1 text-[13px] leading-snug text-ink-muted">
+                        {it.text}
+                      </span>
+                      <span className="shrink-0 font-mono text-[11px] text-ink-tertiary tabular-nums">
+                        {it.date}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : ready && items.length === 0 ? (
             <div className="rounded-lg border border-hairline py-16 text-center text-[12px] text-ink-tertiary">
               {t('achv.empty')}
@@ -271,9 +325,8 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                   until={until}
                   lanes={lanes}
                   lang={settings.language}
-                  repoColLabel={t('reports.repoCol')}
                   laneLabel={laneLabel}
-                  onLaneClick={scrollToLane}
+                  onLaneClick={(lane) => setSelectedRepo(laneKey(lane.repo))}
                 />
               </div>
 
@@ -281,42 +334,27 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                 <p className="mb-1 px-1 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
                   {t('reports.byRepo')}
                 </p>
-                <div className="mb-4 flex items-center gap-3 border-b border-hairline px-1 pb-1.5 text-[10.5px] font-medium tracking-wider text-ink-tertiary uppercase">
+                <div className="mb-1 flex items-center gap-3 border-b border-hairline px-2 pb-1.5 text-[10.5px] font-medium tracking-wider text-ink-tertiary uppercase">
                   <span className="min-w-0 flex-1">{t('reports.repoCol')}</span>
                   <span className="w-10 shrink-0 text-right">{t('reports.itemsCol')}</span>
                   <span className="w-24 shrink-0 text-right">{t('reports.activityCol')}</span>
                 </div>
-                <div className="flex flex-col gap-6">
+                <div>
                   {lanes.map((lane) => (
-                    <section
+                    <button
                       key={laneKey(lane.repo)}
-                      ref={(el) => {
-                        sectionRefs.current.set(laneKey(lane.repo), el);
-                      }}
-                      className="scroll-mt-3"
+                      type="button"
+                      onClick={() => setSelectedRepo(laneKey(lane.repo))}
+                      className="flex h-10 w-full items-center gap-3 rounded-md px-2 text-left transition-[background-color] hover:bg-surface-2"
                     >
-                      <header className="flex items-center gap-3 px-1 pb-1">
-                        <h3 className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
-                          {laneLabel(lane.repo)}
-                        </h3>
-                        <span className="w-10 shrink-0 text-right font-mono text-[11px] text-ink-tertiary tabular-nums">
-                          {lane.count}
-                        </span>
-                        <ActivitySpark since={since} until={until} dates={lane.dates} />
-                      </header>
-                      <div className="divide-y divide-hairline">
-                        {(itemsByLane.get(laneKey(lane.repo)) ?? []).map((it, i) => (
-                          <div key={i} className="flex min-h-9 items-center gap-3 px-1 py-1.5">
-                            <span className="min-w-0 flex-1 text-[13px] leading-snug text-ink-muted">
-                              {it.text}
-                            </span>
-                            <span className="shrink-0 font-mono text-[11px] text-ink-tertiary tabular-nums">
-                              {it.date}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">
+                        {laneLabel(lane.repo)}
+                      </span>
+                      <span className="w-10 shrink-0 text-right font-mono text-[11px] text-ink-tertiary tabular-nums">
+                        {lane.count}
+                      </span>
+                      <ActivitySpark since={since} until={until} dates={lane.dates} />
+                    </button>
                   ))}
                 </div>
               </div>
@@ -397,7 +435,6 @@ function Timeline({
   until,
   lanes,
   lang,
-  repoColLabel,
   laneLabel,
   onLaneClick,
 }: {
@@ -405,7 +442,6 @@ function Timeline({
   until: string;
   lanes: Lane[];
   lang: string;
-  repoColLabel: string;
   laneLabel: (repo: string | null) => string;
   onLaneClick: (lane: Lane) => void;
 }) {
@@ -420,9 +456,9 @@ function Timeline({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-hairline bg-surface-1">
-      {/* 세로 점선 hairline — 라벨 칼럼(w-44) 이후 트랙 영역, 축 헤더까지 관통 */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 left-44">
+    <div className="relative">
+      {/* 세로 점선 hairline — 축 라벨 아래부터 섹션 전체 높이 관통 (풀블리드, 박스 없음) */}
+      <div className="pointer-events-none absolute inset-x-0 top-6 bottom-0">
         {ticks.map((tk) => (
           <span
             key={tk.date}
@@ -433,58 +469,56 @@ function Timeline({
         ))}
       </div>
 
-      <div className="relative flex h-7 border-b border-hairline">
-        <div className="flex w-44 shrink-0 items-center border-r border-hairline px-3 text-[10.5px] font-medium tracking-wider text-ink-tertiary uppercase">
-          {repoColLabel}
-        </div>
-        <div className="relative min-w-0 flex-1">
-          {ticks.map((tk) => (
-            <span
-              key={tk.date}
-              style={{ left: `${tk.pos * 100}%` }}
-              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-[10px] text-ink-tertiary"
-            >
-              {tickLabel(tk.date)}
-            </span>
-          ))}
-        </div>
+      <div className="relative h-6">
+        {ticks.map((tk) => (
+          <span
+            key={tk.date}
+            style={{ left: `${tk.pos * 100}%` }}
+            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-[10px] text-ink-tertiary"
+          >
+            {tickLabel(tk.date)}
+          </span>
+        ))}
       </div>
 
       <div className="relative">
         {lanes.map((lane) => {
           const first = lane.dates[0]!;
           const last = lane.dates[lane.dates.length - 1]!;
-          const left = (dayIndex(since, first) / span) * 100;
-          const width = Math.max((daySpan(first, last) / span) * 100, 0.8);
+          const width = Math.max((daySpan(first, last) / span) * 100, 3);
+          const left = Math.min((dayIndex(since, first) / span) * 100, 100 - width);
+          // 우측 끝 레인은 라벨을 바 오른쪽 끝에 맞춰 오버플로 방지
+          const alignEnd = left + width > 82;
           return (
             <button
               key={laneKey(lane.repo)}
               type="button"
               onClick={() => onLaneClick(lane)}
               title={`${laneLabel(lane.repo)} · ${lane.count}`}
-              className="group flex h-9 w-full items-center text-left transition-colors hover:bg-surface-2/50"
+              className="group relative block h-[52px] w-full rounded-md text-left transition-[background-color] hover:bg-surface-2/40"
             >
-              <span className="flex w-44 shrink-0 items-center gap-2 border-r border-hairline px-3">
-                <span className="min-w-0 truncate text-[12.5px] font-medium text-ink-muted transition-colors group-hover:text-ink">
+              <span
+                style={alignEnd ? { right: `${100 - left - width}%` } : { left: `${left}%` }}
+                className="absolute top-0 flex max-w-full items-baseline gap-1.5 whitespace-nowrap"
+              >
+                <span className="truncate text-[13px] font-medium text-ink-muted transition-colors group-hover:text-ink">
                   {laneLabel(lane.repo)}
                 </span>
-                <span className="ml-auto shrink-0 font-mono text-[10.5px] text-ink-tertiary tabular-nums">
+                <span className="font-mono text-[10.5px] text-ink-tertiary tabular-nums">
                   {lane.count}
                 </span>
               </span>
-              <span className="relative h-full min-w-0 flex-1">
+              <span
+                style={{ left: `${left}%`, width: `${width}%` }}
+                className="absolute bottom-1 h-7 rounded-lg bg-surface-3"
+              />
+              {lane.dates.map((d) => (
                 <span
-                  style={{ left: `${left}%`, width: `${width}%` }}
-                  className="absolute top-1/2 h-[9px] -translate-y-1/2 rounded-full bg-surface-3"
+                  key={d}
+                  style={{ left: `${((dayIndex(since, d) + 0.5) / span) * 100}%` }}
+                  className="absolute bottom-[18px] size-[5px] -translate-x-1/2 translate-y-1/2 rounded-full bg-ink-subtle"
                 />
-                {lane.dates.map((d) => (
-                  <span
-                    key={d}
-                    style={{ left: `${((dayIndex(since, d) + 0.5) / span) * 100}%` }}
-                    className="absolute top-1/2 size-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink-subtle"
-                  />
-                ))}
-              </span>
+              ))}
             </button>
           );
         })}
