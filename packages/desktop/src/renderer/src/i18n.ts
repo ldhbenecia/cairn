@@ -17,6 +17,10 @@ const STRINGS = {
     'account.cloud': '클라우드',
     'account.local': '로컬',
     'account.offline': '오프라인',
+    'claude.status.checking': '확인 중',
+    'claude.status.ok': 'Claude 연결됨',
+    'claude.status.fail': 'Claude 사용 불가',
+    'claude.status.failHint': '설정 > 연결에서 확인',
 
     'source.localDesc': '로컬 일지',
     'graph.empty': '아직 그래프로 그릴 일지가 없어요. 첫 일지를 발행해 보세요.',
@@ -560,6 +564,10 @@ const STRINGS = {
     'account.cloud': 'Cloud',
     'account.local': 'Local',
     'account.offline': 'Offline',
+    'claude.status.checking': 'Checking…',
+    'claude.status.ok': 'Claude connected',
+    'claude.status.fail': 'Claude unavailable',
+    'claude.status.failHint': 'Check Preferences > Connections',
 
     'source.localDesc': 'Local journal',
     'graph.empty': 'Nothing to graph yet. Publish your first worklog.',
