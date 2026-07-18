@@ -68,6 +68,19 @@ export function buildLanes(items: readonly DoneItem[]): Lane[] {
     });
 }
 
+export type LaneSegment = { from: string; to: string };
+
+// 정렬된 활동일을 연속 구간으로 병합 — 하루라도 비면 구간이 끊긴다 (타임라인 세그먼트 바)
+export function laneSegments(dates: readonly string[]): LaneSegment[] {
+  const segments: LaneSegment[] = [];
+  for (const date of dates) {
+    const last = segments[segments.length - 1];
+    if (last && dayIndex(last.to, date) === 1) last.to = date;
+    else segments.push({ from: date, to: date });
+  }
+  return segments;
+}
+
 export type TimelineTick = { date: string; pos: number };
 
 // 기간 길이에 따라 주(월요일) 또는 월(1일) 경계 눈금 — pos 는 0..1 (기간 좌측 경계 기준)

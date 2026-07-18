@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, buildLanes, dayIndex, daySpan, parseDoneBullet, timelineTicks } from './reports';
+import {
+  addDays,
+  buildLanes,
+  dayIndex,
+  daySpan,
+  laneSegments,
+  parseDoneBullet,
+  timelineTicks,
+} from './reports';
 
 describe('parseDoneBullet', () => {
   it('[repo] 프리픽스 — repo 와 본문 분리', () => {
@@ -50,6 +58,28 @@ describe('buildLanes', () => {
     expect(lanes.map((l) => l.repo)).toEqual(['b', 'a', null]);
     expect(lanes[0]!.dates).toEqual(['2026-07-02', '2026-07-03']);
     expect(lanes[0]!.count).toBe(2);
+  });
+});
+
+describe('laneSegments', () => {
+  it('연속 활동일 병합, 공백에서 끊김', () => {
+    expect(
+      laneSegments(['2026-07-01', '2026-07-02', '2026-07-03', '2026-07-05', '2026-07-08']),
+    ).toEqual([
+      { from: '2026-07-01', to: '2026-07-03' },
+      { from: '2026-07-05', to: '2026-07-05' },
+      { from: '2026-07-08', to: '2026-07-08' },
+    ]);
+  });
+
+  it('월 경계를 넘는 연속 구간', () => {
+    expect(laneSegments(['2026-06-30', '2026-07-01'])).toEqual([
+      { from: '2026-06-30', to: '2026-07-01' },
+    ]);
+  });
+
+  it('빈 배열', () => {
+    expect(laneSegments([])).toEqual([]);
   });
 });
 

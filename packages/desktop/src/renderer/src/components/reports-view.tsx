@@ -7,6 +7,7 @@ import {
   buildLanes,
   dayIndex,
   daySpan,
+  laneSegments,
   localDateDaysAgo,
   parseDoneBullet,
   timelineTicks,
@@ -32,6 +33,37 @@ const RING_R = 26;
 const RING_C = 2 * Math.PI * RING_R;
 
 const laneKey = (repo: string | null): string => repo ?? '__none';
+
+// 상세 뷰 — 날짜 내림차순으로 정렬된 항목을 날짜별 섹션으로 묶는다
+function groupByDate(rows: readonly DoneItem[]): { date: string; items: DoneItem[] }[] {
+  const groups: { date: string; items: DoneItem[] }[] = [];
+  for (const it of rows) {
+    const last = groups[groups.length - 1];
+    if (last && last.date === it.date) last.items.push(it);
+    else groups.push({ date: it.date, items: [it] });
+  }
+  return groups;
+}
+
+// split 캡처 그룹 — 홀수 인덱스가 #N 매치
+const PR_REF_RE = /(#\d+)/g;
+
+function DoneText({ text }: { text: string }) {
+  const parts = text.split(PR_REF_RE);
+  return (
+    <>
+      {parts.map((p, i) =>
+        i % 2 === 1 ? (
+          <span key={i} className="font-mono text-[12px] font-medium text-ink tabular-nums">
+            {p}
+          </span>
+        ) : (
+          p
+        ),
+      )}
+    </>
+  );
+}
 
 export function ReportsView({ recent }: { recent: RecentListResult | null }) {
   const { t, settings } = useSettings();
@@ -267,7 +299,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                   <ArrowLeft size={15} strokeWidth={2} />
                 </button>
                 <div className="min-w-0">
-                  <h2 className="truncate text-[15px] font-semibold tracking-[-0.2px] text-ink">
+                  <h2 className="truncate text-[18px] font-semibold tracking-[-0.3px] text-ink">
                     {laneLabel(selectedRepo === '__none' ? null : selectedRepo)}
                   </h2>
                   <p className="mt-0.5 font-mono text-[11.5px] text-ink-tertiary tabular-nums">
@@ -282,19 +314,25 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                   {t('achv.empty')}
                 </div>
               ) : (
-                <div>
-                  {detailRows.map((it, i) => (
-                    <div
-                      key={i}
-                      className="flex min-h-9 items-center gap-3 rounded-md px-2 py-1.5 transition-[background-color] hover:bg-surface-2"
-                    >
-                      <span className="min-w-0 flex-1 text-[13px] leading-snug text-ink-muted">
-                        {it.text}
-                      </span>
-                      <span className="shrink-0 font-mono text-[11px] text-ink-tertiary tabular-nums">
-                        {it.date}
-                      </span>
-                    </div>
+                <div className="flex max-w-3xl flex-col gap-6">
+                  {groupByDate(detailRows).map((g) => (
+                    <section key={g.date}>
+                      <h3 className="mb-1 px-2 font-mono text-[11.5px] font-medium text-ink-tertiary tabular-nums">
+                        {g.date}
+                      </h3>
+                      <div>
+                        {g.items.map((it, i) => (
+                          <div
+                            key={i}
+                            className="flex min-h-8 items-center gap-3 rounded-md px-2 py-1.5 transition-[background-color] hover:bg-surface-2"
+                          >
+                            <span className="min-w-0 flex-1 text-[13px] leading-snug text-ink-muted">
+                              <DoneText text={it.text} />
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
                   ))}
                 </div>
               )}
@@ -484,23 +522,20 @@ function Timeline({
 
       <div className="relative">
         {lanes.map((lane) => {
-          const first = lane.dates[0]!;
-          const last = lane.dates[lane.dates.length - 1]!;
-          const width = Math.max((daySpan(first, last) / span) * 100, 3);
-          const left = Math.min((dayIndex(since, first) / span) * 100, 100 - width);
-          // 우측 끝 레인은 라벨을 바 오른쪽 끝에 맞춰 오버플로 방지
-          const alignEnd = left + width > 82;
+          const segments = laneSegments(lane.dates);
+          // 라벨은 첫 세그먼트 시작 위에 고정 — 우측 끝 레인만 잘리지 않게 최소 폭 확보
+          const labelLeft = Math.min((dayIndex(since, lane.dates[0]!) / span) * 100, 78);
           return (
             <button
               key={laneKey(lane.repo)}
               type="button"
               onClick={() => onLaneClick(lane)}
               title={`${laneLabel(lane.repo)} · ${lane.count}`}
-              className="group relative block h-[52px] w-full rounded-md text-left transition-[background-color] hover:bg-surface-2/40"
+              className="group relative block h-[64px] w-full rounded-md text-left transition-[background-color] hover:bg-surface-2/40"
             >
               <span
-                style={alignEnd ? { right: `${100 - left - width}%` } : { left: `${left}%` }}
-                className="absolute top-0 flex max-w-full items-baseline gap-1.5 whitespace-nowrap"
+                style={{ left: `${labelLeft}%`, maxWidth: `${100 - labelLeft}%` }}
+                className="absolute top-1.5 flex items-baseline gap-1.5 pl-0.5 whitespace-nowrap"
               >
                 <span className="truncate text-[13px] font-medium text-ink-muted transition-colors group-hover:text-ink">
                   {laneLabel(lane.repo)}
@@ -509,15 +544,15 @@ function Timeline({
                   {lane.count}
                 </span>
               </span>
-              <span
-                style={{ left: `${left}%`, width: `${width}%` }}
-                className="absolute bottom-1 h-7 rounded-lg bg-surface-3"
-              />
-              {lane.dates.map((d) => (
+              {segments.map((seg) => (
                 <span
-                  key={d}
-                  style={{ left: `${((dayIndex(since, d) + 0.5) / span) * 100}%` }}
-                  className="absolute bottom-[18px] size-[5px] -translate-x-1/2 translate-y-1/2 rounded-full bg-ink-subtle"
+                  key={seg.from}
+                  style={{
+                    left: `${(dayIndex(since, seg.from) / span) * 100}%`,
+                    width: `${(daySpan(seg.from, seg.to) / span) * 100}%`,
+                    minWidth: 6,
+                  }}
+                  className="absolute bottom-2 h-6 rounded-md border border-hairline bg-surface-2"
                 />
               ))}
             </button>
