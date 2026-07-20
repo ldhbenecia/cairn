@@ -7,8 +7,9 @@ export type DoneItem = { date: string; repo: string | null; text: string };
 const BRACKET_RE = /^\*{0,2}\[\s*\*{0,2}([^\]]+?)\*{0,2}\s*\](?:\([^)]*\))?\*{0,2}\s*/;
 
 // 브래킷 없는 bare repo — 노션 Done 그룹핑이 `[계정]` 을 헤딩으로 옮긴 뒤의 불릿 형태.
-// `repo — text` / `repo #N — text` (em/en dash)
-const BARE_REPO_RE = /^([A-Za-z][A-Za-z0-9._/-]*)\s+(?:(#\d+)\s+)?[—–]\s+(.+)$/;
+// `repo — text` / `repo #N — text` — 구분자는 em/en dash 와 ASCII 하이픈(` - `) 동일 취급,
+// 뒤 텍스트에 dash 가 또 나와도 첫 구분자 기준
+const BARE_REPO_RE = /^([A-Za-z][A-Za-z0-9._/-]*)\s+(?:(#\d+)\s+)?[—–-]\s+(.+)$/;
 
 // `cairn desktop: …`, `Cashwalk AdminServer: …` — 영문 1~3 단어 + 콜론 프리픽스
 const COLON_REPO_RE = /^([A-Za-z][A-Za-z0-9._/-]*(?:\s[A-Za-z][A-Za-z0-9._/-]*){0,2}):\s+(.+)$/;
@@ -66,7 +67,7 @@ export function parseDoneBullet(
 }
 
 // 브래킷 라벨 뒤(bracketed)의 bare/콜론은 구조 신호가 강해 그대로 신뢰,
-// 맨몸 콜론/대시는 신뢰 집합에 정확히 일치할 때만 레포 (2-pass 2차)
+// 맨몸 콜론/대시는 신뢰 집합에 매치될 때만 레포 (2-pass 2차)
 function parseBareRepo(
   date: string,
   s: string,
@@ -74,13 +75,15 @@ function parseBareRepo(
   trusted: ReadonlySet<string>,
 ): DoneItem | null {
   const dash = BARE_REPO_RE.exec(s);
-  if (dash && (bracketed || trusted.has(dash[1]!))) {
-    return { date, repo: dash[1]!, text: dash[2] ? `${dash[2]} ${dash[3]}` : dash[3]! };
+  if (dash) {
+    const repo = bracketed ? dash[1]! : matchTrusted(dash[1]!, trusted);
+    if (repo) return { date, repo, text: dash[2] ? `${dash[2]} ${dash[3]}` : dash[3]! };
   }
   const colon = COLON_REPO_RE.exec(s);
   if (colon) {
     const name = colon[1]!;
-    if (bracketed || trusted.has(name)) return { date, repo: name, text: colon[2]! };
+    const repo = bracketed ? name : matchTrusted(name, trusted);
+    if (repo) return { date, repo, text: colon[2]! };
     // 'cairn desktop' 처럼 신뢰 레포명+공백+단어 는 해당 신뢰 레포('cairn')로 귀속
     const words = name.split(' ');
     for (let n = words.length - 1; n >= 1; n--) {
@@ -91,6 +94,36 @@ function parseBareRepo(
     }
   }
   return null;
+}
+
+const normalizeName = (s: string): string => s.toLowerCase().replace(/[\s-]+/g, '');
+
+// 토큰들이 순서대로(겹침 없이) 모두 등장하는지 — 부분 생략형 매칭용
+function tokensInOrder(tokens: readonly string[], hay: string): boolean {
+  let idx = 0;
+  for (const tk of tokens) {
+    const at = hay.indexOf(tk, idx);
+    if (at === -1) return false;
+    idx = at + tk.length;
+  }
+  return true;
+}
+
+// 후보를 신뢰 레포명에 정규화 비교로 귀속 — 공백/하이픈·대소문자 변형은 정확 일치
+// ('Cashwalk Backend' == 'CashwalkBackend'), 부분 생략형은 후보 토큰이 신뢰 레포명에
+// 순서대로 모두 포함될 때 ('Cashwalk AdminServer' ⊂ 'CashwalkTeamwalkAdminServer').
+// 오탐 가드 — 부분 생략형은 2단어 이상 또는 6자 이상만, 복수 신뢰 레포에 매치되면 포기
+function matchTrusted(name: string, trusted: ReadonlySet<string>): string | null {
+  if (trusted.has(name)) return name;
+  const norm = normalizeName(name);
+  for (const t of trusted) if (normalizeName(t) === norm) return t;
+  const tokens = name
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .map(normalizeName);
+  if (tokens.length < 2 && norm.length < 6) return null;
+  const hits = [...trusted].filter((t) => tokensInOrder(tokens, normalizeName(t)));
+  return hits.length === 1 ? hits[0]! : null;
 }
 
 // N일 전 로컬 날짜(YYYY-MM-DD). 로컬 자정 기준 — KST 단정 금지(timezone 룰)

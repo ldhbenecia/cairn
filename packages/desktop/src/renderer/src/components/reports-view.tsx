@@ -1,5 +1,4 @@
 import { ArrowLeft, Check, Copy, FileDown, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import type { I18nKey } from '../i18n';
@@ -26,18 +25,14 @@ import {
 import { useSettings } from '../settings-context';
 import { DateRangePicker } from './date-picker';
 
-type RangeKey = 7 | 30 | 90 | 365 | 'custom';
+type RangeKey = 7 | 30 | 90 | 'custom';
 
 const RANGE_PILLS: { key: RangeKey; labelKey: I18nKey }[] = [
   { key: 7, labelKey: 'reports.range.week' },
   { key: 30, labelKey: 'reports.range.month' },
   { key: 90, labelKey: 'reports.range.quarter' },
-  { key: 365, labelKey: 'reports.range.year' },
   { key: 'custom', labelKey: 'achv.range.custom' },
 ];
-
-const RING_R = 26;
-const RING_C = 2 * Math.PI * RING_R;
 
 const laneKey = (repo: string | null): string => repo ?? '__none';
 
@@ -286,6 +281,29 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
             </button>
           </div>
         </div>
+        {/* 캐시 없는 첫 스캔만 — 필터 행 아래 얇은 인라인 진행 바 (캐시가 있으면 SWR 로 조용히) */}
+        {scanning && (
+          <div className="mx-auto mt-3 flex w-full max-w-5xl items-center gap-2.5 px-6">
+            <div
+              role="progressbar"
+              aria-label={t('achv.scanning')}
+              aria-valuemin={0}
+              aria-valuemax={scan?.total ?? 0}
+              aria-valuenow={scan?.done ?? 0}
+              className="h-0.5 flex-1 overflow-hidden rounded-full bg-surface-2"
+            >
+              <div
+                style={{
+                  width: `${scan && scan.total > 0 ? (scan.done / scan.total) * 100 : 0}%`,
+                }}
+                className="h-full rounded-full bg-accent transition-[width] duration-300 ease-out"
+              />
+            </div>
+            <span className="shrink-0 font-mono text-[11px] text-ink-tertiary tabular-nums">
+              {scan?.done ?? 0}/{scan?.total ?? 0}
+            </span>
+          </div>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
@@ -295,8 +313,6 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
               <Loader2 size={14} strokeWidth={2} className="animate-spin" />
               {t('list.loading')}
             </div>
-          ) : scanning ? (
-            <ScanRing done={scan?.done ?? 0} total={scan?.total ?? 0} label={t('achv.scanning')} />
           ) : ready && selectedRepo !== null ? (
             <div key={selectedRepo} className="panel-enter flex flex-col gap-5">
               <div className="flex items-center gap-3">
@@ -446,54 +462,6 @@ function ActivitySpark({
   );
 }
 
-function ScanRing({ done, total, label }: { done: number; total: number; label: string }) {
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  const offset = RING_C * (1 - (total > 0 ? done / total : 0));
-  return (
-    <div className="flex flex-col items-center py-14">
-      <svg width="72" height="72" viewBox="0 0 64 64" className="block">
-        <circle
-          cx="32"
-          cy="32"
-          r={RING_R}
-          fill="none"
-          stroke="var(--color-surface-2)"
-          strokeWidth="5"
-        />
-        <motion.circle
-          cx="32"
-          cy="32"
-          r={RING_R}
-          fill="none"
-          stroke="var(--color-accent)"
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeDasharray={RING_C}
-          transform="rotate(-90 32 32)"
-          initial={false}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-        />
-        <text
-          x="32"
-          y="32"
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="font-mono font-semibold tabular-nums"
-          fontSize="13"
-          fill="var(--color-ink)"
-        >
-          {pct}%
-        </text>
-      </svg>
-      <p className="mt-3.5 text-[13px] font-medium text-ink">{label}</p>
-      <p className="mt-1 font-mono text-[11.5px] text-ink-tertiary tabular-nums">
-        {done} / {total}
-      </p>
-    </div>
-  );
-}
-
 // 월 라벨 — 영문 3글자 대문자 고정 (APR/MAY)
 const monthLabel = (date: string): string =>
   new Date(2000, Number(date.slice(5, 7)) - 1, 1)
@@ -556,48 +524,6 @@ function Timeline({
     const el = scrollRef.current;
     if (el) el.scrollLeft = el.scrollWidth;
   }, [since, until]);
-
-  // 순차 이행 연결 — 레인 A 마지막 활동일 뒤에 시작하는 가장 가까운 후속 레인으로 최대 1개
-  const links = useMemo(() => {
-    const out: { from: string; to: string }[] = [];
-    for (const a of lanes) {
-      const aLast = a.dates[a.dates.length - 1]!;
-      let best: Lane | undefined;
-      for (const b of lanes) {
-        if (b === a || b.dates[0]! <= aLast) continue;
-        if (!best || b.dates[0]! < best.dates[0]!) best = b;
-      }
-      if (best) out.push({ from: laneKey(a.repo), to: laneKey(best.repo) });
-    }
-    return out;
-  }, [lanes]);
-
-  // 바 실측 rect 기반 S커브 경로 — 수평 진출→수직 이동→수평 진입 cubic bezier
-  const barRefs = useRef(new Map<string, HTMLSpanElement>());
-  const [linkPaths, setLinkPaths] = useState<string[]>([]);
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track || links.length === 0) {
-      setLinkPaths([]);
-      return;
-    }
-    const base = track.getBoundingClientRect();
-    const paths: string[] = [];
-    for (const { from, to } of links) {
-      const a = barRefs.current.get(from)?.getBoundingClientRect();
-      const b = barRefs.current.get(to)?.getBoundingClientRect();
-      if (!a || !b) continue;
-      const x1 = a.right - base.left;
-      const x2 = b.left - base.left;
-      // 진행 중 연장·최소 폭 클램프로 바 끝이 겹치면 생략
-      if (x2 - x1 < 8) continue;
-      const y1 = a.top + a.height / 2 - base.top;
-      const y2 = b.top + b.height / 2 - base.top;
-      const mx = (x1 + x2) / 2;
-      paths.push(`M ${x1} ${y1} C ${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`);
-    }
-    setLinkPaths(paths);
-  }, [links, trackWidth]);
 
   return (
     <div ref={scrollRef} className="overflow-x-auto pb-1">
@@ -688,11 +614,6 @@ function Timeline({
                 </span>
                 <span className="relative mt-1.5 block h-7">
                   <span
-                    ref={(el) => {
-                      const key = laneKey(lane.repo);
-                      if (el) barRefs.current.set(key, el);
-                      else barRefs.current.delete(key);
-                    }}
                     style={{
                       left: `${left}%`,
                       width: `${(daySpan(first, barEnd) / span) * 100}%`,
@@ -737,21 +658,6 @@ function Timeline({
             );
           })}
         </div>
-
-        {/* 순차 이행 S커브 오버레이 — 스크롤 캔버스 내부라 좌표가 바와 함께 이동 */}
-        {linkPaths.length > 0 && (
-          <svg className="pointer-events-none absolute inset-0 size-full" aria-hidden="true">
-            {linkPaths.map((d) => (
-              <path
-                key={d}
-                d={d}
-                fill="none"
-                stroke="var(--color-hairline-strong)"
-                strokeWidth="1"
-              />
-            ))}
-          </svg>
-        )}
       </div>
     </div>
   );

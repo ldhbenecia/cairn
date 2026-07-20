@@ -92,6 +92,58 @@ describe('parseDoneBullet', () => {
     });
   });
 
+  it('bare repo — ASCII 하이픈 구분자도 dash 와 동일 취급, 첫 구분자 기준', () => {
+    expect(
+      parseDoneBullet(
+        '2026-07-01',
+        'cairn - 일지 발행 진행 화면 풀 리디자인 — 단계 재구성',
+        new Set(['cairn']),
+      ),
+    ).toEqual({
+      date: '2026-07-01',
+      repo: 'cairn',
+      text: '일지 발행 진행 화면 풀 리디자인 — 단계 재구성',
+    });
+  });
+
+  it('신뢰 레포명 공백/대소문자 변형 — 정규화 정확 일치로 귀속', () => {
+    expect(
+      parseDoneBullet(
+        '2026-07-01',
+        'Cashwalk Backend: 정산 배치 개선',
+        new Set(['CashwalkBackend']),
+      ),
+    ).toEqual({
+      date: '2026-07-01',
+      repo: 'CashwalkBackend',
+      text: '정산 배치 개선',
+    });
+  });
+
+  it('부분 생략형 — 후보 토큰이 신뢰 레포명에 순서대로 포함되면 귀속', () => {
+    expect(
+      parseDoneBullet(
+        '2026-07-01',
+        'Cashwalk AdminServer: 배너 연동',
+        new Set(['CashwalkTeamwalkAdminServer']),
+      ),
+    ).toEqual({
+      date: '2026-07-01',
+      repo: 'CashwalkTeamwalkAdminServer',
+      text: '배너 연동',
+    });
+  });
+
+  it('짧은 단일 단어는 부분 매칭 미적용 — fix 는 기타 유지', () => {
+    expect(
+      parseDoneBullet('2026-07-01', 'fix: 퀴즈 청킹 보정', new Set(['HotfixService'])),
+    ).toEqual({
+      date: '2026-07-01',
+      repo: null,
+      text: 'fix: 퀴즈 청킹 보정',
+    });
+  });
+
   it('콜론 프리픽스 — 신뢰 집합 정확 일치만 레포, 불일치는 기타', () => {
     expect(
       parseDoneBullet(

@@ -170,7 +170,7 @@ export function offScanProgress(since: string, until: string, cb: ScanProgressFn
 
 // 기간별 정리에서 마지막으로 쓴 기간(일수)을 기억 — 앱 로드 프리페치가 이 기간을 함께 덥힌다
 const RANGE_KEY = 'cairn:reportsRange';
-const RANGE_DAYS = [7, 30, 90, 365];
+const RANGE_DAYS = [7, 30, 90];
 
 export function rememberReportsRange(days: number): void {
   try {
