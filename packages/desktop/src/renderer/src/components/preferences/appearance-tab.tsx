@@ -1,7 +1,6 @@
 import { Check } from 'lucide-react';
 import type { Language, Theme } from '../../cairn-api';
 import { ACCENTS, useSettings } from '../../settings-context';
-import { Toggle } from '../toggle';
 import { Field, Section, Segmented } from './field';
 
 export function AppearanceTab() {
@@ -71,13 +70,6 @@ export function AppearanceTab() {
       </Section>
 
       <Section label={t('prefs.section.interface')}>
-        <Field label={t('prefs.graph')} desc={t('prefs.graph.desc')}>
-          <Toggle
-            checked={settings.graph.enabled}
-            onChange={(v) => update({ graph: { ...settings.graph, enabled: v } })}
-          />
-        </Field>
-
         <Field label={t('prefs.language')} desc={t('prefs.language.desc')}>
           <Segmented
             options={langOptions}

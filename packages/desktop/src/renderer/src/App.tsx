@@ -97,9 +97,7 @@ export function App() {
   const [recent, setRecent] = useState<RecentListResult | null>(readRecentCache);
   const recentRef = useRef(recent);
   recentRef.current = recent;
-  const { t, settings } = useSettings();
-  // 그래프 뷰를 설정에서 끈 상태로 view 가 graph 에 남아 있으면 목록으로 폴백
-  const activeView = view === 'graph' && !settings.graph.enabled ? 'worklogs' : view;
+  const { t } = useSettings();
 
   // 어디서 열든 새 일지는 드로어부터 — 전체 화면은 드로어의 확장 버튼으로만 진입
   const openPage = useCallback((p: RecentPage) => {
@@ -428,7 +426,7 @@ export function App() {
     <div className="flex h-screen w-screen bg-canvas text-ink">
       <Sidebar
         width={sidebarWidth}
-        view={activeView}
+        view={view}
         filter={filter}
         counts={counts}
         preferencesActive={prefsOpen}
@@ -454,7 +452,7 @@ export function App() {
             setSelectedPage(null);
           }}
         />
-      ) : activeView === 'stats' ? (
+      ) : view === 'stats' ? (
         <Dashboard
           recent={recent}
           onPickDate={(date) => {
@@ -464,9 +462,9 @@ export function App() {
           onGoToWorklogs={() => setView('worklogs')}
           onOpenWrapped={() => setWrappedOpen(true)}
         />
-      ) : activeView === 'graph' ? (
+      ) : view === 'graph' ? (
         <GraphView recent={recent} onOpen={openPage} />
-      ) : activeView === 'reports' ? (
+      ) : view === 'reports' ? (
         <ReportsView recent={recent} />
       ) : (
         <WorklogList

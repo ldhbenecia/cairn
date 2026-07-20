@@ -60,7 +60,7 @@ export function Sidebar({
   onOpenPreferences,
   onOpenPalette,
 }: Props) {
-  const { t, settings } = useSettings();
+  const { t } = useSettings();
   const worklogActive = !preferencesActive && view === 'worklogs';
   return (
     <nav style={{ width }} className="flex shrink-0 flex-col border-r border-hairline bg-surface-1">
@@ -88,14 +88,12 @@ export function Sidebar({
           active={!preferencesActive && view === 'stats'}
           onClick={onOpenStats}
         />
-        {settings.graph.enabled && (
-          <FilterItem
-            icon={Orbit}
-            label={t('nav.graph')}
-            active={!preferencesActive && view === 'graph'}
-            onClick={onOpenGraph}
-          />
-        )}
+        <FilterItem
+          icon={Orbit}
+          label={t('nav.graph')}
+          active={!preferencesActive && view === 'graph'}
+          onClick={onOpenGraph}
+        />
         <FilterItem
           icon={Box}
           label={t('nav.reports')}
