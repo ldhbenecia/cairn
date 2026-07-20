@@ -212,6 +212,9 @@ export const content = {
       terms: 'Terms of Service',
       statusOk: 'All systems operational',
       statusFail: 'Status unavailable',
+      claudeOk: 'Claude operational',
+      claudeIssues: 'Claude issues',
+      claudeUnknown: 'Claude status unavailable',
     },
   },
   ko: {
@@ -423,6 +426,9 @@ export const content = {
       terms: '서비스 약관',
       statusOk: '모든 시스템 정상',
       statusFail: '상태 확인 불가',
+      claudeOk: 'Claude 정상',
+      claudeIssues: 'Claude 이상 감지',
+      claudeUnknown: 'Claude 상태 확인 불가',
     },
   },
 } satisfies Record<Lang, unknown>;

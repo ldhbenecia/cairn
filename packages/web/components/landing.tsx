@@ -11,7 +11,7 @@ import { LangSwitcher } from './lang-switcher';
 import { Nav } from './nav';
 import { Reveal } from './reveal';
 import { Screenshot } from './screenshot';
-import { StatusDot } from './status-dot';
+import { ClaudeStatusDot, StatusDot } from './status-dot';
 import { Accordion } from './ui/accordion';
 import { BentoGrid, type BentoItem } from './ui/bento-grid';
 
@@ -308,6 +308,11 @@ export async function Landing({ lang }: { lang: Lang }) {
             <span className="font-semibold">cairn</span>
             <span className="text-ink-tertiary">© {new Date().getFullYear()} Cairn</span>
             <StatusDot ok={c.footer.statusOk} fail={c.footer.statusFail} />
+            <ClaudeStatusDot
+              ok={c.footer.claudeOk}
+              issues={c.footer.claudeIssues}
+              unknown={c.footer.claudeUnknown}
+            />
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13.5px] text-ink-subtle">
             <a href={REPO_URL} target="_blank" rel="noreferrer" className="hover:text-ink">
