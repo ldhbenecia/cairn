@@ -2,14 +2,42 @@
 
 export type DoneItem = { date: string; repo: string | null; text: string };
 
-// wrapped.topProjects 와 같은 프리픽스 문법 — '[label] [repo] …' 는 두 번째 것이 레포
-const PREFIX_RE = /^\[([^\]]+)\]\s*(?:\[([^\]]+)\]\s*)?/;
+// 프리픽스 브래킷 한 조각 — `[repo]` 외에 볼드(`**[repo]**`·`[**repo**]`), 마크다운 링크
+// `[repo](url)`, 괄호 안팎 공백 변형까지 허용. 링크의 URL 파트는 버리고 라벨만 취한다
+const BRACKET_RE = /^\*{0,2}\[\s*\*{0,2}([^\]]+?)\*{0,2}\s*\](?:\([^)]*\))?\*{0,2}\s*/;
 
+// 브래킷 없는 bare repo — 노션 Done 그룹핑이 `[계정]` 을 헤딩으로 옮긴 뒤의 불릿 형태.
+// `repo — text` / `repo #N — text` (em/en dash)
+const BARE_REPO_RE = /^([A-Za-z][A-Za-z0-9._/-]*)\s+(?:(#\d+)\s+)?[—–]\s+(.+)$/;
+
+// `cairn desktop: …`, `Cashwalk AdminServer: …` — 영문 1~3 단어 + 콜론 프리픽스
+const COLON_REPO_RE = /^([A-Za-z][A-Za-z0-9._/-]*(?:\s[A-Za-z][A-Za-z0-9._/-]*){0,2}):\s+(.+)$/;
+
+// '[label] [repo] …' 는 두 번째 브래킷이 레포 (wrapped.topProjects 와 같은 문법)
 export function parseDoneBullet(date: string, bullet: string): DoneItem {
-  const m = PREFIX_RE.exec(bullet);
-  if (!m) return { date, repo: null, text: bullet };
-  const text = bullet.slice(m[0].length).trim();
-  return { date, repo: m[2] ?? m[1] ?? null, text: text || bullet };
+  const src = bullet.trim();
+  const first = BRACKET_RE.exec(src);
+  if (first) {
+    const rest = src.slice(first[0].length);
+    const second = BRACKET_RE.exec(rest);
+    if (second) {
+      const text = rest.slice(second[0].length).trim();
+      return { date, repo: second[1]!, text: text || src };
+    }
+    // '[계정] repo — text' 처럼 브래킷 뒤 bare repo 가 오면 그것이 레포
+    return parseBareRepo(date, rest) ?? { date, repo: first[1]!, text: rest.trim() || src };
+  }
+  return parseBareRepo(date, src) ?? { date, repo: null, text: src };
+}
+
+function parseBareRepo(date: string, s: string): DoneItem | null {
+  const dash = BARE_REPO_RE.exec(s);
+  if (dash) {
+    return { date, repo: dash[1]!, text: dash[2] ? `${dash[2]} ${dash[3]}` : dash[3]! };
+  }
+  const colon = COLON_REPO_RE.exec(s);
+  if (colon) return { date, repo: colon[1]!, text: colon[2]! };
+  return null;
 }
 
 // N일 전 로컬 날짜(YYYY-MM-DD). 로컬 자정 기준 — KST 단정 금지(timezone 룰)
