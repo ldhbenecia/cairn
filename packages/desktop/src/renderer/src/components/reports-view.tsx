@@ -557,6 +557,48 @@ function Timeline({
     if (el) el.scrollLeft = el.scrollWidth;
   }, [since, until]);
 
+  // 순차 이행 연결 — 레인 A 마지막 활동일 뒤에 시작하는 가장 가까운 후속 레인으로 최대 1개
+  const links = useMemo(() => {
+    const out: { from: string; to: string }[] = [];
+    for (const a of lanes) {
+      const aLast = a.dates[a.dates.length - 1]!;
+      let best: Lane | undefined;
+      for (const b of lanes) {
+        if (b === a || b.dates[0]! <= aLast) continue;
+        if (!best || b.dates[0]! < best.dates[0]!) best = b;
+      }
+      if (best) out.push({ from: laneKey(a.repo), to: laneKey(best.repo) });
+    }
+    return out;
+  }, [lanes]);
+
+  // 바 실측 rect 기반 S커브 경로 — 수평 진출→수직 이동→수평 진입 cubic bezier
+  const barRefs = useRef(new Map<string, HTMLSpanElement>());
+  const [linkPaths, setLinkPaths] = useState<string[]>([]);
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || links.length === 0) {
+      setLinkPaths([]);
+      return;
+    }
+    const base = track.getBoundingClientRect();
+    const paths: string[] = [];
+    for (const { from, to } of links) {
+      const a = barRefs.current.get(from)?.getBoundingClientRect();
+      const b = barRefs.current.get(to)?.getBoundingClientRect();
+      if (!a || !b) continue;
+      const x1 = a.right - base.left;
+      const x2 = b.left - base.left;
+      // 진행 중 연장·최소 폭 클램프로 바 끝이 겹치면 생략
+      if (x2 - x1 < 8) continue;
+      const y1 = a.top + a.height / 2 - base.top;
+      const y2 = b.top + b.height / 2 - base.top;
+      const mx = (x1 + x2) / 2;
+      paths.push(`M ${x1} ${y1} C ${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`);
+    }
+    setLinkPaths(paths);
+  }, [links, trackWidth]);
+
   return (
     <div ref={scrollRef} className="overflow-x-auto pb-1">
       <div ref={trackRef} style={{ minWidth: span * PX_PER_DAY }} className="relative">
@@ -646,6 +688,11 @@ function Timeline({
                 </span>
                 <span className="relative mt-1.5 block h-7">
                   <span
+                    ref={(el) => {
+                      const key = laneKey(lane.repo);
+                      if (el) barRefs.current.set(key, el);
+                      else barRefs.current.delete(key);
+                    }}
                     style={{
                       left: `${left}%`,
                       width: `${(daySpan(first, barEnd) / span) * 100}%`,
@@ -690,6 +737,21 @@ function Timeline({
             );
           })}
         </div>
+
+        {/* 순차 이행 S커브 오버레이 — 스크롤 캔버스 내부라 좌표가 바와 함께 이동 */}
+        {linkPaths.length > 0 && (
+          <svg className="pointer-events-none absolute inset-0 size-full" aria-hidden="true">
+            {linkPaths.map((d) => (
+              <path
+                key={d}
+                d={d}
+                fill="none"
+                stroke="var(--color-hairline-strong)"
+                strokeWidth="1"
+              />
+            ))}
+          </svg>
+        )}
       </div>
     </div>
   );
