@@ -359,6 +359,20 @@ const MONTHS_EN = [
   'Dec',
 ];
 
+// ISO 주차 → 실제 날짜 범위 병기 (W28 만으로는 며칠인지 알 수 없음). 달력 산술은 UTC 로만
+function weekRangeLabel(title: string): string | null {
+  const m = /(\d{4})-W(\d{2})/.exec(title);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const week = Number(m[2]);
+  const jan4 = Date.UTC(year, 0, 4);
+  const jan4Dow = new Date(jan4).getUTCDay() || 7;
+  const monday = new Date(jan4 + ((week - 1) * 7 - (jan4Dow - 1)) * 86_400_000);
+  const sunday = new Date(monday.getTime() + 6 * 86_400_000);
+  const f = (d: Date): string => `${MONTHS_EN[d.getUTCMonth()]} ${d.getUTCDate()}`;
+  return `${f(monday)} – ${f(sunday)}`;
+}
+
 function shortDate(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   return m ? `${MONTHS_EN[Number(m[2]) - 1]} ${Number(m[3])}` : iso;
@@ -418,7 +432,12 @@ function PageRow({
         selected ? 'bg-surface-3 ring-1 ring-hairline-strong ring-inset' : 'hover:bg-surface-2',
       ].join(' ')}
     >
-      <span className="min-w-0 flex-1 truncate font-medium text-ink">{title}</span>
+      <span className="min-w-0 flex-1 truncate">
+        <span className="font-medium text-ink">{title}</span>
+        {page.category === 'weekly' && weekRangeLabel(title) && (
+          <span className="ml-2 text-[12px] text-ink-tertiary">{weekRangeLabel(title)}</span>
+        )}
+      </span>
       {/* 우측 메타 — 고정 폭 칼럼 그리드. 값 없는 칸도 자리를 유지해 행끼리 세로 정렬이 맞는다 */}
       <span className="grid shrink-0 grid-cols-[76px_52px] items-center justify-items-end sm:grid-cols-[76px_56px_52px] lg:grid-cols-[64px_64px_76px_56px_52px]">
         <span className="hidden lg:block">
