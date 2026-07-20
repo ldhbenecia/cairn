@@ -242,13 +242,19 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
       </button>
       {open && (
         <div
-          className={`floating-panel ${closing ? 'popover-out' : 'popover-in'} absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40 [transform-origin:top]`}
+          className={`floating-panel ${closing ? 'popover-out' : 'popover-in'} absolute left-0 top-full z-20 mt-1 w-60 max-w-[calc(100vw-32px)] overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40 [transform-origin:top]`}
         >
-          <div className="flex items-center gap-2 px-2.5 py-1.5">
-            <p className="min-w-0 flex-1 truncate text-[12px] leading-tight text-ink-tertiary">
+          <div className="px-2.5 py-2">
+            <div className="flex items-center gap-2">
+              <Avatar user={user} />
+              <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
+                {user.name}
+              </span>
+              <AccountStatusPill />
+            </div>
+            <p className="mt-1.5 text-[12px] leading-snug break-all text-ink-tertiary">
               {user.email}
             </p>
-            <AccountStatusPill />
           </div>
           <div className="my-1 h-px bg-hairline" />
           <button
