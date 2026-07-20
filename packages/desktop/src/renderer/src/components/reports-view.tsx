@@ -494,7 +494,7 @@ function ScanRing({ done, total, label }: { done: number; total: number; label: 
   );
 }
 
-// 월 라벨 — Linear 축 문법 그대로 영문 3글자 대문자 고정 (APR/MAY)
+// 월 라벨 — 영문 3글자 대문자 고정 (APR/MAY)
 const monthLabel = (date: string): string =>
   new Date(2000, Number(date.slice(5, 7)) - 1, 1)
     .toLocaleDateString('en-US', { month: 'short' })
@@ -614,7 +614,7 @@ function Timeline({
           ))}
         </div>
 
-        {/* Linear 축 — 월 라벨 행 */}
+        {/* 축 — 월 라벨 행 */}
         <div className="relative h-6">
           {axis.months.map((tk) => (
             <span
@@ -626,7 +626,7 @@ function Timeline({
             </span>
           ))}
         </div>
-        {/* Linear 축 — 틱 마크 행 (짧은 세로 눈금선 + 일 숫자) */}
+        {/* 축 — 틱 마크 행 (짧은 세로 눈금선 + 일 숫자) */}
         <div className="relative h-6 border-t border-hairline">
           {axis.days.map((tk) => (
             <span

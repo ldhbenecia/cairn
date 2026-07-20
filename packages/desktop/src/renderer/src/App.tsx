@@ -82,7 +82,7 @@ export function App() {
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
   const [everSetup, setEverSetup] = useState(window.cairn.initialSetupComplete);
   const [selectedPage, setSelectedPage] = useState<RecentPage | null>(null);
-  // 일지 상세 표시 모드 — 드로어(기본) 또는 메인 영역 전체(Linear 이슈 상세)
+  // 일지 상세 표시 모드 — 드로어(기본) 또는 메인 영역 전체
   const [detailFull, setDetailFull] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = Number(localStorage.getItem('cairn:sidebarWidth'));

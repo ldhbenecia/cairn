@@ -168,7 +168,7 @@ export type TimelineTick = { date: string; pos: number };
 
 export type TimelineAxis = { months: TimelineTick[]; days: TimelineTick[] };
 
-// Linear 문법 2단 날짜 축 — 위: 월 라벨(기간 시작 + 매월 1일), 아래: 일 눈금(주 단위 월요일,
+// 2단 날짜 축 — 위: 월 라벨(기간 시작 + 매월 1일), 아래: 일 눈금(주 단위 월요일,
 // 2주 이하 기간은 매일). 좁은 첫 달 조각은 라벨 겹침 방지로 드랍, 긴 기간은 주 눈금을 성기게(≤26개)
 export function timelineAxis(since: string, until: string): TimelineAxis {
   const span = daySpan(since, until);

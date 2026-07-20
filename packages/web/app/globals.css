@@ -130,7 +130,7 @@ body::after {
   animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* 카드 hover — 바운스/글로우 없이 hairline·면만 차분히 (Vercel/Linear 톤) */
+/* 카드 hover — 바운스/글로우 없이 hairline·면만 차분히 */
 .card-hover {
   transition:
     border-color 0.2s ease,

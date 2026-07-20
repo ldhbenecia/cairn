@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 @theme {
-  /* 다크 표면 램프 — Linear 앱 톤: 순흑이 아니라 아주 짙은 무채 그레이의 명도 층위 */
+ /* 다크 표면 램프 — 순흑이 아니라 아주 짙은 무채 그레이의 명도 층위 */
   --color-canvas: #08090a;
   --color-surface-1: #101012;
   --color-surface-2: #17171a;
@@ -54,7 +54,7 @@
 /* 라이트 모드 — 같은 토큰 override (다크는 @theme 기본값 사용).
    캔버스는 순백(#fff) 대신 부드러운 그레이-화이트(눈부심 완화), 카드(surface-1)는 더 밝게 띄워
    계층이 또렷하게. hairline 을 진하게 잡아 윤곽이 멍하지 않도록. */
-/* Linear 톤 — 캔버스는 쿨 오프화이트(순백 눈부심·회색 muddy 둘 다 회피), 카드(surface-1)는
+/* 캔버스는 쿨 오프화이트(순백 눈부심·회색 muddy 둘 다 회피), 카드(surface-1)는
    화이트로 띄우고, 보더는 은은하게, ink 는 소프트 near-black. */
 [data-theme='light'] {
   color-scheme: light;

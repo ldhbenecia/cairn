@@ -16,7 +16,7 @@ import { NotionMark, ObsidianMark } from './brand-icons';
 import { JournalBlocks } from './worklog-content';
 import { WorklogActions } from './worklog-actions';
 
-// 일지 전체 화면 상세 — 메인 영역을 통째로 차지 (Linear 이슈 상세: 중앙 본문 + 우측 meta 열)
+// 일지 전체 화면 상세 — 메인 영역을 통째로 차지 (중앙 본문 + 우측 meta 열)
 
 export function WorklogDetailView({ page, onBack }: { page: RecentPage; onBack: () => void }) {
   const { t } = useSettings();

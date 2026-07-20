@@ -196,7 +196,7 @@ export function WorklogList({
           </span>
 
           <div className="ml-auto flex shrink-0 items-center gap-1">
-            {/* Linear 상단 문법 — 텍스트 버튼 나열 대신 아이콘 전용, 현재 상태는 title 로 */}
+            {/* 상단 문법 — 텍스트 버튼 나열 대신 아이콘 전용, 현재 상태는 title 로 */}
             <button
               type="button"
               onClick={() => setGroupBy((g) => GROUP_NEXT[g])}
