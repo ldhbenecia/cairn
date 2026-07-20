@@ -13,8 +13,37 @@ const BARE_REPO_RE = /^([A-Za-z][A-Za-z0-9._/-]*)\s+(?:(#\d+)\s+)?[—–]\s+(.+
 // `cairn desktop: …`, `Cashwalk AdminServer: …` — 영문 1~3 단어 + 콜론 프리픽스
 const COLON_REPO_RE = /^([A-Za-z][A-Za-z0-9._/-]*(?:\s[A-Za-z][A-Za-z0-9._/-]*){0,2}):\s+(.+)$/;
 
+// 2-pass 파싱 — 콜론/bare 패턴은 'fix'·'CMS'·클래스명 같은 일반 프리픽스를 레포로 오인하기
+// 쉬워, 1차에서 대괄호 프리픽스가 확정한 신뢰 레포 집합에 일치할 때만 레포로 인정한다
+export function parseDoneItems(
+  days: readonly { date: string; bullets: readonly string[] }[],
+): DoneItem[] {
+  const trusted = new Set<string>();
+  for (const d of days) {
+    for (const b of d.bullets) {
+      const repo = bracketRepo(b.trim());
+      if (repo) trusted.add(repo);
+    }
+  }
+  return days.flatMap((d) => d.bullets.map((b) => parseDoneBullet(d.date, b, trusted)));
+}
+
+// 1차 — 대괄호 프리픽스가 확정하는 레포만 (두 브래킷이면 두 번째, 브래킷+bare 면 bare)
+function bracketRepo(src: string): string | null {
+  const first = BRACKET_RE.exec(src);
+  if (!first) return null;
+  const rest = src.slice(first[0].length);
+  const second = BRACKET_RE.exec(rest);
+  if (second) return second[1]!;
+  return BARE_REPO_RE.exec(rest)?.[1] ?? first[1]!;
+}
+
 // '[label] [repo] …' 는 두 번째 브래킷이 레포 (wrapped.topProjects 와 같은 문법)
-export function parseDoneBullet(date: string, bullet: string): DoneItem {
+export function parseDoneBullet(
+  date: string,
+  bullet: string,
+  trusted: ReadonlySet<string> = new Set(),
+): DoneItem {
   const src = bullet.trim();
   const first = BRACKET_RE.exec(src);
   if (first) {
@@ -25,18 +54,42 @@ export function parseDoneBullet(date: string, bullet: string): DoneItem {
       return { date, repo: second[1]!, text: text || src };
     }
     // '[계정] repo — text' 처럼 브래킷 뒤 bare repo 가 오면 그것이 레포
-    return parseBareRepo(date, rest) ?? { date, repo: first[1]!, text: rest.trim() || src };
+    return (
+      parseBareRepo(date, rest, true, trusted) ?? {
+        date,
+        repo: first[1]!,
+        text: rest.trim() || src,
+      }
+    );
   }
-  return parseBareRepo(date, src) ?? { date, repo: null, text: src };
+  return parseBareRepo(date, src, false, trusted) ?? { date, repo: null, text: src };
 }
 
-function parseBareRepo(date: string, s: string): DoneItem | null {
+// 브래킷 라벨 뒤(bracketed)의 bare/콜론은 구조 신호가 강해 그대로 신뢰,
+// 맨몸 콜론/대시는 신뢰 집합에 정확히 일치할 때만 레포 (2-pass 2차)
+function parseBareRepo(
+  date: string,
+  s: string,
+  bracketed: boolean,
+  trusted: ReadonlySet<string>,
+): DoneItem | null {
   const dash = BARE_REPO_RE.exec(s);
-  if (dash) {
+  if (dash && (bracketed || trusted.has(dash[1]!))) {
     return { date, repo: dash[1]!, text: dash[2] ? `${dash[2]} ${dash[3]}` : dash[3]! };
   }
   const colon = COLON_REPO_RE.exec(s);
-  if (colon) return { date, repo: colon[1]!, text: colon[2]! };
+  if (colon) {
+    const name = colon[1]!;
+    if (bracketed || trusted.has(name)) return { date, repo: name, text: colon[2]! };
+    // 'cairn desktop' 처럼 신뢰 레포명+공백+단어 는 해당 신뢰 레포('cairn')로 귀속
+    const words = name.split(' ');
+    for (let n = words.length - 1; n >= 1; n--) {
+      const prefix = words.slice(0, n).join(' ');
+      if (trusted.has(prefix)) {
+        return { date, repo: prefix, text: `${words.slice(n).join(' ')}: ${colon[2]!}` };
+      }
+    }
+  }
   return null;
 }
 

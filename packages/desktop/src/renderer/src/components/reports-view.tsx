@@ -9,7 +9,7 @@ import {
   daySpan,
   LANE_COLORS,
   localDateDaysAgo,
-  parseDoneBullet,
+  parseDoneItems,
   timelineAxis,
   todayLocal,
   type DoneItem,
@@ -110,10 +110,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
     };
   }, [since, until, targets]);
 
-  const items = useMemo(
-    () => (perDay ?? []).flatMap((d) => d.bullets.map((b) => parseDoneBullet(d.date, b))),
-    [perDay],
-  );
+  const items = useMemo(() => parseDoneItems(perDay ?? []), [perDay]);
   const lanes = useMemo(() => buildLanes(items), [items]);
   const itemsByLane = useMemo(() => {
     const map = new Map<string, DoneItem[]>();

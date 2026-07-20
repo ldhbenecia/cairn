@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, buildLanes, dayIndex, daySpan, parseDoneBullet, timelineAxis } from './reports';
+import {
+  addDays,
+  buildLanes,
+  dayIndex,
+  daySpan,
+  parseDoneBullet,
+  parseDoneItems,
+  timelineAxis,
+} from './reports';
 
 describe('parseDoneBullet', () => {
   it('[repo] 프리픽스 — repo 와 본문 분리', () => {
@@ -69,24 +77,56 @@ describe('parseDoneBullet', () => {
     });
   });
 
-  it('브래킷 없는 bare repo — 노션 계정 그룹핑 이후 형태', () => {
-    expect(parseDoneBullet('2026-07-01', 'team-api — fix quiz chunking')).toEqual({
+  it('브래킷 없는 bare repo — 신뢰 집합에 있을 때만 레포', () => {
+    expect(
+      parseDoneBullet('2026-07-01', 'team-api — fix quiz chunking', new Set(['team-api'])),
+    ).toEqual({
       date: '2026-07-01',
       repo: 'team-api',
       text: 'fix quiz chunking',
     });
+    expect(parseDoneBullet('2026-07-01', 'RollupPublisherService — 재시도 정리')).toEqual({
+      date: '2026-07-01',
+      repo: null,
+      text: 'RollupPublisherService — 재시도 정리',
+    });
   });
 
-  it('콜론 프리픽스 — 영문 1~3 단어까지 레포로', () => {
-    expect(parseDoneBullet('2026-07-01', 'cairn desktop: core-runner I/O 최적화 — 로그')).toEqual({
-      date: '2026-07-01',
-      repo: 'cairn desktop',
-      text: 'core-runner I/O 최적화 — 로그',
-    });
-    expect(parseDoneBullet('2026-07-01', 'Cashwalk AdminServer: 배너·가드 정합')).toEqual({
+  it('콜론 프리픽스 — 신뢰 집합 정확 일치만 레포, 불일치는 기타', () => {
+    expect(
+      parseDoneBullet(
+        '2026-07-01',
+        'Cashwalk AdminServer: 배너·가드 정합',
+        new Set(['Cashwalk AdminServer']),
+      ),
+    ).toEqual({
       date: '2026-07-01',
       repo: 'Cashwalk AdminServer',
       text: '배너·가드 정합',
+    });
+    expect(parseDoneBullet('2026-07-01', 'fix: 퀴즈 청킹 보정')).toEqual({
+      date: '2026-07-01',
+      repo: null,
+      text: 'fix: 퀴즈 청킹 보정',
+    });
+    expect(parseDoneBullet('2026-07-01', 'CMS: 배너 편집 화면')).toEqual({
+      date: '2026-07-01',
+      repo: null,
+      text: 'CMS: 배너 편집 화면',
+    });
+  });
+
+  it('신뢰 레포명+공백+단어 콜론 — 해당 신뢰 레포로 귀속 (cairn desktop → cairn)', () => {
+    expect(
+      parseDoneBullet(
+        '2026-07-01',
+        'cairn desktop: core-runner I/O 최적화 — 로그',
+        new Set(['cairn']),
+      ),
+    ).toEqual({
+      date: '2026-07-01',
+      repo: 'cairn',
+      text: 'desktop: core-runner I/O 최적화 — 로그',
     });
   });
 
@@ -104,6 +144,26 @@ describe('parseDoneBullet', () => {
       repo: 'Personal',
       text: 'Tier 1 완성: 스탠드업 스니펫',
     });
+  });
+});
+
+describe('parseDoneItems — 2-pass', () => {
+  it('대괄호가 확정한 레포만 콜론/bare 를 귀속시킨다 — fix·서비스명은 기타', () => {
+    const items = parseDoneItems([
+      { date: '2026-07-01', bullets: ['[cairn] 타임라인 정리', 'cairn desktop: 캡처 제거'] },
+      { date: '2026-07-02', bullets: ['fix: 퀴즈 청킹', 'RollupPublisherService — 재시도'] },
+    ]);
+    expect(items.map((i) => i.repo)).toEqual(['cairn', 'cairn', null, null]);
+  });
+
+  it('[label] repo — text 의 bare repo 도 신뢰 집합에 들어간다', () => {
+    const items = parseDoneItems([
+      {
+        date: '2026-07-01',
+        bullets: ['[Work] AdminServer #244 — 배너 연동', 'AdminServer — 가드 정리'],
+      },
+    ]);
+    expect(items.map((i) => i.repo)).toEqual(['AdminServer', 'AdminServer']);
   });
 });
 
