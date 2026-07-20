@@ -48,7 +48,10 @@ const MODE_OPTIONS: { mode: CoreMode; key: I18nKey }[] = [
   { mode: 'yearly', key: 'publish.year' },
 ];
 
-const DAILY_BACKFILL_DAYS = 7;
+// 백필 일수 게이팅 — 미로그인 1일, 로그인 7일. 초과 구간은 Pro 잠금(결제 준비 중이라 선택 불가)
+const BACKFILL_OPTIONS = [0, 1, 3, 5, 7, 14, 30];
+const FREE_BACKFILL_MAX = 7;
+const ANON_BACKFILL_MAX = 1;
 
 const pad2 = (n: number): string => String(n).padStart(2, '0');
 const todayIso = (): string => {
@@ -77,7 +80,7 @@ export function PublishDialog({
   const [mode, setMode] = useState<CoreMode>('daily');
   const [date, setDate] = useState<string>(todayIso);
   const dateTouched = useRef(false);
-  const [includeBackfill, setIncludeBackfill] = useState(false);
+  const [backfillDays, setBackfillDays] = useState(0);
   const [force, setForce] = useState(false);
   const [skipNotion, setSkipNotion] = useState(false);
   const [notionConnected, setNotionConnected] = useState(false);
@@ -90,6 +93,12 @@ export function PublishDialog({
   useEffect(() => {
     if (!signedIn && mode !== 'daily') setMode('daily');
   }, [signedIn, mode]);
+
+  // 로그아웃으로 상한이 줄어도 초과 선택이 남지 않게 클램프
+  const maxBackfill = signedIn ? FREE_BACKFILL_MAX : ANON_BACKFILL_MAX;
+  useEffect(() => {
+    setBackfillDays((d) => Math.min(d, maxBackfill));
+  }, [maxBackfill]);
 
   // 열 때마다 재조회 — 연동 변경 반영
   useEffect(() => {
@@ -300,11 +309,13 @@ export function PublishDialog({
                 </div>
 
                 <div className="mt-4 flex flex-col gap-3">
-                  <CheckRow
-                    label={t('publish.backfill')}
-                    checked={signedIn && mode === 'daily' && isToday && includeBackfill}
-                    onChange={setIncludeBackfill}
-                    disabled={busy || !signedIn || mode !== 'daily' || !isToday}
+                  <BackfillRow
+                    t={t}
+                    value={backfillDays}
+                    max={maxBackfill}
+                    signedIn={signedIn}
+                    disabled={busy || mode !== 'daily' || !isToday}
+                    onChange={setBackfillDays}
                   />
                   <CheckRow
                     label={t('publish.force')}
@@ -340,9 +351,7 @@ export function PublishDialog({
                   setShowProgress(true);
                   void onTrigger(mode, {
                     backfillDays:
-                      signedIn && mode === 'daily' && isToday && includeBackfill
-                        ? DAILY_BACKFILL_DAYS
-                        : 0,
+                      mode === 'daily' && isToday ? Math.min(backfillDays, maxBackfill) : 0,
                     force,
                     ...(isToday ? {} : { date }),
                     ...(notionConnected && skipNotion ? { skipNotion: true } : {}),
@@ -362,6 +371,57 @@ export function PublishDialog({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+function BackfillRow({
+  t,
+  value,
+  max,
+  signedIn,
+  disabled,
+  onChange,
+}: {
+  t: (key: I18nKey) => string;
+  value: number;
+  max: number;
+  signedIn: boolean;
+  disabled: boolean;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className={disabled ? 'opacity-45' : ''}>
+      <p className="text-[13px] leading-4 text-ink">{t('publish.backfill')}</p>
+      <p className="mt-0.5 text-[11px] text-ink-tertiary">{t('publish.backfillHint')}</p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {BACKFILL_OPTIONS.map((d) => {
+          const locked = d > max;
+          const selected = d === value;
+          return (
+            <button
+              key={d}
+              type="button"
+              aria-pressed={selected}
+              disabled={disabled || locked}
+              onClick={() => onChange(d)}
+              className={[
+                'flex items-center gap-1 rounded-md border px-2.5 py-1 font-mono text-[12px] transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+                selected
+                  ? 'border-hairline-strong bg-surface-3 text-ink'
+                  : 'border-hairline text-ink-muted hover:bg-surface-2 hover:text-ink',
+              ].join(' ')}
+            >
+              {locked && <Lock size={10} strokeWidth={2} />}
+              {d}
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-1.5 flex items-center gap-1 text-[11px] text-ink-tertiary">
+        {signedIn && <Lock size={10} strokeWidth={2} className="shrink-0" />}
+        {signedIn ? t('publish.backfill.pro') : t('publish.backfill.signIn')}
+      </p>
+    </div>
   );
 }
 

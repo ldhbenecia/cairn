@@ -1,3 +1,4 @@
+import { Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { SummaryModel } from '../../cairn-api';
 import type { I18nKey } from '../../i18n';
@@ -85,6 +86,10 @@ export function PromptsTab() {
 
       <Section label={t('prefs.prompts.custom')}>
         <div className="flex flex-col gap-5 pt-3">
+          <div className="flex items-center gap-2 rounded-md border border-hairline bg-surface-2 px-3 py-2 text-[12px] text-ink-muted">
+            <Lock size={13} strokeWidth={2} className="shrink-0 text-ink-tertiary" />
+            {t('prefs.prompts.proLock')}
+          </div>
           <p className="text-[12px] leading-relaxed text-ink-tertiary">{t('prefs.prompts.desc')}</p>
           {PROMPT_MODES.map((mode) => (
             <PromptField
@@ -92,6 +97,7 @@ export function PromptsTab() {
               label={t(labelKey[mode].label)}
               placeholder={t(labelKey[mode].ph)}
               value={settings.prompts[mode]}
+              disabled
               onSave={(v) => update({ prompts: { ...settings.prompts, [mode]: v } })}
             />
           ))}
@@ -106,11 +112,13 @@ function PromptField({
   label,
   placeholder,
   value,
+  disabled,
   onSave,
 }: {
   label: string;
   placeholder: string;
   value: string | null;
+  disabled?: boolean;
   onSave: (v: string | null) => void;
 }) {
   const [draft, setDraft] = useState(value ?? '');
@@ -120,11 +128,12 @@ function PromptField({
   }, [value]);
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={['flex flex-col gap-1.5', disabled ? 'opacity-50' : ''].join(' ')}>
       <p className="text-[13px] font-medium text-ink">{label}</p>
       <textarea
         value={draft}
         maxLength={PROMPT_MAX_CHARS}
+        disabled={disabled}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => onSave(draft.trim().length > 0 ? draft : null)}
         onKeyDown={(e) => {
@@ -136,7 +145,7 @@ function PromptField({
         }}
         placeholder={placeholder}
         rows={4}
-        className="w-full resize-none rounded-md border border-hairline bg-surface-2 px-3 py-2 text-[13px] leading-relaxed text-ink placeholder:text-ink-tertiary focus:border-accent/50 focus:outline-none"
+        className="w-full resize-none rounded-md border border-hairline bg-surface-2 px-3 py-2 text-[13px] leading-relaxed text-ink placeholder:text-ink-tertiary focus:border-accent/50 focus:outline-none disabled:cursor-not-allowed"
       />
     </div>
   );
