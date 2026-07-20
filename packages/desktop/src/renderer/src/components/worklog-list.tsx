@@ -439,26 +439,19 @@ function PageRow({
         )}
       </span>
       {/* 우측 메타 — 고정 폭 칼럼 그리드. 값 없는 칸도 자리를 유지해 행끼리 세로 정렬이 맞는다 */}
-      <span className="grid shrink-0 grid-cols-[76px_52px] items-center justify-items-end sm:grid-cols-[76px_56px_52px] lg:grid-cols-[64px_64px_76px_56px_52px]">
+      <span className="grid shrink-0 grid-cols-[76px_52px] items-center justify-items-end sm:grid-cols-[76px_56px_52px] lg:grid-cols-[116px_76px_56px_52px]">
         <span className="hidden lg:block">
           {counts && (
-            <span
-              className="flex items-center gap-1 rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-tertiary"
-              title={t('stats.totalPr')}
-            >
-              <GitPullRequest size={11} strokeWidth={2} />
-              {counts.gh}
-            </span>
-          )}
-        </span>
-        <span className="hidden lg:block">
-          {counts && (
-            <span
-              className="flex items-center gap-1 rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-tertiary"
-              title={t('achv.commits')}
-            >
-              <GitCommitHorizontal size={11} strokeWidth={2} />
-              {counts.git}
+            <span className="flex items-center rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-tertiary">
+              <span className="flex items-center gap-1" title={t('stats.totalPr')}>
+                <GitPullRequest size={11} strokeWidth={2} />
+                {counts.gh}
+              </span>
+              <span className="mx-1.5 h-2.5 w-px bg-hairline" aria-hidden="true" />
+              <span className="flex items-center gap-1" title={t('achv.commits')}>
+                <GitCommitHorizontal size={11} strokeWidth={2} />
+                {counts.git}
+              </span>
             </span>
           )}
         </span>
