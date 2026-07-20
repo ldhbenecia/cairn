@@ -5,7 +5,6 @@ import {
   FileText,
   MessageSquareText,
   Orbit,
-  PenLine,
   Plus,
   Search,
   Settings,
@@ -27,7 +26,6 @@ type Props = {
   onPublish: (mode: CoreMode) => void;
   onOpenPage: (page: RecentPage) => void;
   onStandup: () => void;
-  onQuickCapture: () => void;
   onWrapped: () => void;
 };
 
@@ -39,7 +37,6 @@ export function CommandPalette({
   onPublish,
   onOpenPage,
   onStandup,
-  onQuickCapture,
   onWrapped,
 }: Props) {
   const { t, settings } = useSettings();
@@ -109,12 +106,6 @@ export function CommandPalette({
         run: onStandup,
       },
       {
-        id: 'capture',
-        label: t('cmd.capture'),
-        icon: <PenLine size={12} strokeWidth={2} />,
-        run: onQuickCapture,
-      },
-      {
         id: 'view-stats',
         label: t('cmd.stats'),
         icon: <BarChart3 size={12} strokeWidth={2} />,
@@ -149,16 +140,7 @@ export function CommandPalette({
         run: onPreferences,
       },
     ];
-  }, [
-    t,
-    settings.graph.enabled,
-    onPublish,
-    onView,
-    onPreferences,
-    onStandup,
-    onQuickCapture,
-    onWrapped,
-  ]);
+  }, [t, settings.graph.enabled, onPublish, onView, onPreferences, onStandup, onWrapped]);
 
   const items = useMemo(() => {
     const query = q.trim().toLowerCase();

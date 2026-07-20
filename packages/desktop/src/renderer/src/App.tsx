@@ -507,7 +507,6 @@ export function App() {
             }}
             onOpenPage={openPage}
             onStandup={() => setStandupOpen(true)}
-            onQuickCapture={() => void window.cairn.capture.open()}
             onWrapped={() => setWrappedOpen(true)}
           />
         )}

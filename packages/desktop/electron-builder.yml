@@ -1,11 +1,6 @@
 appId: io.cairn.desktop
 afterPack: scripts/adhoc-sign.cjs
 productName: Cairn
-# cairn:// 딥링크 — macOS 는 Info.plist 선언 필요
-protocols:
-  - name: Cairn
-    schemes:
-      - cairn
 directories:
   output: dist
   buildResources: resources

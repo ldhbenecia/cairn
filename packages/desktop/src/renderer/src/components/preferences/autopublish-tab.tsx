@@ -24,12 +24,6 @@ export function AutoPublishTab() {
         <Field label={t('prefs.launchAtLogin')} desc={t('prefs.launchAtLogin.desc')}>
           <Toggle checked={settings.launchAtLogin} onChange={(v) => update({ launchAtLogin: v })} />
         </Field>
-        <Field label={t('prefs.quickCapture')} desc={t('prefs.quickCapture.desc')}>
-          <Toggle
-            checked={settings.quickCapture.enabled}
-            onChange={(v) => update({ quickCapture: { ...settings.quickCapture, enabled: v } })}
-          />
-        </Field>
       </Section>
 
       <Section label={t('prefs.section.schedule')}>

@@ -288,12 +288,6 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:recent:list') as Promise<RecentListResult>,
   pageContent: (pageId: string, workspaceLabel: string): Promise<unknown> =>
     ipcRenderer.invoke('cairn:notion:page-content', pageId, workspaceLabel) as Promise<unknown>,
-  capture: {
-    add: (text: string): Promise<{ ok: boolean; count: number }> =>
-      ipcRenderer.invoke('cairn:memo:add', text) as Promise<{ ok: boolean; count: number }>,
-    open: (): Promise<void> => ipcRenderer.invoke('cairn:capture:open') as Promise<void>,
-    hide: (): Promise<void> => ipcRenderer.invoke('cairn:capture:hide') as Promise<void>,
-  },
   backup: {
     status: (): Promise<BackupStatus> =>
       ipcRenderer.invoke('cairn:backup:status') as Promise<BackupStatus>,

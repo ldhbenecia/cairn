@@ -42,7 +42,6 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve(import.meta.dirname, 'src/renderer/index.html'),
-          capture: resolve(import.meta.dirname, 'src/renderer/capture.html'),
         },
       },
     },

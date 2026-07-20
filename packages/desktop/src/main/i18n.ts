@@ -30,10 +30,6 @@ const STRINGS = {
     'notify.testTitle': 'cairn 알림 테스트',
     'notify.testBody': '이 알림이 보이면 발행 완료 알림도 정상으로 떠요',
 
-    'capture.deeplinkTitle': '퀵 캡처',
-    'capture.deeplinkSaved': '메모 저장됨 — 발행 시 일지에 병합',
-    'capture.deeplinkFail': '메모 저장 안 됨 — 비어 있거나 300자 초과',
-
     'backup.pullFailTitle': '일지 백업 중단',
     'backup.pullFailBody': '원격과 갈라짐 — journal 폴더에서 직접 pull 로 해소하세요',
 
@@ -41,7 +37,6 @@ const STRINGS = {
     'tray.daily': '오늘 일지 발행',
     'tray.weekly': '이번 주 정리',
     'tray.monthly': '이번 달 정리',
-    'tray.capture': '퀵 캡처',
     'tray.dashboard': '대시보드 열기',
     'tray.quit': 'cairn 완전 종료',
 
@@ -76,10 +71,6 @@ const STRINGS = {
     'notify.testTitle': 'cairn notification test',
     'notify.testBody': 'If you can see this, publish notifications work too',
 
-    'capture.deeplinkTitle': 'Quick capture',
-    'capture.deeplinkSaved': 'Memo saved — merged at publish',
-    'capture.deeplinkFail': 'Memo not saved — empty or over 300 chars',
-
     'backup.pullFailTitle': 'Journal backup paused',
     'backup.pullFailBody':
       'Diverged from remote — resolve with a manual pull in the journal folder',
@@ -88,7 +79,6 @@ const STRINGS = {
     'tray.daily': 'Publish today',
     'tray.weekly': "This week's rollup",
     'tray.monthly': "This month's rollup",
-    'tray.capture': 'Quick capture',
     'tray.dashboard': 'Open dashboard',
     'tray.quit': 'Quit cairn',
 
