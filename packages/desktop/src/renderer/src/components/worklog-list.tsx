@@ -343,20 +343,6 @@ const CATEGORY_DOT: Record<RecentCategory, string> = {
   yearly: 'dot-yearly',
 };
 
-// 날짜 프리픽스 제목("2026-07-17 작업 일지")은 날짜가 행 제목 — "작업 일지" 같은 카테고리 접미는
-// 모든 행에 반복되므로 제거(카테고리는 도트+aria 가 표현). 커스텀 제목('2026 roadmap' 등)은 그대로
-const TITLE_DATE_RE: Record<RecentCategory, RegExp> = {
-  daily: /^(\d{4}-\d{2}-\d{2})\s+(.+)$/,
-  weekly: /^(\d{4}-W\d{2})\s+(.+)$/,
-  monthly: /^(\d{4}-\d{2})\s+(.+)$/,
-  yearly: /^(\d{4})\s+(.+)$/,
-};
-
-function rowTitle(page: RecentPage): string {
-  const m = TITLE_DATE_RE[page.category].exec(page.title);
-  return m ? m[1]! : page.title;
-}
-
 // 우측 날짜 — 로케일 무관 고정 영어 단축형 (Jul 17)
 const MONTHS_EN = [
   'Jan',
@@ -417,7 +403,7 @@ function PageRow({
 }) {
   const counts =
     page.pr !== null || page.commit !== null ? { gh: page.pr ?? 0, git: page.commit ?? 0 } : null;
-  const title = rowTitle(page);
+  const title = page.title;
   const ref = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: 'nearest' });
