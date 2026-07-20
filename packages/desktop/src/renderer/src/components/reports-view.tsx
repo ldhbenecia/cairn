@@ -649,7 +649,8 @@ function Timeline({
                     style={{
                       left: `${left}%`,
                       width: `${(daySpan(first, barEnd) / span) * 100}%`,
-                      minWidth: 12,
+                      // 단일 활동일도 원형 알약이 아니라 짧은 바로 보이게
+                      minWidth: 24,
                       background: `color-mix(in srgb, ${color} 8%, var(--color-surface-1))`,
                       borderColor: `${color}4d`,
                       // 진행 중 — 마지막 ~48px 를 mask 로 페이드 (보더째 흐려짐), 짧은 바는 절반 보전
@@ -657,7 +658,7 @@ function Timeline({
                         ? 'linear-gradient(to right, #000 max(50%, 100% - 48px), transparent)'
                         : undefined,
                     }}
-                    className="absolute inset-y-0 rounded-md border"
+                    className="absolute inset-y-0 rounded-[5px] border"
                   />
                   {lane.peaks.map((p) => (
                     <span
@@ -667,7 +668,7 @@ function Timeline({
                         left: `${((dayIndex(since, p.date) + 0.5) / span) * 100}%`,
                         background: color,
                       }}
-                      className="absolute top-1/2 size-[7px] -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1.5px]"
+                      className="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1.5px]"
                     />
                   ))}
                 </span>
