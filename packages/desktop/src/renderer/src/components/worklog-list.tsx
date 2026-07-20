@@ -433,37 +433,42 @@ function PageRow({
       ].join(' ')}
     >
       <span className="min-w-0 flex-1 truncate font-medium text-ink">{title}</span>
-      {counts && (
-        <span className="hidden shrink-0 items-center gap-1.5 lg:flex">
-          <span
-            className="flex items-center gap-1 rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-tertiary"
-            title={t('stats.totalPr')}
-          >
-            <GitPullRequest size={11} strokeWidth={2} />
-            {counts.gh}
-          </span>
-          <span
-            className="flex items-center gap-1 rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-tertiary"
-            title={t('achv.commits')}
-          >
-            <GitCommitHorizontal size={11} strokeWidth={2} />
-            {counts.git}
-          </span>
+      {/* 우측 메타 — 고정 폭 칼럼 그리드. 값 없는 칸도 자리를 유지해 행끼리 세로 정렬이 맞는다 */}
+      <span className="grid shrink-0 grid-cols-[76px_52px] items-center justify-items-end sm:grid-cols-[76px_56px_52px] lg:grid-cols-[64px_64px_76px_56px_52px]">
+        <span className="hidden lg:block">
+          {counts && (
+            <span
+              className="flex items-center gap-1 rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-tertiary"
+              title={t('stats.totalPr')}
+            >
+              <GitPullRequest size={11} strokeWidth={2} />
+              {counts.gh}
+            </span>
+          )}
         </span>
-      )}
-      <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-hairline px-2 py-0.5 text-[11px] text-ink-muted">
-        <span
-          className={['size-1.5 rounded-full', CATEGORY_DOT[page.category]].join(' ')}
-          aria-hidden="true"
-        />
-        {t(catKey(page.category))}
+        <span className="hidden lg:block">
+          {counts && (
+            <span
+              className="flex items-center gap-1 rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-tertiary"
+              title={t('achv.commits')}
+            >
+              <GitCommitHorizontal size={11} strokeWidth={2} />
+              {counts.git}
+            </span>
+          )}
+        </span>
+        <span className="flex items-center gap-1.5 rounded-full border border-hairline px-2 py-0.5 text-[11px] text-ink-muted">
+          <span
+            className={['size-1.5 rounded-full', CATEGORY_DOT[page.category]].join(' ')}
+            aria-hidden="true"
+          />
+          {t(catKey(page.category))}
+        </span>
+        <SinkStack page={page} t={t} />
+        <span className="text-[12px] whitespace-nowrap text-ink-tertiary">
+          {page.date ? shortDate(page.date) : ''}
+        </span>
       </span>
-      <SinkStack page={page} t={t} />
-      {page.date && (
-        <span className="shrink-0 text-[12px] whitespace-nowrap text-ink-tertiary">
-          {shortDate(page.date)}
-        </span>
-      )}
     </button>
   );
 }
@@ -472,7 +477,7 @@ function SinkStack({ page, t }: { page: RecentPage; t: T }) {
   const sinks = pageSinks(page);
   return (
     <span
-      className="hidden w-12 shrink-0 items-center justify-end sm:flex"
+      className="hidden shrink-0 items-center sm:flex"
       title={sinks.map((s) => sinkLabel(s, page, t('source.localDesc'))).join(' · ')}
     >
       {sinks.map((s) => (

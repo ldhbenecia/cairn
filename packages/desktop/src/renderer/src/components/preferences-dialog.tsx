@@ -76,7 +76,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup, blockEscap
           onInteractOutside={(e) => {
             if (blockEscape) e.preventDefault();
           }}
-          style={{ width: 760, height: 560, maxWidth: '92vw', maxHeight: '86vh' }}
+          style={{ width: 920, height: 600, maxWidth: '92vw', maxHeight: '86vh' }}
           className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 focus:outline-none"
         >
           <nav className="flex w-44 shrink-0 flex-col gap-0.5 border-r border-hairline p-3">
@@ -113,7 +113,7 @@ export function PreferencesDialog({ open, onOpenChange, onRerunSetup, blockEscap
               <X size={15} strokeWidth={2} />
             </Dialog.Close>
             <div className="h-full overflow-y-auto px-6 py-5 [scrollbar-gutter:stable]">
-              <div key={tab} className="panel-enter max-w-[560px]">
+              <div key={tab} className="panel-enter max-w-[640px]">
                 <header className="pb-5">
                   <h2 className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
                     {t(active.labelKey)}
