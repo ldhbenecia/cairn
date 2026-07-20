@@ -501,6 +501,9 @@ const peakLabel = (date: string): string =>
 const isOngoing = (last: string, until: string): boolean =>
   dayIndex(last, until) <= 3 || last === todayLocal();
 
+// 기간이 길면 일당 고정 px 로 내용 폭을 키워 가로 스크롤 — 짧으면 컨테이너 100%
+const PX_PER_DAY = 10;
+
 function Timeline({
   since,
   until,
@@ -536,126 +539,144 @@ function Timeline({
     return () => ro.disconnect();
   }, []);
 
+  // 기간 변경 시 최신(오른쪽 끝)이 보이게 스크롤
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [since, until]);
+
   return (
-    <div ref={trackRef} className="relative">
-      {/* 세로 점선 hairline — 축 아래부터 섹션 전체 높이 관통 (풀블리드, 박스 없음) */}
-      <div className="pointer-events-none absolute inset-x-0 top-10 bottom-0">
-        {axis.days.map((tk) => (
-          <span
-            key={tk.date}
-            style={{ left: `${tk.pos * 100}%` }}
-            className="absolute inset-y-0 border-l border-dashed border-hairline"
-            aria-hidden="true"
-          />
-        ))}
-      </div>
+    <div ref={scrollRef} className="overflow-x-auto pb-1">
+      <div ref={trackRef} style={{ minWidth: span * PX_PER_DAY }} className="relative">
+        {/* 세로 점선 hairline — 축 아래부터 섹션 전체 높이 관통 (풀블리드, 박스 없음) */}
+        <div className="pointer-events-none absolute inset-x-0 top-12 bottom-0">
+          {axis.days.map((tk) => (
+            <span
+              key={tk.date}
+              style={{ left: `${tk.pos * 100}%` }}
+              className="absolute inset-y-0 border-l border-dashed border-hairline"
+              aria-hidden="true"
+            />
+          ))}
+        </div>
 
-      <div className="relative h-10">
-        {axis.months.map((tk) => (
-          <span
-            key={tk.date}
-            style={{ left: `${tk.pos * 100}%` }}
-            className="absolute top-0 pl-1 text-[13px] font-medium tracking-[0.4px] whitespace-nowrap text-ink-subtle"
-          >
-            {monthLabel(tk.date)}
-          </span>
-        ))}
-        {axis.days.map((tk) => (
-          <span
-            key={tk.date}
-            style={{ left: `${tk.pos * 100}%` }}
-            className="absolute bottom-0.5 -translate-x-1/2 text-[12px] text-ink-tertiary tabular-nums"
-          >
-            {Number(tk.date.slice(8, 10))}
-          </span>
-        ))}
-      </div>
-
-      <div className="relative mt-3 flex flex-col gap-6">
-        {ordered.map((lane) => {
-          const color = colorOf.get(laneKey(lane.repo))!;
-          const first = lane.dates[0]!;
-          const last = lane.dates[lane.dates.length - 1]!;
-          const left = (dayIndex(since, first) / span) * 100;
-          // 라벨 행은 바 시작 x 에 정렬 — 우측 끝 레인만 잘리지 않게 클램프
-          const labelLeft = Math.min(left, 78);
-          // 진행 중이면 바를 기간 끝까지 연장 후 오른쪽 끝을 페이드로 오픈
-          const ongoing = isOngoing(last, until);
-          const barEnd = ongoing ? until : last;
-          // 다이아 라벨 — 날짜순, 앞 라벨과 60px 미만이면 뒤 것 생략 (실측 전엔 모두 표시)
-          const peaksByDate = [...lane.peaks].sort((a, b) => a.date.localeCompare(b.date));
-          const labeledPeaks = peaksByDate.filter((p, i) => {
-            if (i === 0 || trackWidth === 0) return true;
-            const gap = dayIndex(peaksByDate[i - 1]!.date, p.date);
-            return (gap / span) * trackWidth >= 60;
-          });
-          return (
-            <button
-              key={laneKey(lane.repo)}
-              type="button"
-              onClick={() => onLaneClick(lane)}
-              title={`${laneLabel(lane.repo)} · ${lane.count}`}
-              className="group relative block w-full rounded-md py-1.5 text-left transition-[background-color] hover:bg-surface-2/40"
+        {/* Linear 축 — 월 라벨 행 */}
+        <div className="relative h-6">
+          {axis.months.map((tk) => (
+            <span
+              key={tk.date}
+              style={{ left: `${tk.pos * 100}%` }}
+              className="absolute top-0 pl-1 text-[13px] font-medium tracking-[0.4px] whitespace-nowrap text-ink-subtle"
             >
-              <span
-                style={{ marginLeft: `${labelLeft}%`, maxWidth: `${100 - labelLeft}%` }}
-                className="flex w-fit items-baseline gap-1.5 pl-0.5 whitespace-nowrap"
+              {monthLabel(tk.date)}
+            </span>
+          ))}
+        </div>
+        {/* Linear 축 — 틱 마크 행 (짧은 세로 눈금선 + 일 숫자) */}
+        <div className="relative h-6 border-t border-hairline">
+          {axis.days.map((tk) => (
+            <span
+              key={tk.date}
+              style={{ left: `${tk.pos * 100}%` }}
+              className={`absolute top-0 flex flex-col ${
+                tk.pos === 0 ? 'items-start' : '-translate-x-1/2 items-center'
+              }`}
+            >
+              <span className="h-[5px] w-px bg-hairline-strong" aria-hidden="true" />
+              <span className="mt-[3px] text-[11px] leading-none text-ink-tertiary tabular-nums">
+                {Number(tk.date.slice(8, 10))}
+              </span>
+            </span>
+          ))}
+        </div>
+
+        <div className="relative mt-3 flex flex-col gap-6">
+          {ordered.map((lane) => {
+            const color = colorOf.get(laneKey(lane.repo))!;
+            const first = lane.dates[0]!;
+            const last = lane.dates[lane.dates.length - 1]!;
+            const left = (dayIndex(since, first) / span) * 100;
+            // 라벨 행은 바 시작 x 에 정렬 — 우측 끝 레인만 잘리지 않게 클램프
+            const labelLeft = Math.min(left, 78);
+            // 진행 중이면 바를 기간 끝까지 연장 후 오른쪽 끝을 페이드로 오픈
+            const ongoing = isOngoing(last, until);
+            const barEnd = ongoing ? until : last;
+            // 다이아 라벨 — 날짜순, 앞 라벨과 60px 미만이면 뒤 것 생략 (실측 전엔 모두 표시)
+            const peaksByDate = [...lane.peaks].sort((a, b) => a.date.localeCompare(b.date));
+            const labeledPeaks = peaksByDate.filter((p, i) => {
+              if (i === 0 || trackWidth === 0) return true;
+              const gap = dayIndex(peaksByDate[i - 1]!.date, p.date);
+              return (gap / span) * trackWidth >= 60;
+            });
+            return (
+              <button
+                key={laneKey(lane.repo)}
+                type="button"
+                onClick={() => onLaneClick(lane)}
+                title={`${laneLabel(lane.repo)} · ${lane.count}`}
+                className="group relative block w-full rounded-md py-1.5 text-left transition-[background-color] hover:bg-surface-2/40"
               >
                 <span
-                  style={{ background: color }}
-                  className="size-1.5 shrink-0 self-center rounded-full"
-                  aria-hidden="true"
-                />
-                <span className="truncate text-[13px] font-medium text-ink-muted transition-colors group-hover:text-ink">
-                  {laneLabel(lane.repo)}
-                </span>
-                <span className="font-mono text-[10.5px] text-ink-tertiary tabular-nums">
-                  {lane.count}
-                </span>
-              </span>
-              <span className="relative mt-1.5 block h-7">
-                <span
-                  style={{
-                    left: `${left}%`,
-                    width: `${(daySpan(first, barEnd) / span) * 100}%`,
-                    minWidth: 12,
-                    background: `color-mix(in srgb, ${color} 8%, var(--color-surface-1))`,
-                    borderColor: `${color}4d`,
-                    // 진행 중 — 마지막 ~48px 를 mask 로 페이드 (보더째 흐려짐), 짧은 바는 절반 보전
-                    maskImage: ongoing
-                      ? 'linear-gradient(to right, #000 max(50%, 100% - 48px), transparent)'
-                      : undefined,
-                  }}
-                  className="absolute inset-y-0 rounded-md border"
-                />
-                {lane.peaks.map((p) => (
+                  style={{ marginLeft: `${labelLeft}%`, maxWidth: `${100 - labelLeft}%` }}
+                  className="flex w-fit items-baseline gap-1.5 pl-0.5 whitespace-nowrap"
+                >
                   <span
-                    key={p.date}
-                    title={`${p.date} · ${p.count}`}
-                    style={{
-                      left: `${((dayIndex(since, p.date) + 0.5) / span) * 100}%`,
-                      background: color,
-                    }}
-                    className="absolute top-1/2 size-[7px] -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1.5px]"
+                    style={{ background: color }}
+                    className="size-1.5 shrink-0 self-center rounded-full"
+                    aria-hidden="true"
                   />
-                ))}
-              </span>
-              {labeledPeaks.length > 0 && (
-                <span className="relative mt-1 block h-3.5">
-                  {labeledPeaks.map((p) => (
+                  <span className="truncate text-[13px] font-medium text-ink-muted transition-colors group-hover:text-ink">
+                    {laneLabel(lane.repo)}
+                  </span>
+                  <span className="font-mono text-[10.5px] text-ink-tertiary tabular-nums">
+                    {lane.count}
+                  </span>
+                </span>
+                <span className="relative mt-1.5 block h-7">
+                  <span
+                    style={{
+                      left: `${left}%`,
+                      width: `${(daySpan(first, barEnd) / span) * 100}%`,
+                      minWidth: 12,
+                      background: `color-mix(in srgb, ${color} 8%, var(--color-surface-1))`,
+                      borderColor: `${color}4d`,
+                      // 진행 중 — 마지막 ~48px 를 mask 로 페이드 (보더째 흐려짐), 짧은 바는 절반 보전
+                      maskImage: ongoing
+                        ? 'linear-gradient(to right, #000 max(50%, 100% - 48px), transparent)'
+                        : undefined,
+                    }}
+                    className="absolute inset-y-0 rounded-md border"
+                  />
+                  {lane.peaks.map((p) => (
                     <span
                       key={p.date}
-                      style={{ left: `${((dayIndex(since, p.date) + 0.5) / span) * 100}%` }}
-                      className="absolute top-0 -translate-x-1/2 text-[11px] whitespace-nowrap text-ink-tertiary"
-                    >
-                      {peakLabel(p.date)}
-                    </span>
+                      title={`${p.date} · ${p.count}`}
+                      style={{
+                        left: `${((dayIndex(since, p.date) + 0.5) / span) * 100}%`,
+                        background: color,
+                      }}
+                      className="absolute top-1/2 size-[7px] -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1.5px]"
+                    />
                   ))}
                 </span>
-              )}
-            </button>
-          );
-        })}
+                {labeledPeaks.length > 0 && (
+                  <span className="relative mt-1 block h-3.5">
+                    {labeledPeaks.map((p) => (
+                      <span
+                        key={p.date}
+                        style={{ left: `${((dayIndex(since, p.date) + 0.5) / span) * 100}%` }}
+                        className="absolute top-0 -translate-x-1/2 text-[11px] whitespace-nowrap text-ink-tertiary"
+                      >
+                        {peakLabel(p.date)}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
