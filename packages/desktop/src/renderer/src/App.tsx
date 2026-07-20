@@ -163,10 +163,8 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    // 로드 후 idle 시점에 기간별 정리 기본 기간(월)을 미리 스캔 — 뷰 첫 진입 시 스피너 제거
-    void loadRecent().then((r) => {
-      window.setTimeout(() => prefetchReportsScan(r), 3000);
-    });
+    // 로드 완료 즉시 최근 사용 기간+월을 미리 스캔 — 뷰 첫 진입 시 스피너 제거
+    void loadRecent().then((r) => prefetchReportsScan(r));
   }, [loadRecent]);
 
   useEffect(() => {

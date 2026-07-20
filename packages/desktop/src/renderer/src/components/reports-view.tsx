@@ -15,7 +15,14 @@ import {
   type DoneItem,
   type Lane,
 } from '../lib/reports';
-import { cachedScan, dailyTargets, startScan, type PerDay } from '../lib/reports-scan';
+import {
+  cachedScan,
+  dailyTargets,
+  offScanProgress,
+  rememberReportsRange,
+  startScan,
+  type PerDay,
+} from '../lib/reports-scan';
 import { useSettings } from '../settings-context';
 import { DateRangePicker } from './date-picker';
 
@@ -79,14 +86,15 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
   const [perDay, setPerDay] = useState<PerDay[] | null>(null);
   const [scan, setScan] = useState<{ done: number; total: number } | null>(null);
 
-  // 모듈 레벨 캐시(reports-scan) — 뷰 재진입 시 즉시 렌더, 일지 수가 달라졌으면 이전 결과를
-  // 보여둔 채 뒤에서 재스캔 (stale-while-revalidate). 스피너는 캐시가 전혀 없을 때만
+  // 모듈 레벨 캐시(reports-scan) — 뷰 재진입 시 즉시 렌더, 일지 수가 달라졌거나 디스크
+  // 복원본이면 이전 결과를 보여둔 채 뒤에서 재스캔 (stale-while-revalidate). 스캔은 뷰
+  // 이탈과 무관하게 계속되고, 여기서는 진행 상태만 구독/해제한다. 스피너는 캐시가 전혀 없을 때만
   useEffect(() => {
     const entry = cachedScan(since, until);
     if (entry) {
       setPerDay(entry.rows);
       setScan(null);
-      if (entry.count === targets.length) return;
+      if (entry.count === targets.length && !entry.disk) return;
     }
     if (targets.length === 0) {
       setPerDay([]);
@@ -98,15 +106,17 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
       setPerDay(null);
       setScan({ done: 0, total: targets.length });
     }
-    void startScan(since, until, targets, (done, total) => {
+    const onProgress = (done: number, total: number): void => {
       if (alive && !entry) setScan({ done, total });
-    }).then((rows) => {
+    };
+    void startScan(since, until, targets, onProgress).then((rows) => {
       if (!alive) return;
       setPerDay(rows);
       setScan(null);
     });
     return () => {
       alive = false;
+      offScanProgress(since, until, onProgress);
     };
   }, [since, until, targets]);
 
@@ -215,7 +225,11 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                 key={p.key}
                 type="button"
                 aria-pressed={range === p.key}
-                onClick={() => setRange(p.key)}
+                onClick={() => {
+                  setRange(p.key);
+                  // custom 은 날짜가 상대 기간과 안 맞아 기억 대상에서 제외
+                  if (p.key !== 'custom') rememberReportsRange(p.key);
+                }}
                 className={[
                   'rounded-md px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap transition-colors',
                   range === p.key

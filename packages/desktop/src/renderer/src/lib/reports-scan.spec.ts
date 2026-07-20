@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PageContent, RecentPage } from '../cairn-api';
-import { cachedScan, invalidateReportsScan, startScan } from './reports-scan';
+import type { PageContent, RecentListResult, RecentPage } from '../cairn-api';
+import { localDateDaysAgo, todayLocal } from './reports';
+import {
+  cachedScan,
+  invalidateReportsScan,
+  offScanProgress,
+  prefetchReportsScan,
+  rememberReportsRange,
+  startScan,
+} from './reports-scan';
 
 const page = (date: string): RecentPage => ({
   pageId: `id-${date}`,
@@ -24,10 +32,22 @@ const doneContent = (text: string): PageContent => ({
 
 const pageContent = vi.fn<(pageId: string, ws: string) => Promise<PageContent>>();
 
+const store = new Map<string, string>();
+const fakeLocalStorage = {
+  getItem: (k: string) => store.get(k) ?? null,
+  setItem: (k: string, v: string) => void store.set(k, v),
+  removeItem: (k: string) => void store.delete(k),
+};
+
+const diskEntries = (): { key: string; count: number; rows: { bullets: string[] }[] }[] =>
+  JSON.parse(store.get('cairn:reportsScan') ?? '[]') as ReturnType<typeof diskEntries>;
+
 beforeEach(() => {
   vi.stubGlobal('window', { cairn: { pageContent } });
+  vi.stubGlobal('localStorage', fakeLocalStorage);
   pageContent.mockReset();
   invalidateReportsScan();
+  store.clear();
 });
 
 describe('startScan 캐시', () => {
@@ -65,25 +85,103 @@ describe('startScan 캐시', () => {
   });
 });
 
-describe('invalidateReportsScan', () => {
-  it('캐시를 비워 재발행(count 동일) 후에도 재스캔하게 한다', async () => {
-    pageContent.mockResolvedValue(doneContent('이전'));
-    await startScan('2026-07-01', '2026-07-02', [page('2026-07-01')]);
-    invalidateReportsScan();
-    expect(cachedScan('2026-07-01', '2026-07-02')).toBeUndefined();
+describe('진행 구독', () => {
+  it('진행 중 스캔 재합류 — 현재 진행률을 즉시 받고 이후 진행도 구독한다', async () => {
+    let release: (c: PageContent) => void = () => {};
+    pageContent
+      .mockResolvedValueOnce(doneContent('a'))
+      .mockReturnValueOnce(new Promise((resolve) => (release = resolve)));
+    const targets = [page('2026-07-01'), page('2026-07-02')];
+    const first = startScan('2026-07-01', '2026-07-02', targets);
+    await new Promise((r) => setTimeout(r, 0));
 
-    pageContent.mockResolvedValue(doneContent('재발행'));
-    await startScan('2026-07-01', '2026-07-02', [page('2026-07-01')]);
-    expect(cachedScan('2026-07-01', '2026-07-02')?.rows[0]?.bullets).toEqual(['재발행']);
+    // 뷰 재진입 시나리오 — 이미 완료된 1건이 합류 즉시 통지된다
+    const seen: [number, number][] = [];
+    const joined = startScan('2026-07-01', '2026-07-02', targets, (d, t) => seen.push([d, t]));
+    expect(joined).toBe(first);
+    expect(seen).toEqual([[1, 2]]);
+
+    release(doneContent('b'));
+    await joined;
+    expect(seen).toEqual([
+      [1, 2],
+      [2, 2],
+    ]);
   });
 
-  it('스캔 도중 발행(무효화)되면 구세대 결과는 캐시에 쓰이지 않는다', async () => {
+  it('offScanProgress — 구독 해제 후엔 진행 통지를 받지 않는다', async () => {
     let release: (c: PageContent) => void = () => {};
     pageContent.mockReturnValueOnce(new Promise((resolve) => (release = resolve)));
-    const stale = startScan('2026-07-01', '2026-07-02', [page('2026-07-01')]);
+    const seen: number[] = [];
+    const cb = (done: number): number => seen.push(done);
+    const scan = startScan('2026-07-01', '2026-07-02', [page('2026-07-01')], cb);
+    offScanProgress('2026-07-01', '2026-07-02', cb);
+    release(doneContent('작업'));
+    await scan;
+    expect(seen).toEqual([]);
+  });
+});
+
+describe('디스크 캐시 (localStorage)', () => {
+  it('성공 스캔은 디스크에도 직렬화 — 불릿은 200자 truncate', async () => {
+    pageContent.mockResolvedValue(doneContent('가'.repeat(300)));
+    await startScan('2026-07-01', '2026-07-02', [page('2026-07-01')]);
+    const disk = diskEntries();
+    expect(disk).toHaveLength(1);
+    expect(disk[0]?.key).toBe('2026-07-01:2026-07-02');
+    expect(disk[0]?.count).toBe(1);
+    expect(disk[0]?.rows[0]?.bullets[0]).toHaveLength(200);
+    // 메모리 캐시는 원문 유지 — truncate 는 디스크 사본에만
+    expect(cachedScan('2026-07-01', '2026-07-02')?.rows[0]?.bullets[0]).toHaveLength(300);
+  });
+
+  it('앱 재시작(모듈 초기화) 후 디스크에서 즉시 복원 — disk 플래그로 재검증 대상 표시', async () => {
+    pageContent.mockResolvedValue(doneContent('작업'));
+    await startScan('2026-07-01', '2026-07-02', [page('2026-07-01')]);
+
+    vi.resetModules();
+    const fresh = await import('./reports-scan');
+    const entry = fresh.cachedScan('2026-07-01', '2026-07-02');
+    expect(entry?.disk).toBe(true);
+    expect(entry?.count).toBe(1);
+    expect(entry?.rows[0]?.bullets).toEqual(['작업']);
+  });
+
+  it('최대 4엔트리 LRU — 가장 오래된 기간이 밀려난다', async () => {
+    pageContent.mockResolvedValue(doneContent('작업'));
+    for (let i = 1; i <= 5; i++) {
+      const d = `2026-07-0${i}`;
+      await startScan(d, d, [page(d)]);
+    }
+    expect(diskEntries().map((e) => e.key)).toEqual([
+      '2026-07-05:2026-07-05',
+      '2026-07-04:2026-07-04',
+      '2026-07-03:2026-07-03',
+      '2026-07-02:2026-07-02',
+    ]);
+  });
+
+  it('invalidateReportsScan 은 디스크 캐시도 비운다', async () => {
+    pageContent.mockResolvedValue(doneContent('작업'));
+    await startScan('2026-07-01', '2026-07-02', [page('2026-07-01')]);
     invalidateReportsScan();
-    release(doneContent('구버전'));
-    await stale;
+    expect(store.get('cairn:reportsScan')).toBeUndefined();
     expect(cachedScan('2026-07-01', '2026-07-02')).toBeUndefined();
+  });
+});
+
+describe('prefetchReportsScan', () => {
+  it('최근 사용 기간 + 기본 기간(월)을 함께 덥힌다', async () => {
+    rememberReportsRange(90);
+    pageContent.mockResolvedValue(doneContent('작업'));
+    const until = todayLocal();
+    const recent = {
+      pages: [page(localDateDaysAgo(60)), page(localDateDaysAgo(5))],
+    } as RecentListResult;
+    prefetchReportsScan(recent);
+    await vi.waitFor(() => {
+      expect(cachedScan(localDateDaysAgo(90), until)?.count).toBe(2);
+      expect(cachedScan(localDateDaysAgo(30), until)?.count).toBe(1);
+    });
   });
 });
