@@ -245,8 +245,9 @@ export function App() {
       void loadRecent().then((r) => {
         // 언마운트 후 늦게 도착한 콜백이 새 타이머를 걸지 않도록 (누수·불필요 IPC 방지)
         if (!active) return;
-        // 발행 직후 스캔 캐시 무효화 후 고정 범위 재스캔 — 재발행(count 불변)도 반영
-        invalidateReportsScan();
+        // 발행 직후 발행된 페이지만 스캔 캐시에서 evict 후 고정 범위 재스캔 —
+        // 재발행(같은 pageId 덮어쓰기)도 그 페이지 하나만 다시 읽어 반영
+        invalidateReportsScan(result.publishPageId);
         prefetchReportsScan(r);
         const pid = result.publishPageId;
         const found = !pid || (r?.pages ?? []).some((p) => p.pageId === pid);

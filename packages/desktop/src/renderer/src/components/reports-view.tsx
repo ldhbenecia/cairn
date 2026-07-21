@@ -1,7 +1,8 @@
 import { ArrowLeft, Check, Copy, FileDown, Loader2 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import {
+  addDays,
   buildLanes,
   dayIndex,
   daySpan,
@@ -13,9 +14,11 @@ import {
   type Lane,
 } from '../lib/reports';
 import {
-  cachedScan,
+  assembleCached,
   dailyTargets,
+  initialLoadedSince,
   offScanProgress,
+  REPORTS_CHUNK_DAYS,
   REPORTS_RANGE_DAYS,
   reportsRange,
   startScan,
@@ -65,40 +68,58 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
 
   const [perDay, setPerDay] = useState<PerDay[] | null>(null);
   const [scan, setScan] = useState<{ done: number; total: number } | null>(null);
+  // 로드된 구간 시작일 — 진입 시 초기 청크(최근 90일)만, 좌측 스크롤 경계 근접 시 90일씩 확장
+  const [loadedSince, setLoadedSince] = useState<string | null>(null);
+  const [chunkLoading, setChunkLoading] = useState(false);
 
-  // 모듈 레벨 캐시(reports-scan) — 뷰 재진입 시 즉시 렌더, 일지 수가 달라졌거나 디스크
-  // 복원본이면 이전 결과를 보여둔 채 뒤에서 재스캔 (stale-while-revalidate). 스캔은 뷰
-  // 이탈과 무관하게 계속되고, 여기서는 진행 상태만 구독/해제한다. 스피너는 캐시가 전혀 없을 때만
   useEffect(() => {
-    const entry = cachedScan(since, until);
-    if (entry) {
-      setPerDay(entry.rows);
-      setScan(null);
-      if (entry.count === targets.length && !entry.disk) return;
-    }
-    if (targets.length === 0) {
-      setPerDay([]);
-      setScan(null);
-      return;
-    }
-    let alive = true;
-    if (!entry) {
-      setPerDay(null);
-      setScan({ done: 0, total: targets.length });
-    }
-    const onProgress = (done: number, total: number): void => {
-      if (alive && !entry) setScan({ done, total });
-    };
-    void startScan(since, until, targets, onProgress).then((rows) => {
-      if (!alive) return;
+    if (!recent) return;
+    setLoadedSince((cur) => cur ?? initialLoadedSince(recent.pages));
+  }, [recent]);
+
+  // 로드 구간 스캔 — 세션 페이지 캐시(reports-scan) 히트는 IPC 를 생략하고 미캐시 페이지만
+  // 읽는다. 아직 렌더할 게 없는 초기 청크만 인라인 진행 바(+스켈레톤), 청크 확장은 타임라인
+  // 가장자리 소형 표시만. 스캔은 뷰 이탈과 무관하게 계속되고 여기서는 진행 구독만 해제한다
+  useEffect(() => {
+    if (loadedSince === null) return;
+    const loadedTargets = dailyTargets(pages, loadedSince, until);
+    const { rows, missing } = assembleCached(loadedTargets);
+    if (missing === 0) {
       setPerDay(rows);
       setScan(null);
+      setChunkLoading(false);
+      return;
+    }
+    // 청크 확장(가장자리 표시)이 아닌 로드만 인라인 진행 바 — 부분 결과가 있으면 먼저 그린다
+    const inlineBar = !chunkLoading;
+    setPerDay(rows.length > 0 ? rows : null);
+    if (inlineBar) setScan({ done: loadedTargets.length - missing, total: loadedTargets.length });
+    let alive = true;
+    const onProgress = (done: number, total: number): void => {
+      if (alive && inlineBar) setScan({ done, total });
+    };
+    void startScan(loadedSince, until, loadedTargets, onProgress).then((full) => {
+      if (!alive) return;
+      setPerDay(full);
+      setScan(null);
+      setChunkLoading(false);
     });
     return () => {
       alive = false;
-      offScanProgress(since, until, onProgress);
+      offScanProgress(loadedSince, until, onProgress);
     };
-  }, [since, until, targets]);
+  }, [pages, loadedSince, until, chunkLoading]);
+
+  // 좌측 경계 근접 시 이전 90일 청크 요청 — chunkLoading 으로 직렬화
+  const loadMore = useCallback(() => {
+    if (chunkLoading || loadedSince === null || loadedSince <= since) return;
+    setChunkLoading(true);
+    setLoadedSince((cur) => {
+      if (cur === null || cur <= since) return cur;
+      const prev = addDays(cur, -REPORTS_CHUNK_DAYS);
+      return prev < since ? since : prev;
+    });
+  }, [chunkLoading, loadedSince, since]);
 
   const items = useMemo(() => parseDoneItems(perDay ?? []), [perDay]);
   const lanes = useMemo(() => buildLanes(items), [items]);
@@ -125,10 +146,9 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
   );
 
   // 기존 다이얼로그의 md 포맷 그대로 — 헤더 + 월별 섹션 (Done 없어도 수치 헤더는 유지)
-  const markdown = useMemo(() => {
-    if (!perDay) return null;
+  const buildMarkdown = (rows: PerDay[]): string => {
     const byMonth = new Map<string, string[]>();
-    for (const d of perDay) {
+    for (const d of rows) {
       if (d.bullets.length === 0) continue;
       const bucket = byMonth.get(d.date.slice(0, 7)) ?? [];
       bucket.push(...d.bullets);
@@ -149,26 +169,48 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
       .replace('{pr}', String(stats.pr))
       .replace('{commit}', String(stats.commit))}`;
     return body ? `${header}\n\n${body}` : header;
-  }, [perDay, since, until, stats, t]);
+  };
+
+  // 내보내기는 고정 범위(365일) 전체 기준 — 미로드 구간이 있으면 먼저 전체를 로드하고
+  // (그때만 인라인 진행 바), 로드 완료된 rows 로 md 를 만든다
+  const allRows = async (): Promise<PerDay[] | null> => {
+    if (perDay === null) return null;
+    if (loadedSince !== null && loadedSince <= since) return perDay;
+    const missingAll = assembleCached(targets).missing;
+    if (missingAll > 0) setScan({ done: targets.length - missingAll, total: targets.length });
+    try {
+      const rows = await startScan(since, until, targets, (done, total) =>
+        setScan({ done, total }),
+      );
+      setLoadedSince(since);
+      return rows;
+    } finally {
+      setScan(null);
+    }
+  };
 
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const filename = `worklog-last-${REPORTS_RANGE_DAYS}d.md`;
 
   function copyMd() {
-    if (!markdown) return;
-    void navigator.clipboard.writeText(markdown).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+    void allRows().then((rows) => {
+      if (!rows) return;
+      void navigator.clipboard.writeText(buildMarkdown(rows)).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      });
     });
   }
 
   function saveMd() {
-    if (!markdown) return;
-    void window.cairn.exportMarkdown(filename, markdown).then((r) => {
-      if (!r.saved) return;
-      setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
+    void allRows().then((rows) => {
+      if (!rows) return;
+      void window.cairn.exportMarkdown(filename, buildMarkdown(rows)).then((r) => {
+        if (!r.saved) return;
+        setSaved(true);
+        setTimeout(() => setSaved(false), 1500);
+      });
     });
   }
 
@@ -186,7 +228,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
   }, [selectedRepo]);
 
   const laneLabel = (repo: string | null): string => repo ?? t('reports.noRepo');
-  const scanning = scan !== null && perDay === null;
+  const scanning = scan !== null;
   const ready = perDay !== null;
 
   const detailRows = selectedRepo !== null ? (itemsByLane.get(selectedRepo) ?? []) : [];
@@ -205,7 +247,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
             <button
               type="button"
               onClick={copyMd}
-              disabled={!markdown}
+              disabled={!ready}
               title={t('achv.copy')}
               aria-label={t('achv.copy')}
               className={`flex size-7 items-center justify-center rounded-md transition-colors disabled:opacity-40 ${
@@ -217,7 +259,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
             <button
               type="button"
               onClick={saveMd}
-              disabled={!markdown}
+              disabled={!ready}
               title={t('achv.save')}
               aria-label={t('achv.save')}
               className={`flex size-7 items-center justify-center rounded-md transition-colors disabled:opacity-40 ${
@@ -232,7 +274,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
             </button>
           </div>
         </div>
-        {/* 캐시 없는 첫 스캔만 — 필터 행 아래 얇은 인라인 진행 바 (캐시가 있으면 SWR 로 조용히) */}
+        {/* 초기 청크 스캔·내보내기 전체 로드 때만 — 얇은 인라인 진행 바 (청크 확장은 가장자리 표시) */}
         {scanning && (
           <div className="mx-auto mt-3 flex w-full max-w-5xl items-center gap-2.5 px-6">
             <div
@@ -342,6 +384,9 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                   until={until}
                   lanes={lanes}
                   laneLabel={laneLabel}
+                  loadedSince={loadedSince ?? since}
+                  loadingEdge={chunkLoading}
+                  onNeedMore={loadMore}
                   onLaneClick={(lane) => setSelectedRepo(laneKey(lane.repo))}
                 />
               </div>
@@ -439,12 +484,18 @@ function Timeline({
   until,
   lanes,
   laneLabel,
+  loadedSince,
+  loadingEdge,
+  onNeedMore,
   onLaneClick,
 }: {
   since: string;
   until: string;
   lanes: Lane[];
   laneLabel: (repo: string | null) => string;
+  loadedSince: string;
+  loadingEdge: boolean;
+  onNeedMore: () => void;
   onLaneClick: (lane: Lane) => void;
 }) {
   const span = daySpan(since, until);
@@ -475,6 +526,20 @@ function Timeline({
     const el = scrollRef.current;
     if (el) el.scrollLeft = el.scrollWidth;
   }, []);
+
+  // 좌측 로드 경계 감지 — 스크롤이 로드된 구간 왼쪽 경계 300px 안에 들어오면 이전 청크 요청.
+  // 청크 완료로 경계가 이동해도 재평가돼, 뷰포트가 미로드 구간에 걸쳐 있으면 연쇄 로드된다
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const check = (): void => {
+      const boundaryPx = (dayIndex(since, loadedSince) / span) * el.scrollWidth;
+      if (el.scrollLeft < boundaryPx + 300) onNeedMore();
+    };
+    check();
+    el.addEventListener('scroll', check, { passive: true });
+    return () => el.removeEventListener('scroll', check);
+  }, [since, loadedSince, span, onNeedMore]);
 
   return (
     <div ref={scrollRef} className="overflow-x-auto pb-1">
@@ -522,6 +587,16 @@ function Timeline({
         </div>
 
         <div className="relative mt-3 flex flex-col gap-6">
+          {/* 청크 로딩 — 로드된 구간 왼쪽 경계의 소형 표시 */}
+          {loadingEdge && (
+            <span
+              style={{ left: `${(dayIndex(since, loadedSince) / span) * 100}%` }}
+              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-ink-tertiary"
+              aria-hidden="true"
+            >
+              <Loader2 size={12} strokeWidth={2} className="animate-spin" />
+            </span>
+          )}
           {ordered.map((lane) => {
             const color = colorOf.get(laneKey(lane.repo))!;
             const first = lane.dates[0]!;
