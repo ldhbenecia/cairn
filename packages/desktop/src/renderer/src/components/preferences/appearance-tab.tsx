@@ -1,8 +1,7 @@
 import { Check } from 'lucide-react';
 import type { Language, Theme } from '../../cairn-api';
 import { ACCENTS, useSettings } from '../../settings-context';
-import { Toggle } from '../toggle';
-import { Field, Segmented } from './field';
+import { Field, Section, Segmented } from './field';
 
 export function AppearanceTab() {
   const { settings, update, t } = useSettings();
@@ -17,71 +16,68 @@ export function AppearanceTab() {
   ];
 
   return (
-    <div className="divide-y divide-hairline">
-      <Field label={t('prefs.theme')} desc={t('prefs.theme.desc')}>
-        <div className="flex gap-3">
-          {themeOptions.map((o) => (
-            <ThemeCard
-              key={o.value}
-              value={o.value}
-              label={o.label}
-              selected={settings.theme === o.value}
-              onSelect={() => update({ theme: o.value })}
+    <div className="flex flex-col gap-9">
+      <Section label={t('prefs.section.theme')}>
+        <Field label={t('prefs.theme')} desc={t('prefs.theme.desc')}>
+          <div className="flex gap-3">
+            {themeOptions.map((o) => (
+              <ThemeCard
+                key={o.value}
+                value={o.value}
+                label={o.label}
+                selected={settings.theme === o.value}
+                onSelect={() => update({ theme: o.value })}
+              />
+            ))}
+          </div>
+        </Field>
+
+        <Field label={t('prefs.glass')} desc={t('prefs.glass.desc')}>
+          <div className="flex gap-3">
+            <GlassCard
+              glass={false}
+              label={t('prefs.glass.default')}
+              selected={!settings.liquidGlass}
+              onSelect={() => update({ liquidGlass: false })}
             />
-          ))}
-        </div>
-      </Field>
+            <GlassCard
+              glass
+              label={t('prefs.glass.on')}
+              selected={settings.liquidGlass}
+              onSelect={() => update({ liquidGlass: true })}
+            />
+          </div>
+        </Field>
 
-      <Field label={t('prefs.glass')} desc={t('prefs.glass.desc')}>
-        <div className="flex gap-3">
-          <GlassCard
-            glass={false}
-            label={t('prefs.glass.default')}
-            selected={!settings.liquidGlass}
-            onSelect={() => update({ liquidGlass: false })}
+        <Field label={t('prefs.accent')} desc={t('prefs.accent.desc')}>
+          <div className="flex gap-2.5">
+            {ACCENTS.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                aria-label={a.id}
+                onClick={() => update({ accent: a.id })}
+                className="flex size-7 items-center justify-center rounded-full transition-transform hover:scale-105"
+                style={{ background: a.color }}
+              >
+                {settings.accent === a.id && (
+                  <Check size={14} strokeWidth={3} className="text-white" />
+                )}
+              </button>
+            ))}
+          </div>
+        </Field>
+      </Section>
+
+      <Section label={t('prefs.section.interface')}>
+        <Field label={t('prefs.language')} desc={t('prefs.language.desc')}>
+          <Segmented
+            options={langOptions}
+            value={settings.language}
+            onChange={(v) => update({ language: v })}
           />
-          <GlassCard
-            glass
-            label={t('prefs.glass.on')}
-            selected={settings.liquidGlass}
-            onSelect={() => update({ liquidGlass: true })}
-          />
-        </div>
-      </Field>
-
-      <Field label={t('prefs.accent')} desc={t('prefs.accent.desc')}>
-        <div className="flex gap-2.5">
-          {ACCENTS.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              aria-label={a.id}
-              onClick={() => update({ accent: a.id })}
-              className="flex size-7 items-center justify-center rounded-full transition-transform hover:scale-105"
-              style={{ background: a.color }}
-            >
-              {settings.accent === a.id && (
-                <Check size={14} strokeWidth={3} className="text-white" />
-              )}
-            </button>
-          ))}
-        </div>
-      </Field>
-
-      <Field label={t('prefs.graph')} desc={t('prefs.graph.desc')}>
-        <Toggle
-          checked={settings.graph.enabled}
-          onChange={(v) => update({ graph: { ...settings.graph, enabled: v } })}
-        />
-      </Field>
-
-      <Field label={t('prefs.language')} desc={t('prefs.language.desc')}>
-        <Segmented
-          options={langOptions}
-          value={settings.language}
-          onChange={(v) => update({ language: v })}
-        />
-      </Field>
+        </Field>
+      </Section>
     </div>
   );
 }
@@ -139,7 +135,9 @@ function ThemeCard({
       <span
         className={[
           'relative block h-16 w-24 overflow-hidden rounded-lg border-2 transition-colors',
-          selected ? 'border-accent' : 'border-hairline group-hover:border-hairline-strong',
+          selected
+            ? 'border-hairline-tertiary'
+            : 'border-hairline group-hover:border-hairline-strong',
         ].join(' ')}
       >
         {value === 'system' ? <AutoMock /> : <Mock variant={value} />}
@@ -199,7 +197,9 @@ function GlassCard({
       <span
         className={[
           'relative block h-16 w-24 overflow-hidden rounded-lg border-2 transition-colors',
-          selected ? 'border-accent' : 'border-hairline group-hover:border-hairline-strong',
+          selected
+            ? 'border-hairline-tertiary'
+            : 'border-hairline group-hover:border-hairline-strong',
         ].join(' ')}
       >
         <GlassMock glass={glass} />

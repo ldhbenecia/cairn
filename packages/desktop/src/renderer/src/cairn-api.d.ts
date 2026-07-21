@@ -262,11 +262,6 @@ declare global {
         status: () => Promise<BackupStatus>;
         now: () => Promise<BackupStatus>;
       };
-      capture: {
-        add: (text: string) => Promise<{ ok: boolean; count: number }>;
-        open: () => Promise<void>;
-        hide: () => Promise<void>;
-      };
       snapshots: {
         list: (category: RecentCategory, date: string) => Promise<JournalSnapshotMeta[]>;
         read: (

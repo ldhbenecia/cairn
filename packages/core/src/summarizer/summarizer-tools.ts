@@ -14,7 +14,6 @@ export interface SummarizerInput {
   date: string;
   github: GithubActivity | null;
   localGit: LocalGitActivity | null;
-  memos?: readonly string[];
 }
 
 export const submitSummarySchema = z.object({
@@ -94,7 +93,6 @@ export interface ActivityPayload {
   };
   done: { prs: DonePrItem[]; commits: DoneCommitItem[] };
   inProgress: { prs: OpenPrItem[]; commits: UnpushedCommitItem[] };
-  memos: string[];
   sourceErrors: SourceErrorsView;
 }
 
@@ -115,7 +113,6 @@ export function buildActivityPayload(input: SummarizerInput): ActivityPayload {
       prs: openPrs,
       commits: computeUnpushedCommits(input),
     },
-    memos: [...(input.memos ?? [])],
     sourceErrors: computeSourceErrors(input),
   };
 }

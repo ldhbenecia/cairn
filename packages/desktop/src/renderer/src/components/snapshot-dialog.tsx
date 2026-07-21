@@ -22,11 +22,14 @@ export function SnapshotDialog({
   const date = page.date ?? '';
 
   useEffect(() => {
+    // ESC 는 다이얼로그가 소비(capture + stopPropagation) — 상위 드로어까지 함께 닫히지 않게
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      onClose();
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, [onClose]);
 
   useEffect(() => {
@@ -99,7 +102,7 @@ export function SnapshotDialog({
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         className="glass-panel flex max-h-[78vh] w-[640px] max-w-[92vw] flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50"
       >
-        <div className="flex items-start gap-3 border-b border-hairline px-5 py-4">
+        <div className="flex items-start gap-3 border-b border-hairline px-6 py-4">
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-2 text-[14px] font-semibold text-ink">
               <History size={15} strokeWidth={2} className="text-ink-tertiary" />
@@ -125,10 +128,10 @@ export function SnapshotDialog({
             {t('snap.loading')}
           </div>
         ) : snaps.length === 0 ? (
-          <p className="px-5 py-14 text-center text-[13px] text-ink-tertiary">{t('snap.empty')}</p>
+          <p className="px-6 py-14 text-center text-[13px] text-ink-tertiary">{t('snap.empty')}</p>
         ) : (
           <>
-            <div className="flex flex-wrap gap-1.5 border-b border-hairline px-5 py-3">
+            <div className="flex flex-wrap gap-1.5 border-b border-hairline px-6 py-3">
               {snaps.map((s) => (
                 <button
                   key={s.stamp}
@@ -137,7 +140,7 @@ export function SnapshotDialog({
                   className={[
                     'rounded-md border px-2.5 py-1 font-mono text-[11.5px] transition-colors',
                     selected === s.stamp
-                      ? 'border-accent/50 bg-accent/15 text-ink'
+                      ? 'border-hairline-strong bg-surface-3 text-ink'
                       : 'border-hairline text-ink-muted hover:bg-surface-2 hover:text-ink',
                   ].join(' ')}
                 >
@@ -145,7 +148,7 @@ export function SnapshotDialog({
                 </button>
               ))}
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-3">
               {diff === null ? (
                 <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-ink-tertiary">
                   <Loader2 size={14} strokeWidth={2} className="animate-spin" />
@@ -171,7 +174,7 @@ export function SnapshotDialog({
                 </pre>
               )}
             </div>
-            <div className="flex items-center justify-between border-t border-hairline px-5 py-3.5">
+            <div className="flex items-center justify-between border-t border-hairline px-6 py-3.5">
               <span className="text-[11.5px] text-ink-tertiary">{t('snap.legend')}</span>
               <button
                 type="button"

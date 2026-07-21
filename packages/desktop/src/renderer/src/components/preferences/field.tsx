@@ -1,5 +1,27 @@
 import type { ReactNode } from 'react';
 
+export function Section({
+  label,
+  action,
+  children,
+}: {
+  label: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section>
+      <div className="flex items-center justify-between pb-1.5">
+        <p className="text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
+          {label}
+        </p>
+        {action}
+      </div>
+      <div className="divide-y divide-hairline">{children}</div>
+    </section>
+  );
+}
+
 export function Field({
   label,
   desc,
@@ -16,8 +38,8 @@ export function Field({
   return (
     <div
       className={[
-        'py-5 transition-opacity first:pt-0 last:pb-0',
-        stacked ? 'flex flex-col gap-3' : 'flex items-start justify-between gap-6',
+        'py-3 transition-opacity',
+        stacked ? 'flex flex-col gap-3' : 'flex items-center justify-between gap-6',
         dim ? 'opacity-40' : '',
       ].join(' ')}
     >
@@ -34,23 +56,33 @@ export function Segmented<T extends string>({
   options,
   value,
   onChange,
+  grow = false,
 }: {
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; disabled?: boolean; icon?: ReactNode }[];
   value: T;
   onChange: (v: T) => void;
+  grow?: boolean;
 }) {
   return (
-    <div className="flex gap-1 rounded-lg bg-surface-2 p-1">
+    <div className="flex gap-0.5 rounded-lg bg-surface-2 p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
+          aria-pressed={value === o.value}
+          disabled={o.disabled}
           onClick={() => onChange(o.value)}
           className={[
-            'rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors',
-            value === o.value ? 'bg-accent text-white' : 'text-ink-subtle hover:text-ink-muted',
+            'flex items-center justify-center gap-1 rounded-md px-3 py-1 text-[12.5px] font-medium transition-colors',
+            grow ? 'flex-1' : '',
+            value === o.value
+              ? 'bg-surface-3 text-ink'
+              : o.disabled
+                ? 'cursor-not-allowed text-ink-subtle opacity-45'
+                : 'text-ink-subtle hover:text-ink-muted',
           ].join(' ')}
         >
+          {o.icon}
           {o.label}
         </button>
       ))}

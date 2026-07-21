@@ -1,6 +1,5 @@
 import {
   ArrowDownUp,
-  Award,
   ChevronDown,
   GitCommitHorizontal,
   GitPullRequest,
@@ -44,7 +43,6 @@ type Props = {
   onOpenPublished: (pageId: string, url: string | null) => void;
   onReload: () => Promise<unknown>;
   onOpen: (page: RecentPage) => void;
-  onAchievements: () => void;
   drawerOpen: boolean;
 };
 
@@ -74,7 +72,6 @@ export function WorklogList({
   onOpenPublished,
   onReload,
   onOpen,
-  onAchievements,
   drawerOpen,
 }: Props) {
   const { t } = useSettings();
@@ -140,7 +137,7 @@ export function WorklogList({
     if (drawerOpen) return;
     const onKey = (e: KeyboardEvent): void => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      // CommandPalette·AchievementsDialog 등 App 소유 오버레이 상태는 prop 으로 안 내려옴 —
+      // CommandPalette·StandupDialog 등 App 소유 오버레이 상태는 prop 으로 안 내려옴 —
       // 열린 오버레이는 전부 role="dialog"(radix) 또는 fixed inset-0 레이어로만 마운트되므로 DOM 으로 감지
       if (document.querySelector('[role="dialog"]')) return;
       if (e.key === 'ArrowDown') {
@@ -198,45 +195,42 @@ export function WorklogList({
             {t('list.count')}
           </span>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            {/* 상단 문법 — 텍스트 버튼 나열 대신 아이콘 전용, 현재 상태는 title 로 */}
             <button
               type="button"
               onClick={() => setGroupBy((g) => GROUP_NEXT[g])}
+              title={t(GROUP_LABEL_KEY[groupBy])}
+              aria-label={t(GROUP_LABEL_KEY[groupBy])}
               className={[
-                'inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1.5 text-[12px] whitespace-nowrap transition-colors',
+                'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
                 groupBy === 'none'
-                  ? 'border-hairline text-ink-muted hover:bg-surface-2 hover:text-ink'
-                  : 'border-accent/50 bg-accent/15 text-ink',
+                  ? 'text-ink-subtle hover:bg-surface-2 hover:text-ink'
+                  : 'bg-surface-3 text-ink',
               ].join(' ')}
             >
-              <ListTree size={12} strokeWidth={2} />
-              {t(GROUP_LABEL_KEY[groupBy])}
+              <ListTree size={14} strokeWidth={2} />
             </button>
             <button
               type="button"
               onClick={() => setDesc((v) => !v)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-muted hover:bg-surface-2 hover:text-ink"
+              title={desc ? t('list.sort.desc') : t('list.sort.asc')}
+              aria-label={desc ? t('list.sort.desc') : t('list.sort.asc')}
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
             >
-              <ArrowDownUp size={12} strokeWidth={2} />
-              {desc ? t('list.sort.desc') : t('list.sort.asc')}
+              <ArrowDownUp size={14} strokeWidth={2} />
             </button>
             <button
               type="button"
               onClick={() => void reload()}
               disabled={loading}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+              title={t('list.reload')}
+              aria-label={t('list.reload')}
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
             >
-              <RefreshCw size={12} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
-              {t('list.reload')}
+              <RefreshCw size={14} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
             </button>
-            <button
-              type="button"
-              onClick={onAchievements}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2 py-1.5 text-[12px] whitespace-nowrap text-ink-muted hover:bg-surface-2 hover:text-ink"
-            >
-              <Award size={12} strokeWidth={2} />
-              {t('list.achievements')}
-            </button>
+            <div className="mx-1 h-4 w-px shrink-0 bg-hairline" />
             <PublishDialog
               sessions={sessions}
               runningMode={runningMode}
@@ -257,7 +251,7 @@ export function WorklogList({
               {t('list.loading')}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-lg border border-hairline bg-surface-1 py-16 text-center text-[12px] text-ink-tertiary">
+            <div className="rounded-lg border border-hairline py-16 text-center text-[12px] text-ink-tertiary">
               {pages.length === 0 ? t('list.empty') : t('list.emptyFiltered')}
             </div>
           ) : groups ? (
@@ -267,7 +261,7 @@ export function WorklogList({
                   <button
                     type="button"
                     onClick={() => toggleGroup(g.key)}
-                    className="mb-1.5 flex w-full items-center gap-1.5 px-1 text-[12px] font-medium text-ink-subtle hover:text-ink"
+                    className="mb-1 flex w-full items-center gap-1.5 px-1 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase transition-colors hover:text-ink"
                   >
                     <ChevronDown
                       size={13}
@@ -281,7 +275,7 @@ export function WorklogList({
                     <span className="font-mono text-ink-tertiary">{g.rows.length}</span>
                   </button>
                   {!collapsed.has(g.key) && (
-                    <div className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
+                    <div>
                       {g.rows.map((p) => (
                         <PageRow
                           key={p.pageId}
@@ -302,7 +296,6 @@ export function WorklogList({
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="overflow-hidden rounded-lg border border-hairline bg-surface-1"
             >
               {visible.map((p) => (
                 <PageRow
@@ -343,17 +336,47 @@ export function WorklogList({
   );
 }
 
-const CATEGORY_STYLE: Record<RecentCategory, string> = {
-  daily: 'chip-daily',
-  weekly: 'chip-weekly',
-  monthly: 'chip-monthly',
-  yearly: 'chip-yearly',
+const CATEGORY_DOT: Record<RecentCategory, string> = {
+  daily: 'dot-daily',
+  weekly: 'dot-weekly',
+  monthly: 'dot-monthly',
+  yearly: 'dot-yearly',
 };
 
-const STATUS_STYLE: Record<string, string> = {
-  draft: 'chip-draft',
-  final: 'chip-final',
-};
+// 우측 날짜 — 로케일 무관 고정 영어 단축형 (Jul 17)
+const MONTHS_EN = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+// ISO 주차 → 실제 날짜 범위 병기 (W28 만으로는 며칠인지 알 수 없음). 달력 산술은 UTC 로만
+function weekRangeLabel(title: string): string | null {
+  const m = /(\d{4})-W(\d{2})/.exec(title);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const week = Number(m[2]);
+  const jan4 = Date.UTC(year, 0, 4);
+  const jan4Dow = new Date(jan4).getUTCDay() || 7;
+  const monday = new Date(jan4 + ((week - 1) * 7 - (jan4Dow - 1)) * 86_400_000);
+  const sunday = new Date(monday.getTime() + 6 * 86_400_000);
+  const f = (d: Date): string => `${MONTHS_EN[d.getUTCMonth()]} ${d.getUTCDate()}`;
+  return `${f(monday)} – ${f(sunday)}`;
+}
+
+function shortDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${MONTHS_EN[Number(m[2]) - 1]} ${Number(m[3])}` : iso;
+}
 
 type Group = { key: string; label: string; rows: RecentPage[] };
 
@@ -394,6 +417,7 @@ function PageRow({
 }) {
   const counts =
     page.pr !== null || page.commit !== null ? { gh: page.pr ?? 0, git: page.commit ?? 0 } : null;
+  const title = page.title;
   const ref = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: 'nearest' });
@@ -404,46 +428,45 @@ function PageRow({
       type="button"
       onClick={() => onOpen(page)}
       className={[
-        'flex w-full items-center gap-4 border-b border-hairline px-4 py-3.5 text-left text-[13px] transition-[background-color] last:border-b-0',
-        selected ? 'bg-surface-2 ring-1 ring-accent/50 ring-inset' : 'hover:bg-surface-2',
+        'group flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-[13px] transition-[background-color]',
+        selected ? 'bg-surface-3 ring-1 ring-hairline-strong ring-inset' : 'hover:bg-surface-2',
       ].join(' ')}
     >
-      <span className="min-w-0 flex-1 truncate text-ink">{page.title}</span>
-      {counts && (
-        <span className="hidden shrink-0 items-center gap-2.5 font-mono text-[11px] text-ink-tertiary lg:flex">
-          <span className="flex items-center gap-1" title="GitHub PR">
-            <GitPullRequest size={11} strokeWidth={2} />
-            {counts.gh}
-          </span>
-          <span className="flex items-center gap-1" title="commits">
-            <GitCommitHorizontal size={11} strokeWidth={2} />
-            {counts.git}
-          </span>
-        </span>
-      )}
-      <span
-        className={[
-          'shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium',
-          CATEGORY_STYLE[page.category],
-        ].join(' ')}
-      >
-        {t(catKey(page.category))}
+      <span className="min-w-0 flex-1 truncate">
+        <span className="font-medium text-ink">{title}</span>
+        {page.category === 'weekly' && weekRangeLabel(title) && (
+          <span className="ml-2 text-[12px] text-ink-tertiary">{weekRangeLabel(title)}</span>
+        )}
       </span>
-      <span className="w-22 shrink-0 text-right font-mono text-[12px] text-ink-muted">
-        {page.date ?? '—'}
-      </span>
-      {page.status && (
-        <span
-          title={page.status}
-          className={[
-            'max-w-24 shrink-0 truncate rounded-md border px-2 py-0.5 text-center text-[11px] font-medium',
-            STATUS_STYLE[page.status] ?? 'border-hairline text-ink-tertiary',
-          ].join(' ')}
-        >
-          {page.status}
+      {/* 우측 메타 — 고정 폭 칼럼 그리드. 값 없는 칸도 자리를 유지해 행끼리 세로 정렬이 맞는다 */}
+      <span className="grid shrink-0 grid-cols-[76px_52px] items-center justify-items-end sm:grid-cols-[76px_56px_52px] lg:grid-cols-[116px_76px_56px_52px]">
+        <span className="hidden lg:block">
+          {counts && (
+            <span className="flex items-center rounded-full border border-hairline px-2 py-0.5 font-mono text-[11px] text-ink-tertiary">
+              <span className="flex items-center gap-1" title={t('stats.totalPr')}>
+                <GitPullRequest size={11} strokeWidth={2} />
+                {counts.gh}
+              </span>
+              <span className="mx-1.5 h-2.5 w-px bg-hairline" aria-hidden="true" />
+              <span className="flex items-center gap-1" title={t('achv.commits')}>
+                <GitCommitHorizontal size={11} strokeWidth={2} />
+                {counts.git}
+              </span>
+            </span>
+          )}
         </span>
-      )}
-      <SinkStack page={page} t={t} />
+        <span className="flex items-center gap-1.5 rounded-full border border-hairline px-2 py-0.5 text-[11px] text-ink-muted">
+          <span
+            className={['size-1.5 rounded-full', CATEGORY_DOT[page.category]].join(' ')}
+            aria-hidden="true"
+          />
+          {t(catKey(page.category))}
+        </span>
+        <SinkStack page={page} t={t} />
+        <span className="text-[12px] whitespace-nowrap text-ink-tertiary">
+          {page.date ? shortDate(page.date) : ''}
+        </span>
+      </span>
     </button>
   );
 }
@@ -452,14 +475,14 @@ function SinkStack({ page, t }: { page: RecentPage; t: T }) {
   const sinks = pageSinks(page);
   return (
     <span
-      className="hidden w-12 shrink-0 items-center justify-end sm:flex"
+      className="hidden shrink-0 items-center sm:flex"
       title={sinks.map((s) => sinkLabel(s, page, t('source.localDesc'))).join(' · ')}
     >
       {sinks.map((s) => (
         <span
           key={s}
           className={[
-            'flex size-3.5 shrink-0 items-center justify-center rounded-full ring-2 ring-surface-1 first:ml-0 -ml-1.5',
+            'flex size-3.5 shrink-0 items-center justify-center rounded-full ring-2 ring-canvas first:ml-0 -ml-1.5',
             SINK_TILE[s],
           ].join(' ')}
         >

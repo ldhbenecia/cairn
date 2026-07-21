@@ -102,7 +102,7 @@ export function StandupDialog({
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         className="glass-panel w-[560px] max-w-[92vw] overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50"
       >
-        <div className="flex items-start gap-3 border-b border-hairline px-5 py-4">
+        <div className="flex items-start gap-3 border-b border-hairline px-6 py-4">
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-2 text-[14px] font-semibold text-ink">
               <MessageSquareText size={15} strokeWidth={2} className="text-ink-tertiary" />
@@ -124,7 +124,7 @@ export function StandupDialog({
           </button>
         </div>
 
-        <div className="px-5 py-4">
+        <div className="px-6 py-4">
           {!source ? (
             <p className="py-10 text-center text-[13px] text-ink-tertiary">{t('standup.empty')}</p>
           ) : failed ? (
@@ -145,7 +145,7 @@ export function StandupDialog({
         </div>
 
         {text !== null && (
-          <div className="flex justify-end border-t border-hairline px-5 py-3.5">
+          <div className="flex justify-end border-t border-hairline px-6 py-3.5">
             <button
               type="button"
               onClick={copy}

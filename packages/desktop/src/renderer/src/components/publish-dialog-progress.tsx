@@ -70,11 +70,12 @@ const DSTEP_DESC: Record<DateStep, I18nKey> = {
 
 type Layout = 'tree' | 'compact';
 
+// 칩은 무채 소형(border-hairline) — 상태 색은 좌측 아이콘이 담당, 실패만 텍스트로 시맨틱 유지
 const STATUS_BADGE: Record<DStatus, { key: I18nKey; cls: string }> = {
-  done: { key: 'publish.status.done', cls: 'bg-emerald-500/15 text-emerald-400' },
-  active: { key: 'publish.status.active', cls: 'bg-accent/15 text-accent-hover' },
-  pending: { key: 'publish.status.pending', cls: 'bg-surface-2 text-ink-tertiary' },
-  failed: { key: 'publish.status.failed', cls: 'bg-danger/15 text-danger' },
+  done: { key: 'publish.status.done', cls: 'text-ink-muted' },
+  active: { key: 'publish.status.active', cls: 'text-ink' },
+  pending: { key: 'publish.status.pending', cls: 'text-ink-tertiary' },
+  failed: { key: 'publish.status.failed', cls: 'text-danger' },
 };
 
 function StatusIcon({ status, size }: { status: DStatus; size: number }) {
@@ -89,7 +90,7 @@ function StatusIcon({ status, size }: { status: DStatus; size: number }) {
         className="flex items-center justify-center"
       >
         {status === 'done' ? (
-          <CheckCircle2 size={size} strokeWidth={2.25} className="text-emerald-400" />
+          <CheckCircle2 size={size} strokeWidth={2.25} className="text-success" />
         ) : status === 'failed' ? (
           <XCircle size={size} strokeWidth={2.25} className="text-danger" />
         ) : status === 'active' ? (
@@ -114,7 +115,7 @@ function StatusBadge({ status, t }: { status: DStatus; t: T }) {
       initial={{ scale: 0.85, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 500, damping: 22 }}
-      className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${b.cls}`}
+      className={`shrink-0 rounded border border-hairline px-1.5 py-0.5 text-[10px] font-medium ${b.cls}`}
     >
       {t(b.key)}
     </motion.span>
@@ -264,7 +265,7 @@ function StepRow({
                 key={detail}
                 className={[
                   'hint-fade mt-1 font-mono text-[11px]',
-                  status === 'active' ? 'text-accent-hover' : 'text-ink-tertiary',
+                  status === 'active' ? 'text-ink-muted' : 'text-ink-tertiary',
                 ].join(' ')}
               >
                 {detail}
@@ -308,30 +309,30 @@ function TreeRow({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface-2/40"
+        className="flex h-9 w-full items-center gap-2.5 rounded-md px-2 text-left transition-colors hover:bg-surface-2/50"
       >
         <span className="flex size-[18px] shrink-0 items-center justify-center">
-          <StatusIcon status={d.status} size={18} />
+          <StatusIcon status={d.status} size={16} />
         </span>
         <span
           className={[
-            'font-mono text-[13px]',
+            'text-[13px] font-medium',
             d.status === 'pending'
               ? 'text-ink-tertiary'
               : d.status === 'active'
-                ? 'font-medium text-ink'
+                ? 'text-ink'
                 : 'text-ink-muted',
           ].join(' ')}
         >
           {d.date}
         </span>
-        <span className="text-[12px] text-ink-tertiary">{d.dow}</span>
-        {d.counts && (
-          <span className="font-mono text-[11px] text-ink-tertiary tabular-nums">
-            PR {d.counts.pr} · {t('publish.collected.commits')} {d.counts.commit}
-          </span>
-        )}
-        <span className="ml-auto flex items-center gap-2">
+        <span className="text-[11.5px] text-ink-tertiary">{d.dow}</span>
+        <span className="ml-auto flex shrink-0 items-center gap-2">
+          {d.counts && (
+            <span className="font-mono text-[11px] text-ink-tertiary tabular-nums">
+              PR {d.counts.pr} · {t('publish.collected.commits')} {d.counts.commit}
+            </span>
+          )}
           <StatusBadge status={d.status} t={t} />
           <ChevronRight
             size={13}
@@ -384,45 +385,47 @@ function CompactRow({ d, i, t }: { d: PanelDate; i: number; t: T }) {
       transition={{ duration: 0.2, delay: Math.min(i * 0.012, 0.15) }}
       className={[
         // 트리 행과 동일 메트릭 — 레이아웃 전환 시 모달 크기가 출렁이지 않게
-        'flex items-center gap-2.5 rounded-lg px-2 py-2',
-        d.status === 'active' ? 'bg-accent/[0.06]' : '',
+        'flex h-9 items-center gap-2.5 rounded-md px-2',
+        d.status === 'active' ? 'bg-surface-2' : '',
       ].join(' ')}
     >
       <span className="flex size-[18px] shrink-0 items-center justify-center">
-        <StatusIcon status={d.status} size={18} />
+        <StatusIcon status={d.status} size={16} />
       </span>
       <span
         className={[
-          'font-mono text-[13px]',
+          'text-[13px] font-medium',
           d.status === 'pending' ? 'text-ink-tertiary' : 'text-ink-muted',
         ].join(' ')}
       >
         {d.date}
       </span>
-      <span className="text-[12px] text-ink-tertiary">{d.dow}</span>
-      {d.counts && (
-        <span className="font-mono text-[11px] text-ink-tertiary tabular-nums">
-          PR {d.counts.pr} · {t('publish.collected.commits')} {d.counts.commit}
-        </span>
-      )}
-      <div className="ml-auto flex items-center gap-1">
-        {d.steps.map((s) => (
-          <span
-            key={s.step}
-            className={[
-              'rounded-md px-1.5 py-0.5 text-[10px] font-medium',
-              s.status === 'done'
-                ? 'bg-emerald-500/12 text-emerald-400'
-                : s.status === 'failed'
-                  ? 'bg-danger/12 text-danger'
-                  : s.status === 'active'
-                    ? 'batch-pulse bg-accent/15 text-accent-hover'
-                    : 'bg-surface-2 text-ink-tertiary',
-            ].join(' ')}
-          >
-            {t(DSTEP_SHORT[s.step])}
+      <span className="text-[11.5px] text-ink-tertiary">{d.dow}</span>
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        {d.counts && (
+          <span className="font-mono text-[11px] text-ink-tertiary tabular-nums">
+            PR {d.counts.pr} · {t('publish.collected.commits')} {d.counts.commit}
           </span>
-        ))}
+        )}
+        <span className="flex items-center gap-1">
+          {d.steps.map((s) => (
+            <span
+              key={s.step}
+              className={[
+                'rounded border px-1.5 py-0.5 text-[10px] font-medium',
+                s.status === 'done'
+                  ? 'border-hairline text-ink-muted'
+                  : s.status === 'failed'
+                    ? 'border-danger/40 text-danger'
+                    : s.status === 'active'
+                      ? 'batch-pulse border-hairline-strong text-ink'
+                      : 'border-hairline text-ink-tertiary',
+              ].join(' ')}
+            >
+              {t(DSTEP_SHORT[s.step])}
+            </span>
+          ))}
+        </span>
       </div>
     </motion.li>
   );
@@ -584,7 +587,7 @@ export function Progress({
             </ul>
             <div className="flex items-center gap-2.5 border-t border-hairline pt-3">
               <span
-                className={`size-1.5 shrink-0 rounded-full ${allDone ? 'bg-emerald-400' : 'batch-pulse bg-accent'}`}
+                className={`size-1.5 shrink-0 rounded-full ${allDone ? 'bg-success' : 'batch-pulse bg-accent'}`}
               />
               <span
                 key={currentAction}

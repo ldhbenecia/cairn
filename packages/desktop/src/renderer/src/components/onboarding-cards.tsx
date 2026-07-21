@@ -217,7 +217,7 @@ export function NotionCard({
                 >
                   <span className="flex size-4 shrink-0 items-center justify-center">
                     {e.pageId === pg.id && (
-                      <Check size={13} strokeWidth={2.5} className="text-accent" />
+                      <Check size={13} strokeWidth={2.5} className="text-ink" />
                     )}
                   </span>
                   <span className="truncate">{pg.title}</span>

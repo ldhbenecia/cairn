@@ -13,7 +13,7 @@ import { useSettings } from '../../settings-context';
 import { ICloudMark, NotionMark, ObsidianMark } from '../brand-icons';
 import { NotionCard, type NotionEntry } from '../onboarding-cards';
 import { Toggle } from '../toggle';
-import { Field } from './field';
+import { Section } from './field';
 
 const pad2 = (n: number): string => String(n).padStart(2, '0');
 
@@ -502,47 +502,34 @@ function ComingSoonCard({
   title: string;
   desc: string;
 }) {
-  const { t } = useSettings();
-  return (
-    <ServiceCard
-      icon={icon}
-      tileClass={tileClass}
-      title={title}
-      badge={
-        <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-medium text-ink-tertiary">
-          {t('integrations.comingSoon')}
-        </span>
-      }
-      desc={desc}
-      dim
-    />
-  );
+  return <ServiceCard icon={icon} tileClass={tileClass} title={title} desc={desc} dim />;
 }
 
 export function IntegrationsTab() {
   const { t } = useSettings();
   return (
-    <div>
-      <Field label={t('prefs.integrations')} desc={t('prefs.integrations.desc')}>
-        <span />
-      </Field>
-      <div className="flex flex-col gap-3">
-        <NotionIntegrationCard />
-        <ObsidianIntegrationCard />
-        <GitBackupCard />
-        <ComingSoonCard
-          icon={<ICloudMark size={20} />}
-          tileClass="bg-[#3693F3]/10"
-          title={t('integrations.icloud.title')}
-          desc={t('integrations.icloud.desc')}
-        />
-        <ComingSoonCard
-          icon={<NotebookPen size={19} strokeWidth={1.8} className="text-warning" />}
-          tileClass="bg-warning/10"
-          title={t('integrations.notes.title')}
-          desc={t('integrations.notes.desc')}
-        />
-      </div>
+    <div className="flex flex-col gap-9">
+      <Section label={t('prefs.section.services')}>
+        <div className="flex flex-col gap-3 pt-2">
+          <NotionIntegrationCard />
+          <ObsidianIntegrationCard />
+          <GitBackupCard />
+        </div>
+      </Section>
+      <Section label={t('integrations.comingSoon')}>
+        <div className="flex flex-col gap-3 pt-2">
+          <ComingSoonCard
+            icon={<ICloudMark size={20} />}
+            title={t('integrations.icloud.title')}
+            desc={t('integrations.icloud.desc')}
+          />
+          <ComingSoonCard
+            icon={<NotebookPen size={19} strokeWidth={1.8} className="text-ink-muted" />}
+            title={t('integrations.notes.title')}
+            desc={t('integrations.notes.desc')}
+          />
+        </div>
+      </Section>
     </div>
   );
 }

@@ -34,11 +34,15 @@ All colors are CSS custom properties resolved by theme. Tailwind utilities map t
 
 | Token | Dark | Light | Role |
 |---|---|---|---|
-| `--color-canvas` | `#010102` | `#f2f2f8` | App background (deepest plane) |
-| `--color-surface-1` | `#0f1011` | `#ffffff` | Cards, dialogs (raised plane) |
-| `--color-surface-2` | `#141516` | `#eaeaf2` | Inset wells, inputs, hover fills |
-| `--color-surface-3` | `#18191a` | `#e2e2ee` | Deeper wells / active |
-| `--color-surface-4` | `#191a1b` | `#d8d8e6` | Deepest well |
+| `--color-canvas` | `#08090a` | `#f2f2f8` | App background (deepest plane) |
+| `--color-surface-1` | `#101012` | `#ffffff` | Cards, dialogs (raised plane) |
+| `--color-surface-2` | `#17171a` | `#eaeaf2` | Inset wells, inputs, hover fills |
+| `--color-surface-3` | `#1c1c1f` | `#e2e2ee` | Deeper wells / active |
+| `--color-surface-4` | `#212124` | `#d8d8e6` | Deepest well |
+
+Dark surfaces follow the Linear app tone: not pure black — a ramp of very deep neutral grays
+whose even lightness steps (not borders) carry the plane hierarchy. The window pre-paint
+background (`main/index.ts` `backgroundColor`) matches `canvas`.
 | `--color-hairline` | `#23252a` | `#dfdfe9` | Default 1px borders/dividers |
 | `--color-hairline-strong` | `#34343a` | `#d2d2df` | Emphasized dividers / input framing |
 | `--color-hairline-tertiary` | `#3e3e44` | `#c2c2d0` | High-contrast rules |
@@ -58,9 +62,13 @@ All colors are CSS custom properties resolved by theme. Tailwind utilities map t
 | `--color-accent-hover` | `#757bf0` | `#4a4ecf` |
 | `--color-accent-focus` | `#474dcc` | `#3f43ba` |
 
-Usage: `bg-accent` (primary buttons, brand mark, active nav), `text-accent`/`text-accent-hover`
-(links, interactive text), translucent tints `bg-accent/10–45` (selected/hover surfaces),
-`border-accent` + `/30–60` (selected cells), `text-white` (26×) as the on-accent label color.
+Usage is deliberately scarce (Linear grammar — the accent is a point color, not a wash):
+primary CTAs (`bg-accent … text-white`), the brand mark, the sidebar active left rail, input
+focus (`focus:border-accent`), toggle/slider on-state, small progress/selection indicators
+(progress bars, spinners, active-status pills, selection check dots, calendar selected day),
+inline links (`text-accent`), and the single primary chart series. Selected/hover states of
+lists, chips, segments, and cards are **neutral** — `bg-surface-2/3` + `border-hairline-strong`
++ `text-ink` — never `bg-accent/10–15` tints, accent borders, or accent icon/text coloring.
 `--color-chart-companion` = `color-mix(in srgb, var(--color-accent) 42%, var(--color-ink-tertiary))`
 so chart pairs stay in sync if the accent changes.
 
@@ -234,13 +242,13 @@ idioms. Genuinely shared components: `Toggle`, `Segmented`/`Field` (`field.tsx`)
 
 ### Selection controls
 - **Toggle** (`toggle.tsx`): the app's only `role="switch"`; all bespoke switches were unified into it.
-- **Segmented** (`field.tsx`): track `flex gap-1 rounded-lg bg-surface-2 p-1`; active item = solid accent pill.
-- **Model / scope selectors:** card-grid — bordered cells, selected = `border-accent` + `bg-accent` tint (+ Check badge on the publish scope grid).
+- **Segmented** (`field.tsx`): track `flex gap-1 rounded-lg bg-surface-2 p-1`; active item = neutral surface pill (`bg-surface-3 text-ink`), Linear segment grammar — no accent pill.
+- **Model / scope selectors:** card-grid — bordered cells, selected = `border-hairline-strong bg-surface-3` (+ accent Check badge on the publish scope grid as the small selection indicator).
 
 ### Chips, pills, pagination
 - **Category/status chip:** `rounded-md border px-2 py-0.5 text-[11px] font-medium` + semantic hue class (daily=indigo, weekly=blue, monthly=violet, draft=amber, final=success). Long/custom statuses `truncate` with a `title`.
-- **AccountStatusPill:** `rounded-full px-1.5 py-0.5 text-[10px] font-medium`, translucent-bg + solid-text tone.
-- **Pagination:** `size-7` chevrons (with `aria-label`) + numbers marked by an **animated accent underline** (measured), current page carries `aria-current="page"`.
+- **AccountStatusPill:** `rounded-full px-1.5 py-0.5 text-[10px] font-medium`, neutral surface tone (semantic tint only for offline=warning).
+- **Pagination:** `size-7` chevrons (with `aria-label`) + numbers marked by an **animated ink underline** (measured), current page carries `aria-current="page"`.
 
 ### Overlays
 - **Dialog:** Radix + `.dialog-content.glass-panel`, overlay `.dialog-overlay`. Close via CSS keyframes.

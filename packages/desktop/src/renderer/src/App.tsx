@@ -17,6 +17,7 @@ import type {
   RunStep,
 } from './cairn-api';
 import { AnimatePresence } from 'framer-motion';
+import { invalidateReportsScan, prefetchReportsScan } from './lib/reports-scan';
 import { resetRunLines } from './lib/run-line-store';
 import { RunToast, type RunToastData } from './components/run-toast';
 import { useSettings } from './settings-context';
@@ -24,10 +25,11 @@ import { Dashboard } from './components/dashboard';
 import { GraphView } from './components/graph-view';
 import { Onboarding } from './components/onboarding';
 import { PreferencesDialog } from './components/preferences-dialog';
-import { AchievementsDialog } from './components/achievements-dialog';
 import { CommandPalette } from './components/command-palette';
+import { ReportsView } from './components/reports-view';
 import { StandupDialog } from './components/standup-dialog';
 import { WrappedDialog } from './components/wrapped-dialog';
+import { WorklogDetailView } from './components/worklog-detail-view';
 import { WorklogDrawer } from './components/worklog-drawer';
 import {
   Sidebar,
@@ -75,12 +77,13 @@ export function App() {
   const [cmdkOpen, setCmdkOpen] = useState(false);
   // 팔레트 발행 → worklogs 뷰의 PublishDialog 를 진행 화면으로 여는 신호
   const [publishProgressSignal, setPublishProgressSignal] = useState(0);
-  const [achvOpen, setAchvOpen] = useState(false);
   const [standupOpen, setStandupOpen] = useState(false);
   const [wrappedOpen, setWrappedOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
   const [everSetup, setEverSetup] = useState(window.cairn.initialSetupComplete);
   const [selectedPage, setSelectedPage] = useState<RecentPage | null>(null);
+  // 일지 상세 표시 모드 — 드로어(기본) 또는 메인 영역 전체
+  const [detailFull, setDetailFull] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = Number(localStorage.getItem('cairn:sidebarWidth'));
     return saved >= 200 && saved <= 420 ? saved : 248;
@@ -94,9 +97,21 @@ export function App() {
   const [recent, setRecent] = useState<RecentListResult | null>(readRecentCache);
   const recentRef = useRef(recent);
   recentRef.current = recent;
-  const { t, settings } = useSettings();
-  // 그래프 뷰를 설정에서 끈 상태로 view 가 graph 에 남아 있으면 목록으로 폴백
-  const activeView = view === 'graph' && !settings.graph.enabled ? 'worklogs' : view;
+  const { t } = useSettings();
+
+  // 어디서 열든 새 일지는 드로어부터 — 전체 화면은 드로어의 확장 버튼으로만 진입
+  const openPage = useCallback((p: RecentPage) => {
+    setDetailFull(false);
+    setSelectedPage(p);
+  }, []);
+
+  // 명시적 뷰 전환은 전체 화면 상세·드로어 상태도 함께 정리 — detailFull 분기가 새 뷰를 가리는 문제 방지
+  const switchView = useCallback((v: MainView) => {
+    setPrefsOpen(false);
+    setSelectedPage(null);
+    setDetailFull(false);
+    setView(v);
+  }, []);
 
   const loadRecent = useCallback(async () => {
     const r = await window.cairn.listRecent();
@@ -117,12 +132,12 @@ export function App() {
         inState ?? (await loadRecent().catch(() => null))?.pages.find((p) => p.pageId === pageId);
       if (page) {
         setView('worklogs');
-        setSelectedPage(page);
+        openPage(page);
       } else if (url) {
         void window.cairn.openExternal(url);
       }
     },
-    [loadRecent],
+    [loadRecent, openPage],
   );
 
   useEffect(() => {
@@ -148,7 +163,8 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    void loadRecent();
+    // 로드 완료 즉시 고정 범위(최근 365일)를 미리 스캔 — 뷰 첫 진입 시 스피너 제거
+    void loadRecent().then((r) => prefetchReportsScan(r));
   }, [loadRecent]);
 
   useEffect(() => {
@@ -229,6 +245,10 @@ export function App() {
       void loadRecent().then((r) => {
         // 언마운트 후 늦게 도착한 콜백이 새 타이머를 걸지 않도록 (누수·불필요 IPC 방지)
         if (!active) return;
+        // 발행 직후 발행된 페이지만 스캔 캐시에서 evict 후 고정 범위 재스캔 —
+        // 재발행(같은 pageId 덮어쓰기)도 그 페이지 하나만 다시 읽어 반영
+        invalidateReportsScan(result.publishPageId);
+        prefetchReportsScan(r);
         const pid = result.publishPageId;
         const found = !pid || (r?.pages ?? []).some((p) => p.pageId === pid);
         if (found) return;
@@ -304,12 +324,12 @@ export function App() {
 
   useEffect(() => {
     const off = window.cairn.onFocusMode((focused) => {
-      setPrefsOpen(false);
-      setView('worklogs');
-      setFilter(focused);
+      switchView('worklogs');
+      // 연간은 사이드바 필터에서 제거됨 — 연간 일지는 '전체' 목록에서만 노출
+      setFilter(focused === 'yearly' ? 'all' : focused);
     });
     return off;
-  }, []);
+  }, [switchView]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -385,7 +405,6 @@ export function App() {
       daily: pages.filter((p) => p.category === 'daily').length,
       weekly: pages.filter((p) => p.category === 'weekly').length,
       monthly: pages.filter((p) => p.category === 'monthly').length,
-      yearly: pages.filter((p) => p.category === 'yearly').length,
     };
   }, [recent]);
 
@@ -406,42 +425,46 @@ export function App() {
     <div className="flex h-screen w-screen bg-canvas text-ink">
       <Sidebar
         width={sidebarWidth}
-        view={activeView}
+        view={view}
         filter={filter}
         counts={counts}
         preferencesActive={prefsOpen}
         onFilterChange={(f) => {
-          setPrefsOpen(false);
-          setView('worklogs');
+          switchView('worklogs');
           setFilter(f);
         }}
-        onOpenStats={() => {
-          setPrefsOpen(false);
-          setView('stats');
-        }}
-        onOpenGraph={() => {
-          setPrefsOpen(false);
-          setView('graph');
-        }}
+        onOpenStats={() => switchView('stats')}
+        onOpenGraph={() => switchView('graph')}
+        onOpenReports={() => switchView('reports')}
         onOpenPreferences={() => setPrefsOpen(true)}
         onOpenPalette={() => setCmdkOpen(true)}
       />
       <div
         onMouseDown={startResize}
-        className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/40 [-webkit-app-region:no-drag]"
+        className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-hairline-tertiary [-webkit-app-region:no-drag]"
       />
-      {activeView === 'stats' ? (
+      {selectedPage && detailFull ? (
+        <WorklogDetailView
+          page={selectedPage}
+          onBack={() => {
+            setDetailFull(false);
+            setSelectedPage(null);
+          }}
+        />
+      ) : view === 'stats' ? (
         <Dashboard
           recent={recent}
           onPickDate={(date) => {
             const p = recent?.pages.find((x) => x.category === 'daily' && x.date === date);
-            if (p) setSelectedPage(p);
+            if (p) openPage(p);
           }}
           onGoToWorklogs={() => setView('worklogs')}
           onOpenWrapped={() => setWrappedOpen(true)}
         />
-      ) : activeView === 'graph' ? (
-        <GraphView recent={recent} onOpen={setSelectedPage} />
+      ) : view === 'graph' ? (
+        <GraphView recent={recent} onOpen={openPage} />
+      ) : view === 'reports' ? (
+        <ReportsView recent={recent} />
       ) : (
         <WorklogList
           recent={recent}
@@ -451,43 +474,37 @@ export function App() {
           onTrigger={trigger}
           onOpenPublished={(pageId, url) => void openPublishedPage(pageId, url)}
           onReload={loadRecent}
-          onOpen={setSelectedPage}
-          onAchievements={() => setAchvOpen(true)}
+          onOpen={openPage}
           drawerOpen={selectedPage !== null}
           publishProgressSignal={publishProgressSignal}
           onConsumePublishSignal={() => setPublishProgressSignal(0)}
         />
       )}
-      {selectedPage && <WorklogDrawer page={selectedPage} onClose={() => setSelectedPage(null)} />}
+      {selectedPage && !detailFull && (
+        <WorklogDrawer
+          page={selectedPage}
+          onClose={() => setSelectedPage(null)}
+          onExpand={() => setDetailFull(true)}
+        />
+      )}
       <AnimatePresence>
         {cmdkOpen && (
           <CommandPalette
             key="command-palette"
             recent={recent}
             onClose={() => setCmdkOpen(false)}
-            onView={setView}
+            onView={switchView}
             onPreferences={() => setPrefsOpen(true)}
             onPublish={(mode) => {
               // 대시보드/그래프 뷰에서 팔레트로 발행하면 진행 표시가 없어 무반응처럼 보이던 문제 —
               // worklogs 뷰로 전환하고 진행 다이얼로그를 열어 스피너/단계를 보여준다
-              setView('worklogs');
+              switchView('worklogs');
               setPublishProgressSignal((n) => n + 1);
               void trigger(mode);
             }}
-            onOpenPage={setSelectedPage}
-            onAchievements={() => setAchvOpen(true)}
+            onOpenPage={openPage}
             onStandup={() => setStandupOpen(true)}
-            onQuickCapture={() => void window.cairn.capture.open()}
             onWrapped={() => setWrappedOpen(true)}
-          />
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {achvOpen && (
-          <AchievementsDialog
-            key="achievements"
-            recent={recent}
-            onClose={() => setAchvOpen(false)}
           />
         )}
       </AnimatePresence>

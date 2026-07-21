@@ -22,7 +22,6 @@ import { periodRange } from '../rollup/period-range.js';
 import { DailySummarizerService } from '../summarizer/daily-summarizer.service.js';
 import { JournalSourceService } from '../journal/journal-source.service.js';
 import { JournalWriterService } from '../journal/journal-writer.service.js';
-import { MemoSourceService } from '../memos/memo-source.service.js';
 import { WorklogStatsService } from '../worklog-stats/worklog-stats.service.js';
 import type { RunOptions, RunSource } from './run-options.js';
 
@@ -44,7 +43,6 @@ export class OrchestratorService {
     private readonly stats: WorklogStatsService,
     private readonly journalWriter: JournalWriterService,
     private readonly journalSource: JournalSourceService,
-    private readonly memoSource: MemoSourceService,
     @InjectPinoLogger(OrchestratorService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -321,7 +319,6 @@ export class OrchestratorService {
     }
 
     const { prCount, commitCount } = computeDayTotals(githubActivity, localGitActivity);
-    const memos = this.memoSource.forDate(date);
 
     if (prCount + commitCount === 0) {
       // 수집 에러로 인한 0건은 '활동 없음'으로 위장하지 않는다 — 토큰 만료 등이 매일
@@ -347,22 +344,12 @@ export class OrchestratorService {
           first.error.status,
         );
       }
-      // 활동 0건 + 메모 → 발행 — 미발행 메모 60일 소멸 방지 (ADR 0032)
-      if (memos.length === 0) {
-        this.logger.info(
-          { date },
-          'daily: no activity collected — skipping summarizer + publisher',
-        );
-        emitParentEvent({ type: 'no-activity', date });
-        if (!opts.silent) {
-          await this.notification.notify('cairn 일지', `${date} 활동 없음 — 일지 생략`);
-        }
-        return 'no-activity';
+      this.logger.info({ date }, 'daily: no activity collected — skipping summarizer + publisher');
+      emitParentEvent({ type: 'no-activity', date });
+      if (!opts.silent) {
+        await this.notification.notify('cairn 일지', `${date} 활동 없음 — 일지 생략`);
       }
-      this.logger.info(
-        { date, memoCount: memos.length },
-        'daily: no activity but memos exist — publishing from memos',
-      );
+      return 'no-activity';
     }
 
     // 그랜드 토탈(로컬+GitHub PR dedup)을 요약 전에 한 번 — 발행 진행 UI 칩이
@@ -377,7 +364,6 @@ export class OrchestratorService {
         date,
         github: githubActivity,
         localGit: localGitActivity,
-        memos,
       },
       options.lang,
     );

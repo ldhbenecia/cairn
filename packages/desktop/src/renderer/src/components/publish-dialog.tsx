@@ -1,25 +1,15 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import {
-  CalendarCheck,
-  CalendarClock,
-  CalendarDays,
-  CalendarRange,
-  Check,
-  type LucideIcon,
-  Loader2,
-  Plus,
-  Send,
-  X,
-} from 'lucide-react';
+import { Check, Loader2, Lock, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RunSession } from '../App';
 import type { CoreMode, CoreRunOptions, SummaryModel } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
+import { useCloudAuth } from '../use-cloud-auth';
 import { DatePicker } from './date-picker';
+import { Segmented } from './preferences/field';
 import { Progress } from './publish-dialog-progress';
 import { CancelledCard, ErrorCard, Result } from './publish-dialog-result';
-import { Toggle } from './toggle';
 
 type Props = {
   sessions: Record<CoreMode, RunSession | null>;
@@ -35,7 +25,8 @@ type Props = {
 // 최근 실패 결과를 오픈 시 자동 회수할 시간 창 (30분) — 그 이후는 stale 로 안 띄운다
 const RECALL_WINDOW_MS = 30 * 60_000;
 
-// 가장 최근에 '실패'로 끝난 완료 세션 — !ok / 요약 실패 / 에러. 성공은 회수 대상 아님
+// 가장 최근에 '실패'로 끝난 완료 세션 — !ok / 요약 실패 / 에러. 성공은 회수 대상 아님.
+// 사용자 취소도 제외 — 취소는 exit!=0 이라 ok=false 지만 본인이 방금 한 행동이라 다시 띄울 게 없다
 function mostRecentFailed(
   sessions: Record<CoreMode, RunSession | null>,
 ): { mode: CoreMode; endedAt: number } | null {
@@ -43,20 +34,23 @@ function mostRecentFailed(
   for (const mode of ['daily', 'weekly', 'monthly', 'yearly'] as CoreMode[]) {
     const s = sessions[mode];
     if (s?.state !== 'done' || !s.endedAt) continue;
-    const failed = !!s.error || (!!s.result && (!s.result.ok || s.result.summaryFailed));
+    const failed =
+      !!s.error || (!!s.result && !s.result.cancelled && (!s.result.ok || s.result.summaryFailed));
     if (failed && (!best || s.endedAt > best.endedAt)) best = { mode, endedAt: s.endedAt };
   }
   return best;
 }
 
-const MODE_OPTIONS: { mode: CoreMode; key: I18nKey; sub: I18nKey; icon: LucideIcon }[] = [
-  { mode: 'daily', key: 'publish.today', sub: 'publish.scope.daily', icon: CalendarDays },
-  { mode: 'weekly', key: 'publish.week', sub: 'publish.scope.weekly', icon: CalendarRange },
-  { mode: 'monthly', key: 'publish.month', sub: 'publish.scope.monthly', icon: CalendarClock },
-  { mode: 'yearly', key: 'publish.year', sub: 'publish.scope.yearly', icon: CalendarCheck },
+const MODE_OPTIONS: { mode: CoreMode; key: I18nKey }[] = [
+  { mode: 'daily', key: 'publish.today' },
+  { mode: 'weekly', key: 'publish.week' },
+  { mode: 'monthly', key: 'publish.month' },
 ];
 
-const DAILY_BACKFILL_DAYS = 7;
+// 백필 일수 게이팅 — 미로그인 1일, 로그인 7일. 초과 구간은 Pro 잠금(결제 준비 중이라 선택 불가)
+const BACKFILL_OPTIONS = [0, 1, 3, 5, 7, 14, 30];
+const FREE_BACKFILL_MAX = 7;
+const ANON_BACKFILL_MAX = 1;
 
 const pad2 = (n: number): string => String(n).padStart(2, '0');
 const todayIso = (): string => {
@@ -80,11 +74,12 @@ export function PublishDialog({
   onConsumeSignal,
 }: Props) {
   const { t, settings } = useSettings();
+  const { signedIn } = useCloudAuth();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<CoreMode>('daily');
   const [date, setDate] = useState<string>(todayIso);
   const dateTouched = useRef(false);
-  const [includeBackfill, setIncludeBackfill] = useState(false);
+  const [backfillDays, setBackfillDays] = useState(0);
   const [force, setForce] = useState(false);
   const [skipNotion, setSkipNotion] = useState(false);
   const [notionConnected, setNotionConnected] = useState(false);
@@ -92,6 +87,17 @@ export function PublishDialog({
   // 최근 실패 결과를 오픈 시 1회만 자동 회수 — 같은 결과를 재오픈 때마다 다시 띄우지 않게
   const recalledEndedAt = useRef(0);
   const isToday = date === todayIso();
+
+  // 미로그인 게이팅 — 일간만 허용. 로그아웃으로 잠긴 모드가 남지 않게 일간으로 되돌림
+  useEffect(() => {
+    if (!signedIn && mode !== 'daily') setMode('daily');
+  }, [signedIn, mode]);
+
+  // 로그아웃으로 상한이 줄어도 초과 선택이 남지 않게 클램프
+  const maxBackfill = signedIn ? FREE_BACKFILL_MAX : ANON_BACKFILL_MAX;
+  useEffect(() => {
+    setBackfillDays((d) => Math.min(d, maxBackfill));
+  }, [maxBackfill]);
 
   // 열 때마다 재조회 — 연동 변경 반영
   useEffect(() => {
@@ -142,6 +148,17 @@ export function PublishDialog({
   const isRunning = session?.state === 'running';
   const isDone = session?.state === 'done';
   const wide = showProgress && (isRunning || isDone || busy);
+  // 폼 화면(결과·진행 화면이 아닐 때)에만 하단 footer CTA 를 보인다
+  const formShown =
+    !showProgress || (!(isDone && (session?.error || session?.result)) && !isRunning && !busy);
+
+  // 결과·취소·에러 화면을 연 채로 본 세션은 확인된 것으로 기록 —
+  // 닫고 다시 열 때 recall 경로가 같은 결과를 또 띄우지 않게 (취소 화면 재표시 버그)
+  useEffect(() => {
+    if (open && showProgress && isDone && session?.endedAt) {
+      recalledEndedAt.current = session.endedAt;
+    }
+  }, [open, showProgress, isDone, session]);
 
   return (
     <Dialog.Root
@@ -196,10 +213,7 @@ export function PublishDialog({
           }`}
         >
           <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
-            <Dialog.Title className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.2px] text-ink">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-accent/12 text-accent-hover">
-                <CalendarDays size={15} strokeWidth={2} />
-              </span>
+            <Dialog.Title className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
               {t('publish.title')}
             </Dialog.Title>
             <Dialog.Close
@@ -210,7 +224,7 @@ export function PublishDialog({
             </Dialog.Close>
           </div>
 
-          <div className="overflow-y-auto px-6 py-5">
+          <div className="overflow-y-auto px-6 py-4">
             {showProgress && isDone && session?.error ? (
               <ErrorCard
                 message={session.error}
@@ -243,52 +257,44 @@ export function PublishDialog({
               />
             ) : (
               <>
-                <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
-                  {t('publish.scope')}
-                </p>
-                <div className="mb-4 grid grid-cols-4 gap-2">
-                  {MODE_OPTIONS.map((o) => {
-                    const selected = mode === o.mode;
-                    const Icon = o.icon;
-                    return (
-                      <button
-                        key={o.mode}
-                        type="button"
-                        onClick={() => setMode(o.mode)}
-                        className={[
-                          'relative flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3.5 transition-all active:scale-[0.98]',
-                          selected
-                            ? 'border-accent bg-accent/10 shadow-sm shadow-accent/15'
-                            : 'border-hairline hover:border-hairline-strong hover:bg-surface-2/60',
-                        ].join(' ')}
-                      >
-                        {selected && (
-                          <Check
-                            size={13}
-                            strokeWidth={3}
-                            className="absolute top-2 right-2 text-accent"
-                          />
-                        )}
-                        <Icon
-                          size={20}
-                          strokeWidth={1.75}
-                          className={selected ? 'text-accent' : 'text-ink-tertiary'}
-                        />
-                        <span
-                          className={`text-[13px] font-medium ${selected ? 'text-ink' : 'text-ink-muted'}`}
-                        >
-                          {t(o.key)}
-                        </span>
-                        <span className="text-[11px] text-ink-tertiary">{t(o.sub)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <Segmented
+                  grow
+                  options={MODE_OPTIONS.map((o) => ({
+                    value: o.mode,
+                    label: t(o.key),
+                    ...(signedIn || o.mode === 'daily'
+                      ? {}
+                      : { disabled: true, icon: <Lock size={11} strokeWidth={2} /> }),
+                  }))}
+                  value={mode}
+                  onChange={setMode}
+                />
+                {!signedIn && (
+                  <p className="mt-2 flex items-center gap-1.5 px-0.5 text-[11.5px] text-ink-tertiary">
+                    {t('publish.gate.notice')}
+                    <button
+                      type="button"
+                      onClick={() => void window.cairn.cloud.signIn().catch(() => {})}
+                      className="font-medium text-ink-muted underline underline-offset-2 transition-colors hover:text-ink"
+                    >
+                      {t('account.signIn')}
+                    </button>
+                  </p>
+                )}
 
-                <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-hairline bg-surface-2/50 px-3.5 py-3">
+                <div
+                  role="group"
+                  aria-labelledby="publish-date-label"
+                  aria-describedby="publish-date-hint"
+                  className="mt-4 flex items-center justify-between gap-3"
+                >
                   <div className="flex min-w-0 flex-col">
-                    <span className="text-[13px] font-medium text-ink">{t('publish.date')}</span>
-                    <span className="text-[11px] text-ink-tertiary">{t('publish.dateHint')}</span>
+                    <span id="publish-date-label" className="text-[13px] text-ink">
+                      {t('publish.date')}
+                    </span>
+                    <span id="publish-date-hint" className="text-[11px] text-ink-tertiary">
+                      {t('publish.dateHint')}
+                    </span>
                   </div>
                   <DatePicker
                     value={date}
@@ -301,66 +307,157 @@ export function PublishDialog({
                   />
                 </div>
 
-                <div className="mb-5 flex flex-col divide-y divide-hairline overflow-hidden rounded-lg border border-hairline">
-                  <div className="flex items-center justify-between gap-3 px-3.5 py-3">
-                    <span
-                      className={`text-[13px] ${mode === 'daily' && isToday ? 'text-ink' : 'text-ink-tertiary'}`}
-                    >
-                      {t('publish.backfill')}
-                    </span>
-                    <Toggle
-                      checked={mode === 'daily' && isToday && includeBackfill}
-                      onChange={setIncludeBackfill}
-                      disabled={busy || mode !== 'daily' || !isToday}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-3 px-3.5 py-3">
-                    <span className="text-[13px] text-ink">{t('publish.force')}</span>
-                    <Toggle checked={force} onChange={setForce} disabled={busy} />
-                  </div>
+                <div className="mt-4 flex flex-col gap-3">
+                  <BackfillRow
+                    t={t}
+                    value={backfillDays}
+                    max={maxBackfill}
+                    signedIn={signedIn}
+                    disabled={busy || mode !== 'daily' || !isToday}
+                    onChange={setBackfillDays}
+                  />
+                  <CheckRow
+                    label={t('publish.force')}
+                    checked={force}
+                    onChange={setForce}
+                    disabled={busy}
+                  />
                   {notionConnected && (
-                    <div className="flex items-center justify-between gap-3 px-3.5 py-3">
-                      <div className="flex min-w-0 flex-col">
-                        <span className="text-[13px] text-ink">{t('publish.skipNotion')}</span>
-                        <span className="text-[11px] text-ink-tertiary">
-                          {t('publish.skipNotionDesc')}
-                        </span>
-                      </div>
-                      <Toggle checked={skipNotion} onChange={setSkipNotion} disabled={busy} />
-                    </div>
+                    <CheckRow
+                      label={t('publish.skipNotion')}
+                      desc={t('publish.skipNotionDesc')}
+                      checked={skipNotion}
+                      onChange={setSkipNotion}
+                      disabled={busy}
+                    />
                   )}
                 </div>
-
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => {
-                    // 이전 외부 발행에서 latch 된 mode 가 새 수동 발행 화면을 끌고 가지 않게 (#236 리뷰)
-                    setWatchedExternal(null);
-                    setShowProgress(true);
-                    void onTrigger(mode, {
-                      backfillDays:
-                        mode === 'daily' && isToday && includeBackfill ? DAILY_BACKFILL_DAYS : 0,
-                      force,
-                      ...(isToday ? {} : { date }),
-                      ...(notionConnected && skipNotion ? { skipNotion: true } : {}),
-                    });
-                  }}
-                  className={[
-                    'flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all active:scale-[0.99]',
-                    busy
-                      ? 'cursor-not-allowed bg-accent-focus text-white/70'
-                      : 'bg-accent text-white shadow-sm shadow-accent/25 hover:bg-accent-hover',
-                  ].join(' ')}
-                >
-                  {!busy && <Send size={15} strokeWidth={2.25} />}
-                  {busy ? t('publish.busy') : t('publish.start')}
-                </button>
               </>
             )}
           </div>
+
+          {formShown && (
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-hairline px-6 py-3">
+              <Dialog.Close className="flex h-8 items-center rounded-md px-4 text-[13px] font-medium text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink">
+                {t('publish.close')}
+              </Dialog.Close>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  // 이전 외부 발행에서 latch 된 mode 가 새 수동 발행 화면을 끌고 가지 않게 (#236 리뷰)
+                  setWatchedExternal(null);
+                  setShowProgress(true);
+                  void onTrigger(mode, {
+                    backfillDays:
+                      mode === 'daily' && isToday ? Math.min(backfillDays, maxBackfill) : 0,
+                    force,
+                    ...(isToday ? {} : { date }),
+                    ...(notionConnected && skipNotion ? { skipNotion: true } : {}),
+                  });
+                }}
+                className={[
+                  'flex h-8 items-center rounded-md px-4 text-[13px] font-medium transition-all active:scale-[0.98]',
+                  busy
+                    ? 'cursor-not-allowed bg-accent-focus text-white/70'
+                    : 'bg-accent text-white hover:bg-accent-hover',
+                ].join(' ')}
+              >
+                {busy ? t('publish.busy') : t('publish.start')}
+              </button>
+            </div>
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+function BackfillRow({
+  t,
+  value,
+  max,
+  signedIn,
+  disabled,
+  onChange,
+}: {
+  t: (key: I18nKey) => string;
+  value: number;
+  max: number;
+  signedIn: boolean;
+  disabled: boolean;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className={disabled ? 'opacity-45' : ''}>
+      <p className="text-[13px] leading-4 text-ink">{t('publish.backfill')}</p>
+      <p className="mt-0.5 text-[11px] text-ink-tertiary">{t('publish.backfillHint')}</p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {BACKFILL_OPTIONS.map((d) => {
+          const locked = d > max;
+          const selected = d === value;
+          return (
+            <button
+              key={d}
+              type="button"
+              aria-pressed={selected}
+              disabled={disabled || locked}
+              onClick={() => onChange(d)}
+              className={[
+                'flex items-center gap-1 rounded-md border px-2.5 py-1 font-mono text-[12px] transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+                selected
+                  ? 'border-hairline-strong bg-surface-3 text-ink'
+                  : 'border-hairline text-ink-muted hover:bg-surface-2 hover:text-ink',
+              ].join(' ')}
+            >
+              {locked && <Lock size={10} strokeWidth={2} />}
+              {d}
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-1.5 flex items-center gap-1 text-[11px] text-ink-tertiary">
+        {signedIn && <Lock size={10} strokeWidth={2} className="shrink-0" />}
+        {signedIn ? t('publish.backfill.pro') : t('publish.backfill.signIn')}
+      </p>
+    </div>
+  );
+}
+
+function CheckRow({
+  label,
+  desc,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  desc?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-start gap-2.5 text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
+    >
+      <span
+        className={[
+          'flex size-4 shrink-0 items-center justify-center rounded border transition-colors',
+          checked ? 'border-accent bg-accent text-white' : 'border-hairline-strong',
+        ].join(' ')}
+      >
+        {checked && <Check size={11} strokeWidth={3} />}
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="text-[13px] leading-4 text-ink">{label}</span>
+        {desc && <span className="mt-0.5 text-[11px] text-ink-tertiary">{desc}</span>}
+      </span>
+    </button>
   );
 }

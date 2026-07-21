@@ -189,7 +189,8 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                   },
                 ]}
               >
-                <div className="rounded-lg border border-accent/30 bg-accent/[0.06] p-3.5">
+                <div className="relative overflow-hidden rounded-lg border border-hairline-strong bg-surface-1 p-3.5">
+                  <span className="absolute inset-x-0 top-0 h-px bg-accent" />
                   <p className="mb-0.5 text-[13px] font-medium text-ink">
                     {t('onb.github.ghTitle')}
                   </p>
@@ -450,7 +451,7 @@ function Welcome({ t }: { t: T }) {
     >
       <motion.span
         variants={BRAND_IN}
-        className="flex size-20 items-center justify-center rounded-[20px] bg-accent text-white shadow-xl shadow-accent/30"
+        className="flex size-20 items-center justify-center rounded-[20px] bg-accent text-white"
       >
         <BrandMark size={42} />
       </motion.span>

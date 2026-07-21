@@ -1,23 +1,7 @@
-import {
-  app,
-  BrowserWindow,
-  dialog,
-  globalShortcut,
-  ipcMain,
-  Notification,
-  powerMonitor,
-  shell,
-} from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
-import {
-  disposeCaptureWindow,
-  hideCaptureWindow,
-  reconfigureCaptureShortcut,
-  toggleCaptureWindow,
-} from './capture-window';
-import { addMemo } from './memo-store';
 import { warmClaudePath } from './claude-path';
 import { exportStatus, pickExportFolder, saveMarkdown, savePdf, savePng } from './export';
 import { sendTestNotification } from './notifier';
@@ -34,9 +18,7 @@ import {
 } from './core-runner';
 import { cloudAuthState, cloudSignOut, startCloudSignIn } from './cloud-auth';
 import { syncStats } from './cloud-sync';
-import { parseDeepLink } from './deep-link';
 import { readConfig } from './files';
-import { mt } from './i18n';
 import { fetchPageContent, type RecentCategory } from './notion-client';
 import { listRecentMerged, readJournalPageContent, JOURNAL_PAGE_PREFIX } from './journal-reader';
 import {
@@ -93,38 +75,12 @@ if (process.platform === 'linux') {
 if (!app.requestSingleInstanceLock()) {
   app.exit(0);
 }
-app.on('second-instance', (_e, argv) => {
-  const link = argv.find((a) => a.startsWith('cairn://'));
-  if (link) {
-    handleDeepLink(link);
-    return;
-  }
+app.on('second-instance', () => {
   const win = BrowserWindow.getAllWindows()[0];
   if (!win) return;
   if (win.isMinimized()) win.restore();
   win.show();
   win.focus();
-});
-
-function handleDeepLink(raw: string): void {
-  const link = parseDeepLink(raw);
-  if (!link) return;
-  if (!link.text) {
-    toggleCaptureWindow();
-    return;
-  }
-  const r = addMemo(link.text);
-  if (!readSettings().notifications || !Notification.isSupported()) return;
-  new Notification({
-    title: mt('capture.deeplinkTitle'),
-    body: r.ok ? mt('capture.deeplinkSaved') : mt('capture.deeplinkFail'),
-  }).show();
-}
-
-// 미실행 시 기동 후 전달 — ready 대기
-app.on('open-url', (e, url) => {
-  e.preventDefault();
-  void app.whenReady().then(() => handleDeepLink(url));
 });
 
 function createWindow(startHidden: boolean): BrowserWindow {
@@ -136,7 +92,7 @@ function createWindow(startHidden: boolean): BrowserWindow {
     show: false,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 18, y: 24 },
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#08090a',
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
       sandbox: true,
@@ -167,11 +123,6 @@ function createWindow(startHidden: boolean): BrowserWindow {
     if (allowQuit || !app.isPackaged) return;
     e.preventDefault();
     win.hide();
-  });
-
-  // dev: 숨은 캡처 창의 window-all-closed 미발생 방지
-  win.on('closed', () => {
-    if (!app.isPackaged) disposeCaptureWindow();
   });
 
   // 창을 다시 열면 Dock 아이콘 복귀 — Cmd+Q 로 트레이 전용 진입 시 빠졌던 Dock 을 되살림 (macOS 전용)
@@ -270,7 +221,6 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());
   ipcMain.handle('cairn:recent:list', () => listRecentMerged());
-  ipcMain.handle('cairn:memo:add', (_e, text: string) => addMemo(String(text ?? '')));
   ipcMain.handle('cairn:snapshots:list', (_e, category: RecentCategory, date: string) =>
     listJournalSnapshots(category, date),
   );
@@ -289,8 +239,6 @@ void app.whenReady().then(() => {
   );
   ipcMain.handle('cairn:backup:status', () => getJournalBackupStatus());
   ipcMain.handle('cairn:backup:now', () => runJournalBackupNow());
-  ipcMain.handle('cairn:capture:open', () => toggleCaptureWindow());
-  ipcMain.handle('cairn:capture:hide', () => hideCaptureWindow());
   ipcMain.handle('cairn:notion:page-content', (_e, pageId: string, workspaceLabel: string) =>
     pageId.startsWith(JOURNAL_PAGE_PREFIX)
       ? readJournalPageContent(pageId)
@@ -317,13 +265,7 @@ void app.whenReady().then(() => {
       });
     }
     if (patch.language) reconfigureTray();
-    if (patch.language || patch.theme || patch.accent || patch.liquidGlass !== undefined) {
-      disposeCaptureWindow();
-    }
     if (patch.launchAtLogin !== undefined) applyLoginItem(next.launchAtLogin);
-    if (patch.quickCapture) {
-      reconfigureCaptureShortcut(next.quickCapture.enabled, next.quickCapture.shortcut);
-    }
     if (patch.backup) reconfigureJournalBackup();
     return next;
   });
@@ -374,9 +316,6 @@ void app.whenReady().then(() => {
 
   const initial = readSettings();
   applyLoginItem(initial.launchAtLogin);
-  reconfigureCaptureShortcut(initial.quickCapture.enabled, initial.quickCapture.shortcut);
-  // dev 는 Electron 바이너리 등록 — 패키지 한정
-  if (app.isPackaged) app.setAsDefaultProtocolClient('cairn');
   initAutoPublish();
   initJournalBackup();
   initTelemetry();
@@ -407,10 +346,6 @@ app.on('before-quit', (e) => {
   }
   killRunning(); // 진행 중 core 자식이 고아로 남지 않게 종료 전 정리
   void shutdownTelemetry();
-});
-
-app.on('will-quit', () => {
-  globalShortcut.unregisterAll();
 });
 
 app.on('window-all-closed', () => {
