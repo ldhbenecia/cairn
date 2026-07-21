@@ -22,7 +22,7 @@ import type { GithubAccountConfig } from '../worklog-config/worklog-config.schem
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
 import { GithubApiClient, type SearchPrItem } from './github-api.client.js';
 
-const PR_BODY_MAX_CHARS = 800;
+const PR_BODY_MAX_CHARS = 2000;
 const PR_COMMIT_SUBJECT_MAX_CHARS = 200;
 
 interface PrBucket {
