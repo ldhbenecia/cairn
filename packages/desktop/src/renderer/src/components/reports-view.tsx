@@ -1,13 +1,11 @@
 import { ArrowLeft, Check, Copy, FileDown, Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
-import type { I18nKey } from '../i18n';
 import {
   buildLanes,
   dayIndex,
   daySpan,
   LANE_COLORS,
-  localDateDaysAgo,
   parseDoneItems,
   timelineAxis,
   todayLocal,
@@ -18,21 +16,12 @@ import {
   cachedScan,
   dailyTargets,
   offScanProgress,
-  rememberReportsRange,
+  REPORTS_RANGE_DAYS,
+  reportsRange,
   startScan,
   type PerDay,
 } from '../lib/reports-scan';
 import { useSettings } from '../settings-context';
-import { DateRangePicker } from './date-picker';
-
-type RangeKey = 7 | 30 | 90 | 'custom';
-
-const RANGE_PILLS: { key: RangeKey; labelKey: I18nKey }[] = [
-  { key: 7, labelKey: 'reports.range.week' },
-  { key: 30, labelKey: 'reports.range.month' },
-  { key: 90, labelKey: 'reports.range.quarter' },
-  { key: 'custom', labelKey: 'achv.range.custom' },
-];
 
 const laneKey = (repo: string | null): string => repo ?? '__none';
 
@@ -69,11 +58,7 @@ function DoneText({ text }: { text: string }) {
 
 export function ReportsView({ recent }: { recent: RecentListResult | null }) {
   const { t } = useSettings();
-  const [range, setRange] = useState<RangeKey>(30);
-  const [customFrom, setCustomFrom] = useState<string>(() => localDateDaysAgo(30));
-  const [customTo, setCustomTo] = useState<string>(todayLocal);
-  const since = range === 'custom' ? customFrom : localDateDaysAgo(range);
-  const until = range === 'custom' ? customTo : todayLocal();
+  const { since, until } = reportsRange();
 
   const pages = useMemo(() => recent?.pages ?? [], [recent]);
   const targets = useMemo(() => dailyTargets(pages, since, until), [pages, since, until]);
@@ -168,8 +153,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
 
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
-  const filename =
-    range === 'custom' ? `worklog-${since}-${until}.md` : `worklog-last-${range}d.md`;
+  const filename = `worklog-last-${REPORTS_RANGE_DAYS}d.md`;
 
   function copyMd() {
     if (!markdown) return;
@@ -188,7 +172,6 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
     });
   }
 
-  // 상세 진입 상태 — 기간 필터가 바뀌어도 유지, 데이터(itemsByLane)만 새 기간 기준으로 갱신
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
 
   useEffect(() => {
@@ -214,38 +197,6 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
       <div className="h-20 shrink-0 [-webkit-app-region:drag]" />
       <header className="shrink-0 pb-4">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-2 px-6">
-          <div className="flex shrink-0 items-center gap-0.5">
-            {RANGE_PILLS.map((p) => (
-              <button
-                key={p.key}
-                type="button"
-                aria-pressed={range === p.key}
-                onClick={() => {
-                  setRange(p.key);
-                  // custom 은 날짜가 상대 기간과 안 맞아 기억 대상에서 제외
-                  if (p.key !== 'custom') rememberReportsRange(p.key);
-                }}
-                className={[
-                  'rounded-md px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap transition-colors',
-                  range === p.key
-                    ? 'bg-surface-3 text-ink'
-                    : 'text-ink-subtle hover:bg-surface-2 hover:text-ink-muted',
-                ].join(' ')}
-              >
-                {t(p.labelKey)}
-              </button>
-            ))}
-          </div>
-          {range === 'custom' && (
-            <DateRangePicker
-              value={{ from: customFrom, to: customTo }}
-              max={todayLocal()}
-              onChange={(r) => {
-                setCustomFrom(r.from);
-                setCustomTo(r.to);
-              }}
-            />
-          )}
           <span className="shrink-0 text-[12px] text-ink-tertiary">
             {targets.length}
             {t('achv.worklogs')}
@@ -307,7 +258,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
       </header>
 
       <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
-        <div key={`${since}:${until}`} className="panel-enter mx-auto w-full max-w-5xl px-6 pb-8">
+        <div className="panel-enter mx-auto w-full max-w-5xl px-6 pb-8">
           {!recent ? (
             <div className="flex items-center justify-center gap-2 py-16 text-[12px] text-ink-tertiary">
               <Loader2 size={14} strokeWidth={2} className="animate-spin" />
@@ -480,8 +431,8 @@ const peakLabel = (date: string): string =>
 const isOngoing = (last: string, until: string): boolean =>
   dayIndex(last, until) <= 3 || last === todayLocal();
 
-// 기간이 길면 일당 고정 px 로 내용 폭을 키워 가로 스크롤 — 짧으면 컨테이너 100%
-const PX_PER_DAY = 10;
+// 일당 고정 px 스케일 — 365일 × 7px ≈ 2555px 를 가로 스크롤로 훑는다
+const PX_PER_DAY = 7;
 
 function Timeline({
   since,
@@ -518,12 +469,12 @@ function Timeline({
     return () => ro.disconnect();
   }, []);
 
-  // 기간 변경 시 최신(오른쪽 끝)이 보이게 스크롤
+  // 진입 시 최신(오른쪽 끝 = 오늘)이 보이게 스크롤
   const scrollRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollLeft = el.scrollWidth;
-  }, [since, until]);
+  }, []);
 
   return (
     <div ref={scrollRef} className="overflow-x-auto pb-1">

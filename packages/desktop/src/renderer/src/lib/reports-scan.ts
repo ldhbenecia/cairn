@@ -5,6 +5,13 @@ import { localDateDaysAgo, todayLocal } from './reports';
 export type PerDay = { date: string; bullets: string[] };
 export type ScanEntry = { count: number; rows: PerDay[]; disk?: boolean };
 
+// 프로젝트 뷰 고정 범위 — 오늘 포함 최근 365일. 뷰·프리페치·캐시가 모두 이 하나를 쓴다
+export const REPORTS_RANGE_DAYS = 365;
+
+export function reportsRange(): { since: string; until: string } {
+  return { since: localDateDaysAgo(REPORTS_RANGE_DAYS - 1), until: todayLocal() };
+}
+
 type ScanProgressFn = (done: number, total: number) => void;
 
 type InflightScan = {
@@ -27,29 +34,11 @@ let generation = 0;
 const scanKey = (since: string, until: string): string => `${since}:${until}`;
 
 // 앱 재시작 후 첫 진입 대기 제거용 디스크 캐시 — journal 원문이 아니라 파싱 산출물
-// (날짜·Done 불릿 텍스트)만 저장. 불릿 200자 truncate + 최대 4엔트리 LRU 로 용량 보호
+// (날짜·Done 불릿 텍스트)만 저장. 범위가 하나뿐이라 단일 엔트리, 불릿 200자 truncate 로 용량 보호
 const DISK_KEY = 'cairn:reportsScan';
-const DISK_MAX = 4;
 const BULLET_MAX = 200;
 
 type DiskEntry = { key: string; count: number; rows: PerDay[] };
-
-function diskLoad(): DiskEntry[] {
-  try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(DISK_KEY) ?? '[]');
-    return Array.isArray(parsed) ? (parsed as DiskEntry[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function diskSave(entries: DiskEntry[]): void {
-  try {
-    localStorage.setItem(DISK_KEY, JSON.stringify(entries.slice(0, DISK_MAX)));
-  } catch {
-    // quota 초과 등 — 디스크 캐시는 순수 최적화라 조용히 포기
-  }
-}
 
 function diskPut(key: string, count: number, rows: PerDay[]): void {
   const entry: DiskEntry = {
@@ -60,15 +49,21 @@ function diskPut(key: string, count: number, rows: PerDay[]): void {
       bullets: r.bullets.map((b) => b.slice(0, BULLET_MAX)),
     })),
   };
-  diskSave([entry, ...diskLoad().filter((e) => e.key !== key)]);
+  try {
+    localStorage.setItem(DISK_KEY, JSON.stringify(entry));
+  } catch {
+    // quota 초과 등 — 디스크 캐시는 순수 최적화라 조용히 포기
+  }
 }
 
 function diskGet(key: string): DiskEntry | undefined {
-  const entries = diskLoad();
-  const hit = entries.find((e) => e.key === key && Array.isArray(e.rows));
-  if (!hit) return undefined;
-  diskSave([hit, ...entries.filter((e) => e.key !== key)]);
-  return hit;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(DISK_KEY) ?? 'null') as DiskEntry | null;
+    // 날짜가 넘어가 범위 키가 달라진 엔트리는 무시 — 구버전(배열 직렬화)도 여기서 걸러진다
+    return parsed && parsed.key === key && Array.isArray(parsed.rows) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function cachedScan(since: string, until: string): ScanEntry | undefined {
@@ -168,38 +163,14 @@ export function offScanProgress(since: string, until: string, cb: ScanProgressFn
   inflight.get(scanKey(since, until))?.listeners.delete(cb);
 }
 
-// 기간별 정리에서 마지막으로 쓴 기간(일수)을 기억 — 앱 로드 프리페치가 이 기간을 함께 덥힌다
-const RANGE_KEY = 'cairn:reportsRange';
-const RANGE_DAYS = [7, 30, 90];
-
-export function rememberReportsRange(days: number): void {
-  try {
-    localStorage.setItem(RANGE_KEY, String(days));
-  } catch {
-    // ignore
-  }
-}
-
-function lastUsedRange(): number | null {
-  try {
-    const days = Number(localStorage.getItem(RANGE_KEY));
-    return RANGE_DAYS.includes(days) ? days : null;
-  } catch {
-    return null;
-  }
-}
-
-// App 이 recent 로드 직후·발행 완료 시점에 최근 사용 기간+기본 기간(월)을 미리 스캔 —
+// App 이 recent 로드 직후·발행 완료 시점에 고정 범위(최근 365일)를 미리 스캔 —
 // 뷰 진입 시 스피너 없이 즉시 표시. 디스크 엔트리는 보이는 채로 재검증(SWR)
 export function prefetchReportsScan(recent: RecentListResult | null): void {
   if (!recent) return;
-  const until = todayLocal();
-  for (const days of new Set([lastUsedRange() ?? 30, 30])) {
-    const since = localDateDaysAgo(days);
-    const targets = dailyTargets(recent.pages, since, until);
-    if (targets.length === 0) continue;
-    const entry = cachedScan(since, until);
-    if (entry && entry.count === targets.length && !entry.disk) continue;
-    void startScan(since, until, targets).catch(() => {});
-  }
+  const { since, until } = reportsRange();
+  const targets = dailyTargets(recent.pages, since, until);
+  if (targets.length === 0) return;
+  const entry = cachedScan(since, until);
+  if (entry && entry.count === targets.length && !entry.disk) return;
+  void startScan(since, until, targets).catch(() => {});
 }

@@ -163,7 +163,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    // 로드 완료 즉시 최근 사용 기간+월을 미리 스캔 — 뷰 첫 진입 시 스피너 제거
+    // 로드 완료 즉시 고정 범위(최근 365일)를 미리 스캔 — 뷰 첫 진입 시 스피너 제거
     void loadRecent().then((r) => prefetchReportsScan(r));
   }, [loadRecent]);
 
@@ -245,7 +245,7 @@ export function App() {
       void loadRecent().then((r) => {
         // 언마운트 후 늦게 도착한 콜백이 새 타이머를 걸지 않도록 (누수·불필요 IPC 방지)
         if (!active) return;
-        // 발행 직후 기간별 정리 캐시 무효화 후 기본 기간 재스캔 — 재발행(count 불변)도 반영
+        // 발행 직후 스캔 캐시 무효화 후 고정 범위 재스캔 — 재발행(count 불변)도 반영
         invalidateReportsScan();
         prefetchReportsScan(r);
         const pid = result.publishPageId;

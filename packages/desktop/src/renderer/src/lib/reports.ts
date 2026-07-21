@@ -201,19 +201,17 @@ export type TimelineTick = { date: string; pos: number };
 
 export type TimelineAxis = { months: TimelineTick[]; days: TimelineTick[] };
 
-// 2단 날짜 축 — 위: 월 라벨(기간 시작 + 매월 1일), 아래: 일 눈금(주 단위 월요일,
-// 2주 이하 기간은 매일). 좁은 첫 달 조각은 라벨 겹침 방지로 드랍, 긴 기간은 주 눈금을 성기게(≤26개)
+// 2단 날짜 축 — 위: 월 라벨(기간 시작 + 매월 1일), 아래: 매주 월요일 일 눈금.
+// 좁은 첫 달 조각은 라벨 겹침 방지로 드랍. px/일 고정 스케일이라 눈금 밀도는 기간과 무관하게 일정
 export function timelineAxis(since: string, until: string): TimelineAxis {
   const span = daySpan(since, until);
-  const daily = span <= 14;
   const months: TimelineTick[] = [{ date: since, pos: 0 }];
-  const dayTicks: TimelineTick[] = [];
+  const days: TimelineTick[] = [];
   for (let i = 0; i < span; i++) {
     const date = i === 0 ? since : addDays(since, i);
     if (i > 0 && date.endsWith('-01')) months.push({ date, pos: i / span });
-    if (daily || new Date(utcMs(date)).getUTCDay() === 1) dayTicks.push({ date, pos: i / span });
+    if (new Date(utcMs(date)).getUTCDay() === 1) days.push({ date, pos: i / span });
   }
   if (months.length > 1 && months[1]!.pos < 0.06) months.shift();
-  const step = Math.max(1, Math.ceil(dayTicks.length / 26));
-  return { months, days: dayTicks.filter((_, i) => i % step === 0) };
+  return { months, days };
 }

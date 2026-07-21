@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PageContent, RecentListResult, RecentPage } from '../cairn-api';
-import { localDateDaysAgo, todayLocal } from './reports';
+import { daySpan, localDateDaysAgo, todayLocal } from './reports';
 import {
   cachedScan,
   invalidateReportsScan,
   offScanProgress,
   prefetchReportsScan,
-  rememberReportsRange,
+  REPORTS_RANGE_DAYS,
+  reportsRange,
   startScan,
 } from './reports-scan';
 
@@ -39,8 +40,8 @@ const fakeLocalStorage = {
   removeItem: (k: string) => void store.delete(k),
 };
 
-const diskEntries = (): { key: string; count: number; rows: { bullets: string[] }[] }[] =>
-  JSON.parse(store.get('cairn:reportsScan') ?? '[]') as ReturnType<typeof diskEntries>;
+const diskEntry = (): { key: string; count: number; rows: { bullets: string[] }[] } | null =>
+  JSON.parse(store.get('cairn:reportsScan') ?? 'null') as ReturnType<typeof diskEntry>;
 
 beforeEach(() => {
   vi.stubGlobal('window', { cairn: { pageContent } });
@@ -126,11 +127,10 @@ describe('디스크 캐시 (localStorage)', () => {
   it('성공 스캔은 디스크에도 직렬화 — 불릿은 200자 truncate', async () => {
     pageContent.mockResolvedValue(doneContent('가'.repeat(300)));
     await startScan('2026-07-01', '2026-07-02', [page('2026-07-01')]);
-    const disk = diskEntries();
-    expect(disk).toHaveLength(1);
-    expect(disk[0]?.key).toBe('2026-07-01:2026-07-02');
-    expect(disk[0]?.count).toBe(1);
-    expect(disk[0]?.rows[0]?.bullets[0]).toHaveLength(200);
+    const disk = diskEntry();
+    expect(disk?.key).toBe('2026-07-01:2026-07-02');
+    expect(disk?.count).toBe(1);
+    expect(disk?.rows[0]?.bullets[0]).toHaveLength(200);
     // 메모리 캐시는 원문 유지 — truncate 는 디스크 사본에만
     expect(cachedScan('2026-07-01', '2026-07-02')?.rows[0]?.bullets[0]).toHaveLength(300);
   });
@@ -147,18 +147,16 @@ describe('디스크 캐시 (localStorage)', () => {
     expect(entry?.rows[0]?.bullets).toEqual(['작업']);
   });
 
-  it('최대 4엔트리 LRU — 가장 오래된 기간이 밀려난다', async () => {
+  it('단일 엔트리 — 새 범위 저장이 이전 엔트리를 대체하고, 키가 다르면 복원하지 않는다', async () => {
     pageContent.mockResolvedValue(doneContent('작업'));
-    for (let i = 1; i <= 5; i++) {
-      const d = `2026-07-0${i}`;
-      await startScan(d, d, [page(d)]);
-    }
-    expect(diskEntries().map((e) => e.key)).toEqual([
-      '2026-07-05:2026-07-05',
-      '2026-07-04:2026-07-04',
-      '2026-07-03:2026-07-03',
-      '2026-07-02:2026-07-02',
-    ]);
+    await startScan('2026-07-01', '2026-07-01', [page('2026-07-01')]);
+    await startScan('2026-07-02', '2026-07-02', [page('2026-07-02')]);
+    expect(diskEntry()?.key).toBe('2026-07-02:2026-07-02');
+
+    vi.resetModules();
+    const fresh = await import('./reports-scan');
+    expect(fresh.cachedScan('2026-07-01', '2026-07-01')).toBeUndefined();
+    expect(fresh.cachedScan('2026-07-02', '2026-07-02')?.disk).toBe(true);
   });
 
   it('invalidateReportsScan 은 디스크 캐시도 비운다', async () => {
@@ -170,18 +168,24 @@ describe('디스크 캐시 (localStorage)', () => {
   });
 });
 
-describe('prefetchReportsScan', () => {
-  it('최근 사용 기간 + 기본 기간(월)을 함께 덥힌다', async () => {
-    rememberReportsRange(90);
+describe('고정 범위 (reportsRange)', () => {
+  it('오늘 포함 최근 365일 — 로컬 날짜 문자열 산술', () => {
+    const { since, until } = reportsRange();
+    expect(until).toBe(todayLocal());
+    expect(since).toBe(localDateDaysAgo(REPORTS_RANGE_DAYS - 1));
+    expect(daySpan(since, until)).toBe(REPORTS_RANGE_DAYS);
+  });
+
+  it('prefetchReportsScan 은 고정 범위 하나만 덥힌다 — 범위 밖 일지는 제외', async () => {
     pageContent.mockResolvedValue(doneContent('작업'));
-    const until = todayLocal();
+    const { since, until } = reportsRange();
     const recent = {
-      pages: [page(localDateDaysAgo(60)), page(localDateDaysAgo(5))],
+      pages: [page(localDateDaysAgo(400)), page(localDateDaysAgo(60)), page(localDateDaysAgo(5))],
     } as RecentListResult;
     prefetchReportsScan(recent);
     await vi.waitFor(() => {
-      expect(cachedScan(localDateDaysAgo(90), until)?.count).toBe(2);
-      expect(cachedScan(localDateDaysAgo(30), until)?.count).toBe(1);
+      expect(cachedScan(since, until)?.count).toBe(2);
     });
+    expect(pageContent).toHaveBeenCalledTimes(2);
   });
 });

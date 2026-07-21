@@ -282,7 +282,7 @@ describe('timelineAxis', () => {
     expect(months.map((t) => t.date)).toEqual(['2026-07-01', '2026-08-01']);
   });
 
-  it('일 눈금 — 2주 초과는 월요일 주 단위', () => {
+  it('일 눈금 — 매주 월요일', () => {
     // 2026-07-06 은 월요일
     const { days } = timelineAxis('2026-07-01', '2026-07-31');
     expect(days.map((t) => t.date)).toEqual([
@@ -294,15 +294,8 @@ describe('timelineAxis', () => {
     expect(days[0]!.pos).toBeCloseTo(5 / 31);
   });
 
-  it('일 눈금 — 2주 이하는 매일', () => {
-    const { days } = timelineAxis('2026-07-01', '2026-07-07');
-    expect(days.map((t) => t.date)).toHaveLength(7);
-    expect(days[0]!.date).toBe('2026-07-01');
-  });
-
-  it('일 눈금 — 연 단위 기간은 성기게 (26개 이하)', () => {
+  it('일 눈금 — 연 단위 기간도 주 눈금을 성기게 하지 않는다 (매주 유지)', () => {
     const { days } = timelineAxis('2025-07-19', '2026-07-18');
-    expect(days.length).toBeLessThanOrEqual(26);
-    expect(days.length).toBeGreaterThan(20);
+    expect(days).toHaveLength(52);
   });
 });
