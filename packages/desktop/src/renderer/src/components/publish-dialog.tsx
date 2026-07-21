@@ -45,7 +45,6 @@ const MODE_OPTIONS: { mode: CoreMode; key: I18nKey }[] = [
   { mode: 'daily', key: 'publish.today' },
   { mode: 'weekly', key: 'publish.week' },
   { mode: 'monthly', key: 'publish.month' },
-  { mode: 'yearly', key: 'publish.year' },
 ];
 
 // 백필 일수 게이팅 — 미로그인 1일, 로그인 7일. 초과 구간은 Pro 잠금(결제 준비 중이라 선택 불가)

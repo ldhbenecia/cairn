@@ -6,7 +6,7 @@ import { useSettings } from '../../settings-context';
 import { Section } from './field';
 
 const PROMPT_MAX_CHARS = 4000;
-const PROMPT_MODES = ['daily', 'weekly', 'monthly', 'yearly'] as const;
+const PROMPT_MODES = ['daily', 'weekly', 'monthly'] as const;
 
 const MODELS: { id: SummaryModel; name: string; hint: I18nKey; desc: I18nKey }[] = [
   {
@@ -42,7 +42,6 @@ export function PromptsTab() {
     daily: { label: 'prefs.prompts.daily', ph: 'prefs.prompts.daily.ph' },
     weekly: { label: 'prefs.prompts.weekly', ph: 'prefs.prompts.weekly.ph' },
     monthly: { label: 'prefs.prompts.monthly', ph: 'prefs.prompts.monthly.ph' },
-    yearly: { label: 'prefs.prompts.yearly', ph: 'prefs.prompts.yearly.ph' },
   };
 
   return (

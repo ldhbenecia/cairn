@@ -1,6 +1,5 @@
 import {
   Box,
-  CalendarCheck,
   CalendarClock,
   CalendarDays,
   CalendarRange,
@@ -20,7 +19,7 @@ import { useCloudAuth } from '../use-cloud-auth';
 import { AccountStatusPill } from './account-status-pill';
 import { BrandMark } from './brand-mark';
 
-export type WorklogFilter = 'all' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type WorklogFilter = 'all' | 'daily' | 'weekly' | 'monthly';
 export type MainView = 'worklogs' | 'stats' | 'graph' | 'reports';
 
 export type FilterCounts = Record<WorklogFilter, number>;
@@ -30,7 +29,6 @@ const FILTERS: { key: WorklogFilter; labelKey: I18nKey; icon: LucideIcon }[] = [
   { key: 'daily', labelKey: 'nav.daily', icon: CalendarDays },
   { key: 'weekly', labelKey: 'nav.weekly', icon: CalendarRange },
   { key: 'monthly', labelKey: 'nav.monthly', icon: CalendarClock },
-  { key: 'yearly', labelKey: 'nav.yearly', icon: CalendarCheck },
 ];
 
 type Props = {

@@ -325,7 +325,8 @@ export function App() {
   useEffect(() => {
     const off = window.cairn.onFocusMode((focused) => {
       switchView('worklogs');
-      setFilter(focused);
+      // 연간은 사이드바 필터에서 제거됨 — 연간 일지는 '전체' 목록에서만 노출
+      setFilter(focused === 'yearly' ? 'all' : focused);
     });
     return off;
   }, [switchView]);
@@ -404,7 +405,6 @@ export function App() {
       daily: pages.filter((p) => p.category === 'daily').length,
       weekly: pages.filter((p) => p.category === 'weekly').length,
       monthly: pages.filter((p) => p.category === 'monthly').length,
-      yearly: pages.filter((p) => p.category === 'yearly').length,
     };
   }, [recent]);
 
