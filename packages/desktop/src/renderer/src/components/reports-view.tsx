@@ -425,10 +425,67 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                 </div>
               </div>
             </div>
+          ) : scanning ? (
+            <ScanSkeleton />
           ) : null}
         </div>
       </div>
     </section>
+  );
+}
+
+// 초기 청크 스캔 동안의 자리 표시 — 실 레이아웃(타임라인 레인·레포 테이블)을 본뜬 스켈레톤.
+// 부분 조립이 렌더를 시작하면 실데이터가 대체한다. 모션은 pulse 만
+function ScanSkeleton() {
+  const { t } = useSettings();
+  const laneShapes = [
+    { left: '2%', width: '34%' },
+    { left: '20%', width: '46%' },
+    { left: '46%', width: '38%' },
+    { left: '68%', width: '28%' },
+  ];
+  return (
+    <div className="animate-pulse flex flex-col gap-7" aria-hidden="true">
+      <div>
+        <p className="mb-2 px-1 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
+          {t('reports.timeline')}
+        </p>
+        <div className="flex flex-col gap-6 py-1.5">
+          {laneShapes.map((s, i) => (
+            <div key={i}>
+              <div style={{ marginLeft: s.left }} className="h-3 w-28 rounded bg-surface-2" />
+              <div
+                style={{ marginLeft: s.left, width: s.width }}
+                className="mt-1.5 h-6 rounded-[5px] bg-surface-2/60"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="mb-1 px-1 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
+          {t('reports.byRepo')}
+        </p>
+        <div className="mb-1 flex items-center gap-3 border-b border-hairline px-2 pb-1.5 text-[10.5px] font-medium tracking-wider text-ink-tertiary uppercase">
+          <span className="min-w-0 flex-1">{t('reports.repoCol')}</span>
+          <span className="w-10 shrink-0 text-right">{t('reports.itemsCol')}</span>
+          <span className="w-24 shrink-0 text-right">{t('reports.activityCol')}</span>
+        </div>
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex h-10 items-center gap-3 px-2">
+            <div className="min-w-0 flex-1">
+              <div className="h-3 w-40 rounded bg-surface-2" />
+            </div>
+            <div className="flex w-10 shrink-0 justify-end">
+              <div className="h-3 w-8 rounded bg-surface-2" />
+            </div>
+            <div className="flex w-24 shrink-0 justify-end">
+              <div className="h-2 w-20 rounded-full bg-surface-2/60" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
