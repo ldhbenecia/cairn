@@ -7,6 +7,10 @@ export interface RollupSummarizerInput {
   activity: RollupActivity;
 }
 
+// highlights 파싱 계약: 모든 항목은 "[project]" 또는 "[label] [project]" 대괄호 프리픽스로 시작해야
+// downstream 프로젝트 매핑이 깨지지 않는다 (daily done 불릿과 동일 계약). 미충족 시 검증 실패 → 재생성 유도
+const HIGHLIGHT_PREFIX = /^\[[^\]]+\]\s*(?:\[[^\]]+\]\s*)?\S/;
+
 export const submitRollupSchema = z.object({
   // Notion rich_text text.content 한도가 2000자 — 2500 이면 스키마는 통과하고 발행이 터진다
   paragraph: z.string().min(1).max(2000),
@@ -18,7 +22,17 @@ export const submitRollupSchema = z.object({
       }),
     )
     .max(10),
-  highlights: z.array(z.string().min(1).max(300)).max(10),
+  highlights: z
+    .array(
+      z
+        .string()
+        .min(1)
+        .max(300)
+        .refine((s) => HIGHLIGHT_PREFIX.test(s), {
+          message: 'each highlight must start with a "[project]" (or "[label] [project]") prefix',
+        }),
+    )
+    .max(10),
   // 분석 코멘터리(선택) — 전 기간 대비·정체 항목. 근거 데이터 없으면 생략
   commentary: z.string().min(1).max(2000).optional(),
 });

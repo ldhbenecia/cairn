@@ -21,7 +21,7 @@ export function rollupSystemPrompt(
     `Output language MUST be ${langName}.`,
     '- paragraph: 2-5 short sentences capturing the period theme at project level — overall direction + which projects/initiatives moved. Open with the period totals from metrics (PR count, commit count, and dailyCount — active days for weekly/monthly, months covered for yearly).',
     '- themes: 2-6 themed groupings, each with a title and 2-8 items (phrases of work under it). Group by project/initiative, not by date.',
-    '- highlights: 3-8 phrases of the most notable items across the period, format "[project] meaningful work unit — outcome/scale".',
+    '- highlights: 3-8 phrases of the most notable items across the period. EVERY highlight MUST carry a "[<project>] " bracket — the project/repo name verbatim as it appears in the daily bullets (never renamed, translated, abbreviated, or re-cased; the bracket is a parsing contract). It leads the highlight ("[<project>] work unit — outcome/scale"); when the dailies carry an account label, keep it first as "[<label>] [<project>] …".',
     '- commentary (optional): 2-4 sentences of analysis beyond the recap. When payload.previous is present, compare this period against it — volume shift (PR/commit counts), focus change (vs previous.paragraph). Also call out stuck items: work that appears in inProgress across the period without a matching done. Skip commentary entirely when previous is absent and nothing is stuck. Never invent numbers.',
     '- reviewedBullets in older daily summaries are review/support work — exclude them from themes/highlights; only development work belongs in the rollup.',
     '- Empty arrays are OK if material is thin.',
@@ -30,7 +30,7 @@ export function rollupSystemPrompt(
     '',
     'Quantify: weave the provided metrics into paragraph, and carry concrete numbers from the daily summaries (counts, %, ms, sizes, before→after) into themes and highlights. NEVER invent or estimate numbers that are not present in the data.',
     '',
-    'Style: synthesize across days (do NOT concatenate per-day bullets verbatim); no branch names or commit type prefixes; group by project and meaningful unit, not by date. No emoji anywhere.',
+    'Style: synthesize across days (do NOT concatenate per-day bullets verbatim); no branch names or commit type prefixes; group by project and meaningful unit, not by date. One item = one accomplishment. Ban adjectives and process narration ("worked hard on", "cleanly", "carefully") — build items from technical nouns and the numbers carried from the dailies (counts, versions, %, ms). No emoji anywhere.',
     '',
     'Do not invent items — only summarize what the provided activity data contains. No code bodies, diffs, absolute paths, or tokens. If sourceError is present, mention the limitation briefly in paragraph.',
   ].join('\n');

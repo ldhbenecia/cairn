@@ -22,7 +22,7 @@ import type { GithubAccountConfig } from '../worklog-config/worklog-config.schem
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
 import { GithubApiClient, type SearchPrItem } from './github-api.client.js';
 
-const PR_BODY_MAX_CHARS = 800;
+const PR_BODY_MAX_CHARS = 2000;
 const PR_COMMIT_SUBJECT_MAX_CHARS = 200;
 
 interface PrBucket {
@@ -153,6 +153,17 @@ export class GithubCollectorService {
       }
       buckets.set(key, bucket);
     }
+
+    // PR 커밋 목록을 GraphQL alias 배치로 선적재 — 이후 phase1·요약의 REST N 콜 제거.
+    // 배치 실패·100+ 커밋 PR 은 캐시 미적재로 남아 기존 REST 경로가 그대로 폴백된다.
+    await this.client.primePrCommits(
+      token,
+      [...buckets.values()].map((b) => ({
+        owner: b.item.owner,
+        repo: b.item.repo,
+        number: b.item.number,
+      })),
+    );
 
     // GitHub API secondary rate limit 회피를 위해 token 당 동시 호출 5 개로 제한
     const phase1 = await withConcurrency([...buckets.values()], 5, async (bucket) => {

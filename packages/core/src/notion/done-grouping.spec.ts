@@ -12,11 +12,14 @@ const textOf = (b: unknown): string => {
 
 describe('buildDoneBlocks', () => {
   it('groups by [Account] prefix into heading_3 subsections, stripping the prefix', () => {
-    const blocks = buildDoneBlocks([
-      '[Work] team-api — fix quiz chunking',
-      '[Personal] cairn — markdown export',
-      '[Work] team-api — channel history',
-    ]);
+    const blocks = buildDoneBlocks(
+      [
+        '[Work] team-api — fix quiz chunking',
+        '[Personal] cairn — markdown export',
+        '[Work] team-api — channel history',
+      ],
+      ['Work', 'Personal'],
+    );
     expect(blocks.map(typeOf)).toEqual([
       'heading_3',
       'bulleted_list_item',
@@ -32,6 +35,24 @@ describe('buildDoneBlocks', () => {
   it('stays flat (no headings) when there are no account prefixes', () => {
     const blocks = buildDoneBlocks(['cairn — a', 'cairn — b']);
     expect(blocks.map(typeOf)).toEqual(['bulleted_list_item', 'bulleted_list_item']);
+  });
+
+  it('단일 계정에선 [repo] 프리픽스를 계정 heading 으로 소비하지 않고 그대로 보존한다', () => {
+    // repo(cairn) ≠ 계정 라벨(ldhbenecia) — 선행 대괄호는 repo 프리픽스이므로 heading 화 금지
+    const blocks = buildDoneBlocks(
+      ['[cairn] streak 계산 수정', '[cairn] 그래프 물리 튜닝'],
+      ['ldhbenecia'],
+    );
+    expect(blocks.map(typeOf)).toEqual(['bulleted_list_item', 'bulleted_list_item']);
+    expect(textOf(blocks[0])).toBe('[cairn] streak 계산 수정');
+    expect(textOf(blocks[1])).toBe('[cairn] 그래프 물리 튜닝');
+  });
+
+  it('계정 미설정(빈 라벨)이어도 [repo] 프리픽스는 heading 이 되지 않는다', () => {
+    const blocks = buildDoneBlocks(['[cairn] 작업 A', '[other-repo] 작업 B']);
+    expect(blocks.map(typeOf)).toEqual(['bulleted_list_item', 'bulleted_list_item']);
+    expect(textOf(blocks[0])).toBe('[cairn] 작업 A');
+    expect(textOf(blocks[1])).toBe('[other-repo] 작업 B');
   });
 
   it('renders a placeholder when empty', () => {

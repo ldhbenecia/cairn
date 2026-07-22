@@ -107,6 +107,42 @@ describe('dropForbiddenSummaries', () => {
   });
 });
 
+describe('highlights 프리픽스 파싱 계약', () => {
+  const base = { paragraph: 'p', themes: [] };
+
+  it('단일 [project] 프리픽스는 통과', () => {
+    const parsed = submitRollupSchema.safeParse({
+      ...base,
+      highlights: ['[cairn] 그래프 뷰 물리 튜닝 — 60fps'],
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('[label] [project] 프리픽스는 통과', () => {
+    const parsed = submitRollupSchema.safeParse({
+      ...base,
+      highlights: ['[ldhbenecia] [cairn] 요약 파이프라인 개편'],
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('프리픽스 없는 highlight 는 거부 → 재생성 유도', () => {
+    const parsed = submitRollupSchema.safeParse({
+      ...base,
+      highlights: ['그래프 뷰 물리 튜닝 — 프리픽스 없음'],
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it('내용 없는 대괄호만("[cairn]")은 거부', () => {
+    expect(submitRollupSchema.safeParse({ ...base, highlights: ['[cairn]'] }).success).toBe(false);
+  });
+
+  it('빈 highlights 배열은 통과(자료 부족 허용)', () => {
+    expect(submitRollupSchema.safeParse({ ...base, highlights: [] }).success).toBe(true);
+  });
+});
+
 describe('previous 컨텍스트 / commentary (AI 해설)', () => {
   it('previous 가 있으면 payload 에 그대로 실린다', () => {
     const withPrev: RollupActivity = {
