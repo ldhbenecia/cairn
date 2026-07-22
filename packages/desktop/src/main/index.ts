@@ -43,6 +43,7 @@ import {
   probeLocalRepo,
   probeNotion,
   searchNotionPages,
+  setLocalGitEnabled,
   parseNotionWorkspacePayload,
   parseOnboardingPayload,
 } from './onboarding';
@@ -220,6 +221,9 @@ void app.whenReady().then(() => {
   });
   ipcMain.handle('cairn:repo:stars', () => fetchRepoStars());
   ipcMain.handle('cairn:config:read', () => readConfig());
+  ipcMain.handle('cairn:config:set-local-git-enabled', (_e, enabled: unknown) =>
+    setLocalGitEnabled(enabled === true),
+  );
   ipcMain.handle('cairn:recent:list', () => listRecentMerged());
   ipcMain.handle('cairn:snapshots:list', (_e, category: RecentCategory, date: string) =>
     listJournalSnapshots(category, date),

@@ -433,6 +433,27 @@ export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; er
   }
 }
 
+// Preferences 연결 탭 — 로컬 Git 수집 토글. 등록된 localGitRepos 경로는 보존하고 수집 여부만 저장.
+export function setLocalGitEnabled(enabled: boolean): { ok: boolean; error?: string } {
+  try {
+    return withFileLock(CONFIG_PATH, () => {
+      let existing: Record<string, unknown>;
+      try {
+        const parsed = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as unknown;
+        existing = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+      } catch {
+        existing = {};
+      }
+      const config = { ...existing, localGitEnabled: enabled };
+      mkdirSync(dirname(CONFIG_PATH), { recursive: true });
+      writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
+      return { ok: true };
+    });
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
 export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; error?: string } {
   try {
     // 재실행 시 자동 생성된 DB id 보존을 위해 기존 config 를 먼저 읽음.

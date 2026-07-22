@@ -41,6 +41,22 @@ export class GithubCollectorService {
     private readonly logger: PinoLogger,
   ) {}
 
+  // 백필 게이트 전용: 백필 날짜 범위의 기여 캘린더를 계정별로 조회해 date→기여수 합집합을 돌려준다.
+  // 다계정은 계정별 최댓값으로 union — 한 계정이라도 활동이면 그 날은 살아남는다.
+  // 전 계정 조회 실패(또는 계정 없음)면 null → 호출자가 게이트를 끈다(fail-open).
+  async contributionCounts(fromIso: string, toIso: string): Promise<Map<string, number> | null> {
+    const accounts = this.worklogConfig.getGithubAccounts();
+    if (accounts.length === 0) return null;
+    const perAccount = await Promise.all(
+      accounts.map(async (account) => {
+        const token = this.secrets.getEnv(account.tokenEnv);
+        if (!token) return null;
+        return this.client.getContributionDayCounts(token, fromIso, toIso);
+      }),
+    );
+    return unionContributionCounts(perAccount);
+  }
+
   async collect(date: string, lookbackDays = 14): Promise<GithubActivity> {
     const window = localDateToUtcWindow(date);
     const range = searchRangeFragment(window);
@@ -302,4 +318,21 @@ export class GithubCollectorService {
 function deriveState(item: SearchPrItem): GithubPrState {
   if (item.mergedAt) return 'merged';
   return item.state;
+}
+
+// 계정별 기여 캘린더를 date→최댓값으로 합친다(한 계정이라도 활동이면 유지). null 은 조회 실패 계정 —
+// 전부 null(또는 입력 없음)이면 null 반환해 호출자가 게이트를 끄게 한다(fail-open).
+export function unionContributionCounts(
+  perAccount: ReadonlyArray<ReadonlyMap<string, number> | null>,
+): Map<string, number> | null {
+  const union = new Map<string, number>();
+  let anyOk = false;
+  for (const counts of perAccount) {
+    if (!counts) continue;
+    anyOk = true;
+    for (const [date, count] of counts) {
+      union.set(date, Math.max(union.get(date) ?? 0, count));
+    }
+  }
+  return anyOk ? union : null;
 }
