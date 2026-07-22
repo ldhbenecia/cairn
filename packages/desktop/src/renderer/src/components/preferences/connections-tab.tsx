@@ -5,12 +5,14 @@ import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';
 import { ClaudeMark, GithubMark, NotionMark } from '../brand-icons';
 import { AccordionItem } from '../accordion';
+import { Toggle } from '../toggle';
 import { Section } from './field';
 
 type ParsedConfig = {
   notionWorkspaces?: { label: string }[];
   githubAccounts?: { label: string }[];
   localGitRepos?: string[];
+  localGitEnabled?: boolean;
 };
 
 type Claude = 'checking' | 'ok' | 'err';
@@ -88,6 +90,15 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
   const notion = cfg.notionWorkspaces ?? [];
   const github = cfg.githubAccounts ?? [];
   const repos = cfg.localGitRepos ?? [];
+  const localGitEnabled = cfg.localGitEnabled === true;
+
+  const onToggleLocalGit = (next: boolean): void => {
+    setCfg((prev) => ({ ...prev, localGitEnabled: next }));
+    void window.cairn.setLocalGitEnabled(next).then((r) => {
+      // 쓰기 실패 시 UI 를 되돌려 실제 config 와 어긋나지 않게
+      if (!r.ok) setCfg((prev) => ({ ...prev, localGitEnabled: !next }));
+    });
+  };
 
   const notionItems: Item[] = notion.map((w) => {
     const acc = accounts?.notion?.find((n) => n.label === w.label);
@@ -137,6 +148,10 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
         expanded={open.has('repos')}
         onToggle={() => toggle('repos')}
       />
+      <div className="flex items-center justify-between py-2 pl-6 pr-2">
+        <span className="text-[12px] text-ink-tertiary">{t('prefs.conn.localGitCollect')}</span>
+        <Toggle checked={localGitEnabled} onChange={onToggleLocalGit} />
+      </div>
       <div className="pt-4">
         <button
           type="button"
