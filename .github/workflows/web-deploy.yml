@@ -19,6 +19,7 @@ concurrency:
 permissions:
   contents: read
   pull-requests: write
+  deployments: write
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -50,6 +51,28 @@ jobs:
           url=$(vercel deploy ${{ github.event_name != 'pull_request' && '--prod' || '' }} --yes --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Deployed: $url"
+      # production 배포만 GitHub Deployment 로 기록 — CLI 직접 배포라 레포 Deployments 패널이 갱신 안 되던 문제
+      - name: Record GitHub deployment
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = ${{ toJSON(steps.deploy.outputs.url) }};
+            const { owner, repo } = context.repo;
+            const dep = await github.rest.repos.createDeployment({
+              owner, repo, ref: context.sha,
+              environment: 'Production',
+              auto_merge: false, required_contexts: [],
+              transient_environment: false, production_environment: true,
+              description: 'Vercel production',
+            });
+            await github.rest.repos.createDeploymentStatus({
+              owner, repo, deployment_id: dep.data.id,
+              state: 'success', environment_url: url,
+              log_url: `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`,
+              description: 'Vercel production',
+            });
       - name: Comment preview URL
         if: github.event_name == 'pull_request'
         env:
