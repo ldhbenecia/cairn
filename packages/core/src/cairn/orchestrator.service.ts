@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { withConcurrency } from '../common/concurrency.js';
+import { localDateToUtcWindow } from '../common/date-window.js';
 import { collectSourceErrors, computeDayTotals, shaKey } from '../common/day-totals.js';
 import { CairnError } from '../common/error.js';
 import { emitParentEvent } from '../common/parent-events.js';
@@ -105,30 +106,48 @@ export class OrchestratorService {
       return;
     }
 
-    if (missingDates.length === 1) {
-      await this.runDailyForDate(missingDates[0]!, options, { silent: false });
+    // 로컬 git 전역 OFF + GitHub 소스 ON 이면, 기여 캘린더상 활동 0인 날을 백필에서 제외해 가속한다.
+    // 로컬 git 이 켜져 있으면(또는 GitHub 미사용) 캘린더가 못 잡는 로컬 커밋이 있을 수 있어 게이트 미적용.
+    const backfillDates =
+      !this.localGitCollector.isEnabled() && wantsSource(options.sources, 'github')
+        ? await this.gateByContributions(missingDates)
+        : missingDates;
+
+    if (backfillDates.length === 0) {
+      this.logger.info(
+        { rangeStart, rangeEnd, checked: targetDates.length },
+        'daily: backfill — all missing dates gated out by contribution calendar (no github activity)',
+      );
+      return;
+    }
+
+    if (backfillDates.length === 1) {
+      await this.runDailyForDate(backfillDates[0]!, options, { silent: false });
       return;
     }
 
     this.logger.info(
-      { missingDates, alreadyPublishedCount: targetDates.length - missingDates.length },
+      {
+        missingDates: backfillDates,
+        alreadyPublishedCount: targetDates.length - backfillDates.length,
+      },
       'daily: backfill — multiple missing dates detected',
     );
 
     let backfillDone = 0;
     const completedDates: string[] = [];
     const failedDates: string[] = [];
-    const backfillTotal = missingDates.length;
+    const backfillTotal = backfillDates.length;
     // 데스크톱 배치 진행 UI 가 시작 즉시 총개수·날짜 목록을 알도록(완료 로그 전부터 날짜별 행 렌더링)
     this.logger.info(
-      { total: backfillTotal, dates: missingDates.join(',') },
+      { total: backfillTotal, dates: backfillDates.join(',') },
       'daily: backfill batch start',
     );
-    emitParentEvent({ type: 'backfill-start', total: backfillTotal, dates: [...missingDates] });
+    emitParentEvent({ type: 'backfill-start', total: backfillTotal, dates: [...backfillDates] });
     const results = await withConcurrency<
       string,
       { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' }
-    >(missingDates, BACKFILL_CONCURRENCY, async (date) => {
+    >(backfillDates, BACKFILL_CONCURRENCY, async (date) => {
       // 날짜별 "시작" — 요약 중(완료 전)에도 동시 처리 중인 칸 펄스 표시
       this.logger.info({ date }, 'daily: backfill date start');
       emitParentEvent({ type: 'backfill-date-start', date });
@@ -170,7 +189,29 @@ export class OrchestratorService {
       return result;
     });
 
-    await this.notifyBackfillBatch(missingDates, results);
+    await this.notifyBackfillBatch(backfillDates, results);
+  }
+
+  // 백필 후보 중 GitHub 기여 캘린더상 활동 0인 날을 제외한다(오름차순 dates 가정).
+  // 캘린더 조회 실패면 gateBackfillDates 가 원본을 그대로 반환해 게이트가 사실상 꺼진다(fail-open).
+  private async gateByContributions(dates: readonly string[]): Promise<string[]> {
+    const fromIso = localDateToUtcWindow(dates[0]!).startIso;
+    const toIso = localDateToUtcWindow(dates[dates.length - 1]!).endIso;
+    const counts = await this.githubCollector.contributionCounts(fromIso, toIso);
+    const gated = gateBackfillDates(dates, counts);
+    if (!counts) {
+      this.logger.info(
+        { candidateCount: dates.length },
+        'daily: backfill contribution gate skipped — calendar unavailable (fail-open)',
+      );
+    } else if (gated.length < dates.length) {
+      const excluded = dates.filter((d) => !gated.includes(d));
+      this.logger.info(
+        { excludedCount: excluded.length, excluded: excluded.join(','), keptCount: gated.length },
+        'daily: backfill contribution gate — excluded dates with no github activity',
+      );
+    }
+    return gated;
   }
 
   // Notion 발행만 실패했던 날짜(journal 있음 + published 없음)를 재요약 비용 없이 복구.
@@ -752,6 +793,16 @@ export class OrchestratorService {
 
 function wantsSource(sources: RunOptions['sources'], source: RunSource): boolean {
   return sources === 'all' || sources.includes(source);
+}
+
+// 기여 캘린더로 백필 후보를 거른다. counts=null(조회 실패)이면 원본 그대로 반환(fail-open),
+// 캘린더에 없는 날짜(범위 밖 등)는 미상으로 보고 유지 — 활동이 0으로 '확인된' 날만 제외한다.
+export function gateBackfillDates(
+  dates: readonly string[],
+  counts: ReadonlyMap<string, number> | null,
+): string[] {
+  if (!counts) return [...dates];
+  return dates.filter((d) => (counts.get(d) ?? 1) > 0);
 }
 
 function rollupKor(period: 'weekly' | 'monthly' | 'yearly'): string {

@@ -218,6 +218,69 @@ describe('journal 재발행 (Notion 발행만 실패했던 날짜 복구)', () =
   });
 });
 
+describe('백필 기여 캘린더 게이트 (로컬 git OFF + github ON)', () => {
+  // backfill 창 2일: 07-08·07-09. 둘 다 미발행·journal 없음 → missingDates. 캘린더가 둘 다 0 →
+  // 게이트가 전부 제외 → 수집 자체를 시작하지 않고 조용히 종료
+  const backfillOptions: RunOptions = {
+    ...dailyOptions,
+    dateExplicit: false,
+    force: false,
+    backfillDays: 2,
+  };
+
+  it('활동 0인 날들은 게이트로 제외 — 수집기를 호출하지 않고 종료', async () => {
+    const notify = vi.fn().mockResolvedValue(undefined);
+    const githubCollect = vi.fn();
+    const contributionCounts = vi.fn().mockResolvedValue(
+      new Map([
+        ['2026-07-08', 0],
+        ['2026-07-09', 0],
+      ]),
+    );
+    const service = new OrchestratorService(
+      { collect: githubCollect, contributionCounts } as never,
+      { isEnabled: () => false, collect: vi.fn() } as never,
+      { findPublishedDates: vi.fn().mockResolvedValue(new Set<string>()) } as never,
+      unusable('summarizer') as never,
+      { notify } as never,
+      unusable('rollupCollector') as never,
+      unusable('rollupSummarizer') as never,
+      unusable('rollupPublisher') as never,
+      unusable('stats') as never,
+      { hasDaily: vi.fn().mockReturnValue(false) } as never,
+      unusable('journalSource') as never,
+      logger() as never,
+    );
+    await expect(service.run(backfillOptions)).resolves.toBeUndefined();
+    expect(contributionCounts).toHaveBeenCalledTimes(1);
+    expect(githubCollect).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('로컬 git ON 이면 게이트를 적용하지 않는다 (캘린더 미조회)', async () => {
+    const notify = vi.fn().mockResolvedValue(undefined);
+    const contributionCounts = vi.fn();
+    const service = new OrchestratorService(
+      { collect: vi.fn().mockResolvedValue({ prs: [] }), contributionCounts } as never,
+      { isEnabled: () => true, collect: vi.fn().mockResolvedValue({ repos: [] }) } as never,
+      { findPublishedDates: vi.fn().mockResolvedValue(new Set<string>()) } as never,
+      { summarize: vi.fn().mockResolvedValue(null) } as never,
+      { notify } as never,
+      unusable('rollupCollector') as never,
+      unusable('rollupSummarizer') as never,
+      unusable('rollupPublisher') as never,
+      unusable('stats') as never,
+      { hasDaily: vi.fn().mockReturnValue(false) } as never,
+      unusable('journalSource') as never,
+      logger() as never,
+    );
+    // 두 날 다 활동 0(prs·repos 빈 배열) → "활동 없음" 경로로 종료하지만, 게이트는 미적용이라
+    // 캘린더 조회가 일어나지 않아야 한다
+    await expect(service.run(backfillOptions)).resolves.toBeUndefined();
+    expect(contributionCounts).not.toHaveBeenCalled();
+  });
+});
+
 describe('rollup 일지 0건 판정', () => {
   const weeklyOptions: RunOptions = { ...dailyOptions, mode: 'weekly' };
 
