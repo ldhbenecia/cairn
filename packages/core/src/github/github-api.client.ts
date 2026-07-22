@@ -333,7 +333,16 @@ export class GithubApiClient {
       const commits = result?.pullRequest?.commits;
       // null(repo/PR 접근 불가) 또는 100 초과(첫 페이지로 미완)면 선적재 제외 → REST 폴백
       if (!commits || commits.totalCount > GRAPHQL_PR_COMMITS_PAGE) return;
-      out.set(ref, commits.nodes.map(mapGqlCommit));
+      try {
+        out.set(ref, commits.nodes.map(mapGqlCommit));
+      } catch (mapErr) {
+        // 스키마와 다른 malformed 응답으로 매핑이 던지면 이 PR 만 선적재 스킵 → 기존 REST 경로로
+        // 폴백. chunk·계정 전체가 죽지 않게 격리한다.
+        this.logger.warn(
+          { owner: ref.owner, repo: ref.repo, number: ref.number, err: String(mapErr) },
+          'pr commit node mapping failed — rest fallback for this pr',
+        );
+      }
     });
     return out;
   }
@@ -376,8 +385,9 @@ export class GithubApiClient {
 
 // GraphQL 커밋 노드 → RawPrCommit. 산출 필드는 REST fetchAllPrCommits 와 동일:
 // shortSha 는 oid 앞 7자(REST sha.slice(0,7) 와 동일), subject 는 headline(첫 줄),
-// authoredAt 은 authoredDate(UTC Z — 필터·histogram 모두 instant 기반이라 offset 형과 동치),
-// isMerge 는 parents.totalCount > 1
+// authoredAt 은 authoredDate(GitHub GitTimestamp — DateTime 과 달리 UTC 로 정규화되지 않고
+//   원본 오프셋을 보존. 필터·histogram 모두 Date.parse 로 instant 를 다뤄 오프셋 유무와 무관하게 동치),
+// isMerge 는 parents.totalCount > 1. 노드/필드 null 은 방어적으로 처리(malformed 응답 대비).
 function mapGqlCommit(node: GqlCommitNode): RawPrCommit {
   const c = node.commit;
   return {
@@ -385,7 +395,7 @@ function mapGqlCommit(node: GqlCommitNode): RawPrCommit {
     subject: c.messageHeadline?.trim() ?? '',
     authoredAt: c.authoredDate,
     authorLogin: c.author?.user?.login ?? null,
-    isMerge: c.parents.totalCount > 1,
+    isMerge: (c.parents?.totalCount ?? 0) > 1,
   };
 }
 
