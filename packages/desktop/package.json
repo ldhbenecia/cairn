@@ -19,7 +19,7 @@
     "dist": "pnpm --filter @cairn/core build:bundle && electron-vite build && electron-builder"
   },
   "dependencies": {
-    "@notionhq/client": "^5.22.0",
+    "@notionhq/client": "^5.23.2",
     "electron-updater": "^6.8.9",
     "framer-motion": "^12.40.0",
     "posthog-node": "^5.36.3"
