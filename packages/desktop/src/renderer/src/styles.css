@@ -448,6 +448,42 @@ textarea {
   animation: bar-grow-h 2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* 프로젝트 타임라인 — 스트리밍으로 새 레인(행)이 뜰 때 높이를 0→auto 로 펼치며 페이드-인
+   (grid-template-rows 0fr→1fr 트릭). 여러 행이 한꺼번에 붙어도 툭 튀지 않고 스윽 자리 잡는다.
+   마운트 시 1회 — 이미 뜬 행은 재생 안 됨(키 유지) */
+@keyframes lane-reveal {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  to {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+}
+.lane-reveal {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: lane-reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.lane-reveal > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 스트리밍 스캔이 끝난 뒤 피크 다이아·라벨이 제자리에서 부드럽게 드러남 (transform 보존 위해 opacity 만) */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fade-in 0.45s ease both;
+}
+
 /* 누적 곡선 — pathLength=1 정규화한 라인 드로우 + 영역 페이드 */
 @keyframes line-draw {
   to {
