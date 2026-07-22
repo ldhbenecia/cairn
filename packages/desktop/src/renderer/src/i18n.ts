@@ -491,6 +491,7 @@ const STRINGS = {
     'prefs.conn.localDataNote':
       'Notion·GitHub 는 이 기기에 저장되는 데이터 소스 — 클라우드 로그인과 별개',
     'prefs.conn.localGit': '로컬 Git',
+    'prefs.conn.localGitCollect': '이 기기에서 로컬 Git 수집',
     'prefs.conn.connected': '연결됨',
     'prefs.conn.missing': '없음',
     'prefs.conn.checking': '확인 중…',
@@ -1026,6 +1027,7 @@ const STRINGS = {
     'prefs.conn.localDataNote':
       'Notion & GitHub are data sources stored on this device — separate from cloud login.',
     'prefs.conn.localGit': 'Local Git',
+    'prefs.conn.localGitCollect': 'Collect local Git on this device',
     'prefs.conn.connected': 'Connected',
     'prefs.conn.missing': 'Not set',
     'prefs.conn.checking': 'Checking…',

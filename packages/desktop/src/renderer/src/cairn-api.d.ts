@@ -256,6 +256,7 @@ declare global {
       onRunProgress: (cb: (p: { mode: CoreMode } & RunProgress) => void) => () => void;
       onRunDone: (cb: (p: { mode: CoreMode; result: CoreResult }) => void) => () => void;
       readConfig: () => Promise<ConfigResult>;
+      setLocalGitEnabled: (enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
       listRecent: () => Promise<RecentListResult>;
       pageContent: (pageId: string, workspaceLabel: string) => Promise<PageContent>;
       backup: {

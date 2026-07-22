@@ -25,8 +25,19 @@ export class LocalGitCollectorService {
     private readonly logger: PinoLogger,
   ) {}
 
+  isEnabled(): boolean {
+    return this.worklogConfig.isLocalGitEnabled();
+  }
+
   async collect(date: string): Promise<LocalGitActivity> {
     const window = localDateToUtcWindow(date);
+
+    // 기본 OFF 토글 — 경로가 등록돼 있어도 수집을 끈다. getLocalGitRepos 빈 배열과 동일 shape
+    if (!this.worklogConfig.isLocalGitEnabled()) {
+      this.logger.info('localGitEnabled=false — skipping local-git collect');
+      return { date, rangeStart: window.startIso, rangeEnd: window.endIso, repos: [] };
+    }
+
     const repoPaths = this.worklogConfig.getLocalGitRepos();
 
     if (repoPaths.length === 0) {

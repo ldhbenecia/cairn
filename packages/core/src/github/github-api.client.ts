@@ -48,6 +48,16 @@ interface RawPrCommit {
   isMerge: boolean;
 }
 
+interface GqlContributionResponse {
+  viewer: {
+    contributionsCollection: {
+      contributionCalendar: {
+        weeks: Array<{ contributionDays: Array<{ date: string; contributionCount: number }> }>;
+      };
+    };
+  };
+}
+
 interface PrSearchFetchResult {
   items: SearchPrItem[];
   truncated: boolean;
@@ -95,6 +105,38 @@ export class GithubApiClient {
     this.loginCache.set(token, promise);
     promise.catch(() => this.loginCache.delete(token));
     return promise;
+  }
+
+  // 백필 게이트 전용: 기여 캘린더(날짜→기여수)를 GraphQL 1쿼리로. 수신 전용(date+count)이라
+  // 외부 송신 payload 에는 아무 것도 더하지 않는다. 실패 시 null 반환 → 호출자가 게이트를 끈다(fail-open)
+  async getContributionDayCounts(
+    token: string,
+    fromIso: string,
+    toIso: string,
+  ): Promise<Map<string, number> | null> {
+    const query = `query ($from: DateTime!, $to: DateTime!) {
+      viewer {
+        contributionsCollection(from: $from, to: $to) {
+          contributionCalendar { weeks { contributionDays { date contributionCount } } }
+        }
+      }
+    }`;
+    try {
+      const res = await this.getOctokit(token).graphql<GqlContributionResponse>(query, {
+        from: fromIso,
+        to: toIso,
+      });
+      const counts = new Map<string, number>();
+      for (const week of res.viewer.contributionsCollection.contributionCalendar.weeks) {
+        for (const day of week.contributionDays) {
+          counts.set(day.date, day.contributionCount);
+        }
+      }
+      return counts;
+    } catch {
+      this.logger.warn('contribution calendar fetch failed — backfill gate falls open');
+      return null;
+    }
   }
 
   async searchPrs(token: string, query: string): Promise<SearchPrItem[]> {

@@ -13,6 +13,7 @@ import {
 
 const DEFAULT_FILENAME = 'worklog.config.json';
 const EMPTY_CONFIG: WorklogConfig = {
+  localGitEnabled: false,
   localGitRepos: [],
   notionWorkspaces: [],
   githubAccounts: [],
@@ -54,6 +55,10 @@ export class WorklogConfigService {
 
   getLocalGitRepos(): readonly string[] {
     return this.load().localGitRepos;
+  }
+
+  isLocalGitEnabled(): boolean {
+    return this.load().localGitEnabled;
   }
 
   getNotionWorkspaces(): readonly NotionWorkspaceConfig[] {

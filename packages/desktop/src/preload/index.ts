@@ -284,6 +284,11 @@ contextBridge.exposeInMainWorld('cairn', {
   },
   readConfig: (): Promise<ConfigResult> =>
     ipcRenderer.invoke('cairn:config:read') as Promise<ConfigResult>,
+  setLocalGitEnabled: (enabled: boolean): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('cairn:config:set-local-git-enabled', enabled) as Promise<{
+      ok: boolean;
+      error?: string;
+    }>,
   listRecent: (): Promise<RecentListResult> =>
     ipcRenderer.invoke('cairn:recent:list') as Promise<RecentListResult>,
   pageContent: (pageId: string, workspaceLabel: string): Promise<unknown> =>

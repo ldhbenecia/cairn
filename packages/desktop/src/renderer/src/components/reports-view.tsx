@@ -1,5 +1,5 @@
 import { ArrowLeft, Check, Copy, FileDown, Loader2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import {
   addDays,
@@ -380,7 +380,6 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                   {t('reports.timeline')}
                 </p>
                 <Timeline
-                  since={since}
                   until={until}
                   lanes={lanes}
                   laneLabel={laneLabel}
@@ -537,7 +536,6 @@ const isOngoing = (last: string, until: string): boolean =>
 const PX_PER_DAY = 7;
 
 function Timeline({
-  since,
   until,
   lanes,
   laneLabel,
@@ -546,7 +544,6 @@ function Timeline({
   onNeedMore,
   onLaneClick,
 }: {
-  since: string;
   until: string;
   lanes: Lane[];
   laneLabel: (repo: string | null) => string;
@@ -555,8 +552,10 @@ function Timeline({
   onNeedMore: () => void;
   onLaneClick: (lane: Lane) => void;
 }) {
-  const span = daySpan(since, until);
-  const axis = timelineAxis(since, until);
+  // 축·트랙·바 위치의 기준 범위는 loadedSince..until — 로드된 구간만 그려, 왼쪽 청크가
+  // 로드되면 트랙이 왼쪽으로 자란다. 미로드 구간은 트랙 밖이라 뷰포트에 보이지 않는다
+  const span = daySpan(loadedSince, until);
+  const axis = timelineAxis(loadedSince, until);
   // 색은 buildLanes(건수순) 인덱스로 고정 — 레포별 작업 테이블·Wrapped 팔레트와 배정이 일치
   const colorOf = new Map(
     lanes.map((l, i) => [laneKey(l.repo), LANE_COLORS[i % LANE_COLORS.length]!]),
@@ -577,26 +576,32 @@ function Timeline({
     return () => ro.disconnect();
   }, []);
 
-  // 진입 시 최신(오른쪽 끝 = 오늘)이 보이게 스크롤
+  // 스크롤 앵커 — 오늘(오른쪽 끝) 픽셀을 고정한다. 왼쪽 청크 로드로 트랙이 넓어지면
+  // 늘어난 폭만큼 scrollLeft 를 밀어 보고 있던 위치를 그대로 유지(시각적 점프 방지).
+  // 최초 로드(prev 없음)엔 오른쪽 끝(오늘)으로 스크롤
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
+  const prevScrollWidthRef = useRef<number | null>(null);
+  useLayoutEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollLeft = el.scrollWidth;
-  }, []);
+    if (!el) return;
+    const prev = prevScrollWidthRef.current;
+    if (prev === null) el.scrollLeft = el.scrollWidth;
+    else el.scrollLeft += el.scrollWidth - prev;
+    prevScrollWidthRef.current = el.scrollWidth;
+  }, [loadedSince]);
 
-  // 좌측 로드 경계 감지 — 스크롤이 로드된 구간 왼쪽 경계 300px 안에 들어오면 이전 청크 요청.
-  // 청크 완료로 경계가 이동해도 재평가돼, 뷰포트가 미로드 구간에 걸쳐 있으면 연쇄 로드된다
+  // 좌측 로드 경계 감지 — 미로드 청크는 트랙 왼쪽 끝 너머라, 사용자가 왼쪽 경계 300px 안으로
+  // 스크롤할 때만 이전 청크를 요청한다. 진입 시엔 오른쪽 끝(오늘)에 앵커돼 있고 마운트 즉시
+  // 검사하지 않으므로 자동 연쇄 로드가 없다 — 로드는 오직 스크롤로만 발생한다
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const check = (): void => {
-      const boundaryPx = (dayIndex(since, loadedSince) / span) * el.scrollWidth;
-      if (el.scrollLeft < boundaryPx + 300) onNeedMore();
+      if (el.scrollWidth > el.clientWidth && el.scrollLeft < 300) onNeedMore();
     };
-    check();
     el.addEventListener('scroll', check, { passive: true });
     return () => el.removeEventListener('scroll', check);
-  }, [since, loadedSince, span, onNeedMore]);
+  }, [onNeedMore]);
 
   return (
     <div ref={scrollRef} className="overflow-x-auto pb-1">
@@ -644,11 +649,10 @@ function Timeline({
         </div>
 
         <div className="relative mt-3 flex flex-col gap-6">
-          {/* 청크 로딩 — 로드된 구간 왼쪽 경계의 소형 표시 */}
+          {/* 청크 로딩 — 트랙 왼쪽 가장자리(로드 경계)의 소형 표시 */}
           {loadingEdge && (
             <span
-              style={{ left: `${(dayIndex(since, loadedSince) / span) * 100}%` }}
-              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-ink-tertiary"
+              className="absolute top-1/2 left-1 -translate-y-1/2 text-ink-tertiary"
               aria-hidden="true"
             >
               <Loader2 size={12} strokeWidth={2} className="animate-spin" />
@@ -658,7 +662,7 @@ function Timeline({
             const color = colorOf.get(laneKey(lane.repo))!;
             const first = lane.dates[0]!;
             const last = lane.dates[lane.dates.length - 1]!;
-            const left = (dayIndex(since, first) / span) * 100;
+            const left = (dayIndex(loadedSince, first) / span) * 100;
             // 라벨 행은 바 시작 x 에 정렬 — 우측 끝 레인만 잘리지 않게 클램프
             const labelLeft = Math.min(left, 78);
             // 진행 중이면 바를 기간 끝까지 연장 후 오른쪽 끝을 페이드로 오픈
@@ -717,7 +721,7 @@ function Timeline({
                       key={p.date}
                       title={`${p.date} · ${p.count}`}
                       style={{
-                        left: `${((dayIndex(since, p.date) + 0.5) / span) * 100}%`,
+                        left: `${((dayIndex(loadedSince, p.date) + 0.5) / span) * 100}%`,
                         background: color,
                       }}
                       className="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1.5px]"
@@ -729,7 +733,7 @@ function Timeline({
                     {labeledPeaks.map((p) => (
                       <span
                         key={p.date}
-                        style={{ left: `${((dayIndex(since, p.date) + 0.5) / span) * 100}%` }}
+                        style={{ left: `${((dayIndex(loadedSince, p.date) + 0.5) / span) * 100}%` }}
                         className="absolute top-0 -translate-x-1/2 text-[11px] whitespace-nowrap text-ink-tertiary"
                       >
                         {peakLabel(p.date)}
