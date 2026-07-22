@@ -7,6 +7,7 @@ import {
   dayIndex,
   daySpan,
   LANE_COLORS,
+  orderLanesStable,
   parseDoneItems,
   timelineAxis,
   todayLocal,
@@ -71,6 +72,8 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
   // 로드된 구간 시작일 — 진입 시 초기 청크(최근 90일)만, 좌측 스크롤 경계 근접 시 90일씩 확장
   const [loadedSince, setLoadedSince] = useState<string | null>(null);
   const [chunkLoading, setChunkLoading] = useState(false);
+  // 내보내기(전체 365일 로드) 중에만 진행 바 유지 — 초기 진입은 스트리밍 렌더라 바를 숨긴다
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!recent) return;
@@ -78,8 +81,9 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
   }, [recent]);
 
   // 로드 구간 스캔 — 세션 페이지 캐시(reports-scan) 히트는 IPC 를 생략하고 미캐시 페이지만
-  // 읽는다. 아직 렌더할 게 없는 초기 청크만 인라인 진행 바(+스켈레톤), 청크 확장은 타임라인
-  // 가장자리 소형 표시만. 스캔은 뷰 이탈과 무관하게 계속되고 여기서는 진행 구독만 해제한다
+  // 읽는다. 스캔은 최신부터 진행되고, 페이지가 읽히는 대로 부분 렌더(스트리밍)해 전체 스캔을
+  // 기다리지 않는다 — 초기 청크는 첫 페이지 전까지만 스켈레톤, 청크 확장은 가장자리 소형 표시.
+  // 스캔은 뷰 이탈과 무관하게 계속되고 여기서는 진행 구독만 해제한다
   useEffect(() => {
     if (loadedSince === null) return;
     const loadedTargets = dailyTargets(pages, loadedSince, until);
@@ -95,8 +99,19 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
     setPerDay(rows.length > 0 ? rows : null);
     if (inlineBar) setScan({ done: loadedTargets.length - missing, total: loadedTargets.length });
     let alive = true;
+    let raf = 0;
+    // 스트리밍 — 스캔이 페이지 캐시를 최신부터 채우는 대로 부분 렌더. 페이지마다 즉시 렌더하면
+    // 뚝뚝 끊겨 보이므로 프레임 단위로 묶고(rAF), 바 자체는 CSS 트랜지션으로 부드럽게 늘어난다
+    const flush = (): void => {
+      raf = 0;
+      if (!alive) return;
+      const streamed = assembleCached(loadedTargets).rows;
+      if (streamed.length > 0) setPerDay(streamed);
+    };
     const onProgress = (done: number, total: number): void => {
-      if (alive && inlineBar) setScan({ done, total });
+      if (!alive) return;
+      if (inlineBar) setScan({ done, total });
+      if (raf === 0) raf = requestAnimationFrame(flush);
     };
     void startScan(loadedSince, until, loadedTargets, onProgress).then((full) => {
       if (!alive) return;
@@ -106,6 +121,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
     });
     return () => {
       alive = false;
+      if (raf !== 0) cancelAnimationFrame(raf);
       offScanProgress(loadedSince, until, onProgress);
     };
   }, [pages, loadedSince, until, chunkLoading]);
@@ -123,6 +139,15 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
 
   const items = useMemo(() => parseDoneItems(perDay ?? []), [perDay]);
   const lanes = useMemo(() => buildLanes(items), [items]);
+  // 표시 순서·색은 로드에 불변인 키로 고정한다 — 최근 활동일(last) 내림차순, 동률은 레포명.
+  // 과거 청크를 더 불러와도 기존 레인의 last 는 안 바뀌고 더 오래된 레포만 아래로 붙어,
+  // 레이지 로드 때 레인 재정렬·재배색이 없다(진입/스크롤 튐 방지). 색도 이 순서 인덱스로 고정
+  const orderedLanes = useMemo(() => orderLanesStable(lanes), [lanes]);
+  const laneColor = useMemo(() => {
+    const m = new Map<string, string>();
+    orderedLanes.forEach((l, i) => m.set(laneKey(l.repo), LANE_COLORS[i % LANE_COLORS.length]!));
+    return m;
+  }, [orderedLanes]);
   const itemsByLane = useMemo(() => {
     const map = new Map<string, DoneItem[]>();
     for (const it of items) {
@@ -177,7 +202,10 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
     if (perDay === null) return null;
     if (loadedSince !== null && loadedSince <= since) return perDay;
     const missingAll = assembleCached(targets).missing;
-    if (missingAll > 0) setScan({ done: targets.length - missingAll, total: targets.length });
+    if (missingAll > 0) {
+      setExporting(true);
+      setScan({ done: targets.length - missingAll, total: targets.length });
+    }
     try {
       const rows = await startScan(since, until, targets, (done, total) =>
         setScan({ done, total }),
@@ -186,6 +214,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
       return rows;
     } finally {
       setScan(null);
+      setExporting(false);
     }
   };
 
@@ -274,8 +303,8 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
             </button>
           </div>
         </div>
-        {/* 초기 청크 스캔·내보내기 전체 로드 때만 — 얇은 인라인 진행 바 (청크 확장은 가장자리 표시) */}
-        {scanning && (
+        {/* 내보내기 전체 로드 때만 얇은 진행 바 — 초기 진입은 스트리밍 렌더라 바 없이 내용이 채워진다 */}
+        {scanning && exporting && (
           <div className="mx-auto mt-3 flex w-full max-w-5xl items-center gap-2.5 px-6">
             <div
               role="progressbar"
@@ -381,10 +410,12 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                 </p>
                 <Timeline
                   until={until}
-                  lanes={lanes}
+                  lanes={orderedLanes}
+                  laneColor={laneColor}
                   laneLabel={laneLabel}
                   loadedSince={loadedSince ?? since}
                   loadingEdge={chunkLoading}
+                  revealing={scanning}
                   onNeedMore={loadMore}
                   onLaneClick={(lane) => setSelectedRepo(laneKey(lane.repo))}
                 />
@@ -400,7 +431,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                   <span className="w-24 shrink-0 text-right">{t('reports.activityCol')}</span>
                 </div>
                 <div>
-                  {lanes.map((lane, i) => (
+                  {orderedLanes.map((lane) => (
                     <button
                       key={laneKey(lane.repo)}
                       type="button"
@@ -417,7 +448,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
                         since={since}
                         until={until}
                         dates={lane.dates}
-                        color={LANE_COLORS[i % LANE_COLORS.length]!}
+                        color={laneColor.get(laneKey(lane.repo))!}
                       />
                     </button>
                   ))}
@@ -538,32 +569,29 @@ const PX_PER_DAY = 7;
 function Timeline({
   until,
   lanes,
+  laneColor,
   laneLabel,
   loadedSince,
   loadingEdge,
+  revealing,
   onNeedMore,
   onLaneClick,
 }: {
   until: string;
   lanes: Lane[];
+  laneColor: Map<string, string>;
   laneLabel: (repo: string | null) => string;
   loadedSince: string;
   loadingEdge: boolean;
+  revealing: boolean;
   onNeedMore: () => void;
   onLaneClick: (lane: Lane) => void;
 }) {
   // 축·트랙·바 위치의 기준 범위는 loadedSince..until — 로드된 구간만 그려, 왼쪽 청크가
-  // 로드되면 트랙이 왼쪽으로 자란다. 미로드 구간은 트랙 밖이라 뷰포트에 보이지 않는다
+  // 로드되면 트랙이 왼쪽으로 자란다. 미로드 구간은 트랙 밖이라 뷰포트에 보이지 않는다.
+  // lanes 는 부모에서 이미 고정 순서(최근 활동일 순)로 정렬돼 오고, 색은 laneColor 로 받는다
   const span = daySpan(loadedSince, until);
   const axis = timelineAxis(loadedSince, until);
-  // 색은 buildLanes(건수순) 인덱스로 고정 — 레포별 작업 테이블·Wrapped 팔레트와 배정이 일치
-  const colorOf = new Map(
-    lanes.map((l, i) => [laneKey(l.repo), LANE_COLORS[i % LANE_COLORS.length]!]),
-  );
-  // 표시 순서는 시작일 순 — 바가 좌상단에서 우하단으로 계단식 스태거
-  const ordered = [...lanes].sort(
-    (a, b) => a.dates[0]!.localeCompare(b.dates[0]!) || b.count - a.count,
-  );
 
   // 트랙 실측 폭 — 마일스톤 라벨 겹침 판정(px)용
   const trackRef = useRef<HTMLDivElement | null>(null);
@@ -590,9 +618,9 @@ function Timeline({
     prevScrollWidthRef.current = el.scrollWidth;
   }, [loadedSince]);
 
-  // 좌측 로드 경계 감지 — 미로드 청크는 트랙 왼쪽 끝 너머라, 사용자가 왼쪽 경계 300px 안으로
-  // 스크롤할 때만 이전 청크를 요청한다. 진입 시엔 오른쪽 끝(오늘)에 앵커돼 있고 마운트 즉시
-  // 검사하지 않으므로 자동 연쇄 로드가 없다 — 로드는 오직 스크롤로만 발생한다
+  // 좌측 로드 경계 감지 — 로드된 구간 왼쪽 끝(loadedSince)이 트랙 좌단이라, 사용자가 왼쪽
+  // 경계 300px 안으로 스크롤할 때 이전 청크를 요청한다. 진입 시엔 오른쪽 끝(오늘)에 앵커돼
+  // 있어 스크롤로 과거를 훑을 때만 로드된다
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -648,7 +676,7 @@ function Timeline({
           ))}
         </div>
 
-        <div className="relative mt-3 flex flex-col gap-6">
+        <div className="relative mt-3 flex flex-col">
           {/* 청크 로딩 — 트랙 왼쪽 가장자리(로드 경계)의 소형 표시 */}
           {loadingEdge && (
             <span
@@ -658,8 +686,8 @@ function Timeline({
               <Loader2 size={12} strokeWidth={2} className="animate-spin" />
             </span>
           )}
-          {ordered.map((lane) => {
-            const color = colorOf.get(laneKey(lane.repo))!;
+          {lanes.map((lane, idx) => {
+            const color = laneColor.get(laneKey(lane.repo))!;
             const first = lane.dates[0]!;
             const last = lane.dates[lane.dates.length - 1]!;
             const left = (dayIndex(loadedSince, first) / span) * 100;
@@ -676,72 +704,82 @@ function Timeline({
               return (gap / span) * trackWidth >= 60;
             });
             return (
-              <button
-                key={laneKey(lane.repo)}
-                type="button"
-                onClick={() => onLaneClick(lane)}
-                title={`${laneLabel(lane.repo)} · ${lane.count}`}
-                className="group relative block w-full rounded-md py-1.5 text-left transition-[background-color] hover:bg-surface-2/40"
-              >
-                <span
-                  style={{ marginLeft: `${labelLeft}%`, maxWidth: `${100 - labelLeft}%` }}
-                  className="flex w-fit items-baseline gap-1.5 pl-0.5 whitespace-nowrap"
-                >
+              <div key={laneKey(lane.repo)} className="lane-reveal">
+                {/* 높이 0→auto 로 펼쳐지는 클립 영역 — 간격(pt)도 이 안에 넣어 함께 자란다 */}
+                <div className={`relative pb-1.5 text-left ${idx > 0 ? 'pt-6' : 'pt-1.5'}`}>
                   <span
-                    style={{ background: color }}
-                    className="size-1.5 shrink-0 self-center rounded-full"
-                    aria-hidden="true"
-                  />
-                  <span className="truncate text-[13px] font-medium text-ink-muted transition-colors group-hover:text-ink">
-                    {laneLabel(lane.repo)}
-                  </span>
-                  <span className="font-mono text-[10.5px] text-ink-tertiary tabular-nums">
-                    {lane.count}
-                  </span>
-                </span>
-                <span className="relative mt-1.5 block h-7">
-                  <span
-                    style={{
-                      left: `${left}%`,
-                      width: `${(daySpan(first, barEnd) / span) * 100}%`,
-                      // 단일 활동일도 원형 알약이 아니라 짧은 바로 보이게
-                      minWidth: 24,
-                      // 채움은 거의 투명 — 배경 위에 살짝 얹힌 유리 질감
-                      background: `color-mix(in srgb, ${color} 6%, transparent)`,
-                      borderColor: `${color}38`,
-                      // 진행 중 — 마지막 ~64px 를 mask 로 페이드 (보더째 흐려짐), 짧은 바는 절반 보전
-                      maskImage: ongoing
-                        ? 'linear-gradient(to right, #000 max(50%, 100% - 64px), transparent)'
-                        : undefined,
-                    }}
-                    className="absolute inset-y-0 rounded-[5px] border"
-                  />
-                  {lane.peaks.map((p) => (
+                    style={{ marginLeft: `${labelLeft}%`, maxWidth: `${100 - labelLeft}%` }}
+                    // 막대가 스트리밍으로 왼쪽으로 자랄 때 레이블도 같은 등속 트랜지션으로 따라가게 —
+                    // 트랜지션이 없으면 데이터 들어올 때마다 순간이동해 저프레임처럼 끊겨 보인다
+                    className="flex w-fit items-baseline gap-1.5 pl-0.5 whitespace-nowrap transition-[margin] duration-[600ms] ease-linear"
+                  >
                     <span
-                      key={p.date}
-                      title={`${p.date} · ${p.count}`}
-                      style={{
-                        left: `${((dayIndex(loadedSince, p.date) + 0.5) / span) * 100}%`,
-                        background: color,
-                      }}
-                      className="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1.5px]"
+                      style={{ background: color }}
+                      className="size-1.5 shrink-0 self-center rounded-full"
+                      aria-hidden="true"
                     />
-                  ))}
-                </span>
-                {labeledPeaks.length > 0 && (
-                  <span className="relative mt-1 block h-3.5">
-                    {labeledPeaks.map((p) => (
-                      <span
-                        key={p.date}
-                        style={{ left: `${((dayIndex(loadedSince, p.date) + 0.5) / span) * 100}%` }}
-                        className="absolute top-0 -translate-x-1/2 text-[11px] whitespace-nowrap text-ink-tertiary"
-                      >
-                        {peakLabel(p.date)}
-                      </span>
-                    ))}
+                    <span className="truncate text-[13px] font-medium text-ink-muted">
+                      {laneLabel(lane.repo)}
+                    </span>
+                    <span className="font-mono text-[10.5px] text-ink-tertiary tabular-nums">
+                      {lane.count}
+                    </span>
                   </span>
-                )}
-              </button>
+                  <span className="relative mt-1.5 block h-7">
+                    {/* 막대 자체가 클릭 대상 — 누르면 그 레포 작업 내역을 연다. 넓은 행 hover 없이
+                      cursor 포인터로만 클릭 가능함을 알린다 */}
+                    <button
+                      type="button"
+                      onClick={() => onLaneClick(lane)}
+                      aria-label={`${laneLabel(lane.repo)} · ${lane.count}`}
+                      style={{
+                        left: `${left}%`,
+                        width: `${(daySpan(first, barEnd) / span) * 100}%`,
+                        // 단일 활동일도 원형 알약이 아니라 짧은 바로 보이게
+                        minWidth: 24,
+                        // 채움은 거의 투명 — 배경 위에 살짝 얹힌 유리 질감
+                        background: `color-mix(in srgb, ${color} 6%, transparent)`,
+                        borderColor: `${color}38`,
+                        // 진행 중 — 마지막 ~64px 를 mask 로 페이드 (보더째 흐려짐), 짧은 바는 절반 보전
+                        maskImage: ongoing
+                          ? 'linear-gradient(to right, #000 max(50%, 100% - 64px), transparent)'
+                          : undefined,
+                      }}
+                      // 스트리밍으로 바 구간이 채워질 때 left·width 가 스르륵 늘어나게 — 스트리밍은
+                      // 목표값이 계속 갱신되므로 등속(linear)이라야 이어지는 글라이드로 부드럽다
+                      className="absolute inset-y-0 cursor-pointer rounded-[5px] border transition-[left,width] duration-[600ms] ease-linear"
+                    />
+                    {/* 다이아(피크)는 스캔 중엔 숨긴다 — top-2 가 계속 재계산돼 위치가 튀기 때문.
+                      스캔이 끝나 확정된 뒤 제자리에서 페이드로 드러난다. 클릭은 막대로 통과 */}
+                    {!revealing &&
+                      lane.peaks.map((p) => (
+                        <span
+                          key={p.date}
+                          style={{
+                            left: `${((dayIndex(loadedSince, p.date) + 0.5) / span) * 100}%`,
+                            background: color,
+                          }}
+                          className="fade-in pointer-events-none absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1.5px]"
+                        />
+                      ))}
+                  </span>
+                  {!revealing && labeledPeaks.length > 0 && (
+                    <span className="pointer-events-none relative mt-1 block h-3.5">
+                      {labeledPeaks.map((p) => (
+                        <span
+                          key={p.date}
+                          style={{
+                            left: `${((dayIndex(loadedSince, p.date) + 0.5) / span) * 100}%`,
+                          }}
+                          className="fade-in absolute top-0 -translate-x-1/2 text-[11px] whitespace-nowrap text-ink-tertiary"
+                        >
+                          {peakLabel(p.date)}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>

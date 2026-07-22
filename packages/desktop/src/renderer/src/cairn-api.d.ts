@@ -259,6 +259,14 @@ declare global {
       setLocalGitEnabled: (enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
       listRecent: () => Promise<RecentListResult>;
       pageContent: (pageId: string, workspaceLabel: string) => Promise<PageContent>;
+      reportsDone: (
+        refs: {
+          pageId: string;
+          workspaceLabel: string;
+          date: string | null;
+          category: RecentCategory;
+        }[],
+      ) => Promise<{ pageId: string; bullets: string[]; failed: boolean }[]>;
       backup: {
         status: () => Promise<BackupStatus>;
         now: () => Promise<BackupStatus>;

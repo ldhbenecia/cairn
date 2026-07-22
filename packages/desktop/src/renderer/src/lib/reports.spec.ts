@@ -4,6 +4,7 @@ import {
   buildLanes,
   dayIndex,
   daySpan,
+  orderLanesStable,
   parseDoneBullet,
   parseDoneItems,
   timelineAxis,
@@ -267,6 +268,50 @@ describe('buildLanes', () => {
       { date: '2026-07-02', repo: 'a', text: 'x' },
     ]);
     expect(lanes[0]!.peaks).toEqual([]);
+  });
+});
+
+describe('orderLanesStable', () => {
+  const lane = (repo: string | null, dates: string[]) =>
+    buildLanes(dates.map((date) => ({ date, repo, text: 'x' })))[0]!;
+
+  it('최근 활동일(마지막 날짜) 내림차순, null 레포는 마지막', () => {
+    const lanes = [
+      lane('old', ['2026-05-01', '2026-05-02']),
+      lane('recent', ['2026-07-10']),
+      lane(null, ['2026-06-01']),
+      lane('mid', ['2026-06-20']),
+    ];
+    expect(orderLanesStable(lanes).map((l) => l.repo)).toEqual(['recent', 'mid', 'old', null]);
+  });
+
+  it('과거 청크를 더 불러와도 기존 레인 순서는 불변 — 더 오래된 레포만 뒤에 붙는다', () => {
+    // 초기(최근) 로드
+    const initial = [lane('a', ['2026-07-10']), lane('b', ['2026-07-05'])];
+    const before = orderLanesStable(initial).map((l) => l.repo);
+    expect(before).toEqual(['a', 'b']);
+
+    // 과거 청크 로드 — a·b 에 더 오래된 활동 추가 + 과거에만 있던 c 등장
+    const expanded = [
+      lane('a', ['2026-04-01', '2026-07-10']),
+      lane('b', ['2026-03-15', '2026-07-05']),
+      lane('c', ['2026-02-01', '2026-02-10']),
+    ];
+    const after = orderLanesStable(expanded).map((l) => l.repo);
+    // a·b 의 상대 순서 유지, c 는 뒤에 — 기존 레인 재정렬 없음
+    expect(after).toEqual(['a', 'b', 'c']);
+    expect(after.slice(0, 2)).toEqual(before);
+  });
+
+  it('색 배정도 순서 기반이라 기존 레포 색이 유지된다 (인덱스 불변)', () => {
+    const before = orderLanesStable([lane('a', ['2026-07-10']), lane('b', ['2026-07-05'])]);
+    const after = orderLanesStable([
+      lane('a', ['2026-07-10']),
+      lane('b', ['2026-07-05']),
+      lane('c', ['2026-01-01']),
+    ]);
+    expect(after.findIndex((l) => l.repo === 'a')).toBe(before.findIndex((l) => l.repo === 'a'));
+    expect(after.findIndex((l) => l.repo === 'b')).toBe(before.findIndex((l) => l.repo === 'b'));
   });
 });
 

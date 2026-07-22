@@ -197,6 +197,18 @@ export function buildLanes(items: readonly DoneItem[]): Lane[] {
     });
 }
 
+// 타임라인 표시 순서 — 최근 활동일(dates 마지막) 내림차순, null 레포는 마지막, 동률은 레포명.
+// 레이지 로드로 과거 청크를 더 불러와도 기존 레인의 마지막 활동일은 안 바뀌므로 순서가
+// 불변이다(더 오래된 레포만 뒤에 붙는다) — 진입/스크롤 로드 시 레인 재정렬·재배색 방지.
+export function orderLanesStable(lanes: readonly Lane[]): Lane[] {
+  return [...lanes].sort((a, b) => {
+    if ((a.repo === null) !== (b.repo === null)) return a.repo === null ? 1 : -1;
+    const al = a.dates[a.dates.length - 1] ?? '';
+    const bl = b.dates[b.dates.length - 1] ?? '';
+    return bl.localeCompare(al) || (a.repo ?? '').localeCompare(b.repo ?? '');
+  });
+}
+
 export type TimelineTick = { date: string; pos: number };
 
 export type TimelineAxis = { months: TimelineTick[]; days: TimelineTick[] };
