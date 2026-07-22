@@ -11,6 +11,34 @@ type CairnOctokit = InstanceType<typeof CairnOctokit>;
 
 const GITHUB_REQUEST_TIMEOUT_MS = 20_000;
 const MAX_RATE_LIMIT_RETRY_AFTER_SECONDS = 30;
+// PR 커밋 목록을 GraphQL alias 로 배치 — REST pulls.listCommits N 콜을 한 요청으로.
+// commits(first:100) 이므로 100 초과 PR 은 배치에서 제외하고 REST 페이징으로 폴백
+const GRAPHQL_PR_BATCH_SIZE = 15;
+const GRAPHQL_PR_COMMITS_PAGE = 100;
+
+interface PrCommitRef {
+  owner: string;
+  repo: string;
+  number: number;
+}
+
+interface GqlCommitNode {
+  commit: {
+    oid: string;
+    messageHeadline: string;
+    authoredDate: string;
+    author: { user: { login: string } | null } | null;
+    parents: { totalCount: number };
+  };
+}
+
+interface GqlPrResult {
+  pullRequest: {
+    commits: { totalCount: number; nodes: GqlCommitNode[] };
+  } | null;
+}
+
+type GqlBatchResponse = Record<string, GqlPrResult | null>;
 
 interface RawPrCommit {
   shortSha: string;
@@ -237,6 +265,79 @@ export class GithubApiClient {
     return out;
   }
 
+  // PR 커밋 목록을 GraphQL alias 배치로 미리 받아 prCommitsCache 에 선적재한다.
+  // listPrCommitsInRange 가 이후 캐시에서 바로 꺼내 REST N 콜을 없앤다.
+  // 배치 실패·PR 100+ 커밋·alias 누락은 선적재하지 않아 기존 REST 경로로 폴백된다.
+  async primePrCommits(token: string, refs: readonly PrCommitRef[]): Promise<void> {
+    const pending = new Map<string, PrCommitRef>();
+    for (const ref of refs) {
+      const key = `${token}:${ref.owner}/${ref.repo}#${ref.number}`;
+      // 이미 캐시(REST in-flight 포함)면 건드리지 않음 — 중복 fetch 방지
+      if (!this.prCommitsCache.has(key) && !pending.has(key)) pending.set(key, ref);
+    }
+    const chunks = [...pending.values()];
+    for (let i = 0; i < chunks.length; i += GRAPHQL_PR_BATCH_SIZE) {
+      const chunk = chunks.slice(i, i + GRAPHQL_PR_BATCH_SIZE);
+      const primed = await this.fetchPrCommitsBatch(token, chunk);
+      for (const [ref, commits] of primed) {
+        const key = `${token}:${ref.owner}/${ref.repo}#${ref.number}`;
+        if (!this.prCommitsCache.has(key)) this.prCommitsCache.set(key, Promise.resolve(commits));
+      }
+    }
+  }
+
+  // 한 chunk(≤15 PR)를 GraphQL alias 한 요청으로. 완전 수집된(≤100 커밋) PR 만 반환,
+  // 나머지(null·100+·에러)는 제외해 호출자가 REST 로 폴백하게 한다.
+  private async fetchPrCommitsBatch(
+    token: string,
+    chunk: readonly PrCommitRef[],
+  ): Promise<Map<PrCommitRef, RawPrCommit[]>> {
+    const out = new Map<PrCommitRef, RawPrCommit[]>();
+    if (chunk.length === 0) return out;
+    const octokit = this.getOctokit(token);
+    const commitFields =
+      'commits(first: 100) { totalCount nodes { commit { oid messageHeadline authoredDate author { user { login } } parents { totalCount } } } }';
+    const aliases = chunk
+      .map(
+        (ref, idx) =>
+          `pr${idx}: repository(owner: ${JSON.stringify(ref.owner)}, name: ${JSON.stringify(
+            ref.repo,
+          )}) { pullRequest(number: ${ref.number}) { ${commitFields} } }`,
+      )
+      .join('\n');
+    const gqlQuery = `query {\n${aliases}\n}`;
+
+    let response: GqlBatchResponse;
+    try {
+      response = await octokit.graphql<GqlBatchResponse>(gqlQuery);
+    } catch (err) {
+      // GraphQL 부분 에러(일부 repo 접근 불가 등)면 resolved alias 만 살려 쓰고 나머지는 REST 폴백
+      const partial = (err as { data?: GqlBatchResponse }).data;
+      if (partial && typeof partial === 'object') {
+        this.logger.warn(
+          { count: chunk.length },
+          'pr commits graphql batch partial — using resolved aliases, rest fall back to REST',
+        );
+        response = partial;
+      } else {
+        this.logger.warn(
+          { count: chunk.length },
+          'pr commits graphql batch failed — REST fallback for chunk',
+        );
+        return out;
+      }
+    }
+
+    chunk.forEach((ref, idx) => {
+      const result = response[`pr${idx}`];
+      const commits = result?.pullRequest?.commits;
+      // null(repo/PR 접근 불가) 또는 100 초과(첫 페이지로 미완)면 선적재 제외 → REST 폴백
+      if (!commits || commits.totalCount > GRAPHQL_PR_COMMITS_PAGE) return;
+      out.set(ref, commits.nodes.map(mapGqlCommit));
+    });
+    return out;
+  }
+
   private getOctokit(token: string): CairnOctokit {
     const cached = this.octokits.get(token);
     if (cached) return cached;
@@ -271,6 +372,21 @@ export class GithubApiClient {
     this.logger.debug('octokit initialized for token');
     return octokit;
   }
+}
+
+// GraphQL 커밋 노드 → RawPrCommit. 산출 필드는 REST fetchAllPrCommits 와 동일:
+// shortSha 는 oid 앞 7자(REST sha.slice(0,7) 와 동일), subject 는 headline(첫 줄),
+// authoredAt 은 authoredDate(UTC Z — 필터·histogram 모두 instant 기반이라 offset 형과 동치),
+// isMerge 는 parents.totalCount > 1
+function mapGqlCommit(node: GqlCommitNode): RawPrCommit {
+  const c = node.commit;
+  return {
+    shortSha: c.oid.slice(0, 7),
+    subject: c.messageHeadline?.trim() ?? '',
+    authoredAt: c.authoredDate,
+    authorLogin: c.author?.user?.login ?? null,
+    isMerge: c.parents.totalCount > 1,
+  };
 }
 
 function shouldRetryRateLimit(retryAfterSeconds: number, retryCount: number): boolean {
