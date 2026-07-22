@@ -68,7 +68,7 @@ export const content = {
       steps: [
         {
           t: 'Collect',
-          d: 'Your authored & assigned GitHub PRs and local Git commits for the day — across multiple accounts and repos. No code bodies ever leave your machine.',
+          d: 'Your authored & assigned GitHub PRs and commits for the day — across multiple accounts and repos, with optional local Git. No code bodies ever leave your machine.',
         },
         {
           t: 'Summarize',
@@ -87,10 +87,10 @@ export const content = {
       items: [
         {
           title: 'Aggregate',
-          meta: 'GitHub + local Git',
+          meta: 'GitHub + optional local Git',
           status: 'Core',
           description:
-            'GitHub PRs (authored + assigned) and local Git commits across multiple repos and accounts.',
+            'GitHub PRs (authored + assigned) and commits across multiple repos and accounts, with local Git as an optional source.',
           tags: ['GitHub', 'Local Git'],
         },
         {
@@ -189,7 +189,7 @@ export const content = {
         },
         {
           q: 'What does it collect?',
-          a: 'Your authored and assigned GitHub PRs plus local Git commits for the day, across multiple accounts and repos. Collection runs on your machine with your own tokens — there is no server in between.',
+          a: 'Your authored and assigned GitHub PRs and commits for the day, across multiple accounts and repos. Local Git collection is an optional source (off by default) for repos not on GitHub. Collection runs on your machine with your own tokens — there is no server in between.',
         },
         {
           q: 'Do I need a Claude subscription?',
@@ -284,7 +284,7 @@ export const content = {
       steps: [
         {
           t: '수집',
-          d: '그날 내가 작성·할당된 GitHub PR 과 로컬 Git 커밋을 — 여러 계정·레포에 걸쳐 모읍니다. 코드 본문은 절대 기기를 떠나지 않습니다.',
+          d: '그날 내가 작성·할당된 GitHub PR 과 커밋을 — 여러 계정·레포에 걸쳐 모읍니다. 로컬 Git 은 선택 소스. 코드 본문은 절대 기기를 떠나지 않습니다.',
         },
         {
           t: '요약',
@@ -303,9 +303,10 @@ export const content = {
       items: [
         {
           title: '수집',
-          meta: 'GitHub + 로컬 Git',
+          meta: 'GitHub + 로컬 Git(선택)',
           status: 'Core',
-          description: '여러 계정·레포에 걸친 GitHub PR(작성·할당)과 로컬 Git 커밋을 모읍니다.',
+          description:
+            '여러 계정·레포에 걸친 GitHub PR(작성·할당)과 커밋을 모읍니다. 로컬 Git 은 선택 소스.',
           tags: ['GitHub', 'Local Git'],
         },
         {
@@ -403,7 +404,7 @@ export const content = {
         },
         {
           q: '어떤 걸 수집하나요?',
-          a: '그날 내가 작성·할당된 GitHub PR 과 로컬 Git 커밋을 여러 계정·레포에 걸쳐 모읍니다. 수집은 본인 토큰으로 내 기기에서 실행됩니다 — 중간에 서버가 없습니다.',
+          a: '그날 내가 작성·할당된 GitHub PR 과 커밋을 여러 계정·레포에 걸쳐 모읍니다. 로컬 Git 수집은 GitHub 에 없는 레포용 선택 소스입니다(기본 꺼짐). 수집은 본인 토큰으로 내 기기에서 실행됩니다 — 중간에 서버가 없습니다.',
         },
         {
           q: 'Claude 구독이 필요한가요?',
