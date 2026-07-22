@@ -427,47 +427,38 @@ export function buildDoneBlocks(
   bullets: readonly string[],
   accountLabels: readonly string[] = [],
 ): unknown[] {
+  // 단일(또는 0) 계정에선 모든 bullet 이 [repo] 프리픽스만 가진다(계정 라벨 프리픽스 없음).
+  // 선행 대괄호를 계정 라벨로 소비하면 [cairn] 같은 repo 프리픽스가 가짜 계정 heading 으로
+  // 렌더되고 프리픽스가 사라진다 — 그대로 verbatim 렌더해 프리픽스를 보존한다.
+  if (accountLabels.length < 2) {
+    if (bullets.length === 0) return [paragraph('—')];
+    return bullets.map((t) => bulletItem(t));
+  }
+
+  // multi-account: 선행 대괄호가 설정된 계정 라벨과 정확히 일치할 때만 계정 heading 으로 그룹.
+  // 대소문자 무시 매칭. [project] 프리픽스(local-git bullet 등)는 라벨 불일치 → ungrouped verbatim.
   const ACCT = /^\[([^\]]+)\]\s*/;
-  const order: string[] = [];
-  const groups = new Map<string, string[]>();
-  const origCase = new Map<string, string>();
-  const ungrouped: string[] = [];
-  // multi-account 에선 설정된 계정 라벨만 그룹 — [project] 프리픽스(local-git bullet)가
-  // 가짜 계정 heading 으로 렌더되지 않게. 대소문자 무시 매칭.
   const accountKeys = new Set(accountLabels.map((a) => a.toLowerCase()));
+  const groups = new Map<string, string[]>();
+  const ungrouped: string[] = [];
   for (const b of bullets) {
     const m = ACCT.exec(b);
-    if (!m || (accountLabels.length >= 2 && !accountKeys.has(m[1]!.toLowerCase()))) {
+    if (!m || !accountKeys.has(m[1]!.toLowerCase())) {
       ungrouped.push(b);
       continue;
     }
     const key = m[1]!.toLowerCase();
-    if (!groups.has(key)) {
-      groups.set(key, []);
-      order.push(key);
-      origCase.set(key, m[1]!);
-    }
+    if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(b.slice(m[0].length));
   }
 
-  if (accountLabels.length >= 2) {
-    const out: unknown[] = ungrouped.map((b) => bulletItem(b));
-    for (const acct of accountLabels) {
-      // 설정 라벨 verbatim — titleCase 는 ldhbenecia→Ldhbenecia, iOS→Ios 로 변형
-      out.push(heading3(acct));
-      const items = groups.get(acct.toLowerCase()) ?? [];
-      if (items.length === 0) out.push(paragraph('None'));
-      else for (const text of items) out.push(bulletItem(text));
-    }
-    return out;
-  }
-
-  if (bullets.length === 0) return [paragraph('—')];
-  if (groups.size === 0) return bullets.map((t) => bulletItem(t));
   const out: unknown[] = ungrouped.map((b) => bulletItem(b));
-  for (const key of order) {
-    out.push(heading3(origCase.get(key)!));
-    for (const text of groups.get(key)!) out.push(bulletItem(text));
+  for (const acct of accountLabels) {
+    // 설정 라벨 verbatim — titleCase 는 ldhbenecia→Ldhbenecia, iOS→Ios 로 변형
+    out.push(heading3(acct));
+    const items = groups.get(acct.toLowerCase()) ?? [];
+    if (items.length === 0) out.push(paragraph('None'));
+    else for (const text of items) out.push(bulletItem(text));
   }
   return out;
 }
