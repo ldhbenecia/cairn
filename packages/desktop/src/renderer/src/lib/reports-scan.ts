@@ -1,6 +1,6 @@
 import type { RecentListResult, RecentPage } from '../cairn-api';
 import { addDays, localDateDaysAgo, todayLocal } from './reports';
-import { pool, sectionBullets } from './blocks';
+import { pool } from './blocks';
 
 export type PerDay = { date: string; bullets: string[] };
 
@@ -111,6 +111,9 @@ export function startScan(
     if (e) have.set(p.pageId, { date: p.date as string, bullets: e.bullets });
     else missing.push(p);
   }
+  // 최신 날짜부터 읽는다 — 뷰가 진행 중 캐시를 조립해 스트리밍 렌더할 때 최근(화면에 보이는)
+  // 구간이 먼저 채워져, 전체 스캔을 기다리지 않고 최근 것부터 즉시 뜬다
+  missing.sort((a, b) => (b.date as string).localeCompare(a.date as string));
   const assemble = (fetched: ReadonlyMap<string, PerDay>): PerDay[] =>
     targets.map(
       (p) => have.get(p.pageId) ?? fetched.get(p.pageId) ?? { date: p.date as string, bullets: [] },
@@ -132,10 +135,19 @@ export function startScan(
         const date = p.date as string;
         const gen = generation;
         try {
-          const c = await window.cairn.pageContent(p.pageId, p.workspaceLabel);
-          // 본문 조회 실패는 warning + 빈 blocks 로 돌아온다 — 캐시에 넣으면 빈 채로 고착
-          const failed = c.warning != null && c.blocks.length === 0;
-          const bullets = failed ? [] : sectionBullets(c.blocks, 'done');
+          // Done 불릿만 받는다 — 전체 blocks 를 IPC 로 넘기지 않아 페이로드가 작다(메인에서 추출).
+          // date·category 를 함께 넘겨, 노션 페이지라도 로컬 journal 이 있으면 메인이 로컬을 읽는다
+          const [r] = await window.cairn.reportsDone([
+            {
+              pageId: p.pageId,
+              workspaceLabel: p.workspaceLabel,
+              date: p.date,
+              category: p.category,
+            },
+          ]);
+          const failed = !r || r.failed;
+          const bullets = failed ? [] : r.bullets;
+          // 조회 실패(warning + 빈 blocks)는 캐시에 넣지 않는다 — 빈 채로 고착 방지, 다음 스캔 재시도
           if (!failed && gen === generation) pageCache.set(p.pageId, { date, bullets });
           fetched.set(p.pageId, { date, bullets });
         } catch {

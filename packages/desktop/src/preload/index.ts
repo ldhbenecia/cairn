@@ -293,6 +293,8 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:recent:list') as Promise<RecentListResult>,
   pageContent: (pageId: string, workspaceLabel: string): Promise<unknown> =>
     ipcRenderer.invoke('cairn:notion:page-content', pageId, workspaceLabel) as Promise<unknown>,
+  reportsDone: (refs: unknown[]): Promise<unknown> =>
+    ipcRenderer.invoke('cairn:reports:done', refs) as Promise<unknown>,
   backup: {
     status: (): Promise<BackupStatus> =>
       ipcRenderer.invoke('cairn:backup:status') as Promise<BackupStatus>,

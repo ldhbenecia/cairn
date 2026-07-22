@@ -19,8 +19,9 @@ import {
 import { cloudAuthState, cloudSignOut, startCloudSignIn } from './cloud-auth';
 import { syncStats } from './cloud-sync';
 import { readConfig } from './files';
-import { fetchPageContent, type RecentCategory } from './notion-client';
-import { listRecentMerged, readJournalPageContent, JOURNAL_PAGE_PREFIX } from './journal-reader';
+import { type RecentCategory } from './notion-client';
+import { listRecentMerged } from './journal-reader';
+import { readPageBlocks, scanReportsDone, type ReportsDoneRef } from './reports-scan';
 import {
   listJournalSnapshots,
   readJournalSnapshot,
@@ -244,10 +245,10 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:backup:status', () => getJournalBackupStatus());
   ipcMain.handle('cairn:backup:now', () => runJournalBackupNow());
   ipcMain.handle('cairn:notion:page-content', (_e, pageId: string, workspaceLabel: string) =>
-    pageId.startsWith(JOURNAL_PAGE_PREFIX)
-      ? readJournalPageContent(pageId)
-      : fetchPageContent(pageId, workspaceLabel),
+    readPageBlocks(pageId, workspaceLabel),
   );
+  // 프로젝트 뷰 스캔 — 여러 페이지 Done 불릿을 한 번에 (페이지당 IPC 왕복·전체 blocks 직렬화 제거)
+  ipcMain.handle('cairn:reports:done', (_e, refs: ReportsDoneRef[]) => scanReportsDone(refs));
 
   ipcMain.on('cairn:bootstrap-sync', (e) => {
     e.returnValue = {
