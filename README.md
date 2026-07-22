@@ -4,7 +4,7 @@
 
 > Like a trail cairn, stack one mark of work each day — and leave a path behind.
 
-cairn turns your daily dev activity — GitHub PRs and local Git commits across multiple repos — into a Claude-summarized worklog, recorded as local Markdown with automatic weekly and monthly rollups. Connect integrations like Notion to publish it further.
+cairn turns your GitHub PRs and commits across multiple repos and accounts into a Claude-summarized worklog, recorded as local Markdown with automatic weekly and monthly rollups. Connect integrations like Notion to publish it further.
 
 It runs as an **Electron desktop app** on top of a headless engine. Everything stays on your machine: it uses the Claude Agent SDK (no direct Anthropic API calls) and never sends source code or diffs to external services.
 
@@ -12,20 +12,29 @@ It runs as an **Electron desktop app** on top of a headless engine. Everything s
 
 ## Highlights
 
-- **Aggregate** — GitHub PRs (authored + assigned) and local Git commits across multiple repositories and accounts
-- **Summarize** — Claude (Agent SDK) writes the worklog in your language (Korean or English), with the summary model you choose
+- **Aggregate** — GitHub PRs (authored + assigned) and commits across multiple repositories and accounts. Local Git collection is an optional source (off by default — for repos not on GitHub)
+- **Summarize** — Claude (Agent SDK) writes the worklog in your language (Korean or English), reading each PR body to capture what the work was, as concise number- and tech-oriented bullets
 - **Record** — daily logs + automatic weekly/monthly rollups, written to a local Markdown journal (frontmatter + wiki links)
-- **Integrations** — optionally publish each entry to Notion, or mirror the journal into any Markdown folder (e.g. an Obsidian vault)
-- **Desktop app** — guided first-run setup, one-click publish, opt-in auto-publish at a time you choose (your local timezone), in-app worklog viewer, a stats dashboard, an interactive worklog graph, dark/light/system themes, ko/en
+- **Projects view** — a per-repo timeline of the last year; click a repo to see what you shipped in that window
+- **Integrations** — optionally publish each entry to Notion, mirror the journal into any Markdown folder (e.g. an Obsidian vault), or auto-back-up the journal folder with Git
+- **Desktop app** — guided first-run setup, one-click publish, opt-in auto-publish at a time you choose (your local timezone), in-app worklog viewer, a stats dashboard, an interactive worklog graph, publish snapshots with diff restore, dark/light/system themes, ko/en
 - **Local-first & private** — machine-local secrets, no server, no code-body egress (ADR 0003)
+
+Daily, weekly, and monthly entries link into one connected graph via wiki links:
+
+![worklog graph](packages/web/public/graph_view.png)
+
+Missed some past dates? Backfill collects, summarizes, and publishes them per day in one pass:
+
+![publish progress](packages/web/public/backfill_us.png)
 
 ## Requirements
 
 - macOS
 - Claude Pro/Max subscription or Anthropic API key (for the Agent SDK)
-- GitHub fine-grained PAT (read-only) and/or local Git repositories to collect from
+- GitHub fine-grained PAT (read-only)
 
-Optional: a Notion internal integration token, if you want entries published to Notion as well.
+Optional: a Notion internal integration token, if you want entries published to Notion as well. To also collect local repos that aren't on GitHub, enable local Git collection in the Connections tab (off by default).
 
 The desktop app's first-run setup walks you through connecting these and writes the config for you.
 
