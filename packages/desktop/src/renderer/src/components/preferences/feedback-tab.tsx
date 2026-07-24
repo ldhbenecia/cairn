@@ -1,4 +1,5 @@
-import { Github, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
+import { GithubMark } from '../github-mark';
 import { useEffect, useRef, useState } from 'react';
 import { useSettings } from '../../settings-context';
 import { FEEDBACK_EMAIL, REPO_URL } from './constants';
@@ -66,7 +67,7 @@ export function FeedbackTab() {
           disabled={!feedback.trim()}
           className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-[13px] font-medium text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-40"
         >
-          <Github size={13} strokeWidth={2} />
+          <GithubMark size={13} />
           {t('prefs.feedback.send.issue')}
         </button>
       </div>

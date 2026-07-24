@@ -1,4 +1,5 @@
-import { ExternalLink, Github, Star } from 'lucide-react';
+import { ExternalLink, Star } from 'lucide-react';
+import { GithubMark } from '../github-mark';
 import { useEffect, useState } from 'react';
 import { useSettings } from '../../settings-context';
 import type { I18nKey } from '../../i18n';
@@ -33,7 +34,7 @@ export function AboutTab() {
         className="group flex items-center gap-3.5 rounded-xl border border-hairline bg-surface-2 px-4 py-4 text-left transition-colors hover:border-ink/15 hover:bg-surface-2/70"
       >
         <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-1 text-ink">
-          <Github size={22} strokeWidth={1.75} />
+          <GithubMark size={22} />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 text-[13px] font-semibold text-ink">
