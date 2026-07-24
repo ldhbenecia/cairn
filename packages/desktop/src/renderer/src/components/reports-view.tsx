@@ -108,9 +108,11 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
       const streamed = assembleCached(loadedTargets).rows;
       if (streamed.length > 0) setPerDay(streamed);
     };
-    const onProgress = (done: number, total: number): void => {
+    // 초기 로드는 진행 바(scanning && exporting)가 안 보여 done/total 이 화면에 안 쓰인다 —
+    // 페이지마다 setScan 하면 숨겨진 수치 때문에 뷰 전체가 재렌더되므로, scanning 은 위에서 1회만
+    // 세팅하고 여기선 rAF 로 묶은 스트리밍 렌더만 한다
+    const onProgress = (): void => {
       if (!alive) return;
-      if (inlineBar) setScan({ done, total });
       if (raf === 0) raf = requestAnimationFrame(flush);
     };
     void startScan(loadedSince, until, loadedTargets, onProgress).then((full) => {
