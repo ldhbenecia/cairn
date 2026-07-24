@@ -414,7 +414,11 @@ function ObsidianIntegrationCard() {
                 {t('prefs.export.autoSyncDesc')}
               </p>
             </div>
-            <Toggle checked={exp.autoSync} onChange={(v) => setExp({ autoSync: v })} />
+            <Toggle
+              checked={exp.autoSync}
+              ariaLabel={t('prefs.export.autoSync')}
+              onChange={(v) => setExp({ autoSync: v })}
+            />
           </div>
         </>
       )}
@@ -469,7 +473,13 @@ function GitBackupCard() {
       icon={<GitBranch size={19} strokeWidth={1.8} className="text-ink-muted" />}
       title={t('backup.title')}
       desc={t('backup.desc')}
-      action={<Toggle checked={enabled} onChange={(v) => update({ backup: { enabled: v } })} />}
+      action={
+        <Toggle
+          checked={enabled}
+          ariaLabel={t('backup.title')}
+          onChange={(v) => update({ backup: { enabled: v } })}
+        />
+      }
     >
       {enabled && status && (
         <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-hairline pt-3 text-[12px]">

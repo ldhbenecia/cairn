@@ -21,7 +21,11 @@ export function NotificationsTab() {
   return (
     <Section label={t('prefs.section.general')}>
       <Field label={t('prefs.notifications')} desc={t('prefs.notifications.desc')}>
-        <Toggle checked={settings.notifications} onChange={(v) => update({ notifications: v })} />
+        <Toggle
+          checked={settings.notifications}
+          ariaLabel={t('prefs.notifications')}
+          onChange={(v) => update({ notifications: v })}
+        />
       </Field>
       <Field label={t('prefs.notifications.test')} desc={t('prefs.notifications.testDesc')}>
         <button
