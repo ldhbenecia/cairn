@@ -276,13 +276,10 @@ export class GithubCollectorService {
     }
     const out: PrCommitOnDate[] = [];
     for (const c of raw) {
-      const subject =
-        c.subject.length > PR_COMMIT_SUBJECT_MAX_CHARS
-          ? c.subject.slice(0, PR_COMMIT_SUBJECT_MAX_CHARS)
-          : c.subject;
       try {
+        // body 와 동일 — 자르기 전 원본 subject 로 검사해 경계 회피를 막는다
         assertNoForbiddenPayload(
-          subject,
+          c.subject,
           `github.pr-commit.${item.repo}#${item.number}.${c.shortSha}`,
         );
       } catch {
@@ -293,6 +290,10 @@ export class GithubCollectorService {
         );
         continue;
       }
+      const subject =
+        c.subject.length > PR_COMMIT_SUBJECT_MAX_CHARS
+          ? c.subject.slice(0, PR_COMMIT_SUBJECT_MAX_CHARS)
+          : c.subject;
       out.push({ shortSha: c.shortSha, subject, authoredAt: c.authoredAt });
     }
     return out;
@@ -301,9 +302,10 @@ export class GithubCollectorService {
   private safeSearchBody(item: SearchPrItem): string | null {
     const raw = item.body;
     if (!raw) return null;
-    const truncated = raw.length > PR_BODY_MAX_CHARS ? raw.slice(0, PR_BODY_MAX_CHARS) : raw;
     try {
-      assertNoForbiddenPayload(truncated, `github.pr-body.${item.repo}#${item.number}`);
+      // 자르기 전 원본으로 검사한다 — 토큰/이메일이 PR_BODY_MAX_CHARS 경계에 걸치면 잘린 조각이
+      // length-gated 정규식(ghp_{30,}·이메일 TLD 등)을 회피할 수 있어, 원본을 먼저 검사 후 truncate
+      assertNoForbiddenPayload(raw, `github.pr-body.${item.repo}#${item.number}`);
     } catch (err) {
       this.logger.warn(
         { repo: item.repo, number: item.number, err: CairnError.from(err, 'github').code },
@@ -311,7 +313,7 @@ export class GithubCollectorService {
       );
       return null;
     }
-    return truncated;
+    return raw.length > PR_BODY_MAX_CHARS ? raw.slice(0, PR_BODY_MAX_CHARS) : raw;
   }
 }
 
