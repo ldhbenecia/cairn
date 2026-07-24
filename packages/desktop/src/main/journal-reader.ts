@@ -2,6 +2,8 @@ import { open, readdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { readConfig } from './files';
+import { FILE_PATTERNS, journalFileCategory, stripFrontmatter } from './journal-files';
+import { searchJournals, type JournalSearchHit } from './journal-search';
 import {
   listRecentPages,
   type PageContent,
@@ -17,12 +19,7 @@ import { buildExportIndex, exportIndexKey, journalFileNameFor } from './worklog-
 export const JOURNAL_PAGE_PREFIX = 'journal:';
 export const JOURNAL_WORKSPACE_LABEL = 'local';
 
-const FILE_PATTERNS: { re: RegExp; category: RecentCategory }[] = [
-  { re: /^\d{4}-\d{2}-\d{2}\.md$/, category: 'daily' },
-  { re: /^\d{4}-W\d{2}\.md$/, category: 'weekly' },
-  { re: /^\d{4}-\d{2}\.md$/, category: 'monthly' },
-  { re: /^\d{4}\.md$/, category: 'yearly' },
-];
+// FILE_PATTERNS·stripFrontmatter 는 journal-files.ts(순수 모듈)로 분리 — 검색 스펙과 공유
 
 export async function journalFolder(): Promise<string> {
   const cfg = await readConfig();
@@ -150,6 +147,37 @@ export async function readJournalPageContent(pageId: string): Promise<PageConten
   }
 }
 
+// 일지 본문 검색 — journal 폴더의 패턴 일치 md 전문을 읽어 순수 매칭(journal-search)에 넘긴다.
+// 검색은 사용자 발화형(디바운스 뒤 호출)이라 목록의 head-only 최적화와 달리 전문을 읽어도 되고,
+// frontmatter 는 제외해 날짜·notion 메타에 오매칭하지 않는다. 완전 로컬 — 외부 송신 없음
+export async function searchJournalContents(query: string): Promise<JournalSearchHit[]> {
+  if (query.trim().length < 2) return [];
+  const folder = await journalFolder();
+  let names: string[];
+  try {
+    names = await readdir(folder);
+  } catch {
+    return [];
+  }
+  const targets = names
+    .map((name) => ({ name, category: journalFileCategory(name) }))
+    .filter((t): t is { name: string; category: RecentCategory } => t.category !== undefined);
+  const files = await Promise.all(
+    targets.map(async ({ name, category }) => {
+      try {
+        const raw = await readFile(join(folder, name), 'utf8');
+        return { fileName: name, category, body: stripFrontmatter(raw).body };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return searchJournals(
+    files.filter((f): f is NonNullable<typeof f> => f !== null),
+    query,
+  );
+}
+
 // 파일 앞 N 바이트만 읽는다 — frontmatter(작은 고정 필드) 파싱용. 경계에서 멀티바이트가
 // 잘려도 frontmatter 종료(\n---\n)는 head 안에 있어 파싱에 영향 없음
 async function readFileHead(path: string, bytes: number): Promise<string> {
@@ -193,30 +221,6 @@ function toJournalPage(fileName: string, category: RecentCategory, raw: string):
     fileName,
     notionRef: fm.get('notion') ?? null,
   };
-}
-
-function stripFrontmatter(raw: string): { fm: Map<string, string>; body: string } {
-  const fm = new Map<string, string>();
-  // 외부 에디터가 CRLF 로 저장할 수 있다 — 파싱 전 정규화
-  const text = raw.replace(/\r\n/g, '\n');
-  if (!text.startsWith('---\n')) return { fm, body: text };
-  const end = text.indexOf('\n---\n', 4);
-  if (end === -1) return { fm, body: text };
-  for (const line of text.slice(4, end).split('\n')) {
-    const idx = line.indexOf(':');
-    if (idx === -1) continue;
-    const key = line.slice(0, idx).trim();
-    let value = line.slice(idx + 1).trim();
-    if (value.startsWith('"') && value.endsWith('"')) {
-      try {
-        value = JSON.parse(value) as string;
-      } catch {
-        /* 원문 유지 */
-      }
-    }
-    fm.set(key, value);
-  }
-  return { fm, body: text.slice(end + 5) };
 }
 
 // journal md 는 자체 생성물이라 구조가 한정적 — 헤딩·불릿·문단만 블록으로 변환
