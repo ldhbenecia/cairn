@@ -24,7 +24,6 @@ export type GraphConfig = {
   labels: GraphLabels;
   showRollups: boolean;
 };
-export type QuickCaptureConfig = { enabled: boolean; shortcut: string };
 export type BackupConfig = { enabled: boolean };
 export type BackupStatus = {
   state: 'disabled' | 'no-git' | 'no-repo' | 'idle' | 'syncing';
@@ -51,7 +50,6 @@ export type Settings = {
   summaryModel: SummaryModel;
   export: ExportConfig;
   graph: GraphConfig;
-  quickCapture: QuickCaptureConfig;
   backup: BackupConfig;
 };
 
