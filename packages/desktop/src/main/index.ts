@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electron';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
 import { warmClaudePath } from './claude-path';
 import { exportStatus, pickExportFolder, saveMarkdown, savePdf, savePng } from './export';
@@ -104,11 +104,17 @@ function createWindow(startHidden: boolean): BrowserWindow {
     },
   });
 
-  // 보안: 메인 윈도우는 로컬 번들만 렌더 — 원격 URL 네비게이션을 막아 preload 브릿지가
-  // 외부 콘텐츠에 노출되는 벡터를 차단. 새 창 요청은 외부 브라우저로만 (https 한정)
+  // 보안: 메인 윈도우는 로컬 번들만 렌더 — 원격 URL 은 물론 임의 로컬 file:// 도 막는다.
+  // 번들 index.html 정확 일치만 허용(그 페이지에 preload 브릿지가 주입되므로 다른 file:// 로
+  // 새는 벡터 차단). 새 창 요청은 외부 브라우저로만 (https 한정)
+  const bundleUrl = pathToFileURL(join(__dirname, '../renderer/index.html')).href;
   win.webContents.on('will-navigate', (e, url) => {
     const dev = process.env.ELECTRON_RENDERER_URL;
-    if ((dev && url.startsWith(dev)) || url.startsWith('file://')) return;
+    const okDev =
+      dev != null && (url === dev || url.startsWith(`${dev}#`) || url.startsWith(`${dev}?`));
+    const okBundle =
+      url === bundleUrl || url.startsWith(`${bundleUrl}#`) || url.startsWith(`${bundleUrl}?`);
+    if (okDev || okBundle) return;
     e.preventDefault();
   });
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -258,8 +264,17 @@ void app.whenReady().then(() => {
     };
   });
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {
-    // IPC 경계 — truthy 문자열이 백업을 켜는 것 방지
+    // IPC 경계 — renderer 는 신뢰 불가. 부작용 있는 필드는 타입 강제(truthy 문자열 등으로
+    // OS 로그인 항목·임의 경로 열기/쓰기가 켜지는 것 방지)
     if (patch.backup) patch.backup = { enabled: patch.backup.enabled === true };
+    if (patch.launchAtLogin !== undefined) patch.launchAtLogin = patch.launchAtLogin === true;
+    if (patch.export) {
+      const folder = patch.export.folder;
+      patch.export = {
+        ...patch.export,
+        folder: typeof folder === 'string' || folder === null ? folder : null,
+      };
+    }
     const next = writeSettings(patch);
     if (patch.autoPublish) {
       reconfigureAutoPublish();
