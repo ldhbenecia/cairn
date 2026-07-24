@@ -1,4 +1,4 @@
-import { Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
+import { Loader2, Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GraphConfig, GraphLabels, RecentListResult, RecentPage } from '../cairn-api';
 import { ACCENTS, useSettings } from '../settings-context';
@@ -569,12 +569,19 @@ export function GraphView({
     };
   }, [signature, cfg.showRollups]);
 
-  const empty = !pages || pages.filter((p) => p.date !== null).length === 0;
+  // recent===null 은 최초 로드 중 — '일지 없음' 오표시 대신 로딩. empty 는 로드 완료 후 빈 경우만
+  const loading = recent === null;
+  const empty = !loading && (!pages || pages.filter((p) => p.date !== null).length === 0);
   const setGraph = (patch: Partial<GraphConfig>): void => update({ graph: { ...cfg, ...patch } });
 
   return (
     <main className="relative min-w-0 flex-1 overflow-hidden bg-canvas">
-      {empty ? (
+      {loading ? (
+        <div className="flex h-full items-center justify-center gap-2 text-ink-tertiary">
+          <Loader2 size={14} strokeWidth={2} className="animate-spin" />
+          <span className="text-[13px]">{t('list.loading')}</span>
+        </div>
+      ) : empty ? (
         <div className="flex h-full items-center justify-center">
           <p className="text-[13.5px] text-ink-subtle">{t('graph.empty')}</p>
         </div>

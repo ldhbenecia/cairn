@@ -171,7 +171,12 @@ export function WrappedDialog({
           )}
         </div>
 
-        {!stats || stats.activeDays === 0 ? (
+        {recent === null ? (
+          <div className="flex items-center justify-center gap-2 px-6 py-14 text-ink-tertiary">
+            <Loader2 size={14} strokeWidth={2} className="animate-spin" />
+            <span className="text-[13px]">{t('list.loading')}</span>
+          </div>
+        ) : !stats || stats.activeDays === 0 ? (
           <p className="px-6 py-14 text-center text-[13px] text-ink-tertiary">
             {t('wrapped.empty')}
           </p>

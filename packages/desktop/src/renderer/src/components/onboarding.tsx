@@ -47,12 +47,20 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const patchGithub = (i: number, p: Partial<GithubEntry>) =>
     setGithub((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
 
+  // 프로브 결과는 index 가 아니라 token 으로 적용한다 — 프로브 중 계정을 제거·수정하면 index 가
+  // 밀려 엉뚱한 항목에 status/login 이 찍히던 버그(감사 지적). token 이 안 맞으면 결과는 버려진다
+  const patchGithubByToken = (token: string, p: Partial<GithubEntry>) =>
+    setGithub((prev) => prev.map((e) => (e.token.trim() === token ? { ...e, ...p } : e)));
+
   async function testGithub(i: number) {
-    const e = github[i]!;
-    if (!e.token.trim()) return;
-    patchGithub(i, { status: 'testing', error: undefined });
-    const r = await window.cairn.onboarding.probeGithub(e.token.trim());
-    patchGithub(i, r.ok ? { status: 'ok', login: r.login } : { status: 'err', error: r.error });
+    const token = github[i]!.token.trim();
+    if (!token) return;
+    patchGithubByToken(token, { status: 'testing', error: undefined });
+    const r = await window.cairn.onboarding.probeGithub(token);
+    patchGithubByToken(
+      token,
+      r.ok ? { status: 'ok', login: r.login } : { status: 'err', error: r.error },
+    );
   }
 
   async function importFromGh() {
