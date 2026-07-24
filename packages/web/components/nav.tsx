@@ -13,9 +13,10 @@ function formatStars(n: number): string {
 export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
   const c = content[lang].nav;
   const home = lang === 'ko' ? '/ko' : '/';
+  // 해시 앵커는 홈 절대경로로 — /pricing·/setup 등 다른 페이지에서도 홈 섹션으로 이동(예전엔 죽은 링크)
   const links = [
-    { href: '#how', label: c.how },
-    { href: '#output', label: c.worklog },
+    { href: `${home}#how`, label: c.how },
+    { href: `${home}#output`, label: c.worklog },
     { href: lang === 'ko' ? '/ko/setup/notion' : '/setup/notion', label: c.setup },
     { href: lang === 'ko' ? '/ko/pricing' : '/pricing', label: c.pricing },
   ];
@@ -37,14 +38,15 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
             {links.map((l) => {
               const cls =
                 'rounded-lg px-3 py-1.5 text-[13.5px] whitespace-nowrap text-ink-muted transition-colors hover:bg-surface-2/70 hover:text-ink';
-              return l.href.startsWith('/') ? (
-                <Link key={l.href} href={l.href} className={cls}>
-                  {l.label}
-                </Link>
-              ) : (
+              // 해시(홈 섹션)는 크로스페이지 스크롤이 확실한 <a>, 순수 라우트만 <Link>
+              return l.href.includes('#') ? (
                 <a key={l.href} href={l.href} className={cls}>
                   {l.label}
                 </a>
+              ) : (
+                <Link key={l.href} href={l.href} className={cls}>
+                  {l.label}
+                </Link>
               );
             })}
           </nav>

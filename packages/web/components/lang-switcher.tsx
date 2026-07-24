@@ -1,13 +1,22 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import type { Lang } from '../lib/content';
 
 const LABELS: Record<Lang, string> = { en: 'English', ko: '한국어' };
 
+// 현재 경로를 유지한 채 로케일만 바꾼다 — 예전엔 항상 홈으로 가 /pricing 등에서 페이지를 잃었다
+function localizedHref(pathname: string, target: Lang): string {
+  const rest = pathname.replace(/^\/ko(?=\/|$)/, '') || '/';
+  if (target === 'en') return rest;
+  return rest === '/' ? '/ko' : `/ko${rest}`;
+}
+
 export function LangSwitcher({ lang }: { lang: Lang }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,7 +61,7 @@ export function LangSwitcher({ lang }: { lang: Lang }) {
           {(['en', 'ko'] as const).map((l) => (
             <a
               key={l}
-              href={l === 'ko' ? '/ko' : '/'}
+              href={localizedHref(pathname, l)}
               className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-[13px] transition-colors ${
                 l === lang
                   ? 'bg-surface-2 font-medium text-ink'
