@@ -262,7 +262,7 @@ export function WrappedDialog({
                     <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
                       <div
                         className={`w-full max-w-[34px] rounded-[3px] ${
-                          isMax ? 'bg-accent' : v > 0 ? 'bg-accent/35' : 'bg-surface-3'
+                          isMax ? 'bg-accent' : v > 0 ? 'bg-ink-subtle/25' : 'bg-surface-3'
                         }`}
                         style={{ height: `${Math.max(v > 0 ? 4 : 2, (v / dowMax) * 44)}px` }}
                         title={v.toLocaleString()}

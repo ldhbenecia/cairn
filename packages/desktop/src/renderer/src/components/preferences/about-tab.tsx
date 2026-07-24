@@ -79,7 +79,11 @@ export function AboutTab() {
 
       <Section label={t('prefs.section.privacy')}>
         <Field label={t('prefs.telemetry')} desc={t('prefs.telemetry.desc')}>
-          <Toggle checked={settings.telemetry} onChange={(v) => update({ telemetry: v })} />
+          <Toggle
+            checked={settings.telemetry}
+            ariaLabel={t('prefs.telemetry')}
+            onChange={(v) => update({ telemetry: v })}
+          />
         </Field>
         <p className="pt-4 text-[12px] leading-relaxed text-ink-tertiary">{t('prefs.privacy')}</p>
       </Section>

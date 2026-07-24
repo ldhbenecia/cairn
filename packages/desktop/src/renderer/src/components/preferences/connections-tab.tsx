@@ -150,7 +150,11 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
       />
       <div className="flex items-center justify-between py-2 pl-6 pr-2">
         <span className="text-[12px] text-ink-tertiary">{t('prefs.conn.localGitCollect')}</span>
-        <Toggle checked={localGitEnabled} onChange={onToggleLocalGit} />
+        <Toggle
+          checked={localGitEnabled}
+          ariaLabel={t('prefs.conn.localGitCollect')}
+          onChange={onToggleLocalGit}
+        />
       </div>
       <div className="pt-4">
         <button

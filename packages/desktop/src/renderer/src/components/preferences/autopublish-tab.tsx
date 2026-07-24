@@ -22,19 +22,35 @@ export function AutoPublishTab() {
     <div className="flex flex-col gap-9">
       <Section label={t('prefs.section.general')}>
         <Field label={t('prefs.launchAtLogin')} desc={t('prefs.launchAtLogin.desc')}>
-          <Toggle checked={settings.launchAtLogin} onChange={(v) => update({ launchAtLogin: v })} />
+          <Toggle
+            checked={settings.launchAtLogin}
+            ariaLabel={t('prefs.launchAtLogin')}
+            onChange={(v) => update({ launchAtLogin: v })}
+          />
         </Field>
       </Section>
 
       <Section label={t('prefs.section.schedule')}>
         <Field label={t('prefs.autoPublish.daily')} desc={t('prefs.autoPublish.dailyDesc')}>
-          <Toggle checked={ap.daily} onChange={(v) => set({ daily: v })} />
+          <Toggle
+            checked={ap.daily}
+            ariaLabel={t('prefs.autoPublish.daily')}
+            onChange={(v) => set({ daily: v })}
+          />
         </Field>
         <Field label={t('prefs.autoPublish.weekly')} desc={t('prefs.autoPublish.weeklyDesc')}>
-          <Toggle checked={ap.weekly} onChange={(v) => set({ weekly: v })} />
+          <Toggle
+            checked={ap.weekly}
+            ariaLabel={t('prefs.autoPublish.weekly')}
+            onChange={(v) => set({ weekly: v })}
+          />
         </Field>
         <Field label={t('prefs.autoPublish.monthly')} desc={t('prefs.autoPublish.monthlyDesc')}>
-          <Toggle checked={ap.monthly} onChange={(v) => set({ monthly: v })} />
+          <Toggle
+            checked={ap.monthly}
+            ariaLabel={t('prefs.autoPublish.monthly')}
+            onChange={(v) => set({ monthly: v })}
+          />
         </Field>
       </Section>
 
@@ -67,6 +83,7 @@ export function AutoPublishTab() {
         >
           <Toggle
             checked={ap.confirmBeforeRun}
+            ariaLabel={t('prefs.autoPublish.confirm')}
             disabled={!anyOn}
             onChange={(v) => set({ confirmBeforeRun: v })}
           />

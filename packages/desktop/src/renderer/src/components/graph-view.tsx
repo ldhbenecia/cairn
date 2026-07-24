@@ -662,6 +662,7 @@ export function GraphView({
                 <PanelRow label={t('graph.showRollups')}>
                   <Toggle
                     checked={cfg.showRollups}
+                    ariaLabel={t('graph.showRollups')}
                     onChange={(v) => setGraph({ showRollups: v })}
                   />
                 </PanelRow>
