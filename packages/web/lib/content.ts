@@ -168,7 +168,6 @@ export const content = {
         s1post: ' and log in — cairn inherits that auth, no extra cost.',
         s2: 'Or paste an Anthropic API key. Either works.',
       },
-      notionVideo: 'Notion integration — 40-second walkthrough',
       gatekeeperPre: 'macOS note: ',
       gatekeeper:
         'the app isn\'t code-signed yet, so the first launch may be blocked as "damaged" — right-click → Open does not clear it. Run ',
@@ -383,7 +382,6 @@ export const content = {
         s1post: ' 를 설치·로그인하면 — cairn 이 그 인증을 인계받아 추가 과금 없이 동작합니다.',
         s2: '또는 Anthropic API key 를 붙여넣어도 됩니다. 둘 다 됩니다.',
       },
-      notionVideo: 'Notion integration 연결 — 40초 영상 가이드',
       gatekeeperPre: 'macOS 참고: ',
       gatekeeper:
         '아직 코드 서명이 안 돼 있어 첫 실행 시 "손상됨" 안내로 막힐 수 있습니다 — 우클릭 → 열기로는 풀리지 않아요. 터미널에서 ',

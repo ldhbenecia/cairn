@@ -1,4 +1,4 @@
-import { CalendarDays, GitPullRequest, LayoutDashboard, ShieldCheck, Sparkles } from 'lucide-react';
+import { CalendarDays, FileText, GitPullRequest, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 
 import { VIDEO } from '../lib/assets';
@@ -15,7 +15,7 @@ import { ClaudeStatusDot, StatusDot } from './status-dot';
 import { Accordion } from './ui/accordion';
 import { BentoGrid, type BentoItem } from './ui/bento-grid';
 
-const HL_ICONS = [GitPullRequest, Sparkles, CalendarDays, LayoutDashboard, ShieldCheck];
+const HL_ICONS = [GitPullRequest, FileText, CalendarDays, LayoutDashboard, ShieldCheck];
 const HL_COLORS = [
   'text-blue-400',
   'text-emerald-400',
@@ -41,7 +41,7 @@ export async function Landing({ lang }: { lang: Lang }) {
   const download = RELEASES_LATEST;
   const unblockCmd = 'xattr -d com.apple.quarantine /Applications/Cairn.app';
   const highlightItems: BentoItem[] = c.highlights.items.map((it, i) => {
-    const Icon = HL_ICONS[i] ?? Sparkles;
+    const Icon = HL_ICONS[i] ?? FileText;
     return {
       ...it,
       icon: <Icon className={`h-4 w-4 ${HL_COLORS[i] ?? 'text-ink-subtle'}`} />,
