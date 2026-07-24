@@ -15,6 +15,7 @@ import type { RunSession } from '../App';
 import type {
   CoreMode,
   CoreRunOptions,
+  JournalSearchHit,
   RecentCategory,
   RecentListResult,
   RecentPage,
@@ -102,11 +103,43 @@ export function WorklogList({
 
   const pages = recent?.pages ?? [];
 
+  // 본문 검색 — 제목(=날짜) 매칭이 못 잡는 일지 내용·[레포] 프리픽스를 main 의 로컬 journal
+  // 검색 IPC 로 보강. 타이핑마다 전문 스캔하지 않게 200ms 디바운스, 2글자 미만은 스킵
+  const [bodyHits, setBodyHits] = useState<JournalSearchHit[] | null>(null);
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setBodyHits(null);
+      return;
+    }
+    let alive = true;
+    const timer = setTimeout(() => {
+      void window.cairn.journalSearch(q).then((hits) => {
+        if (alive) setBodyHits(hits);
+      });
+    }, 200);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  // 히트 → 행 스니펫 매핑 (매칭 안 되는 히트는 조용히 드롭)
+  const bodyMatch = useMemo(() => {
+    if (!bodyHits || bodyHits.length === 0) return null;
+    const m = new Map<string, string>();
+    for (const p of pages) {
+      const hit = bodyHits.find((h) => hitMatchesPage(h, p));
+      if (hit) m.set(p.pageId, hit.snippet);
+    }
+    return m.size > 0 ? m : null;
+  }, [bodyHits, pages]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const rows = pages.filter((p) => {
       if (filter !== 'all' && p.category !== filter) return false;
-      if (q && !p.title.toLowerCase().includes(q)) return false;
+      if (q && !p.title.toLowerCase().includes(q) && !bodyMatch?.has(p.pageId)) return false;
       return true;
     });
     rows.sort((a, b) => {
@@ -114,7 +147,7 @@ export function WorklogList({
       return desc ? -cmp : cmp;
     });
     return rows;
-  }, [pages, filter, query, desc]);
+  }, [pages, filter, query, desc, bodyMatch]);
 
   const groups = useMemo(() => groupRows(filtered, groupBy, t), [filtered, groupBy, t]);
 
@@ -283,6 +316,7 @@ export function WorklogList({
                           t={t}
                           onOpen={onOpen}
                           selected={p.pageId === selectedId}
+                          snippet={bodyMatch?.get(p.pageId)}
                         />
                       ))}
                     </div>
@@ -304,6 +338,7 @@ export function WorklogList({
                   t={t}
                   onOpen={onOpen}
                   selected={p.pageId === selectedId}
+                  snippet={bodyMatch?.get(p.pageId)}
                 />
               ))}
             </motion.div>
@@ -404,16 +439,29 @@ function groupRows(rows: RecentPage[], groupBy: GroupBy, t: T): Group[] | null {
   return keys.map((k) => ({ key: k, label: labelOf(k), rows: map.get(k) as RecentPage[] }));
 }
 
+// 본문 검색 히트 → recent 행 매핑. 로컬 행은 pageId 가 journal:<파일명> 로 직결되고,
+// 노션 행은 category + 파일명에 인코딩된 날짜로 대응 — weekly 는 제목의 'YYYY-Wnn' 라벨로 매칭
+function hitMatchesPage(h: JournalSearchHit, p: RecentPage): boolean {
+  if (p.pageId === `journal:${h.fileName}`) return true;
+  if (p.category !== h.category) return false;
+  const base = h.fileName.replace(/\.md$/, '');
+  if (h.category === 'daily') return p.date === base;
+  if (h.category === 'weekly') return p.title.includes(base);
+  return p.date?.startsWith(base) ?? false;
+}
+
 function PageRow({
   page,
   t,
   onOpen,
   selected,
+  snippet,
 }: {
   page: RecentPage;
   t: T;
   onOpen: (p: RecentPage) => void;
   selected: boolean;
+  snippet?: string;
 }) {
   const counts =
     page.pr !== null || page.commit !== null ? { gh: page.pr ?? 0, git: page.commit ?? 0 } : null;
@@ -437,6 +485,7 @@ function PageRow({
         {page.category === 'weekly' && weekRangeLabel(title) && (
           <span className="ml-2 text-[12px] text-ink-tertiary">{weekRangeLabel(title)}</span>
         )}
+        {snippet && <span className="ml-2 text-[12px] text-ink-tertiary">{snippet}</span>}
       </span>
       {/* 우측 메타 — 고정 폭 칼럼 그리드. 값 없는 칸도 자리를 유지해 행끼리 세로 정렬이 맞는다 */}
       <span className="grid shrink-0 grid-cols-[76px_52px] items-center justify-items-end sm:grid-cols-[76px_56px_52px] lg:grid-cols-[116px_76px_56px_52px]">

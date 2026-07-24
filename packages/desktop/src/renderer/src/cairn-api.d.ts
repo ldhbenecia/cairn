@@ -74,6 +74,13 @@ export type RecentWarning =
 
 export type RecentListResult = { pages: RecentPage[]; warnings: RecentWarning[] };
 
+export type JournalSearchHit = {
+  fileName: string;
+  category: RecentCategory;
+  snippet: string;
+  matchCount: number;
+};
+
 export type RichSpan = {
   text: string;
   bold?: boolean;
@@ -256,6 +263,7 @@ declare global {
       readConfig: () => Promise<ConfigResult>;
       setLocalGitEnabled: (enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
       listRecent: () => Promise<RecentListResult>;
+      journalSearch: (query: string) => Promise<JournalSearchHit[]>;
       pageContent: (pageId: string, workspaceLabel: string) => Promise<PageContent>;
       reportsDone: (
         refs: {
