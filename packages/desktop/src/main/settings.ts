@@ -35,11 +35,6 @@ export type GraphConfig = {
   showRollups: boolean;
 };
 
-export type QuickCaptureConfig = {
-  enabled: boolean;
-  shortcut: string;
-};
-
 export type BackupConfig = {
   enabled: boolean;
 };
@@ -63,7 +58,6 @@ export type Settings = {
   summaryModel: SummaryModel;
   export: ExportConfig;
   graph: GraphConfig;
-  quickCapture: QuickCaptureConfig;
   backup: BackupConfig;
 };
 
@@ -89,7 +83,6 @@ const DEFAULTS: Settings = {
   summaryModel: 'sonnet',
   export: { folder: null, autoSync: false },
   graph: { enabled: true, nodeScale: 1, spread: 1, gravity: 1, labels: 'auto', showRollups: true },
-  quickCapture: { enabled: true, shortcut: 'CommandOrControl+Shift+Space' },
   backup: { enabled: false },
 };
 
@@ -134,7 +127,6 @@ export function readSettings(): Settings {
       prompts: { ...DEFAULTS.prompts, ...(parsed.prompts ?? {}) },
       export: { ...DEFAULTS.export, ...(parsed.export ?? {}) },
       graph: { ...DEFAULTS.graph, ...(parsed.graph ?? {}) },
-      quickCapture: { ...DEFAULTS.quickCapture, ...(parsed.quickCapture ?? {}) },
       backup: { ...DEFAULTS.backup, ...(parsed.backup ?? {}) },
     };
   } catch {
@@ -151,7 +143,6 @@ export function writeSettings(patch: Partial<Settings>): Settings {
     prompts: { ...prev.prompts, ...(patch.prompts ?? {}) },
     export: { ...prev.export, ...(patch.export ?? {}) },
     graph: { ...prev.graph, ...(patch.graph ?? {}) },
-    quickCapture: { ...prev.quickCapture, ...(patch.quickCapture ?? {}) },
     backup: { ...prev.backup, ...(patch.backup ?? {}) },
   };
   writeFileAtomic(SETTINGS_PATH, `${JSON.stringify(next, null, 2)}\n`);

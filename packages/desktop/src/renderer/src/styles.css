@@ -507,20 +507,7 @@ textarea {
   animation-play-state: paused;
 }
 
-/* 백필 배치 — 일자 셀: 완료 팝-인 / 동시 처리 중 펄스 / 카운트 증가 */
-@keyframes batch-pop {
-  from {
-    transform: scale(0.4);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-.batch-pop {
-  animation: batch-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
+/* 백필 배치 — 일자 셀: 동시 처리 중 펄스 / 카운트 증가 */
 @keyframes batch-pulse {
   0%,
   100% {

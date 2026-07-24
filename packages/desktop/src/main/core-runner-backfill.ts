@@ -2,6 +2,9 @@ import { broadcast } from './broadcast';
 import type { CoreMode } from './core-runner';
 import type { ParentEvent } from './core-runner-extract';
 
+// 'daily: publish done' 로그 줄에서 날짜 추출 — JSON 한 줄·pino-pretty 멀티라인 모두 대응
+const DATE_LINE_RE = /date["':\s]+["']?(\d{4}-\d{2}-\d{2})/;
+
 // 백필 배치 진행 — 전체 stdout 스트림 기준 누적(렌더러 200줄 tail 제한에 영향받지 않게)
 export type DateStep = 'collect' | 'summarize' | 'publish';
 export type DateCounts = { pr: number; commit: number };
@@ -41,7 +44,7 @@ function trackPublishedPage(line: string): void {
   const pidOf = (l: string): string | undefined =>
     /pageId["':\s]+["']?([0-9a-f-]{32,36})/.exec(l)?.[1];
   if (/daily: publish done/.test(line)) {
-    const d = /date["':\s]+["']?(\d{4}-\d{2}-\d{2})/.exec(line)?.[1];
+    const d = DATE_LINE_RE.exec(line)?.[1];
     const pid = pidOf(line);
     if (d && pid) {
       bfPagesByDate = { ...bfPagesByDate, [d]: pid };
@@ -57,7 +60,7 @@ function trackPublishedPage(line: string): void {
     bfPendingPage = null;
     return;
   }
-  const d = /date["':\s]+["']?(\d{4}-\d{2}-\d{2})/.exec(line)?.[1];
+  const d = DATE_LINE_RE.exec(line)?.[1];
   if (d) bfPendingPage.date = d;
   const pid = pidOf(line);
   if (pid) bfPendingPage.pageId = pid;
@@ -105,7 +108,7 @@ function trackDateStep(line: string): void {
     bfStepBlock = null;
     return;
   }
-  const d = /date["':\s]+["']?(\d{4}-\d{2}-\d{2})/.exec(line);
+  const d = DATE_LINE_RE.exec(line);
   const s = /step["':\s]+["']?(collect|summarize|publish)/.exec(line);
   if (d) bfStepBlock.date = d[1];
   if (s) bfStepBlock.step = s[1] as DateStep;
@@ -134,7 +137,7 @@ function trackDateCounts(line: string): void {
   const isDone = /daily: publish done/.test(line);
   const isNoActivity = /no activity collected/.test(line);
   if (isDone || isNoActivity) {
-    const d = /date["':\s]+["']?(\d{4}-\d{2}-\d{2})/.exec(line);
+    const d = DATE_LINE_RE.exec(line);
     const p = /prCount["':\s]+(\d+)/.exec(line);
     const c = /commitCountTotal["':\s]+(\d+)/.exec(line);
     bfCountBlock = {
@@ -151,7 +154,7 @@ function trackDateCounts(line: string): void {
     bfCountBlock = null;
     return;
   }
-  const d = /date["':\s]+["']?(\d{4}-\d{2}-\d{2})/.exec(line);
+  const d = DATE_LINE_RE.exec(line);
   const p = /prCount["':\s]+(\d+)/.exec(line);
   const c = /commitCountTotal["':\s]+(\d+)/.exec(line);
   if (d) bfCountBlock.date = d[1];
