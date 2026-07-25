@@ -20,7 +20,7 @@ import { cloudAuthState, cloudSignOut, startCloudSignIn } from './cloud-auth';
 import { syncStats } from './cloud-sync';
 import { readConfig } from './files';
 import { type RecentCategory } from './notion-client';
-import { listRecentMerged } from './journal-reader';
+import { listRecentMerged, searchJournalContents } from './journal-reader';
 import { readPageBlocks, scanReportsDone, type ReportsDoneRef } from './reports-scan';
 import {
   listJournalSnapshots,
@@ -232,6 +232,10 @@ void app.whenReady().then(() => {
     setLocalGitEnabled(enabled === true),
   );
   ipcMain.handle('cairn:recent:list', () => listRecentMerged());
+  // 일지 본문 검색 — 로컬 journal md 만 스캔(파일명 패턴 가드), 외부 송신 없음
+  ipcMain.handle('cairn:journal:search', (_e, query: string) =>
+    typeof query === 'string' ? searchJournalContents(query.slice(0, 200)) : [],
+  );
   ipcMain.handle('cairn:snapshots:list', (_e, category: RecentCategory, date: string) =>
     listJournalSnapshots(category, date),
   );

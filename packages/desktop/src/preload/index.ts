@@ -289,6 +289,8 @@ contextBridge.exposeInMainWorld('cairn', {
     }>,
   listRecent: (): Promise<RecentListResult> =>
     ipcRenderer.invoke('cairn:recent:list') as Promise<RecentListResult>,
+  journalSearch: (query: string): Promise<unknown> =>
+    ipcRenderer.invoke('cairn:journal:search', query) as Promise<unknown>,
   pageContent: (pageId: string, workspaceLabel: string): Promise<unknown> =>
     ipcRenderer.invoke('cairn:notion:page-content', pageId, workspaceLabel) as Promise<unknown>,
   reportsDone: (refs: unknown[]): Promise<unknown> =>
