@@ -4,11 +4,16 @@ import {
   Check,
   GitCommitHorizontal,
   GitPullRequest,
+  HardDrive,
   Inbox,
+  Minus,
   TriangleAlert,
+  X,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { CoreResult, RunProgress } from '../cairn-api';
+import type { SinkOutcome } from '../lib/publish-sinks';
+import { NotionMark, ObsidianMark } from './brand-icons';
 import type { T } from './publish-dialog-utils';
 
 function pageIdToUrl(pageId: string | null): string | null {
@@ -114,6 +119,7 @@ export function Result({
   result,
   elapsedSec,
   modelLabel,
+  sinkOutcomes,
   t,
   onClose,
   onOpenPublished,
@@ -122,6 +128,7 @@ export function Result({
   result: CoreResult;
   elapsedSec: number | null;
   modelLabel: string;
+  sinkOutcomes?: SinkOutcome[];
   t: T;
   onClose: () => void;
   onOpenPublished: (pageId: string, url: string | null) => void;
@@ -203,6 +210,42 @@ export function Result({
     <div className="flex flex-col gap-5 py-2">
       <div className="flex flex-col gap-2">
         {body}
+        {/* 발행 대상별 체크 — 이번 발행이 어디에 갔는지(로컬/Notion/Obsidian) 명시 */}
+        {sinkOutcomes && sinkOutcomes.length > 0 && (
+          <div className="mx-auto mt-1 flex flex-wrap items-center justify-center gap-1.5">
+            {sinkOutcomes.map((o) => {
+              const label =
+                o.sink === 'journal'
+                  ? t('publish.sink.journal')
+                  : o.sink === 'notion'
+                    ? 'Notion'
+                    : 'Obsidian';
+              return (
+                <span
+                  key={o.sink}
+                  title={`${label} · ${t(`publish.sink.${o.state}`)}`}
+                  className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface-1 px-2.5 py-1 text-[11.5px] text-ink-muted"
+                >
+                  {o.sink === 'journal' ? (
+                    <HardDrive size={11} strokeWidth={2.25} className="text-ink-subtle" />
+                  ) : o.sink === 'notion' ? (
+                    <NotionMark size={10} />
+                  ) : (
+                    <ObsidianMark size={11} />
+                  )}
+                  {label}
+                  {o.state === 'ok' ? (
+                    <Check size={12} strokeWidth={2.5} className="text-success" />
+                  ) : o.state === 'skipped' ? (
+                    <Minus size={12} strokeWidth={2.5} className="text-ink-tertiary" />
+                  ) : (
+                    <X size={12} strokeWidth={2.5} className="text-danger" />
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        )}
         {isSuccess && (result.prCount > 0 || result.commitCount > 0) && (
           <div className="mt-1 grid grid-cols-2 gap-2.5">
             <div className="flex items-center gap-2.5 rounded-lg border border-hairline bg-surface-1 px-3.5 py-3">

@@ -9,6 +9,7 @@ import { useCloudAuth } from '../use-cloud-auth';
 import { DatePicker } from './date-picker';
 import { Segmented } from './preferences/field';
 import { Progress } from './publish-dialog-progress';
+import { deriveSinkOutcomes } from '../lib/publish-sinks';
 import { CancelledCard, ErrorCard, Result } from './publish-dialog-result';
 
 type Props = {
@@ -237,6 +238,11 @@ export function PublishDialog({
             ) : showProgress && isDone && session?.result ? (
               <Result
                 result={session.result}
+                sinkOutcomes={deriveSinkOutcomes({
+                  result: session.result,
+                  skipNotion,
+                  obsidianConfigured: !!settings.export.folder && settings.export.autoSync,
+                })}
                 elapsedSec={
                   session.endedAt && session.startedAt > 0
                     ? Math.max(0, Math.floor((session.endedAt - session.startedAt) / 1000))
