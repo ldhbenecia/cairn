@@ -5,12 +5,14 @@ import {
   ChartPie,
   Clock,
   Gauge,
+  History,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult, RecentPage } from '../cairn-api';
 import type { I18nKey } from '../i18n';
+import { recallEntries, type RecallEntry, type RecallKey } from '../lib/recall';
 import { useSettings } from '../settings-context';
 
 type T = (key: I18nKey) => string;
@@ -265,6 +267,7 @@ export function Dashboard({
   const scrollRef = useRef<HTMLDivElement>(null);
   const data = useMemo(() => aggregate(recent?.pages ?? []), [recent]);
   const insights = useMemo(() => computeInsights(data), [data]);
+  const recall = useMemo(() => recallEntries(recent?.pages ?? []), [recent]);
   const cumulative = useMemo(() => cumulativeSeries(data.byDate), [data]);
   const recentMonths = data.months.slice(-12);
 
@@ -324,6 +327,12 @@ export function Dashboard({
                 <InsightCards insights={insights} t={t} />
               </Reveal>
 
+              {recall.length > 0 && (
+                <Reveal className="dash-rise" root={scrollRef}>
+                  <RecallCard entries={recall} t={t} onPickDate={onPickDate} />
+                </Reveal>
+              )}
+
               {cumulative && cumulative.length > 1 && (
                 <Reveal className="dash-rise" root={scrollRef}>
                   <CumulativeChart series={cumulative} t={t} />
@@ -381,6 +390,53 @@ function SectionHead({ label, right }: { label: string; right?: ReactNode }) {
         {label}
       </span>
       {right}
+    </div>
+  );
+}
+
+// '그때의 오늘' — 1주/1달/1년 전 오늘의 일간 일지 되살림. 클릭 시 해당 일지 열기(onPickDate)
+function RecallCard({
+  entries,
+  t,
+  onPickDate,
+}: {
+  entries: RecallEntry[];
+  t: T;
+  onPickDate?: (date: string) => void;
+}) {
+  const LABEL: Record<RecallKey, I18nKey> = {
+    week: 'recall.week',
+    month: 'recall.month',
+    year: 'recall.year',
+  };
+  return (
+    <div className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
+      <p className="px-4 pt-3 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
+        {t('recall.title')}
+      </p>
+      <div className="grid grid-flow-col auto-cols-fr divide-x divide-hairline">
+        {entries.map((e) => (
+          <button
+            key={e.key}
+            type="button"
+            onClick={() => onPickDate?.(e.date)}
+            className="flex flex-col gap-1.5 px-4 py-3.5 text-left transition-[background-color] hover:bg-surface-2"
+          >
+            <span className="flex items-center gap-1.5 text-[12px] text-ink-tertiary">
+              <History size={14} strokeWidth={2} className="text-ink-subtle" />
+              {t(LABEL[e.key])}
+            </span>
+            <span className="text-[18px] font-semibold tracking-[-0.3px] text-ink tabular-nums">
+              {e.date.slice(5)}
+            </span>
+            <span className="text-[11px] text-ink-tertiary">
+              {t('recall.counts')
+                .replace('{pr}', String(e.page.pr ?? 0))
+                .replace('{commit}', String(e.page.commit ?? 0))}
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
