@@ -1,15 +1,12 @@
-// core 자식 프로세스 stdout 에서 발행 결과를 추출하는 로직 — electron 무의존으로 분리해
-// 단위 테스트 가능하게. 종료 시 stdoutAll 전체를 스캔하던 것을 라인 단위 증분으로 대체하며
-// '마지막 매치 우선' 의미를 보존한다. (로그 한 라인 안에서 정규식이 완결되므로 전체 스캔과 등가)
+// core 자식 프로세스 실행 결과 계약 — fork-IPC 구조화 이벤트가 단일 소스 (ADR 0033 3단계,
+// 로그 스크래핑 제거). stdout 은 failureHint(자유 에러 텍스트 분류)만 본다 — 이벤트로 옮기기엔
+// 에러 원문이 다양해 텍스트 패턴 분류가 남은 마지막 용도. electron 무의존이라 단위 테스트 가능
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
 
 export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
 export type FailureHint = 'auth' | 'quota' | 'network' | 'notion' | 'collect' | null;
-
-export const NO_ACTIVITY_REGEX = /no activity collected/i;
-export const SUMMARY_FAILED_REGEX = /summary generation failed|요약 생성 실패|summarizer threw/;
 
 // 실패 원인 힌트 — raw 로그는 UI 비노출 정책이라 대표 패턴만 내부 분류해 친화 문구 키로 전달.
 // 어떤 패턴에도 안 걸리면 null (기존 exit code 표기 유지)
@@ -174,28 +171,9 @@ export function createExtractor(): RunExtractor {
     failureHint: null,
     journalWriteFailed: false,
   };
-  const lineUrl = /https:\/\/www\.notion\.so\/\S+/g;
-  const lineKind = /"kind"\s*:\s*"(created|recreated|skipped|no-target)"/g;
-  const linePageId = /"pageId"\s*:\s*"([0-9a-f-]{32,36})"/g;
-  const lineFileName = /"fileName"\s*:\s*"([^"]+\.md)"/;
+  // 결과 필드(url·kind·pageId·journal·noActivity·summaryFailed)는 applyParentEvent 가 채운다 —
+  // stdout 은 failureHint 분류만. 첫 매치 라인의 힌트 유지(라인 순서 우선으로 실용상 충분)
   state.feed = (line: string): void => {
-    const urls = line.match(lineUrl);
-    if (urls) state.lastUrl = urls[urls.length - 1]!.replace(/["',}\]]+$/, '');
-    const kinds = [...line.matchAll(lineKind)];
-    if (kinds.length) state.lastKind = kinds[kinds.length - 1]![1] as PublishKind;
-    const pageIds = [...line.matchAll(linePageId)];
-    if (pageIds.length) state.lastPageId = pageIds[pageIds.length - 1]![1] ?? null;
-    if (/journal write done/.test(line)) {
-      const m = lineFileName.exec(line);
-      if (m) state.lastJournalFile = m[1] ?? null;
-    }
-    if (!state.noActivity && NO_ACTIVITY_REGEX.test(line)) state.noActivity = true;
-    if (!state.summaryFailed && SUMMARY_FAILED_REGEX.test(line)) state.summaryFailed = true;
-    // daily/rollup 둘 다 'journal write failed' 로그를 남긴다 (orchestrator)
-    if (!state.journalWriteFailed && /journal write failed/.test(line)) {
-      state.journalWriteFailed = true;
-    }
-    // 첫 매치 라인의 힌트 유지 — 옛 전체 스캔은 auth>quota>… 우선순위였으나 라인 순서로도 실용상 충분
     if (!state.failureHint) state.failureHint = deriveFailureHint(line);
   };
   return state;
