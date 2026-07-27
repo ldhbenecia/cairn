@@ -49,6 +49,7 @@ import {
   parseOnboardingPayload,
 } from './onboarding';
 import { fetchRepoStars } from './repo';
+import { migrateSecretsAtStartup, secretEnv } from './secret-store';
 import { readSettings, writeSettings, type Settings } from './settings';
 import { isSetupComplete } from './setup';
 import {
@@ -174,6 +175,13 @@ function launchedAtLogin(): boolean {
 }
 
 void app.whenReady().then(() => {
+  // 시크릿 이관 (ADR 0037) — 평문 .env 가 있으면 암호화 스토어로 (packaged 한정, fail-open)
+  try {
+    if (migrateSecretsAtStartup() === 'migrated')
+      console.log('[secrets] migrated to encrypted store');
+  } catch (err) {
+    console.error('[secrets] migration failed — keeping plaintext', err);
+  }
   // 로그인 셸 PATH 캡처를 미리 비동기로 — 첫 발행/probe 의 UI 프리즈 방지
   void warmClaudePath();
   if (!app.isPackaged && process.platform === 'darwin') {
@@ -264,7 +272,7 @@ void app.whenReady().then(() => {
     e.returnValue = {
       settings: readSettings(),
       version: __WORKSPACE_VERSION__,
-      setupComplete: isSetupComplete(),
+      setupComplete: isSetupComplete(secretEnv()),
     };
   });
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {

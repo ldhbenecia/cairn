@@ -2,6 +2,8 @@ import { BrowserWindow, shell } from 'electron';
 import { randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { writeFileAtomic } from './atomic-write';
+import { isEncryptedPayload } from './secret-crypto';
+import { decryptFromStore, encryptForStore } from './secret-store';
 import { createServer, type Server } from 'node:http';
 import { dirname, join } from 'node:path';
 import { CAIRN_ROOT } from './setup';
@@ -13,9 +15,27 @@ export type CloudUser = { name: string; email: string; image: string | null };
 export type CloudAuthState = { signedIn: boolean; user: CloudUser | null };
 type Stored = { token: string; user: CloudUser };
 
+// bearer 토큰 at-rest 암호화 (ADR 0037) — packaged 는 키체인 키로 암호문 저장, 실패/레거시는
+// 평문 폴백. 레거시 평문을 읽으면 다음 기회에 암호문으로 재저장(기회적 마이그레이션)
+function writeStored(stored: Stored): void {
+  mkdirSync(dirname(AUTH_PATH), { recursive: true });
+  const enc = encryptForStore(stored);
+  writeFileAtomic(AUTH_PATH, enc ?? `${JSON.stringify(stored, null, 2)}\n`, 0o600);
+}
+
 function readStored(): Stored | null {
+  let text: string;
   try {
-    return JSON.parse(readFileSync(AUTH_PATH, 'utf8')) as Stored;
+    text = readFileSync(AUTH_PATH, 'utf8');
+  } catch {
+    return null;
+  }
+  if (isEncryptedPayload(text)) return decryptFromStore<Stored>(text);
+  try {
+    const legacy = JSON.parse(text) as Stored;
+    if (!legacy?.token) return null;
+    if (encryptForStore(legacy)) writeStored(legacy); // 평문 → 암호문 이관
+    return legacy;
   } catch {
     return null;
   }
@@ -121,12 +141,10 @@ async function completeSignIn(ott: string): Promise<void> {
     };
     const u = data.user;
     if (!u?.email) return;
-    mkdirSync(dirname(AUTH_PATH), { recursive: true });
-    writeFileAtomic(
-      AUTH_PATH,
-      `${JSON.stringify({ token, user: { name: u.name ?? u.email, email: u.email, image: u.image ?? null } }, null, 2)}\n`,
-      0o600, // bearer 토큰 보호 — tmp 부터 0600 으로 생성(rename 후 노출 창 없음)
-    );
+    writeStored({
+      token,
+      user: { name: u.name ?? u.email, email: u.email, image: u.image ?? null },
+    });
     broadcastAuth();
     const win = BrowserWindow.getAllWindows()[0];
     win?.show();
