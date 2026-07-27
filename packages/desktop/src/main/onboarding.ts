@@ -7,7 +7,8 @@ import { withFileLock } from './file-lock';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { findInPath, searchPathEnv } from './claude-path';
-import { CONFIG_PATH, ENV_PATH, readEnvFile } from './setup';
+import { CONFIG_PATH } from './setup';
+import { secretEnv, writeSecretEnvMerged } from './secret-store';
 import { keepIfEmpty, upsertByLabel } from './onboarding-merge';
 
 const execFileAsync = promisify(execFile);
@@ -306,7 +307,7 @@ export async function probeConnectionAccounts(): Promise<ConnectionAccounts> {
   } catch {
     config = {};
   }
-  const envMap = readEnvFile();
+  const envMap = secretEnv();
   // GitHub·Notion probe 를 동시에 — 순차 대기하면 연결 탭 최악 지연이 2배
   const [github, notion] = await Promise.all([
     Promise.all(
@@ -339,32 +340,6 @@ export async function probeConnectionAccounts(): Promise<ConnectionAccounts> {
     ),
   ]);
   return { github, notion };
-}
-
-// 기존 .env 의 주석/순서를 유지한 채 키만 교체·추가
-function writeEnvMerged(patch: Record<string, string>): void {
-  let lines: string[];
-  try {
-    lines = readFileSync(ENV_PATH, 'utf8').split('\n');
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
-    lines = [];
-  }
-  const remaining = { ...patch };
-  const out = lines.map((line) => {
-    const eq = line.indexOf('=');
-    if (eq < 0 || line.trim().startsWith('#')) return line;
-    const key = line.slice(0, eq).trim();
-    if (key in remaining) {
-      const v = remaining[key]!;
-      delete remaining[key];
-      return `${key}=${v}`;
-    }
-    return line;
-  });
-  for (const [k, v] of Object.entries(remaining)) out.push(`${k}=${v}`);
-  mkdirSync(dirname(ENV_PATH), { recursive: true });
-  writeFileAtomic(ENV_PATH, out.join('\n').replace(/\n+$/, '') + '\n', 0o600); // 토큰 포함 — owner-only
 }
 
 type ExistingWs = {
@@ -421,7 +396,7 @@ export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; er
         : [];
       const env: Record<string, string> = {};
       const ws = buildNotionWorkspace(w, prevWorkspaces, env);
-      writeEnvMerged(env);
+      writeSecretEnvMerged(env);
       for (const [k, v] of Object.entries(env)) process.env[k] = v;
       const config = { ...existing, notionWorkspaces: upsertByLabel(prevWorkspaces, ws, w.label) };
       mkdirSync(dirname(CONFIG_PATH), { recursive: true });
@@ -493,7 +468,7 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
       const localGitRepos = keepIfEmpty(payload.localGitRepos, prevRepos);
       if (payload.anthropicApiKey?.trim()) env.ANTHROPIC_API_KEY = payload.anthropicApiKey.trim();
 
-      writeEnvMerged(env);
+      writeSecretEnvMerged(env);
       for (const [k, v] of Object.entries(env)) process.env[k] = v;
 
       const config = {

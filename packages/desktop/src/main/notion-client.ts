@@ -4,31 +4,15 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { errorMessage } from './error-message';
 import { readConfig } from './files';
-import { CAIRN_ROOT } from './setup';
+import { secretEnv } from './secret-store';
 
 let envLoaded = false;
 function ensureEnvLoaded(): void {
   if (envLoaded) return;
   envLoaded = true;
-  try {
-    const content = readFileSync(join(CAIRN_ROOT, '.env'), 'utf8');
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eq = trimmed.indexOf('=');
-      if (eq < 0) continue;
-      const key = trimmed.slice(0, eq).trim();
-      let value = trimmed.slice(eq + 1).trim();
-      if (
-        (value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))
-      ) {
-        value = value.slice(1, -1);
-      }
-      if (!(key in process.env)) process.env[key] = value;
-    }
-  } catch {
-    // .env 없으면 skip
+  // 암호화 스토어 우선(.env 폴백 포함) — 복호화된 토큰을 process.env 로만 올린다 (ADR 0037)
+  for (const [key, value] of Object.entries(secretEnv())) {
+    if (!(key in process.env)) process.env[key] = value;
   }
 }
 

@@ -21,6 +21,7 @@ import { buildExportTargets, type ExportTarget } from './export-targets';
 import { sendResultNotification } from './notifier';
 import { scheduleJournalBackup } from './journal-git-backup';
 import { readSettings, type Settings } from './settings';
+import { secretEnv } from './secret-store';
 import { CAIRN_ROOT } from './setup';
 import { trackPublish, type PublishTrigger } from './telemetry';
 import {
@@ -211,7 +212,13 @@ export async function probeClaude(): Promise<{ ok: boolean }> {
     const child = fork(CORE_ENTRY, ['--probe-claude'], {
       cwd: CAIRN_ROOT,
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-      env: { ...process.env, CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false', ...claudeEnv() },
+      // probe 는 Claude 상태만 확인 — GitHub·Notion 토큰은 불필요하므로 secretEnv 주입 안 함
+      // (최소 권한 — 발행 fork 에서만 전체 토큰 전달)
+      env: {
+        ...process.env,
+        CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
+        ...claudeEnv(),
+      },
     });
     let out = '';
     child.stdout?.on('data', (b: Buffer) => (out += b.toString('utf8')));
@@ -271,6 +278,8 @@ export async function runCore(
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     env: {
       ...process.env,
+      // 암호화 스토어의 토큰을 자식 env 로 — .env 가 이관·삭제된 뒤에도 core 가 동작 (ADR 0037)
+      ...secretEnv(),
       NODE_ENV: app.isPackaged ? 'production' : (process.env.NODE_ENV ?? 'development'),
       CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
       ...claudeEnv(),
