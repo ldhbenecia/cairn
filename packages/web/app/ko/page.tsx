@@ -7,7 +7,8 @@ const DESC =
   'cairn 은 GitHub PR·커밋을 모아 Claude 로 요약하고, 로컬 마크다운 일지로 매일 기록합니다 — Notion 등 연동 발행은 선택입니다.';
 
 export const metadata: Metadata = {
-  title: TITLE,
+  // 템플릿('%s · Cairn') 미적용 — TITLE 이 이미 Cairn 으로 시작해 중복되므로 absolute
+  title: { absolute: TITLE },
   description: DESC,
   alternates: {
     canonical: '/ko',

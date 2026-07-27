@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export function Screenshot({
@@ -13,18 +13,32 @@ export function Screenshot({
   priority?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const closeTimer = useRef<number | null>(null);
+
+  // 닫힘도 부드럽게 — 짧은 페이드아웃 후 언마운트 (exit 는 enter 보다 절제)
+  const close = (): void => {
+    if (closing) return;
+    setClosing(true);
+    closeTimer.current = window.setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+    }, 130);
+  };
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') close();
     };
     document.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = '';
+      if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   return (
@@ -62,8 +76,8 @@ export function Screenshot({
             role="dialog"
             aria-modal="true"
             aria-label={alt}
-            onClick={() => setOpen(false)}
-            className="lightbox-fade fixed inset-0 z-[100] flex cursor-zoom-out items-center justify-center bg-black/85 p-4 backdrop-blur-md sm:p-10"
+            onClick={close}
+            className={`${closing ? 'lightbox-fade-out' : 'lightbox-fade'} fixed inset-0 z-[100] flex cursor-zoom-out items-center justify-center bg-black/85 p-4 backdrop-blur-md sm:p-10`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img

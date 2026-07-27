@@ -16,13 +16,6 @@ import { Accordion } from './ui/accordion';
 import { BentoGrid, type BentoItem } from './ui/bento-grid';
 
 const HL_ICONS = [GitPullRequest, FileText, CalendarDays, LayoutDashboard, ShieldCheck];
-const HL_COLORS = [
-  'text-blue-400',
-  'text-emerald-400',
-  'text-violet-400',
-  'text-amber-400',
-  'text-sky-400',
-];
 const HL_SPAN = [2, 1, 2, 1, 2];
 const HL_PERSIST = [true, false, false, false, false];
 
@@ -44,7 +37,9 @@ export async function Landing({ lang }: { lang: Lang }) {
     const Icon = HL_ICONS[i] ?? FileText;
     return {
       ...it,
-      icon: <Icon className={`h-4 w-4 ${HL_COLORS[i] ?? 'text-ink-subtle'}`} />,
+      icon: (
+        <Icon className="h-4 w-4 text-ink-subtle transition-colors duration-300 group-hover:text-accent-hover" />
+      ),
       colSpan: HL_SPAN[i] ?? 1,
       hasPersistentHover: HL_PERSIST[i] ?? false,
     };
@@ -71,13 +66,13 @@ export async function Landing({ lang }: { lang: Lang }) {
               <br />
               <span className="text-ink-subtle">{c.hero.h1b}</span>
             </h1>
-            <p className="mt-7 max-w-xl text-[15.5px] leading-relaxed text-ink-subtle">
+            <p className="mt-7 max-w-xl text-[15.5px] leading-relaxed text-pretty text-ink-subtle">
               {c.hero.lead}
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-3">
               <a
                 href={download}
-                className="rounded-full bg-accent px-6 py-2.5 text-[14.5px] font-semibold text-white transition-colors hover:bg-accent-hover"
+                className="rounded-full bg-accent px-6 py-2.5 text-[14.5px] font-semibold text-white transition-[background-color,scale] hover:bg-accent-hover active:scale-[0.96]"
               >
                 {c.hero.download}
               </a>
@@ -85,7 +80,7 @@ export async function Landing({ lang }: { lang: Lang }) {
                 href={REPO_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full border border-hairline-strong px-6 py-2.5 text-[14.5px] font-medium text-ink-muted transition-colors hover:border-ink-subtle hover:text-ink"
+                className="rounded-full border border-hairline-strong px-6 py-2.5 text-[14.5px] font-medium text-ink-muted transition-[border-color,color,scale] hover:border-ink-subtle hover:text-ink active:scale-[0.96]"
               >
                 {c.hero.source}
               </a>
@@ -286,7 +281,7 @@ export async function Landing({ lang }: { lang: Lang }) {
           <h2 className={`${ctaClass} text-balance`}>{c.cta.title}</h2>
           <a
             href={download}
-            className="mt-8 inline-block rounded-full bg-accent px-7 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-accent-hover"
+            className="mt-8 inline-block rounded-full bg-accent px-7 py-3 text-[15px] font-semibold text-white transition-[background-color,scale] hover:bg-accent-hover active:scale-[0.96]"
           >
             {c.cta.button}
           </a>
@@ -306,7 +301,9 @@ export async function Landing({ lang }: { lang: Lang }) {
           <div className="flex items-center gap-2 text-[14px]">
             <BrandMark size={16} className="text-accent" />
             <span className="font-semibold">cairn</span>
-            <span className="text-ink-tertiary">© {new Date().getFullYear()} Cairn</span>
+            <span className="text-ink-tertiary">
+              © {new Date().getFullYear()} Cairn · All rights reserved
+            </span>
             <StatusDot ok={c.footer.statusOk} fail={c.footer.statusFail} />
             <ClaudeStatusDot
               ok={c.footer.claudeOk}
@@ -315,28 +312,28 @@ export async function Landing({ lang }: { lang: Lang }) {
             />
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13.5px] text-ink-subtle">
-            <a href={REPO_URL} target="_blank" rel="noreferrer" className="hover:text-ink">
+            <a href={REPO_URL} target="_blank" rel="noreferrer" className="py-2 hover:text-ink">
               GitHub
             </a>
             <a
               href={`${REPO_URL}/blob/main/docs/SETUP.md`}
               target="_blank"
               rel="noreferrer"
-              className="hover:text-ink"
+              className="py-2 hover:text-ink"
             >
               {c.footer.docs}
             </a>
-            <Link href="/privacy" className="hover:text-ink">
+            <Link href="/privacy" className="py-2 hover:text-ink">
               {c.footer.privacy}
             </Link>
-            <Link href="/terms" className="hover:text-ink">
+            <Link href="/terms" className="py-2 hover:text-ink">
               {c.footer.terms}
             </Link>
             <a
               href={`${REPO_URL}/blob/main/LICENSE`}
               target="_blank"
               rel="noreferrer"
-              className="hover:text-ink"
+              className="py-2 hover:text-ink"
             >
               AGPL-3.0
             </a>
@@ -416,7 +413,7 @@ function SectionHead({
         {eyebrow}
       </p>
       <h2 className={`${titleClass} text-balance`}>{title}</h2>
-      <p className="mx-auto mt-4 max-w-xl text-[15.5px] leading-relaxed text-ink-subtle text-balance">
+      <p className="mx-auto mt-4 max-w-xl text-[15.5px] leading-relaxed text-pretty text-ink-subtle">
         {lead}
       </p>
     </div>

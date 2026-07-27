@@ -2,7 +2,20 @@ export type Lang = 'en' | 'ko';
 
 export const content = {
   en: {
-    nav: { how: 'How it works', worklog: 'Worklog', setup: 'Setup', pricing: 'Pricing' },
+    nav: {
+      how: 'How it works',
+      worklog: 'Worklog',
+      setup: 'Setup',
+      pricing: 'Pricing',
+      product: 'Product',
+      faq: 'FAQ',
+      getStarted: 'Get Started',
+      productItems: [
+        { href: '#how', label: 'How it works', desc: 'Collect → Summarize → Publish' },
+        { href: '#highlights', label: 'What you get', desc: 'Everything cairn does, at a glance' },
+        { href: '/setup/notion', label: 'Setup guide', desc: 'Connect GitHub, Claude, and Notion' },
+      ],
+    },
     pricing: {
       eyebrow: 'Pricing',
       title: 'Free to stack. Pro when you need more.',
@@ -217,7 +230,20 @@ export const content = {
     },
   },
   ko: {
-    nav: { how: '작동 방식', worklog: '일지', setup: '설정', pricing: '요금제' },
+    nav: {
+      how: '작동 방식',
+      worklog: '일지',
+      setup: '설정',
+      pricing: '요금제',
+      product: '제품',
+      faq: 'FAQ',
+      getStarted: '시작하기',
+      productItems: [
+        { href: '#how', label: '작동 방식', desc: '수집 → 요약 → 발행' },
+        { href: '#highlights', label: '주요 기능', desc: 'cairn 이 해주는 일 한눈에' },
+        { href: '/ko/setup/notion', label: '설정 가이드', desc: 'GitHub·Claude·Notion 연결' },
+      ],
+    },
     pricing: {
       eyebrow: 'Pricing',
       title: '핵심은 무료, 더 필요할 때만 Pro.',
@@ -423,9 +449,9 @@ export const content = {
       docs: '문서',
       privacy: '개인정보 처리방침',
       terms: '서비스 약관',
-      statusOk: '모든 시스템 정상',
+      statusOk: '모든 시스템 가동중',
       statusFail: '상태 확인 불가',
-      claudeOk: 'Claude 정상',
+      claudeOk: 'Claude 가동중',
       claudeIssues: 'Claude 이상 감지',
       claudeUnknown: 'Claude 상태 확인 불가',
     },
