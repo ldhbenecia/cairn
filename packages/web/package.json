@@ -24,14 +24,14 @@
     "lucide-react": "^1.25.0",
     "next": "^16.2.9",
     "pg": "^8.22.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "tailwind-merge": "^3.6.0",
     "three": "^0.185.1"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.3.2",
-    "@types/node": "^26.1.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
@@ -39,7 +39,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.0",
     "eslint-config-next": "^16.2.9",
-    "eslint-plugin-simple-import-sort": "^13.0.0",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3"
   }
