@@ -11,7 +11,6 @@ import {
   getBackfillPagesByDate,
   getRunProgress,
   resetBackfillTracking,
-  trackBackfill,
   type RunProgress,
 } from './core-runner-backfill';
 import { broadcast } from './broadcast';
@@ -312,7 +311,6 @@ export async function runCore(
       ext.feed(line);
       pushTail(stdoutLines, line);
       emit('info', line);
-      trackBackfill(line, mode);
       const step = detectStep(line);
       if (step) emitStep(step);
     }
@@ -325,7 +323,7 @@ export async function runCore(
     }
   });
 
-  // 구조화 이벤트 (ADR 0033) — 스크래핑과 병행
+  // 구조화 이벤트 (ADR 0033 3단계) — 결과·배치 진행의 단일 소스 (stdout 은 failureHint·step 표시만)
   child.on('message', (raw) => {
     const event = parseParentEvent(raw);
     if (!event) return;
