@@ -24,10 +24,11 @@ function BentoGrid({ items }: BentoGridProps) {
         <div
           key={index}
           className={cn(
-            'group relative p-4 rounded-xl overflow-hidden transition-all duration-300',
+            'group relative p-4 rounded-2xl overflow-hidden',
+            'transition-[translate,border-color,box-shadow] duration-300',
             'border border-hairline bg-surface-1',
             'hover:border-hairline-strong hover:shadow-[0_4px_20px_rgba(0,0,0,0.25)]',
-            'hover:-translate-y-0.5 will-change-transform',
+            'hover:-translate-y-0.5',
             item.colSpan === 2 ? 'md:col-span-2' : 'md:col-span-1',
             {
               'border-hairline-strong shadow-[0_4px_20px_rgba(0,0,0,0.25)] -translate-y-0.5':
@@ -74,7 +75,7 @@ function BentoGrid({ items }: BentoGridProps) {
                 {item.tags?.map((tag, i) => (
                   <span
                     key={i}
-                    className="px-2 py-1 rounded-md bg-surface-2 transition-all duration-200 hover:bg-hairline"
+                    className="px-2 py-1 rounded-md bg-surface-2 transition-colors duration-200 hover:bg-hairline"
                   >
                     #{tag}
                   </span>
@@ -84,7 +85,7 @@ function BentoGrid({ items }: BentoGridProps) {
           </div>
 
           <div
-            className={`absolute inset-0 -z-10 rounded-xl p-px bg-gradient-to-br from-transparent via-hairline to-transparent ${
+            className={`absolute inset-0 -z-10 rounded-2xl p-px bg-gradient-to-br from-transparent via-hairline to-transparent ${
               item.hasPersistentHover ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
             } transition-opacity duration-300`}
           />

@@ -1,9 +1,13 @@
 import Link from 'next/link';
 
 import { content, type Lang } from '../lib/content';
-import { REPO, REPO_URL } from '../lib/github';
+import { RELEASES_LATEST, REPO, REPO_URL } from '../lib/github';
 import { BrandMark } from './brand-mark';
 import { LangSwitcher } from './lang-switcher';
+import { ProductMenu } from './product-menu';
+
+const NAV_LINK =
+  'rounded-lg px-3 py-1.5 text-[13.5px] whitespace-nowrap text-ink-muted transition-colors hover:bg-surface-2/70 hover:text-ink';
 
 function formatStars(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
@@ -13,18 +17,17 @@ function formatStars(n: number): string {
 export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
   const c = content[lang].nav;
   const home = lang === 'ko' ? '/ko' : '/';
-  // 해시 앵커는 홈 절대경로로 — /pricing·/setup 등 다른 페이지에서도 홈 섹션으로 이동(예전엔 죽은 링크)
-  const links = [
-    { href: `${home}#how`, label: c.how },
-    { href: `${home}#output`, label: c.worklog },
-    { href: lang === 'ko' ? '/ko/setup/notion' : '/setup/notion', label: c.setup },
-    { href: lang === 'ko' ? '/ko/pricing' : '/pricing', label: c.pricing },
-  ];
+  // 해시 앵커는 홈 절대경로로 — /pricing·/setup 등 다른 페이지에서도 홈 섹션으로 이동
+  const productItems = c.productItems.map((it) => ({
+    ...it,
+    href: it.href.startsWith('#') ? `${home}${it.href}` : it.href,
+  }));
+  const pricingHref = lang === 'ko' ? '/ko/pricing' : '/pricing';
 
   // fixed (sticky X) — body { overflow-x: hidden } 이 sticky 의 스크롤 컨테이너를 body 로 만들어 고정이 풀림
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-3 sm:pt-4">
-      <div className="mx-auto flex h-12 max-w-3xl items-center justify-between rounded-full border border-hairline bg-canvas/75 pr-1.5 pl-4 shadow-[0_8px_32px_-16px_rgba(0,0,0,0.7)] backdrop-blur-xl">
+      <div className="mx-auto flex h-12 max-w-5xl items-center justify-between rounded-full border border-hairline bg-canvas/75 pr-1.5 pl-4 shadow-[0_8px_32px_-16px_rgba(0,0,0,0.7)] backdrop-blur-xl">
         <a
           href={home}
           className="flex shrink-0 items-center gap-2 text-[15px] font-semibold tracking-[-0.01em] whitespace-nowrap"
@@ -35,20 +38,16 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
           <nav className="hidden items-center gap-0.5 md:flex">
-            {links.map((l) => {
-              const cls =
-                'rounded-lg px-3 py-1.5 text-[13.5px] whitespace-nowrap text-ink-muted transition-colors hover:bg-surface-2/70 hover:text-ink';
-              // 해시(홈 섹션)는 크로스페이지 스크롤이 확실한 <a>, 순수 라우트만 <Link>
-              return l.href.includes('#') ? (
-                <a key={l.href} href={l.href} className={cls}>
-                  {l.label}
-                </a>
-              ) : (
-                <Link key={l.href} href={l.href} className={cls}>
-                  {l.label}
-                </Link>
-              );
-            })}
+            <ProductMenu label={c.product} items={productItems} />
+            <a href={`${home}#output`} className={NAV_LINK}>
+              {c.worklog}
+            </a>
+            <Link href={pricingHref} className={NAV_LINK}>
+              {c.pricing}
+            </Link>
+            <a href={`${home}#faq`} className={NAV_LINK}>
+              {c.faq}
+            </a>
           </nav>
           <span className="mx-0.5 hidden h-4 w-px bg-hairline-strong md:block" />
           <LangSwitcher lang={lang} />
@@ -73,6 +72,12 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
               <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z" />
             </svg>
             <span className="font-mono text-[12px] leading-none">{formatStars(stars)}</span>
+          </a>
+          <a
+            href={RELEASES_LATEST}
+            className="rounded-full bg-accent px-3.5 py-1.5 text-[13px] font-semibold whitespace-nowrap text-white transition-[background-color,scale] hover:bg-accent-hover active:scale-[0.96]"
+          >
+            {c.getStarted}
           </a>
         </div>
       </div>
