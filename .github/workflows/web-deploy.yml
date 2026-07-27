@@ -34,11 +34,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@v6
+      # 이 잡은 pnpm install 을 돌리지 않아(Vercel 원격 빌드) 스토어가 없다 — cache: pnpm 을 주면
+      # setup-node v7 의 post 캐시 저장이 '경로 없음' error 로 잡 전체를 failure 처리한다(v6 은 경고)
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: pnpm
       - name: Install Vercel CLI
         run: npm i -g vercel@54.20.1
       - name: Pull Vercel project settings
