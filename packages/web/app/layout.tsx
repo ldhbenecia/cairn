@@ -14,15 +14,15 @@ const serif = Fraunces({
   variable: '--font-serif-display',
 });
 
-const TITLE = 'cairn — your daily dev work, stacked into a worklog';
+const TITLE = 'Cairn — your daily dev work, stacked into a worklog';
 const DESC =
   'cairn collects your GitHub PRs and commits, summarizes them with Claude, and writes a daily worklog to a local Markdown journal — publish to Notion and more with integrations.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: TITLE, template: '%s · cairn' },
+  title: { default: TITLE, template: '%s · Cairn' },
   description: DESC,
-  applicationName: 'cairn',
+  applicationName: 'Cairn',
   keywords: [
     'developer worklog',
     'dev journal',
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     url: '/',
-    siteName: 'cairn',
+    siteName: 'Cairn',
     title: TITLE,
     description: DESC,
     locale: 'en_US',
@@ -66,10 +66,19 @@ export const metadata: Metadata = {
   },
 };
 
+// 구글 '사이트 이름'(검색 결과 브랜드 표기)은 WebSite 구조화 데이터를 1차 신호로 쓴다
+const WEBSITE_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Cairn',
+  alternateName: ['cairn', 'cairnlog'],
+  url: SITE_URL,
+};
+
 const JSON_LD = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
-  name: 'cairn',
+  name: 'Cairn',
   applicationCategory: 'DeveloperApplication',
   operatingSystem: 'macOS',
   description: DESC,
@@ -89,6 +98,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <link rel="preconnect" href="https://rsms.me/" />
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSON_LD) }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
