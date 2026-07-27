@@ -34,7 +34,12 @@ function readStored(): Stored | null {
   try {
     const legacy = JSON.parse(text) as Stored;
     if (!legacy?.token) return null;
-    if (encryptForStore(legacy)) writeStored(legacy); // 평문 → 암호문 이관
+    // 재암호화 실패(키체인 접근 등)가 로그인 상태를 무효화하지 않게 격리 — 평문 인증은 계속 유효
+    try {
+      if (encryptForStore(legacy)) writeStored(legacy); // 평문 → 암호문 이관
+    } catch {
+      /* 이관 실패 — 기존 평문 인증 유지 */
+    }
     return legacy;
   } catch {
     return null;

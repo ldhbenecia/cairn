@@ -46,6 +46,21 @@ function readPlainEnv(opts?: SecretStoreOpts): Record<string, string> {
   return out;
 }
 
+// 암호화 후 메모리에서 복호 왕복 검증 — 디스크에 쓰기 전에 되읽힘이 성립하는 것만 반환한다.
+// 같은 key/codec 으로 검증하므로, 통과하면 atomic write 된 파일도 반드시 되읽힌다(무결성 게이트).
+// null 이면 호출측이 평문 .env 를 건드리지 않아 토큰 유실을 막는다(fail-open)
+function encryptVerified(key: Buffer, obj: Record<string, string>): string | null {
+  try {
+    const text = encryptSecretJson(key, obj);
+    const back = decryptSecretJson<Record<string, string>>(key, text);
+    if (!back) return null;
+    for (const [k, v] of Object.entries(obj)) if (back[k] !== v) return null;
+    return text;
+  } catch {
+    return null; // 키 손상(길이 등) 포함 — 어떤 실패든 평문 유지
+  }
+}
+
 function readEncrypted(key: Buffer, opts?: SecretStoreOpts): Record<string, string> | null {
   try {
     const text = readFileSync(secretsPath(opts), 'utf8');
@@ -100,8 +115,14 @@ export function writeSecretEnvMerged(patch: Record<string, string>, opts?: Secre
     return;
   }
   const merged = { ...secretEnv(opts), ...patch };
-  writeFileAtomic(secretsPath(opts), encryptSecretJson(key, merged), 0o600);
-  rmSync(envPath(opts), { force: true });
+  const enc = encryptVerified(key, merged);
+  // 검증 실패(키 손상 등) — 평문 .env 로 저장. read 는 깨진 enc 를 무시하고 .env 로 폴백한다
+  if (!enc) {
+    writeEnvPlainMerged(patch, opts);
+    return;
+  }
+  writeFileAtomic(secretsPath(opts), enc, 0o600);
+  rmSync(envPath(opts), { force: true }); // enc 되읽힘 검증됨 — 평문 제거 안전
 }
 
 // 시작 시 1회 — 평문 .env 가 남아 있으면 암호화 스토어로 이관하고 평문을 지운다.
@@ -113,12 +134,11 @@ export function migrateSecretsAtStartup(opts?: SecretStoreOpts): 'migrated' | 's
   if (Object.keys(plain).length === 0) return 'skipped';
   // 기존 enc 가 있으면 병합 — 평문(.env)이 마지막 수동 편집일 수 있어 평문 우선
   const merged = { ...(readEncrypted(key, opts) ?? {}), ...plain };
-  writeFileAtomic(secretsPath(opts), encryptSecretJson(key, merged), 0o600);
-  const verify = readEncrypted(key, opts);
-  if (!verify || Object.entries(plain).some(([k, v]) => verify[k] !== v)) {
-    rmSync(secretsPath(opts), { force: true }); // 검증 실패 — 평문 유지(fail-open)
-    return 'skipped';
-  }
+  // 메모리 검증 후에만 디스크 반영 — 실패 시 기존 enc·.env 둘 다 손대지 않는다
+  // (옛 코드는 검증 전에 secrets.enc 를 덮어써 실패 시 기존 암호화 시크릿까지 유실됐다)
+  const enc = encryptVerified(key, merged);
+  if (!enc) return 'skipped';
+  writeFileAtomic(secretsPath(opts), enc, 0o600);
   rmSync(envPath(opts), { force: true });
   return 'migrated';
 }

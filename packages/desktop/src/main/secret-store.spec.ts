@@ -22,9 +22,8 @@ describe('secret-crypto — AES-256-GCM 코덱', () => {
 
   it('변조(tag 불일치)·다른 키·비암호문 → null', () => {
     const text = encryptSecretJson(KEY, { a: '1' });
-    const tampered = text.replace(/"data":"[A-Za-z0-9+/=]{4}/, (m) =>
-      m.slice(0, -4) === m.slice(0, -4) ? `${m.slice(0, -4)}AAAA` : m,
-    );
+    // data 앞 4자를 바꿔 ciphertext 변조 → GCM 인증 태그 불일치
+    const tampered = text.replace(/"data":"[A-Za-z0-9+/=]{4}/, (m) => `${m.slice(0, -4)}AAAA`);
     expect(decryptSecretJson(KEY, tampered)).toBeNull();
     expect(decryptSecretJson(randomBytes(32), text)).toBeNull();
     expect(decryptSecretJson(KEY, 'GITHUB_TOKEN=ghp_x')).toBeNull();
@@ -84,5 +83,14 @@ describe('secret-store — 읽기/쓰기/이관 (opts 주입)', () => {
   it('키 없음 + enc 만 존재 — 빈 맵(평문도 없음)', () => {
     writeFileSync(join(root, 'secrets.enc'), encryptSecretJson(KEY, { X: '1' }));
     expect(secretEnv({ root, key: null })).toEqual({});
+  });
+
+  it('이관 검증 실패 시 기존 enc·.env 를 보존한다 (손상 키)', () => {
+    writeSecretEnvMerged({ KEEP: 'enc-only' }, { root, key: KEY });
+    writeFileSync(join(root, '.env'), 'GH=plain\n');
+    const badKey = Buffer.alloc(16); // GCM 32B 아님 → encryptVerified 실패
+    expect(migrateSecretsAtStartup({ root, key: badKey })).toBe('skipped');
+    expect(readFileSync(join(root, '.env'), 'utf8')).toContain('GH=plain'); // .env 보존
+    expect(secretEnv({ root, key: KEY })).toEqual({ KEEP: 'enc-only' }); // 기존 enc 보존
   });
 });

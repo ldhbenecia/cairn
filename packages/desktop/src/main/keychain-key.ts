@@ -16,7 +16,7 @@ function readKey(): Buffer | null {
     const hex = execFileSync(
       '/usr/bin/security',
       ['find-generic-password', '-s', SERVICE, '-a', ACCOUNT, '-w'],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 5000 },
     ).trim();
     // 형식이 깨진 항목이면 덮어쓰지 않고 포기 — 기존 암호문을 고아로 만들 수 있다
     return KEY_HEX_RE.test(hex) ? Buffer.from(hex, 'hex') : null;
