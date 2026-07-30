@@ -300,7 +300,7 @@ export function WrappedDialog({
               type="button"
               disabled={save === 'saving'}
               onClick={() => void savePng()}
-              className={`flex h-8 items-center gap-1.5 rounded-md px-4 text-[13px] font-medium transition-all active:scale-[0.98] disabled:opacity-60 ${
+              className={`flex h-8 items-center gap-1.5 rounded-md px-4 text-[13px] font-medium transition-[background-color,color,scale] active:scale-[0.96] disabled:opacity-60 ${
                 save === 'saved'
                   ? 'bg-surface-2 text-success'
                   : 'bg-surface-2 text-ink hover:bg-surface-3'

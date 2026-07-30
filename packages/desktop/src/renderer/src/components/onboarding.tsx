@@ -161,7 +161,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
               <span
                 key={s}
                 className={[
-                  'h-1 rounded-full transition-all duration-300',
+                  'h-1 rounded-full transition-[width,background-color] duration-300',
                   i === stepIdx - 1
                     ? 'w-6 bg-accent'
                     : i < stepIdx - 1
