@@ -24,19 +24,27 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
     href: it.href.startsWith('#') ? `${home}${it.href}` : it.href,
   }));
   const pricingHref = lang === 'ko' ? '/ko/pricing' : '/pricing';
-  // md 미만에서 데스크톱 네비가 숨을 때 같은 목적지를 제공하는 햄버거 항목
-  const mobileItems = [
-    ...productItems.map(({ href, label }) => ({ href, label })),
-    { href: `${home}#output`, label: c.worklog },
-    { href: pricingHref, label: c.pricing },
-    { href: `${home}#faq`, label: c.faq },
+  // 드로어 그룹 — [홈 섹션 앵커(스크롤 이동)] 과 [별도 페이지] 를 구분해서 보여준다
+  const anchorItems = productItems
+    .filter((i) => i.href.includes('#'))
+    .map(({ href, label }) => ({ href, label }));
+  const pageItems = productItems
+    .filter((i) => !i.href.includes('#'))
+    .map(({ href, label }) => ({ href, label }));
+  const mobileGroups = [
+    [
+      ...anchorItems,
+      { href: `${home}#output`, label: c.worklog },
+      { href: `${home}#faq`, label: c.faq },
+    ],
+    [...pageItems, { href: pricingHref, label: c.pricing }],
   ];
 
   // fixed (sticky X) — body { overflow-x: hidden } 이 sticky 의 스크롤 컨테이너를 body 로 만들어 고정이 풀림
   return (
-    <header className="fixed inset-x-0 top-0 z-50 md:px-4 md:pt-4">
+    <header className="fixed inset-x-0 top-0 z-50 md:px-6 md:pt-4">
       {/* 모바일: 플랫 풀폭 바(로고+햄버거) — 앱 설치 불가 폭이라 CTA 없이 탐색만. md+: 기존 필 */}
-      <div className="mx-auto flex h-12 max-w-5xl items-center justify-between border-b border-hairline bg-canvas/75 px-4 backdrop-blur-xl md:rounded-full md:border md:pr-1.5 md:pl-4 md:shadow-[0_8px_32px_-16px_rgba(0,0,0,0.7)]">
+      <div className="mx-auto flex h-12 max-w-6xl items-center justify-between border-b border-hairline bg-canvas/75 px-4 backdrop-blur-xl md:rounded-full md:border md:pr-1.5 md:pl-4 md:shadow-[0_8px_32px_-16px_rgba(0,0,0,0.7)]">
         <a
           href={home}
           className="flex shrink-0 items-center gap-2 text-[15px] font-semibold tracking-[-0.01em] whitespace-nowrap"
@@ -58,7 +66,7 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
               {c.faq}
             </a>
           </nav>
-          <MobileMenu label={c.menu} items={mobileItems} lang={lang} />
+          <MobileMenu label={c.menu} groups={mobileGroups} lang={lang} />
           <span className="mx-0.5 hidden h-4 w-px bg-hairline-strong md:block" />
           <span className="hidden md:block">
             <LangSwitcher lang={lang} />

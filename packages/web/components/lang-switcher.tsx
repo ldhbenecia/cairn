@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -59,7 +60,7 @@ export function LangSwitcher({ lang }: { lang: Lang }) {
       {open && (
         <div className="absolute right-0 z-50 mt-1.5 min-w-[130px] overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40">
           {(['en', 'ko'] as const).map((l) => (
-            <a
+            <Link
               key={l}
               href={localizedHref(pathname, l)}
               className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-[13px] transition-colors ${
@@ -80,7 +81,7 @@ export function LangSwitcher({ lang }: { lang: Lang }) {
                   />
                 </svg>
               )}
-            </a>
+            </Link>
           ))}
         </div>
       )}

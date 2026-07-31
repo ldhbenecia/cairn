@@ -148,7 +148,7 @@ export async function Landing({ lang }: { lang: Lang }) {
           </Reveal>
         </div>
 
-        <Reveal delay={0.1} className="relative mx-auto mt-10 max-w-4xl">
+        <Reveal delay={0.1} className="relative mt-10">
           <Screenshot
             src={`/summarizing_${lang === 'ko' ? 'ko' : 'us'}.png`}
             alt="cairn publishing a worklog"
@@ -264,7 +264,7 @@ export async function Landing({ lang }: { lang: Lang }) {
           lead={c.faq.lead}
           titleClass={headClass}
         />
-        <Reveal delay={0.06} className="mx-auto mt-12 max-w-2xl">
+        <Reveal delay={0.06} className="mt-12">
           <Accordion items={c.faq.items} idPrefix="faq" />
         </Reveal>
       </section>
@@ -297,60 +297,55 @@ export async function Landing({ lang }: { lang: Lang }) {
       </section>
 
       <footer className="border-t border-hairline">
-        <div className="mx-auto max-w-6xl px-6 py-10 sm:py-8">
-          <div className="flex flex-col gap-7 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
-              <div className="flex items-center gap-2 text-[14px]">
-                <BrandMark size={16} className="text-accent" />
-                <span className="font-semibold">cairn</span>
-                <span className="hidden text-ink-tertiary sm:inline">
-                  © {new Date().getFullYear()} Cairn · All rights reserved
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <StatusDot ok={c.footer.statusOk} fail={c.footer.statusFail} />
-                <ClaudeStatusDot
-                  ok={c.footer.claudeOk}
-                  issues={c.footer.claudeIssues}
-                  unknown={c.footer.claudeUnknown}
-                />
-              </div>
+        <div className="mx-auto max-w-6xl px-6 pt-16 pb-10">
+          <div>
+            <div className="flex items-center gap-2.5 text-[16px]">
+              <BrandMark size={20} className="text-accent" />
+              <span className="font-semibold">cairn</span>
             </div>
-            {/* 모바일: 2열 그리드로 세로 전개(글줄 깨짐 방지), sm+: 기존 가로 나열 */}
-            <div className="grid grid-cols-2 gap-x-8 text-[13.5px] text-ink-subtle sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-5 sm:gap-y-2">
-              <a href={REPO_URL} target="_blank" rel="noreferrer" className="py-2 hover:text-ink">
-                GitHub
-              </a>
-              <a
-                href={`${REPO_URL}/blob/main/docs/SETUP.md`}
-                target="_blank"
-                rel="noreferrer"
-                className="py-2 hover:text-ink"
-              >
-                {c.footer.docs}
-              </a>
-              <Link href="/privacy" className="py-2 hover:text-ink">
-                {c.footer.privacy}
-              </Link>
-              <Link href="/terms" className="py-2 hover:text-ink">
-                {c.footer.terms}
-              </Link>
-              <a
-                href={`${REPO_URL}/blob/main/LICENSE`}
-                target="_blank"
-                rel="noreferrer"
-                className="py-2 hover:text-ink"
-              >
-                AGPL-3.0
-              </a>
-              <span className="py-1">
-                <LangSwitcher lang={lang} />
-              </span>
-            </div>
+            <p className="mt-4 max-w-sm text-[13.5px] leading-relaxed text-ink-subtle">
+              {c.footer.tagline}
+            </p>
+            <p className="mt-3 text-[13px] text-ink-tertiary">
+              © {new Date().getFullYear()} Cairn. All rights reserved.
+            </p>
           </div>
-          <p className="mt-7 text-[12px] text-ink-tertiary sm:hidden">
-            © {new Date().getFullYear()} Cairn · All rights reserved
-          </p>
+          <div className="mt-14 grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 md:flex md:justify-between md:gap-x-0 md:pr-24">
+            <FooterCol title={c.footer.product}>
+              <FooterItem href={download}>{c.footer.download}</FooterItem>
+              <FooterItem href={lang === 'ko' ? '/ko/pricing' : '/pricing'} internal>
+                {c.nav.pricing}
+              </FooterItem>
+              <FooterItem href={lang === 'ko' ? '/ko/setup/notion' : '/setup/notion'} internal>
+                {c.nav.setup}
+              </FooterItem>
+            </FooterCol>
+            <FooterCol title={c.footer.resources}>
+              <FooterItem href={REPO_URL}>GitHub</FooterItem>
+              <FooterItem href={`${REPO_URL}/blob/main/docs/SETUP.md`}>{c.footer.docs}</FooterItem>
+              <FooterItem href="#faq">FAQ</FooterItem>
+            </FooterCol>
+            <FooterCol title={c.footer.legal}>
+              <FooterItem href="/privacy" internal>
+                {c.footer.privacy}
+              </FooterItem>
+              <FooterItem href="/terms" internal>
+                {c.footer.terms}
+              </FooterItem>
+              <FooterItem href={`${REPO_URL}/blob/main/LICENSE`}>AGPL-3.0</FooterItem>
+            </FooterCol>
+          </div>
+          <div className="mt-14 flex flex-col gap-4 border-t border-hairline pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <StatusDot ok={c.footer.statusOk} fail={c.footer.statusFail} />
+              <ClaudeStatusDot
+                ok={c.footer.claudeOk}
+                issues={c.footer.claudeIssues}
+                unknown={c.footer.claudeUnknown}
+              />
+            </div>
+            <LangSwitcher lang={lang} />
+          </div>
         </div>
       </footer>
     </div>
@@ -404,6 +399,45 @@ function BentoTile({
       <h3 className="mt-4 text-[17px] font-semibold tracking-[-0.01em]">{title}</h3>
       <p className="mt-2 text-[13.5px] leading-relaxed text-ink-subtle">{desc}</p>
     </div>
+  );
+}
+
+function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">{title}</p>
+      <ul className="mt-3.5 flex flex-col gap-1 text-[13.5px] text-ink-subtle">{children}</ul>
+    </div>
+  );
+}
+
+function FooterItem({
+  href,
+  internal = false,
+  children,
+}: {
+  href: string;
+  internal?: boolean;
+  children: React.ReactNode;
+}) {
+  const cls = 'inline-block py-1 transition-colors hover:text-ink';
+  const external = href.startsWith('http');
+  return (
+    <li>
+      {internal ? (
+        <Link href={href} className={cls}>
+          {children}
+        </Link>
+      ) : (
+        <a
+          href={href}
+          className={cls}
+          {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
+        >
+          {children}
+        </a>
+      )}
+    </li>
   );
 }
 

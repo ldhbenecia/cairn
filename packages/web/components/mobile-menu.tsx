@@ -15,11 +15,12 @@ export type MobileMenuItem = { href: string; label: string };
 // 열릴 때만 마운트(SSR 무해)하고, 닫힘은 drawer-out 애니메이션 후 언마운트(라이트박스 패턴)
 export function MobileMenu({
   label,
-  items,
+  groups,
   lang,
 }: {
   label: string;
-  items: readonly MobileMenuItem[];
+  // 그룹 = [홈 섹션 앵커(스크롤)] · [별도 페이지] — 구분선으로 나눠 렌더
+  groups: readonly (readonly MobileMenuItem[])[];
   lang: Lang;
 }) {
   const [open, setOpen] = useState(false);
@@ -87,16 +88,22 @@ export function MobileMenu({
                 </button>
               </div>
               <nav className="flex-1 overflow-y-auto px-3">
-                {items.map((it) => (
-                  <a
-                    key={it.href}
-                    href={it.href}
-                    onClick={close}
-                    className="block rounded-lg px-3 py-3 text-[15px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
-                  >
-                    {it.label}
-                  </a>
+                {groups.map((group, gi) => (
+                  <div key={gi}>
+                    {gi > 0 && <div className="my-2 border-t border-hairline" />}
+                    {group.map((it) => (
+                      <a
+                        key={it.href}
+                        href={it.href}
+                        onClick={close}
+                        className="block rounded-lg px-3 py-3 text-[15px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+                      >
+                        {it.label}
+                      </a>
+                    ))}
+                  </div>
                 ))}
+                <div className="my-2 border-t border-hairline" />
                 <a
                   href={REPO_URL}
                   target="_blank"
