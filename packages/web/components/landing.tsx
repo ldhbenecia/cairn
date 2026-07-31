@@ -202,8 +202,12 @@ export async function Landing({ lang }: { lang: Lang }) {
           lead={c.setup.lead}
           titleClass={headClass}
         />
-        <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
-          <SetupCard tag="Notion" title={c.setup.notion.title}>
+        <div className="mt-14 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <SetupCard
+            tag="Notion"
+            title={c.setup.notion.title}
+            mock={[{ text: 'ntn_ ••••••••••••••••' }, { text: '✓ workspace connected', ok: true }]}
+          >
             <li>
               {c.setup.notion.s1pre}
               <SetupLink href="https://www.notion.so/my-integrations">
@@ -215,7 +219,11 @@ export async function Landing({ lang }: { lang: Lang }) {
             <li>{c.setup.notion.s2}</li>
             <li>{c.setup.notion.s3}</li>
           </SetupCard>
-          <SetupCard tag="GitHub" title={c.setup.github.title}>
+          <SetupCard
+            tag="GitHub"
+            title={c.setup.github.title}
+            mock={[{ text: '$ gh auth status' }, { text: '✓ token imported', ok: true }]}
+          >
             <li className="marker:text-accent-hover">
               <span className="text-ink-muted">{c.setup.github.ghAuto}</span>
             </li>
@@ -232,7 +240,11 @@ export async function Landing({ lang }: { lang: Lang }) {
             </li>
             <li>{c.setup.github.s3}</li>
           </SetupCard>
-          <SetupCard tag="Claude" title={c.setup.claude.title}>
+          <SetupCard
+            tag="Claude"
+            title={c.setup.claude.title}
+            mock={[{ text: '$ claude' }, { text: '✓ signed in — summaries ready', ok: true }]}
+          >
             <li>
               {c.setup.claude.s1pre}
               <SetupLink href="https://docs.claude.com/en/docs/claude-code/setup">
@@ -474,20 +486,34 @@ function SectionHead({
 function SetupCard({
   tag,
   title,
+  mock,
   children,
 }: {
   tag: string;
   title: string;
+  mock: { text: string; ok?: boolean }[];
   children: React.ReactNode;
 }) {
   return (
-    <div className="card-hover bg-canvas p-6">
-      <h3 className="mb-4 flex items-center gap-2.5 text-[15px] font-semibold">
-        <span className="rounded-md border border-hairline-strong bg-surface-1 px-2 py-0.5 font-mono text-[10.5px] tracking-wide text-ink-muted uppercase">
-          {tag}
-        </span>
-        {title}
-      </h3>
+    <div className="card-hover flex flex-col rounded-2xl border border-hairline bg-surface-1 p-6">
+      <div className="mb-5 overflow-hidden rounded-lg border border-hairline bg-canvas/70">
+        <div className="flex items-center gap-1.5 border-b border-hairline px-3 py-2">
+          <span className="size-2 rounded-full bg-surface-3" />
+          <span className="size-2 rounded-full bg-surface-3" />
+          <span className="size-2 rounded-full bg-surface-3" />
+        </div>
+        <div className="flex flex-col gap-1.5 px-3.5 py-3 font-mono text-[11.5px]">
+          {mock.map((m) => (
+            <span key={m.text} className={m.ok ? 'text-accent-hover' : 'text-ink-subtle'}>
+              {m.text}
+            </span>
+          ))}
+        </div>
+      </div>
+      <span className="w-fit rounded-md border border-hairline-strong bg-surface-2 px-2 py-0.5 font-mono text-[10.5px] tracking-wide text-ink-muted uppercase">
+        {tag}
+      </span>
+      <h3 className="mt-3 mb-4 text-[17px] font-semibold tracking-[-0.01em]">{title}</h3>
       <ol className="list-decimal space-y-2.5 pl-4 text-[13.5px] leading-relaxed text-ink-subtle marker:text-ink-tertiary">
         {children}
       </ol>
