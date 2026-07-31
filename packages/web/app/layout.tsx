@@ -3,7 +3,6 @@ import './globals.css';
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
 import { Fraunces } from 'next/font/google';
-import { headers } from 'next/headers';
 
 import { REPO_URL } from '../lib/github';
 import { SITE_URL } from '../lib/site';
@@ -90,11 +89,12 @@ const JSON_LD = {
   author: { '@type': 'Person', name: 'ldhbenecia', url: REPO_URL },
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const pathname = (await headers()).get('x-pathname') ?? '';
-  const lang = pathname.startsWith('/ko') ? 'ko' : 'en';
+import { LangAttr } from './lang-attr';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // lang 은 LangAttr 가 클라이언트에서 경로 기준 동기화 (headers() 사용 시 전 라우트 동적화)
   return (
-    <html lang={lang} className={serif.variable}>
+    <html lang="en" suppressHydrationWarning className={serif.variable}>
       <head>
         <link rel="preconnect" href="https://rsms.me/" />
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
@@ -108,6 +108,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
+        <LangAttr />
         {children}
         <Analytics />
       </body>

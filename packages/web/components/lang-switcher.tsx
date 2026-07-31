@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import type { Lang } from '../lib/content';
@@ -19,6 +19,12 @@ export function LangSwitcher({ lang }: { lang: Lang }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  // 드롭다운을 열기 전에 양쪽 로케일 RSC 를 미리 받아 전환을 즉시로 (ISR 페이지 전제)
+  useEffect(() => {
+    for (const l of ['en', 'ko'] as const) router.prefetch(localizedHref(pathname, l));
+  }, [pathname, router]);
 
   useEffect(() => {
     if (!open) return;
