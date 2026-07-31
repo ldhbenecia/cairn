@@ -206,6 +206,9 @@ void app.whenReady().then(() => {
       })
       .catch(() => {});
   }, 8000);
+  // 주기 sync — 상주 앱이 재시작 없이 오래 떠 있어도 stats 가 기기 간 최신으로 유지되고,
+  // 서버 세션도 사용 시 연장(updateAge)되어 재로그인 없이 지속된다
+  setInterval(() => void syncStats(), 6 * 60 * 60 * 1000);
   if (!app.isPackaged && process.platform === 'darwin') {
     try {
       app.dock?.setIcon(join(__dirname, '../../resources/icon.png'));
