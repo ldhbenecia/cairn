@@ -15,6 +15,7 @@ const STRINGS = {
     'account.signIn': '로그인',
     'account.signOut': '로그아웃',
     'account.cloud': '클라우드',
+    'account.expired': '세션 만료',
     'account.local': '로컬',
     'account.offline': '오프라인',
     'claude.status.checking': '확인 중',
@@ -258,7 +259,7 @@ const STRINGS = {
     'publish.result.summaryFailed': '요약 생성 실패 — Claude 세션·쿼터 확인 후 다시 발행하세요',
     'publish.result.noActivity': '활동 없음 — 발행 안 함',
     'publish.result.noActivityDesc':
-      '이 날짜엔 수집된 PR·커밋이 없어요. 날짜를 바꿔 다시 발행할 수 있어요.',
+      '이 날짜엔 수집된 PR·커밋이 없어요.\n날짜를 바꿔 다시 발행할 수 있어요.',
     'publish.result.skipped': '이미 발행됨 — skip',
     'publish.result.noTarget': '발행 대상 없음 — Preferences 에서 설정 확인',
     'publish.result.fail': '실패',
@@ -556,6 +557,7 @@ const STRINGS = {
     'account.signIn': 'Sign in',
     'account.signOut': 'Sign out',
     'account.cloud': 'Cloud',
+    'account.expired': 'Session expired',
     'account.local': 'Local',
     'account.offline': 'Offline',
     'claude.status.checking': 'Checking…',
@@ -802,7 +804,7 @@ const STRINGS = {
       'Summary generation failed — check your Claude session/quota and publish again',
     'publish.result.noActivity': 'No activity — nothing published',
     'publish.result.noActivityDesc':
-      'No PRs or commits were collected for this date. Pick another date and publish again.',
+      'No PRs or commits were collected for this date.\nPick another date and publish again.',
     'publish.result.skipped': 'Already published — skipped',
     'publish.result.noTarget': 'No publish target — check Preferences',
     'publish.result.fail': 'Failed',

@@ -175,7 +175,7 @@ export function Result({
           <Inbox size={22} strokeWidth={2} />
         </motion.span>
         <p className="text-[15px] font-semibold text-ink">{t('publish.result.noActivity')}</p>
-        <p className="mx-auto max-w-[320px] text-[12px] leading-relaxed text-ink-muted">
+        <p className="mx-auto max-w-[320px] text-[12px] leading-relaxed whitespace-pre-line text-ink-muted">
           {t('publish.result.noActivityDesc')}
         </p>
       </div>
