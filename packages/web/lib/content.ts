@@ -174,6 +174,10 @@ export const content = {
           t: 'Standup snippet',
           d: "Yesterday's work as a paste-ready standup note — one click to copy.",
         },
+        {
+          t: 'Git backup',
+          d: 'Your journal folder auto-commits and pushes to a remote repo you own.',
+        },
       ],
     },
     faq: {
@@ -384,6 +388,7 @@ export const content = {
         { t: 'Obsidian 미러', d: '지정한 폴더로 저널을 자동 미러 — Obsidian 이 그대로 읽습니다.' },
         { t: 'PDF·PNG 내보내기', d: '일지는 PDF 로, 연간 리포트는 공유용 PNG 카드로 저장합니다.' },
         { t: '스탠드업 스니펫', d: '어제 한 일을 붙여넣기용 스탠드업 문구로, 클릭 한 번에 복사.' },
+        { t: 'Git 백업', d: '일지 폴더를 내 원격 저장소로 자동 커밋·푸시합니다.' },
       ],
     },
     faq: {

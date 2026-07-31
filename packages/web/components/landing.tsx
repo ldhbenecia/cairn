@@ -1,12 +1,9 @@
 import {
   CalendarDays,
   ClipboardCopy,
-  FileDown,
   FileText,
-  FolderSync,
   GitPullRequest,
   LayoutDashboard,
-  Send,
   ShieldCheck,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -14,6 +11,7 @@ import Link from 'next/link';
 import { VIDEO } from '../lib/assets';
 import { content, type Lang } from '../lib/content';
 import { getRepoStats, RELEASES_LATEST, REPO_URL } from '../lib/github';
+import { FileBadge, GithubMark, NotionMark, ObsidianMark } from './brand-icons';
 import { BrandMark } from './brand-mark';
 import { CopyCommand } from './copy-command';
 import { HeroVideo } from './hero-video';
@@ -27,7 +25,7 @@ import { BentoGrid, type BentoItem } from './ui/bento-grid';
 
 const HL_ICONS = [GitPullRequest, FileText, CalendarDays, LayoutDashboard, ShieldCheck];
 const HL_SPAN = [2, 1, 2, 1, 2];
-const EXPORT_ICONS = [FileText, Send, FolderSync, FileDown, ClipboardCopy];
+
 const HL_PERSIST = [true, false, false, false, false];
 
 export async function Landing({ lang }: { lang: Lang }) {
@@ -215,14 +213,21 @@ export async function Landing({ lang }: { lang: Lang }) {
         />
         <div className="mt-14 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
           {c.exports.items.map((it, i) => {
-            const Icon = EXPORT_ICONS[i] ?? FileText;
+            const icons = [
+              <FileBadge key="md" label="MD" size={20} />,
+              <NotionMark key="notion" size={19} />,
+              <ObsidianMark key="obsidian" size={20} />,
+              <FileBadge key="pdf" label="PDF" size={20} />,
+              <ClipboardCopy key="clip" size={18} strokeWidth={1.9} />,
+              <GithubMark key="github" size={19} />,
+            ];
             return (
               <div
                 key={it.t}
                 className="card-hover rounded-2xl border border-hairline bg-surface-1 p-6"
               >
-                <span className="flex size-9 items-center justify-center rounded-lg bg-surface-2 text-ink-subtle">
-                  <Icon size={16} strokeWidth={1.9} />
+                <span className="flex size-10 items-center justify-center rounded-lg bg-surface-2 text-ink-muted">
+                  {icons[i]}
                 </span>
                 <h3 className="mt-4 text-[16px] font-semibold tracking-[-0.01em]">{it.t}</h3>
                 <p className="mt-2 text-[13.5px] leading-relaxed text-ink-subtle">{it.d}</p>
