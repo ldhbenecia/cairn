@@ -258,15 +258,22 @@ export async function Landing({ lang }: { lang: Lang }) {
       </section>
 
       <section id="faq" className="mx-auto max-w-6xl scroll-mt-14 px-6 pb-24">
-        <SectionHead
-          eyebrow={c.faq.eyebrow}
-          title={c.faq.title}
-          lead={c.faq.lead}
-          titleClass={headClass}
-        />
-        <Reveal delay={0.06} className="mt-12">
-          <Accordion items={c.faq.items} idPrefix="faq" />
-        </Reveal>
+        {/* 2컬럼 — 좌: 큰 제목·리드(sticky), 우: 아코디언. 모바일은 세로 스택 */}
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-[1fr_1.4fr] md:gap-16">
+          <div className="md:sticky md:top-28 md:self-start">
+            <p className="mb-3.5 inline-flex items-center gap-2 font-mono text-[12px] tracking-wider text-ink-tertiary uppercase">
+              <span className="size-1 rounded-full bg-accent" />
+              {c.faq.eyebrow}
+            </p>
+            <h2 className={`${headClass} text-balance`}>{c.faq.title}</h2>
+            <p className="mt-4 max-w-md text-[15.5px] leading-relaxed text-pretty text-ink-subtle">
+              {c.faq.lead}
+            </p>
+          </div>
+          <Reveal delay={0.06}>
+            <Accordion items={c.faq.items} idPrefix="faq" />
+          </Reveal>
+        </div>
       </section>
 
       <section className="px-6 pb-24">
