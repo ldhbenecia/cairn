@@ -9,6 +9,7 @@ export const content = {
       pricing: 'Pricing',
       product: 'Product',
       faq: 'FAQ',
+      menu: 'Menu',
       getStarted: 'Get Started',
       productItems: [
         { href: '#how', label: 'How it works', desc: 'Collect → Summarize → Publish' },
@@ -237,6 +238,7 @@ export const content = {
       pricing: '요금제',
       product: '제품',
       faq: 'FAQ',
+      menu: '메뉴',
       getStarted: '시작하기',
       productItems: [
         { href: '#how', label: '작동 방식', desc: '수집 → 요약 → 발행' },
