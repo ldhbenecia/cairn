@@ -200,8 +200,22 @@ contextBridge.exposeInMainWorld('cairn', {
   connections: {
     accounts: () =>
       ipcRenderer.invoke('cairn:connections:accounts') as Promise<{
-        github: { label: string; login?: string }[];
-        notion: { label: string; workspace?: string }[];
+        github: {
+          label: string;
+          login?: string;
+          health: 'ok' | 'invalid' | 'missing' | 'unreachable';
+        }[];
+        notion: {
+          label: string;
+          workspace?: string;
+          health: 'ok' | 'invalid' | 'missing' | 'unreachable';
+        }[];
+      }>,
+    refreshGithub: () =>
+      ipcRenderer.invoke('cairn:connections:refresh-github') as Promise<{
+        ok: boolean;
+        count?: number;
+        error?: string;
       }>,
   },
   integrations: {
@@ -263,6 +277,11 @@ contextBridge.exposeInMainWorld('cairn', {
     const listener = (_e: Electron.IpcRendererEvent, mode: CoreMode): void => cb(mode);
     ipcRenderer.on('cairn:focus-mode', listener);
     return () => ipcRenderer.off('cairn:focus-mode', listener);
+  },
+  onOpenConnections: (cb: () => void): (() => void) => {
+    const listener = (): void => cb();
+    ipcRenderer.on('cairn:open-connections', listener);
+    return () => ipcRenderer.off('cairn:open-connections', listener);
   },
   onRunProgress: (cb: (payload: { mode: CoreMode } & RunProgress) => void): (() => void) => {
     const listener = (

@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
 import { warmClaudePath } from './claude-path';
 import { exportStatus, pickExportFolder, saveMarkdown, savePdf, savePng } from './export';
-import { sendTestNotification } from './notifier';
+import { notifyConnectionIssue, sendTestNotification } from './notifier';
 import {
   busyState,
   cancelRun,
@@ -43,6 +43,7 @@ import {
   probeGithub,
   probeLocalRepo,
   probeNotion,
+  refreshGithubFromGhCli,
   searchNotionPages,
   setLocalGitEnabled,
   parseNotionWorkspacePayload,
@@ -184,6 +185,25 @@ void app.whenReady().then(() => {
   }
   // 로그인 셸 PATH 캡처를 미리 비동기로 — 첫 발행/probe 의 UI 프리즈 방지
   void warmClaudePath();
+  // 시작 시 토큰 건강 체크 — 인증 실패(invalid)면 발행이 깨지기 전에 미리 알림. 창 로드와 경합 방지 지연
+  setTimeout(() => {
+    void probeConnectionAccounts()
+      .then((acc) => {
+        const bad = [
+          ...acc.github.filter((a) => a.health === 'invalid').map((a) => `GitHub ${a.label}`),
+          ...acc.notion.filter((a) => a.health === 'invalid').map((a) => `Notion ${a.label}`),
+        ];
+        notifyConnectionIssue(bad, () => {
+          const win = BrowserWindow.getAllWindows()[0];
+          if (!win) return;
+          if (win.isMinimized()) win.restore();
+          win.show();
+          win.focus();
+          win.webContents.send('cairn:open-connections');
+        });
+      })
+      .catch(() => {});
+  }, 8000);
   if (!app.isPackaged && process.platform === 'darwin') {
     try {
       app.dock?.setIcon(join(__dirname, '../../resources/icon.png'));
@@ -316,6 +336,7 @@ void app.whenReady().then(() => {
     probeLocalRepo(String(path ?? '')),
   );
   ipcMain.handle('cairn:connections:accounts', () => probeConnectionAccounts());
+  ipcMain.handle('cairn:connections:refresh-github', () => refreshGithubFromGhCli());
   ipcMain.handle('cairn:integrations:add-notion', (_e, raw: unknown) => {
     const parsed = parseNotionWorkspacePayload(raw);
     if (!parsed.ok) return { ok: false, error: parsed.error };

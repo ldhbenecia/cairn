@@ -94,6 +94,16 @@ function notifyWithAction(
   return true;
 }
 
+// 시작 시 토큰 건강 체크에서 인증 실패(invalid)를 발견하면 — 발행이 실패하기 전에 미리 알림
+export function notifyConnectionIssue(services: string[], onClick: () => void): void {
+  if (!readSettings().notifications || services.length === 0) return;
+  notifyWithAction(
+    mt('notify.connIssueTitle'),
+    mt('notify.connIssueBody', { services: services.join(', ') }),
+    onClick,
+  );
+}
+
 // notifications 토글과 무관하게 항상 표시 — 억제하면 confirmBeforeRun 사용자의 발행이 영영 안 됨
 let confirmActive = false;
 let confirmResetTimer: NodeJS.Timeout | null = null;
