@@ -297,48 +297,60 @@ export async function Landing({ lang }: { lang: Lang }) {
       </section>
 
       <footer className="border-t border-hairline">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
-          <div className="flex items-center gap-2 text-[14px]">
-            <BrandMark size={16} className="text-accent" />
-            <span className="font-semibold">cairn</span>
-            <span className="text-ink-tertiary">
-              © {new Date().getFullYear()} Cairn · All rights reserved
-            </span>
-            <StatusDot ok={c.footer.statusOk} fail={c.footer.statusFail} />
-            <ClaudeStatusDot
-              ok={c.footer.claudeOk}
-              issues={c.footer.claudeIssues}
-              unknown={c.footer.claudeUnknown}
-            />
+        <div className="mx-auto max-w-6xl px-6 py-10 sm:py-8">
+          <div className="flex flex-col gap-7 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
+              <div className="flex items-center gap-2 text-[14px]">
+                <BrandMark size={16} className="text-accent" />
+                <span className="font-semibold">cairn</span>
+                <span className="hidden text-ink-tertiary sm:inline">
+                  © {new Date().getFullYear()} Cairn · All rights reserved
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <StatusDot ok={c.footer.statusOk} fail={c.footer.statusFail} />
+                <ClaudeStatusDot
+                  ok={c.footer.claudeOk}
+                  issues={c.footer.claudeIssues}
+                  unknown={c.footer.claudeUnknown}
+                />
+              </div>
+            </div>
+            {/* 모바일: 2열 그리드로 세로 전개(글줄 깨짐 방지), sm+: 기존 가로 나열 */}
+            <div className="grid grid-cols-2 gap-x-8 text-[13.5px] text-ink-subtle sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-5 sm:gap-y-2">
+              <a href={REPO_URL} target="_blank" rel="noreferrer" className="py-2 hover:text-ink">
+                GitHub
+              </a>
+              <a
+                href={`${REPO_URL}/blob/main/docs/SETUP.md`}
+                target="_blank"
+                rel="noreferrer"
+                className="py-2 hover:text-ink"
+              >
+                {c.footer.docs}
+              </a>
+              <Link href="/privacy" className="py-2 hover:text-ink">
+                {c.footer.privacy}
+              </Link>
+              <Link href="/terms" className="py-2 hover:text-ink">
+                {c.footer.terms}
+              </Link>
+              <a
+                href={`${REPO_URL}/blob/main/LICENSE`}
+                target="_blank"
+                rel="noreferrer"
+                className="py-2 hover:text-ink"
+              >
+                AGPL-3.0
+              </a>
+              <span className="py-1">
+                <LangSwitcher lang={lang} />
+              </span>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13.5px] text-ink-subtle">
-            <a href={REPO_URL} target="_blank" rel="noreferrer" className="py-2 hover:text-ink">
-              GitHub
-            </a>
-            <a
-              href={`${REPO_URL}/blob/main/docs/SETUP.md`}
-              target="_blank"
-              rel="noreferrer"
-              className="py-2 hover:text-ink"
-            >
-              {c.footer.docs}
-            </a>
-            <Link href="/privacy" className="py-2 hover:text-ink">
-              {c.footer.privacy}
-            </Link>
-            <Link href="/terms" className="py-2 hover:text-ink">
-              {c.footer.terms}
-            </Link>
-            <a
-              href={`${REPO_URL}/blob/main/LICENSE`}
-              target="_blank"
-              rel="noreferrer"
-              className="py-2 hover:text-ink"
-            >
-              AGPL-3.0
-            </a>
-            <LangSwitcher lang={lang} />
-          </div>
+          <p className="mt-7 text-[12px] text-ink-tertiary sm:hidden">
+            © {new Date().getFullYear()} Cairn · All rights reserved
+          </p>
         </div>
       </footer>
     </div>

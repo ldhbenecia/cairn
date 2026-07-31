@@ -204,6 +204,30 @@ body::after {
   }
 }
 
+/* 모바일 드로어 — 우측 슬라이드 (닫힘은 조금 짧게) */
+@keyframes drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes drawer-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.drawer-in {
+  animation: drawer-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.drawer-out {
+  animation: drawer-out 0.26s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
 /* 네비 드롭다운 팝 — 짧고 절제된 진입 */
 @keyframes menu-pop {
   from {
