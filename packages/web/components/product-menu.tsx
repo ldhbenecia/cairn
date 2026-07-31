@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 
 export type ProductMenuItem = { href: string; label: string; desc: string };
 
-// 네비 'Product' 드롭다운 — 앱 소개 섹션·가이드로 가는 메뉴 (lang-switcher 와 동일 인터랙션 패턴)
 export function ProductMenu({
   label,
   items,

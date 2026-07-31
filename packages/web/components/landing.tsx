@@ -21,7 +21,6 @@ const HL_PERSIST = [true, false, false, false, false];
 
 export async function Landing({ lang }: { lang: Lang }) {
   const c = content[lang];
-  // Instrument Serif 는 한글 글리프가 없어 ko 타이틀은 sans 유지 — 히어로만 영문 세리프
   const headClass =
     lang === 'ko'
       ? 'text-[clamp(26px,3.4vw,36px)] font-semibold tracking-[-0.025em]'
@@ -258,7 +257,6 @@ export async function Landing({ lang }: { lang: Lang }) {
       </section>
 
       <section id="faq" className="mx-auto max-w-6xl scroll-mt-14 px-6 pb-24">
-        {/* 2컬럼 — 좌: 큰 제목·리드(sticky), 우: 아코디언. 모바일은 세로 스택 */}
         <div className="grid grid-cols-1 gap-10 md:grid-cols-[1fr_1.4fr] md:gap-16">
           <div className="text-center md:sticky md:top-28 md:self-start md:text-left">
             <p className="mb-3.5 inline-flex items-center gap-2 font-mono text-[12px] tracking-wider text-ink-tertiary uppercase">

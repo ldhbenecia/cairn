@@ -10,16 +10,12 @@ import { LangSwitcher } from './lang-switcher';
 
 export type MobileMenuItem = { href: string; label: string };
 
-// md 미만 전용 — 우측 슬라이드 드로어. 모바일은 앱 설치가 불가해 CTA 없이 탐색만 제공한다.
-// 헤더의 backdrop-blur 가 fixed 자손의 containing block 이 되므로 드로어는 body 로 portal.
-// 열릴 때만 마운트(SSR 무해)하고, 닫힘은 drawer-out 애니메이션 후 언마운트(라이트박스 패턴)
 export function MobileMenu({
   label,
   groups,
   lang,
 }: {
   label: string;
-  // 그룹 = [홈 섹션 앵커(스크롤)] · [별도 페이지] — 구분선으로 나눠 렌더
   groups: readonly (readonly MobileMenuItem[])[];
   lang: Lang;
 }) {

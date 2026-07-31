@@ -8,7 +8,6 @@ import type { Lang } from '../lib/content';
 
 const LABELS: Record<Lang, string> = { en: 'English', ko: '한국어' };
 
-// 현재 경로를 유지한 채 로케일만 바꾼다 — 예전엔 항상 홈으로 가 /pricing 등에서 페이지를 잃었다
 function localizedHref(pathname: string, target: Lang): string {
   const rest = pathname.replace(/^\/ko(?=\/|$)/, '') || '/';
   if (target === 'en') return rest;
@@ -21,7 +20,6 @@ export function LangSwitcher({ lang }: { lang: Lang }) {
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // 드롭다운을 열기 전에 양쪽 로케일 RSC 를 미리 받아 전환을 즉시로 (ISR 페이지 전제)
   useEffect(() => {
     for (const l of ['en', 'ko'] as const) router.prefetch(localizedHref(pathname, l));
   }, [pathname, router]);

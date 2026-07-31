@@ -29,8 +29,6 @@ function init() {
   });
 }
 
-// env 검증을 첫 사용 시점으로 지연 — Sensitive env 는 Vercel 빌드 단계에 주입되지 않아
-// 모듈 로드 throw 가 페이지 수집을 죽임 (db.ts 와 동일 패턴)
 export const auth = new Proxy({} as Auth, {
   get(_target, prop) {
     real ??= init();

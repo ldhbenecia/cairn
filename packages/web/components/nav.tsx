@@ -18,13 +18,11 @@ function formatStars(n: number): string {
 export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
   const c = content[lang].nav;
   const home = lang === 'ko' ? '/ko' : '/';
-  // 해시 앵커는 홈 절대경로로 — /pricing·/setup 등 다른 페이지에서도 홈 섹션으로 이동
   const productItems = c.productItems.map((it) => ({
     ...it,
     href: it.href.startsWith('#') ? `${home}${it.href}` : it.href,
   }));
   const pricingHref = lang === 'ko' ? '/ko/pricing' : '/pricing';
-  // 드로어 그룹 — [홈 섹션 앵커(스크롤 이동)] 과 [별도 페이지] 를 구분해서 보여준다
   const anchorItems = productItems
     .filter((i) => i.href.includes('#'))
     .map(({ href, label }) => ({ href, label }));
@@ -40,10 +38,8 @@ export function Nav({ stars, lang }: { stars: number; lang: Lang }) {
     [...pageItems, { href: pricingHref, label: c.pricing }],
   ];
 
-  // fixed (sticky X) — body { overflow-x: hidden } 이 sticky 의 스크롤 컨테이너를 body 로 만들어 고정이 풀림
   return (
     <header className="fixed inset-x-0 top-0 z-50 md:px-6 md:pt-4">
-      {/* 모바일: 플랫 풀폭 바(로고+햄버거) — 앱 설치 불가 폭이라 CTA 없이 탐색만. md+: 기존 필 */}
       <div className="mx-auto flex h-12 max-w-6xl items-center justify-between border-b border-hairline bg-canvas/75 px-4 backdrop-blur-xl md:rounded-full md:border md:pr-1.5 md:pl-4 md:shadow-[0_8px_32px_-16px_rgba(0,0,0,0.7)]">
         <a
           href={home}
