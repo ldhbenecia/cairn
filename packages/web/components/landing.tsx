@@ -1,4 +1,14 @@
-import { CalendarDays, FileText, GitPullRequest, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import {
+  CalendarDays,
+  ClipboardCopy,
+  FileDown,
+  FileText,
+  FolderSync,
+  GitPullRequest,
+  LayoutDashboard,
+  Send,
+  ShieldCheck,
+} from 'lucide-react';
 import Link from 'next/link';
 
 import { VIDEO } from '../lib/assets';
@@ -17,6 +27,7 @@ import { BentoGrid, type BentoItem } from './ui/bento-grid';
 
 const HL_ICONS = [GitPullRequest, FileText, CalendarDays, LayoutDashboard, ShieldCheck];
 const HL_SPAN = [2, 1, 2, 1, 2];
+const EXPORT_ICONS = [FileText, Send, FolderSync, FileDown, ClipboardCopy];
 const HL_PERSIST = [true, false, false, false, false];
 
 export async function Landing({ lang }: { lang: Lang }) {
@@ -195,76 +206,29 @@ export async function Landing({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      <section id="setup" className="mx-auto max-w-6xl scroll-mt-14 px-6 py-24">
+      <section id="export" className="mx-auto max-w-6xl scroll-mt-14 px-6 py-24">
         <SectionHead
-          eyebrow={c.setup.eyebrow}
-          title={c.setup.title}
-          lead={c.setup.lead}
+          eyebrow={c.exports.eyebrow}
+          title={c.exports.title}
+          lead={c.exports.lead}
           titleClass={headClass}
         />
-        <div className="mt-14 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <SetupCard
-            tag="Notion"
-            title={c.setup.notion.title}
-            mock={[{ text: 'ntn_ ••••••••••••••••' }, { text: '✓ workspace connected', ok: true }]}
-          >
-            <li>
-              {c.setup.notion.s1pre}
-              <SetupLink href="https://www.notion.so/my-integrations">
-                {c.setup.notion.s1link}
-              </SetupLink>
-              {c.setup.notion.s1post}
-              <code className="text-ink-muted">ntn_…</code>).
-            </li>
-            <li>{c.setup.notion.s2}</li>
-            <li>{c.setup.notion.s3}</li>
-          </SetupCard>
-          <SetupCard
-            tag="GitHub"
-            title={c.setup.github.title}
-            mock={[{ text: '$ gh auth status' }, { text: '✓ token imported', ok: true }]}
-          >
-            <li className="marker:text-accent-hover">
-              <span className="text-ink-muted">{c.setup.github.ghAuto}</span>
-            </li>
-            <li>
-              {c.setup.github.s1pre}
-              <SetupLink href="https://github.com/settings/tokens/new?scopes=repo,read:user&description=cairn%20worklog">
-                {c.setup.github.s1link}
-              </SetupLink>
-              {c.setup.github.s1post}
-            </li>
-            <li>
-              {c.setup.github.s2pre}
-              <em>{c.setup.github.s2em}</em>
-            </li>
-            <li>{c.setup.github.s3}</li>
-          </SetupCard>
-          <SetupCard
-            tag="Claude"
-            title={c.setup.claude.title}
-            mock={[{ text: '$ claude' }, { text: '✓ signed in — summaries ready', ok: true }]}
-          >
-            <li>
-              {c.setup.claude.s1pre}
-              <SetupLink href="https://docs.claude.com/en/docs/claude-code/setup">
-                {c.setup.claude.s1link}
-              </SetupLink>
-              {c.setup.claude.s1post}
-            </li>
-            <li>{c.setup.claude.s2}</li>
-          </SetupCard>
-        </div>
-        <div className="mt-8 flex items-start gap-3 rounded-xl border border-hairline bg-surface-1 px-5 py-4 text-[13.5px] leading-relaxed text-ink-subtle">
-          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#d4a574]" />
-          <p className="min-w-0">
-            <strong className="font-medium text-ink-muted">{c.setup.gatekeeperPre}</strong>
-            {c.setup.gatekeeper}
-            <code className="rounded bg-surface-2 px-1.5 py-0.5 text-ink-muted">
-              xattr -d com.apple.quarantine /Applications/Cairn.app
-            </code>
-            {c.setup.gatekeeperPost}
-          </p>
+        <div className="mt-14 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+          {c.exports.items.map((it, i) => {
+            const Icon = EXPORT_ICONS[i] ?? FileText;
+            return (
+              <div
+                key={it.t}
+                className="card-hover rounded-2xl border border-hairline bg-surface-1 p-6"
+              >
+                <span className="flex size-9 items-center justify-center rounded-lg bg-surface-2 text-ink-subtle">
+                  <Icon size={16} strokeWidth={1.9} />
+                </span>
+                <h3 className="mt-4 text-[16px] font-semibold tracking-[-0.01em]">{it.t}</h3>
+                <p className="mt-2 text-[13.5px] leading-relaxed text-ink-subtle">{it.d}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -480,57 +444,6 @@ function SectionHead({
         {lead}
       </p>
     </div>
-  );
-}
-
-function SetupCard({
-  tag,
-  title,
-  mock,
-  children,
-}: {
-  tag: string;
-  title: string;
-  mock: { text: string; ok?: boolean }[];
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="card-hover flex flex-col rounded-2xl border border-hairline bg-surface-1 p-6">
-      <div className="mb-5 overflow-hidden rounded-lg border border-hairline bg-canvas/70">
-        <div className="flex items-center gap-1.5 border-b border-hairline px-3 py-2">
-          <span className="size-2 rounded-full bg-surface-3" />
-          <span className="size-2 rounded-full bg-surface-3" />
-          <span className="size-2 rounded-full bg-surface-3" />
-        </div>
-        <div className="flex flex-col gap-1.5 px-3.5 py-3 font-mono text-[11.5px]">
-          {mock.map((m) => (
-            <span key={m.text} className={m.ok ? 'text-accent-hover' : 'text-ink-subtle'}>
-              {m.text}
-            </span>
-          ))}
-        </div>
-      </div>
-      <span className="w-fit rounded-md border border-hairline-strong bg-surface-2 px-2 py-0.5 font-mono text-[10.5px] tracking-wide text-ink-muted uppercase">
-        {tag}
-      </span>
-      <h3 className="mt-3 mb-4 text-[17px] font-semibold tracking-[-0.01em]">{title}</h3>
-      <ol className="list-decimal space-y-2.5 pl-4 text-[13.5px] leading-relaxed text-ink-subtle marker:text-ink-tertiary">
-        {children}
-      </ol>
-    </div>
-  );
-}
-
-function SetupLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="text-accent-hover underline underline-offset-2 hover:text-accent"
-    >
-      {children}
-    </a>
   );
 }
 
