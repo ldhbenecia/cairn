@@ -36,10 +36,10 @@ export function sendResultNotification(mode: CoreMode, result: CoreResult): void
   const label = modeLabel(mode);
 
   if (!result.ok) {
-    // 가장 흔한 실패 원인은 사용자가 행동할 수 있는 문구로 — 분류 불가 시에만 exit code
+    // 가장 흔한 실패 원인은 사용자가 행동할 수 있는 문구로 — 분류 불가여도 raw exit code 비노출
     const body = result.failureHint
       ? mt(`notify.fail.${result.failureHint}`)
-      : `exit ${result.exitCode ?? 'unknown'}`;
+      : mt('notify.fail.unknown');
     notify(`${label} ${mt('notify.failSuffix')}`, body, mode);
     return;
   }

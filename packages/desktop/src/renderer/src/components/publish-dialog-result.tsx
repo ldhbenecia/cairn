@@ -157,7 +157,7 @@ export function Result({
         <p className="text-[12.5px] leading-relaxed text-ink-tertiary">
           {result.failureHint
             ? t(`fail.${result.failureHint}`)
-            : `exit ${result.exitCode ?? 'unknown'}`}
+            : `${t('fail.unknown')} (code ${result.exitCode ?? '?'})`}
         </p>
       </div>
     );

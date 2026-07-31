@@ -111,7 +111,15 @@ export type CoreResult = {
   noActivity: boolean;
   cancelled: boolean;
   summaryFailed: boolean;
-  failureHint: 'auth' | 'quota' | 'network' | 'notion' | 'collect' | null;
+  failureHint:
+    | 'auth'
+    | 'claude-auth'
+    | 'quota'
+    | 'summarize'
+    | 'network'
+    | 'notion'
+    | 'collect'
+    | null;
   journalWriteFailed: boolean;
   prCount: number;
   commitCount: number;
