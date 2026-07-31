@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { AboutTab } from './preferences/about-tab';
@@ -51,11 +51,21 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   onRerunSetup: () => void;
   blockEscape?: boolean;
+  initialTab?: TabId | null;
 };
 
-export function PreferencesDialog({ open, onOpenChange, onRerunSetup, blockEscape }: Props) {
+export function PreferencesDialog({
+  open,
+  onOpenChange,
+  onRerunSetup,
+  blockEscape,
+  initialTab,
+}: Props) {
   const { t } = useSettings();
   const [tab, setTab] = useState<TabId>('appearance');
+  useEffect(() => {
+    if (open && initialTab) setTab(initialTab);
+  }, [open, initialTab]);
   const active = TABS.find((x) => x.id === tab) ?? TABS[0]!;
   const descKey = TAB_DESC[tab];
 
