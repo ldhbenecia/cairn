@@ -6,19 +6,45 @@ export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | nu
 
 export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
 
-export type FailureHint = 'auth' | 'quota' | 'network' | 'notion' | 'collect' | null;
+export type FailureHint =
+  | 'auth'
+  | 'claude-auth'
+  | 'quota'
+  | 'summarize'
+  | 'network'
+  | 'notion'
+  | 'collect'
+  | null;
 
 // 실패 원인 힌트 — raw 로그는 UI 비노출 정책이라 대표 패턴만 내부 분류해 친화 문구 키로 전달.
-// 어떤 패턴에도 안 걸리면 null (기존 exit code 표기 유지)
+// 어떤 패턴에도 안 걸리면 null
 export function deriveFailureHint(text: string): FailureHint {
+  // 비치명 경고 라인 제외 — "contribution calendar fetch failed — backfill gate falls open" 이
+  // network 로 오탐되어 뒤의 진짜 원인(Bad credentials 등)을 가리던 문제
+  if (/backfill gate falls open/i.test(text)) return null;
+  if (/OAuth token.*(expired|revoked)|Please run \/login|authentication_error/i.test(text))
+    return 'claude-auth';
   if (/auth_failed|Bad credentials|Missing required secret|"status"\s*:\s*401/i.test(text))
     return 'auth';
   if (/rate_limited|session limit|quota|"status"\s*:\s*429/i.test(text)) return 'quota';
-  if (/ENOTFOUND|ETIMEDOUT|ECONNREFUSED|ECONNRESET|fetch failed/i.test(text)) return 'network';
+  if (/rollup: summary generation failed|롤업 요약 생성 실패/i.test(text)) return 'summarize';
   if (/validation_error|body failed validation/i.test(text)) return 'notion';
   if (/collect errors — failing|수집 실패/i.test(text)) return 'collect';
+  if (/ENOTFOUND|ETIMEDOUT|ECONNREFUSED|ECONNRESET|fetch failed/i.test(text)) return 'network';
   return null;
 }
+
+// 구체 원인이 일반 증상을 이긴다 — 예: "fetch failed"(network) 경고 뒤 "Bad credentials"(auth) 가
+// 와도 auth 로 분류. 같은 순위면 첫 매치 유지
+const HINT_PRIORITY: Record<Exclude<FailureHint, null>, number> = {
+  'claude-auth': 7,
+  auth: 6,
+  quota: 5,
+  summarize: 4,
+  notion: 3,
+  collect: 2,
+  network: 1,
+};
 
 export interface RunExtractor {
   feed: (line: string) => void;
@@ -172,9 +198,13 @@ export function createExtractor(): RunExtractor {
     journalWriteFailed: false,
   };
   // 결과 필드(url·kind·pageId·journal·noActivity·summaryFailed)는 applyParentEvent 가 채운다 —
-  // stdout 은 failureHint 분류만. 첫 매치 라인의 힌트 유지(라인 순서 우선으로 실용상 충분)
+  // stdout 은 failureHint 분류만. HINT_PRIORITY 로 더 구체적인 원인이 나오면 갱신
   state.feed = (line: string): void => {
-    if (!state.failureHint) state.failureHint = deriveFailureHint(line);
+    const hint = deriveFailureHint(line);
+    if (!hint) return;
+    if (!state.failureHint || HINT_PRIORITY[hint] > HINT_PRIORITY[state.failureHint]) {
+      state.failureHint = hint;
+    }
   };
   return state;
 }
