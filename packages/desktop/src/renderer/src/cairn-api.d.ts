@@ -244,6 +244,7 @@ declare global {
       };
       cloud: {
         state: () => Promise<CloudAuthState>;
+        validate: () => Promise<'ok' | 'expired' | 'unreachable' | 'signed-out'>;
         signIn: () => Promise<void>;
         signOut: () => Promise<void>;
         syncNow: () => Promise<void>;

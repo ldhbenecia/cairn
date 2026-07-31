@@ -224,6 +224,10 @@ contextBridge.exposeInMainWorld('cairn', {
   },
   cloud: {
     state: () => ipcRenderer.invoke('cairn:auth:state') as Promise<CloudAuthState>,
+    validate: () =>
+      ipcRenderer.invoke('cairn:auth:validate') as Promise<
+        'ok' | 'expired' | 'unreachable' | 'signed-out'
+      >,
     signIn: () => ipcRenderer.invoke('cairn:auth:sign-in') as Promise<void>,
     signOut: () => ipcRenderer.invoke('cairn:auth:sign-out') as Promise<void>,
     syncNow: () => ipcRenderer.invoke('cairn:sync:now') as Promise<void>,

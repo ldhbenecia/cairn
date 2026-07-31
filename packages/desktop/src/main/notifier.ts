@@ -104,6 +104,12 @@ export function notifyConnectionIssue(services: string[], onClick: () => void): 
   );
 }
 
+// 클라우드 세션 만료 — sync 가 조용히 멈추는 상태라 명시 알림. 클릭 시 재로그인 시작
+export function notifyCloudExpired(onClick: () => void): void {
+  if (!readSettings().notifications) return;
+  notifyWithAction(mt('notify.cloudExpiredTitle'), mt('notify.cloudExpiredBody'), onClick);
+}
+
 // notifications 토글과 무관하게 항상 표시 — 억제하면 confirmBeforeRun 사용자의 발행이 영영 안 됨
 let confirmActive = false;
 let confirmResetTimer: NodeJS.Timeout | null = null;
