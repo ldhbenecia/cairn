@@ -8,7 +8,7 @@ import {
   yearAnchorsToPublish,
 } from './auto-publish-schedule';
 import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
-import { notifyAutoConfirm, notifyAutoStart } from './notifier';
+import { clearConfirm, notifyAutoConfirm, notifyAutoStart } from './notifier';
 import { readSettings, type AutoPublish } from './settings';
 import {
   readAutoPublishState,
@@ -138,10 +138,12 @@ function broadcastAutoConfirm(modes: CoreMode[] | null): void {
 }
 
 export function acceptAutoConfirm(): void {
+  clearConfirm();
   pendingConfirm?.();
 }
 
 export function dismissAutoConfirm(): void {
+  clearConfirm();
   pendingConfirm = null;
   broadcastAutoConfirm(null);
 }
