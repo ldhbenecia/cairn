@@ -72,7 +72,7 @@ export function notifyAutoStart(mode: CoreMode): void {
   notify(mt('notify.autoTitle'), mt('notify.autoRunning', { mode: modeLabel(mode) }), mode);
 }
 
-function notifyWithAction(
+export function notifyWithAction(
   title: string,
   body: string,
   onClick: () => void,
