@@ -28,13 +28,14 @@ export default function DesktopLogin() {
   const port = useSyncExternalStore(subscribeNoop, readPort, getNull);
   const state = useSyncExternalStore(subscribeNoop, readState, getNull);
   const [errored, setErrored] = useState(false);
+  const [handedOff, setHandedOff] = useState(false);
   const bridged = useRef(false);
 
   let phase: Phase = 'loading';
   if (errored) phase = 'error';
   else if (isPending) phase = 'loading';
   else if (!session) phase = 'signin';
-  else if (!port) phase = 'done';
+  else if (handedOff || !port) phase = 'done';
   else phase = 'bridging';
 
   useEffect(() => {
@@ -51,7 +52,31 @@ export default function DesktopLogin() {
           return;
         }
         const stateParam = state ? `&state=${encodeURIComponent(state)}` : '';
-        window.location.href = `http://127.0.0.1:${port}/?token=${encodeURIComponent(token)}${stateParam}`;
+        const dest = `http://127.0.0.1:${port}/?token=${encodeURIComponent(token)}${stateParam}`;
+        fetch(dest)
+          .then((r) => {
+            if (cancelled) return;
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            window.history.replaceState(null, '', window.location.pathname);
+            setHandedOff(true);
+          })
+          .catch(() => {
+            if (cancelled) return;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `http://127.0.0.1:${port}/`;
+            const add = (name: string, value: string): void => {
+              const input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = name;
+              input.value = value;
+              form.appendChild(input);
+            };
+            add('token', token);
+            if (state) add('state', state);
+            document.body.appendChild(form);
+            form.submit();
+          });
       })
       .catch(() => {
         if (!cancelled) setErrored(true);

@@ -32,13 +32,13 @@ export function getOrCreateSecretKey(): Buffer | null {
   if (existing) return existing;
   try {
     const key = randomBytes(32);
-    // -A: 모든 앱 접근 허용(프롬프트 없음), -U: 있으면 갱신. 생성 시 1회 argv 로 키가 지나가는
-    // 점은 수용(ps 순간 노출 — 로컬 동일 유저 한정이며 생성 때 한 번뿐)
-    execFileSync(
-      '/usr/bin/security',
-      ['add-generic-password', '-s', SERVICE, '-a', ACCOUNT, '-w', key.toString('hex'), '-A', '-U'],
-      { stdio: 'ignore' },
-    );
+    // -A: 모든 앱 접근 허용(프롬프트 없음), -U: 있으면 갱신.
+    // 키를 argv 로 넘기면 ps 에 순간 노출된다 — `security -i`(stdin 커맨드 모드)로 전달
+    execFileSync('/usr/bin/security', ['-i'], {
+      input: `add-generic-password -s "${SERVICE}" -a "${ACCOUNT}" -w ${key.toString('hex')} -A -U\n`,
+      stdio: ['pipe', 'ignore', 'ignore'],
+      timeout: 5000,
+    });
     // 생성 직후 재조회로 확정 — 동시 생성 레이스면 키체인에 실제로 저장된 쪽을 쓴다
     return readKey() ?? key;
   } catch {

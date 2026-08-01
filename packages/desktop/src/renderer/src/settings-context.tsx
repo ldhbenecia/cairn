@@ -99,16 +99,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [settings.theme]);
 
   const update = useCallback((patch: Partial<Settings>) => {
-    setSettings((prev) => ({
-      ...prev,
-      ...patch,
-      autoPublish: { ...prev.autoPublish, ...(patch.autoPublish ?? {}) },
-      prompts: { ...prev.prompts, ...(patch.prompts ?? {}) },
-      export: { ...prev.export, ...(patch.export ?? {}) },
-      graph: { ...prev.graph, ...(patch.graph ?? {}) },
-      backup: { ...prev.backup, ...(patch.backup ?? {}) },
-    }));
-    void window.cairn.setSettings(patch);
+    let prevSnapshot: Settings | null = null;
+    setSettings((prev) => {
+      prevSnapshot = prev;
+      return {
+        ...prev,
+        ...patch,
+        autoPublish: { ...prev.autoPublish, ...(patch.autoPublish ?? {}) },
+        prompts: { ...prev.prompts, ...(patch.prompts ?? {}) },
+        export: { ...prev.export, ...(patch.export ?? {}) },
+        graph: { ...prev.graph, ...(patch.graph ?? {}) },
+        backup: { ...prev.backup, ...(patch.backup ?? {}) },
+      };
+    });
+    // 낙관 반영 후 디스크 결과로 정합 — 쓰기 실패가 다음 실행에서야 무통보 롤백되던 문제
+    window.cairn
+      .setSettings(patch)
+      .then((canonical) => setSettings(canonical))
+      .catch((err: unknown) => {
+        console.error('[settings] write failed — reverting', err);
+        if (prevSnapshot) setSettings(prevSnapshot);
+      });
   }, []);
 
   const t = useCallback((key: I18nKey) => translate(settings.language, key), [settings.language]);

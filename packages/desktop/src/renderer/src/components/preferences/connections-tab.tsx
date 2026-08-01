@@ -116,10 +116,13 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
 
   const onToggleLocalGit = (next: boolean): void => {
     setCfg((prev) => ({ ...prev, localGitEnabled: next }));
-    void window.cairn.setLocalGitEnabled(next).then((r) => {
-      // 쓰기 실패 시 UI 를 되돌려 실제 config 와 어긋나지 않게
-      if (!r.ok) setCfg((prev) => ({ ...prev, localGitEnabled: !next }));
-    });
+    void window.cairn.setLocalGitEnabled(next).then(
+      (r) => {
+        // 쓰기 실패 시 UI 를 되돌려 실제 config 와 어긋나지 않게
+        if (!r.ok) setCfg((prev) => ({ ...prev, localGitEnabled: !next }));
+      },
+      () => setCfg((prev) => ({ ...prev, localGitEnabled: !next })),
+    );
   };
 
   const notionItems: Item[] = notion.map((w) => {

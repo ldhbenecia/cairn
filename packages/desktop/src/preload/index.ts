@@ -184,9 +184,11 @@ contextBridge.exposeInMainWorld('cairn', {
     githubFromGhCli: () =>
       ipcRenderer.invoke('cairn:onboarding:github-from-gh') as Promise<{
         ok: boolean;
-        accounts?: { login: string; token: string }[];
+        logins?: string[];
         error?: string;
       }>,
+    probeGithubGh: (login: string) =>
+      ipcRenderer.invoke('cairn:onboarding:probe-github-gh', login) as Promise<unknown>,
     probeClaude: () => ipcRenderer.invoke('cairn:onboarding:probe-claude') as Promise<unknown>,
     probeRepo: (path: string) =>
       ipcRenderer.invoke('cairn:onboarding:probe-repo', path) as Promise<{
@@ -286,6 +288,15 @@ contextBridge.exposeInMainWorld('cairn', {
     const listener = (): void => cb();
     ipcRenderer.on('cairn:open-connections', listener);
     return () => ipcRenderer.off('cairn:open-connections', listener);
+  },
+  autoConfirm: {
+    accept: (): Promise<void> => ipcRenderer.invoke('cairn:auto-confirm:accept') as Promise<void>,
+    dismiss: (): Promise<void> => ipcRenderer.invoke('cairn:auto-confirm:dismiss') as Promise<void>,
+    onPending: (cb: (modes: CoreMode[] | null) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, modes: CoreMode[] | null): void => cb(modes);
+      ipcRenderer.on('cairn:auto-confirm', listener);
+      return () => ipcRenderer.off('cairn:auto-confirm', listener);
+    },
   },
   onRunProgress: (cb: (payload: { mode: CoreMode } & RunProgress) => void): (() => void) => {
     const listener = (

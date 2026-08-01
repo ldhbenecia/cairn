@@ -4,6 +4,7 @@ import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { blocksToMarkdown } from '../shared/markdown';
+import { mt } from './i18n';
 import { journalFolder } from './journal-reader';
 import { fetchPageContentAnyWorkspace, type RecentCategory } from './notion-client';
 import { readSettings } from './settings';
@@ -81,6 +82,13 @@ export async function pickExportFolder(): Promise<string | null> {
   return r.canceled ? null : (r.filePaths[0] ?? null);
 }
 
+// 저장 실패가 렌더러에서 무시되어 '메뉴 닫힘 + 무반응'이 되던 문제 — 실패는 네이티브로 표면화
+function saveFailed(e: unknown): SaveResult {
+  const error = e instanceof Error ? e.message : String(e);
+  dialog.showErrorBox(mt('export.saveFailTitle'), error);
+  return { saved: false, error };
+}
+
 export async function savePdf(defaultName: string, html: string): Promise<SaveResult> {
   const r = await dialog.showSaveDialog({
     defaultPath: join(homedir(), 'Documents', defaultName),
@@ -98,7 +106,7 @@ export async function savePdf(defaultName: string, html: string): Promise<SaveRe
     await writeFile(r.filePath, pdf);
     return { saved: true, path: r.filePath };
   } catch (e) {
-    return { saved: false, error: e instanceof Error ? e.message : String(e) };
+    return saveFailed(e);
   } finally {
     win.destroy();
   }
@@ -130,7 +138,7 @@ export async function savePng(defaultName: string, dataUrl: string): Promise<Sav
     await writeFile(r.filePath, bytes);
     return { saved: true, path: r.filePath };
   } catch (e) {
-    return { saved: false, error: e instanceof Error ? e.message : String(e) };
+    return saveFailed(e);
   }
 }
 
@@ -144,6 +152,6 @@ export async function saveMarkdown(defaultName: string, content: string): Promis
     await writeFile(r.filePath, content, 'utf8');
     return { saved: true, path: r.filePath };
   } catch (e) {
-    return { saved: false, error: e instanceof Error ? e.message : String(e) };
+    return saveFailed(e);
   }
 }

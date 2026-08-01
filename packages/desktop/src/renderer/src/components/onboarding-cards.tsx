@@ -45,6 +45,8 @@ export type GithubEntry = {
   status: Status;
   error?: string;
   login?: string;
+  // gh CLI 가져오기 항목 — 토큰은 main 프로세스에만 있고 renderer 로 오지 않는다
+  ghLogin?: string;
 };
 
 function StatusDot({ status }: { status: Status }) {
@@ -62,6 +64,7 @@ function LabelToken({
   onChange,
   onTest,
   onRemove,
+  ghManaged,
 }: {
   kind: TokenKind;
   label: string;
@@ -70,6 +73,7 @@ function LabelToken({
   onChange: (p: { label?: string; token?: string }) => void;
   onTest: () => void;
   onRemove?: () => void;
+  ghManaged?: boolean;
 }) {
   const { t } = useSettings();
   const mismatchKey = tokenMismatchKey(kind, token);
@@ -100,20 +104,26 @@ function LabelToken({
           placeholder={t('onb.field.labelPh')}
           className="w-24 rounded-md border border-hairline bg-surface-1 px-2.5 py-2 text-[13px] text-ink focus:border-accent/60 focus:outline-none"
         />
-        <input
-          type="password"
-          value={token}
-          onChange={(e) => {
-            manualEdit.current = true;
-            onChange({ token: e.target.value });
-          }}
-          placeholder={t('onb.field.tokenPh')}
-          className="flex-1 rounded-md border border-hairline bg-surface-1 px-2.5 py-2 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/60 focus:outline-none"
-        />
+        {ghManaged ? (
+          <span className="flex flex-1 items-center rounded-md border border-hairline bg-surface-2/60 px-2.5 py-2 text-[12.5px] text-ink-tertiary">
+            {t('onb.github.ghManaged')}
+          </span>
+        ) : (
+          <input
+            type="password"
+            value={token}
+            onChange={(e) => {
+              manualEdit.current = true;
+              onChange({ token: e.target.value });
+            }}
+            placeholder={t('onb.field.tokenPh')}
+            className="flex-1 rounded-md border border-hairline bg-surface-1 px-2.5 py-2 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/60 focus:outline-none"
+          />
+        )}
         <button
           type="button"
           onClick={onTest}
-          disabled={!token.trim() || status === 'testing' || !!mismatchKey}
+          disabled={(!ghManaged && !token.trim()) || status === 'testing' || !!mismatchKey}
           className="shrink-0 rounded-md border border-hairline px-2.5 py-2 text-[12px] text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
         >
           {t('onb.field.test')}
@@ -289,6 +299,7 @@ export function GithubCard({
         onChange={onChange}
         onTest={onTest}
         onRemove={onRemove}
+        ghManaged={!!e.ghLogin}
       />
       {e.status === 'err' && <p className="text-[12px] text-danger">{e.error}</p>}
       {e.status === 'ok' && e.login && (

@@ -721,6 +721,9 @@ function Heatmap({
                     return (
                       <span
                         key={cell.date}
+                        role={clickable ? 'button' : undefined}
+                        tabIndex={clickable ? 0 : undefined}
+                        aria-label={clickable ? cell.date : undefined}
                         className={`rounded-[2px] transition-transform hover:scale-125 ${clickable ? 'cursor-pointer' : ''}`}
                         style={{
                           width: CELL,
@@ -728,6 +731,12 @@ function Heatmap({
                           background: cell.future ? 'transparent' : LEVEL_BG[level(cell.total)],
                         }}
                         onClick={() => clickable && onPickDate?.(cell.date)}
+                        onKeyDown={(e) => {
+                          if (clickable && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault();
+                            onPickDate?.(cell.date);
+                          }
+                        }}
                         onMouseEnter={(e) => {
                           if (cell.future) return;
                           const wrap = wrapRef.current;

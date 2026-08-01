@@ -1,4 +1,5 @@
-import { BrowserWindow, shell } from 'electron';
+import { BrowserWindow, dialog, shell } from 'electron';
+import { mt } from './i18n';
 import { randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { writeFileAtomic } from './atomic-write';
@@ -63,7 +64,12 @@ function broadcastAuth(): void {
   }
 }
 
-const DONE_HTML = `<!doctype html><meta charset="utf-8"><title>cairn</title><body style="margin:0;display:flex;height:100vh;align-items:center;justify-content:center;background:#0a0a0a;color:#e5e5e5;font-family:system-ui,sans-serif"><div style="text-align:center"><p style="font-size:15px;font-weight:600">로그인 완료</p><p style="font-size:13px;color:#a3a3a3">이제 cairn 앱으로 돌아가세요.</p></div><script>setTimeout(()=>window.close(),1200)</script></body>`;
+// 웹 페이지가 fetch 로 토큰을 넘길 수 있게(주소창에 토큰 미노출) — 대상은 우리 도메인만
+const WEB_ORIGIN = new URL(WEB_BASE).origin;
+const CORS_HEADERS = {
+  'access-control-allow-origin': WEB_ORIGIN,
+  vary: 'origin',
+} as const;
 
 let server: Server | null = null;
 let authTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -85,13 +91,44 @@ export function startCloudSignIn(): void {
   // 드라이브바이를 차단. 우리가 연 플로우의 state 를 에코한 콜백만 수용한다
   const expectedState = randomBytes(16).toString('hex');
   const current = createServer((req, res) => {
+    // Chrome PNA(public→local) preflight — 허용해야 fetch 경로가 열린다
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        ...CORS_HEADERS,
+        'access-control-allow-methods': 'GET',
+        'access-control-allow-private-network': 'true',
+        'access-control-max-age': '600',
+      });
+      res.end();
+      return;
+    }
+    // 폴백은 폼 POST(body) — 토큰이 URL/히스토리에 실리지 않는다. GET 쿼리는 fetch 경로용
+    if (req.method === 'POST') {
+      let body = '';
+      req.setEncoding('utf8');
+      req.on('data', (chunk: string) => {
+        if (body.length < 8192) body += chunk;
+      });
+      req.on('end', () => {
+        const params = new URLSearchParams(body);
+        handleToken(params.get('token'), params.get('state'), req, res);
+      });
+      return;
+    }
     if (req.method !== 'GET') {
       res.writeHead(405);
       res.end();
       return;
     }
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
-    const ott = url.searchParams.get('token');
+    handleToken(url.searchParams.get('token'), url.searchParams.get('state'), req, res);
+  });
+  const handleToken = (
+    ott: string | null,
+    state: string | null,
+    req: import('node:http').IncomingMessage,
+    res: import('node:http').ServerResponse,
+  ): void => {
     // favicon 등 토큰 없는 부가 요청은 무시 — 세션 닫지 않음
     if (!ott) {
       res.writeHead(204);
@@ -99,13 +136,20 @@ export function startCloudSignIn(): void {
       return;
     }
     // state 불일치는 거부하되 서버는 유지 — 공격 시도가 정상 플로우를 죽이지 못하게
-    if (url.searchParams.get('state') !== expectedState) {
+    if (state !== expectedState) {
       res.writeHead(403);
       res.end();
       return;
     }
-    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    res.end(DONE_HTML);
+    // fetch 경로(Sec-Fetch-Mode: cors)는 JSON, 페이지 이동 폴백은 웹 완료 화면으로 302 —
+    // 어느 쪽이든 토큰 붙은 로컬 URL 이 주소창에 머물지 않는다
+    if (req.headers['sec-fetch-mode'] === 'cors') {
+      res.writeHead(200, { ...CORS_HEADERS, 'content-type': 'application/json' });
+      res.end('{"ok":true}');
+    } else {
+      res.writeHead(302, { location: `${WEB_BASE}/desktop-login` });
+      res.end();
+    }
     void completeSignIn(ott);
     if (authTimeout) {
       clearTimeout(authTimeout);
@@ -113,12 +157,23 @@ export function startCloudSignIn(): void {
     }
     current.close();
     if (server === current) server = null;
-  });
+  };
   server = current;
+  // 리스너 없으면 listen/소켓 에러가 uncaught 로 메인 프로세스를 죽인다
+  current.on('error', (err) => {
+    if (server === current) stopServer();
+    signInFailed(`loopback server: ${err.message}`);
+  });
   current.listen(0, '127.0.0.1', () => {
     const addr = current.address();
     const port = addr && typeof addr === 'object' ? addr.port : 0;
-    void shell.openExternal(`${WEB_BASE}/desktop-login?port=${port}&state=${expectedState}`);
+    // 기본 브라우저가 없으면 여기서 조용히 끝나 '로그인 눌러도 아무 일 없음'이 되던 경로
+    shell
+      .openExternal(`${WEB_BASE}/desktop-login?port=${port}&state=${expectedState}`)
+      .catch((err: unknown) => {
+        if (server === current) stopServer();
+        signInFailed(`openExternal: ${err instanceof Error ? err.message : String(err)}`);
+      });
   });
   // 브라우저 로그인 플로우를 포기하면 포트가 무기한 점유되지 않도록 5분 후 정리
   authTimeout = setTimeout(
@@ -129,6 +184,13 @@ export function startCloudSignIn(): void {
   );
 }
 
+// 브라우저 쪽은 '로그인 완료'를 띄우는데 앱은 영영 로컬 상태로 남던 조용한 실패 —
+// 각 단계 실패를 로그 + 네이티브 다이얼로그로 표면화한다 (알림 클릭은 프론트 배너에서 미전달)
+function signInFailed(reason: string): void {
+  console.error(`[cloud-auth] sign-in failed: ${reason}`);
+  dialog.showErrorBox(mt('cloud.signInFailTitle'), mt('cloud.signInFailBody'));
+}
+
 async function completeSignIn(ott: string): Promise<void> {
   try {
     const verify = await fetch(`${WEB_BASE}/api/auth/one-time-token/verify`, {
@@ -137,7 +199,10 @@ async function completeSignIn(ott: string): Promise<void> {
       body: JSON.stringify({ token: ott }),
     });
     const token = verify.headers.get('set-auth-token');
-    if (!token) return;
+    if (!token) {
+      signInFailed(`token verify HTTP ${verify.status}`);
+      return;
+    }
     const sess = await fetch(`${WEB_BASE}/api/auth/get-session`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -145,7 +210,10 @@ async function completeSignIn(ott: string): Promise<void> {
       user?: { name?: string; email?: string; image?: string | null };
     };
     const u = data.user;
-    if (!u?.email) return;
+    if (!u?.email) {
+      signInFailed(`get-session HTTP ${sess.status} — no user`);
+      return;
+    }
     writeStored({
       token,
       user: { name: u.name ?? u.email, email: u.email, image: u.image ?? null },
@@ -154,8 +222,8 @@ async function completeSignIn(ott: string): Promise<void> {
     const win = BrowserWindow.getAllWindows()[0];
     win?.show();
     win?.focus();
-  } catch {
-    // ignore
+  } catch (err) {
+    signInFailed(err instanceof Error ? err.message : String(err));
   }
 }
 

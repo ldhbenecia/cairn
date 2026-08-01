@@ -24,17 +24,13 @@ export function BillingTab() {
   return (
     <div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* 두 카드는 슬롯 순서(제목/설명·가격·CTA·구분선·기능)를 동일하게 — 행이 어긋나면 한쪽이 비어 보인다 */}
         <div className="flex flex-col rounded-xl border border-hairline bg-surface-1 p-4 transition-colors hover:border-hairline-strong">
-          <div className="mb-4 flex items-start justify-between">
-            <div>
-              <h3 className="text-[14.5px] font-semibold text-ink">Free</h3>
-              <p className="mt-1.5 text-[12px] leading-relaxed text-ink-tertiary">
-                {t('billing.free.desc')}
-              </p>
-            </div>
-            <span className="shrink-0 rounded-full bg-surface-3 px-2 py-0.5 text-[10px] font-medium tracking-wide text-ink-muted uppercase">
-              {t('billing.current')}
-            </span>
+          <div className="mb-4">
+            <h3 className="text-[14.5px] font-semibold text-ink">Free</h3>
+            <p className="mt-1.5 text-[12px] leading-relaxed text-ink-tertiary">
+              {t('billing.free.desc')}
+            </p>
           </div>
           <p className="mb-4 flex items-baseline gap-1.5">
             <span className="text-[24px] leading-none font-semibold tracking-[-1px] text-ink">
@@ -44,6 +40,9 @@ export function BillingTab() {
               {t('billing.free.note')}
             </span>
           </p>
+          <div className="mb-4 flex h-8 w-full items-center justify-center rounded-md border border-hairline text-[13px] font-medium text-ink-tertiary">
+            {t('billing.current')}
+          </div>
           <div className="mb-4 h-px w-full bg-hairline" />
           <ul className="flex flex-col gap-2.5 text-[12.5px] leading-snug text-ink-muted">
             {FREE_FEATURES.map((k) => (

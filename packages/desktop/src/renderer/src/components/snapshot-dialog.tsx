@@ -19,6 +19,7 @@ export function SnapshotDialog({
   const [selected, setSelected] = useState<string | null>(null);
   const [diff, setDiff] = useState<DiffLine[] | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [restoreErr, setRestoreErr] = useState(false);
   const date = page.date ?? '';
 
   useEffect(() => {
@@ -34,11 +35,17 @@ export function SnapshotDialog({
 
   useEffect(() => {
     let alive = true;
-    void window.cairn.snapshots.list(page.category, date).then((list) => {
-      if (!alive) return;
-      setSnaps(list);
-      if (list.length > 0) setSelected(list[0]!.stamp);
-    });
+    window.cairn.snapshots.list(page.category, date).then(
+      (list) => {
+        if (!alive) return;
+        setSnaps(list);
+        if (list.length > 0) setSelected(list[0]!.stamp);
+      },
+      () => {
+        // 거부 시 스피너가 영구 표시되던 문제 — 빈 목록으로 정착
+        if (alive) setSnaps([]);
+      },
+    );
     return () => {
       alive = false;
     };
@@ -48,17 +55,22 @@ export function SnapshotDialog({
     if (!selected) return;
     let alive = true;
     setDiff(null);
-    void Promise.all([
+    Promise.all([
       window.cairn.snapshots.read(page.category, date, selected),
       window.cairn.snapshots.read(page.category, date, 'current'),
-    ]).then(([snap, current]) => {
-      if (!alive) return;
-      if (snap.content === null || current.content === null) {
-        setDiff([]);
-        return;
-      }
-      setDiff(diffLines(snap.content, current.content));
-    });
+    ]).then(
+      ([snap, current]) => {
+        if (!alive) return;
+        if (snap.content === null || current.content === null) {
+          setDiff([]);
+          return;
+        }
+        setDiff(diffLines(snap.content, current.content));
+      },
+      () => {
+        if (alive) setDiff([]);
+      },
+    );
     return () => {
       alive = false;
     };
@@ -67,11 +79,19 @@ export function SnapshotDialog({
   async function restore() {
     if (!selected || restoring) return;
     setRestoring(true);
-    const r = await window.cairn.snapshots.restore(page.category, date, selected);
-    setRestoring(false);
-    if (r.ok) {
-      onRestored();
-      onClose();
+    setRestoreErr(false);
+    try {
+      const r = await window.cairn.snapshots.restore(page.category, date, selected);
+      if (r.ok) {
+        onRestored();
+        onClose();
+      } else {
+        setRestoreErr(true);
+      }
+    } catch {
+      setRestoreErr(true);
+    } finally {
+      setRestoring(false);
     }
   }
 
@@ -175,7 +195,13 @@ export function SnapshotDialog({
               )}
             </div>
             <div className="flex items-center justify-between border-t border-hairline px-6 py-3.5">
-              <span className="text-[11.5px] text-ink-tertiary">{t('snap.legend')}</span>
+              <span className="text-[11.5px] text-ink-tertiary">
+                {restoreErr ? (
+                  <span className="text-danger">{t('snap.restoreFail')}</span>
+                ) : (
+                  t('snap.legend')
+                )}
+              </span>
               <button
                 type="button"
                 disabled={!selected || restoring}

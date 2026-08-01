@@ -1,7 +1,12 @@
 import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
+import {
+  acceptAutoConfirm,
+  dismissAutoConfirm,
+  initAutoPublish,
+  reconfigureAutoPublish,
+} from './auto-publish';
 import { warmClaudePath } from './claude-path';
 import { exportStatus, pickExportFolder, saveMarkdown, savePdf, savePng } from './export';
 import { notifyCloudExpired, notifyConnectionIssue, sendTestNotification } from './notifier';
@@ -37,8 +42,9 @@ import {
 import {
   addNotionWorkspace,
   finishOnboarding,
-  githubAccountsFromGhCli,
+  listGhCliLogins,
   listNotionDatabases,
+  probeGhCliAccount,
   probeConnectionAccounts,
   probeGithub,
   probeLocalRepo,
@@ -70,7 +76,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 let allowQuit = false;
 
 // 미서명 앱이라 safeStorage 가 OS 키체인을 건드리면 암호 프롬프트가 매번 뜬다 → mock keychain 사용
-// cairn 은 토큰을 .env 평문 저장이라 부작용 없음. password-store=basic 은 Linux 전용
+// 시크릿 암호화(ADR 0037)는 safeStorage 가 아니라 자체 키체인 키(keychain-key.ts)를 쓰므로 무관.
+// password-store=basic 은 Linux 전용
 app.commandLine.appendSwitch('use-mock-keychain');
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('password-store', 'basic');
@@ -204,7 +211,7 @@ void app.whenReady().then(() => {
         // 클라우드 세션 만료는 sync 가 조용히 죽는 상태 — 클릭하면 재로그인 플로우 바로 시작
         if (cloud === 'expired') notifyCloudExpired(() => startCloudSignIn());
       })
-      .catch(() => {});
+      .catch((err: unknown) => console.error('[health-check] failed', err));
   }, 8000);
   // 주기 sync — 상주 앱이 재시작 없이 오래 떠 있어도 stats 가 기기 간 최신으로 유지되고,
   // 서버 세션도 사용 시 연장(updateAge)되어 재로그인 없이 지속된다
@@ -335,13 +342,18 @@ void app.whenReady().then(() => {
     listNotionDatabases(token, pageId),
   );
   ipcMain.handle('cairn:onboarding:probe-github', (_e, token: string) => probeGithub(token));
-  ipcMain.handle('cairn:onboarding:github-from-gh', () => githubAccountsFromGhCli());
+  ipcMain.handle('cairn:onboarding:github-from-gh', () => listGhCliLogins());
+  ipcMain.handle('cairn:onboarding:probe-github-gh', (_e, login: unknown) =>
+    probeGhCliAccount(login),
+  );
   ipcMain.handle('cairn:onboarding:probe-claude', () => probeClaude());
   ipcMain.handle('cairn:onboarding:probe-repo', (_e, path: string) =>
     probeLocalRepo(String(path ?? '')),
   );
   ipcMain.handle('cairn:connections:accounts', () => probeConnectionAccounts());
   ipcMain.handle('cairn:connections:refresh-github', () => refreshGithubFromGhCli());
+  ipcMain.handle('cairn:auto-confirm:accept', () => acceptAutoConfirm());
+  ipcMain.handle('cairn:auto-confirm:dismiss', () => dismissAutoConfirm());
   ipcMain.handle('cairn:integrations:add-notion', (_e, raw: unknown) => {
     const parsed = parseNotionWorkspacePayload(raw);
     if (!parsed.ok) return { ok: false, error: parsed.error };

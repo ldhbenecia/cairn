@@ -1,4 +1,4 @@
-import { powerMonitor } from 'electron';
+import { BrowserWindow, powerMonitor } from 'electron';
 import {
   isScheduledTimeReached,
   localTodayIso,
@@ -8,7 +8,7 @@ import {
   yearAnchorsToPublish,
 } from './auto-publish-schedule';
 import { isRunning, runCore, type CoreMode, type CoreRunOptions } from './core-runner';
-import { notifyAutoConfirm, notifyAutoStart } from './notifier';
+import { clearConfirm, notifyAutoConfirm, notifyAutoStart } from './notifier';
 import { readSettings, type AutoPublish } from './settings';
 import {
   readAutoPublishState,
@@ -106,15 +106,46 @@ async function runAutoPublish(): Promise<void> {
   if (runs.length === 0) return;
 
   if (cfg.confirmBeforeRun) {
-    const shown = notifyAutoConfirm(
-      runs.map((r) => r.mode),
-      () => void executeRuns(dueRuns(cfg, readAutoPublishState())),
-    );
-    if (!shown) await executeRuns(runs);
+    // macOS 는 앱이 프론트일 때 표시된 알림 배너의 click 을 전달하지 않는다(electron#51885) —
+    // 알림 클릭이 유일한 트리거면 발행이 영영 안 될 수 있어 인앱 확인 배너를 병행 경로로 둔다
+    const execute = (): void => {
+      pendingConfirm = null;
+      broadcastAutoConfirm(null);
+      void executeRuns(dueRuns(cfg, readAutoPublishState()));
+    };
+    pendingConfirm = execute;
+    const modes = runs.map((r) => r.mode);
+    const shown = notifyAutoConfirm(modes, execute);
+    if (!shown) {
+      pendingConfirm = null;
+      await executeRuns(runs);
+      return;
+    }
+    broadcastAutoConfirm(modes);
     return;
   }
 
   await executeRuns(runs);
+}
+
+let pendingConfirm: (() => void) | null = null;
+
+function broadcastAutoConfirm(modes: CoreMode[] | null): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed() || win.webContents.isDestroyed()) continue;
+    win.webContents.send('cairn:auto-confirm', modes);
+  }
+}
+
+export function acceptAutoConfirm(): void {
+  clearConfirm();
+  pendingConfirm?.();
+}
+
+export function dismissAutoConfirm(): void {
+  clearConfirm();
+  pendingConfirm = null;
+  broadcastAutoConfirm(null);
 }
 
 async function executeRuns(runs: DueRun[]): Promise<void> {

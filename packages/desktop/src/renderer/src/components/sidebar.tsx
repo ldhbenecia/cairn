@@ -184,6 +184,26 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
   const { signedIn, user } = useCloudAuth();
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+  // macOS 는 앱이 프론트일 때 표시된 알림 배너의 click 이벤트를 전달하지 않는다(electron#51885) —
+  // 알림만 믿지 않고 만료 상태를 계정 행에 상시 노출해 앱 안에서 복구할 수 있게 한다
+  const [expired, setExpired] = useState(false);
+  useEffect(() => {
+    if (!signedIn) {
+      setExpired(false);
+      return;
+    }
+    let alive = true;
+    void window.cairn.cloud
+      .validate()
+      .then((h) => {
+        if (alive) setExpired(h === 'expired');
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+    // user 참조는 재로그인 시 갱신된다 — 성공 직후 만료 배지가 남지 않게 재검증 트리거로 포함
+  }, [signedIn, user]);
   const ref = useRef<HTMLDivElement>(null);
   const closeMenu = (): void => {
     setClosing(true);
@@ -204,21 +224,65 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
 
   if (!signedIn || !user) {
     return (
-      <div className="flex min-w-0 items-center gap-2.5 px-1 [-webkit-app-region:no-drag]">
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent text-white">
-          <BrandMark size={15} />
-        </span>
-        <span className="min-w-0 truncate text-[15px] font-semibold tracking-[-0.2px] text-ink">
-          cairn
-        </span>
+      <div ref={ref} className="relative [-webkit-app-region:no-drag]">
         <button
           type="button"
-          onClick={() => void window.cairn.cloud.signIn().catch(() => {})}
-          className="ml-auto flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+          onClick={() => (open ? closeMenu() : setOpen(true))}
+          className={[
+            'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors',
+            open ? 'bg-surface-2' : 'hover:bg-surface-2/70',
+          ].join(' ')}
         >
-          <LogIn size={13} strokeWidth={2} />
-          {t('account.signIn')}
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent text-white">
+            <BrandMark size={15} />
+          </span>
+          <span className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-[-0.2px] text-ink">
+            cairn
+          </span>
         </button>
+        {open && (
+          <div
+            className={`floating-panel ${closing ? 'popover-out' : 'popover-in'} absolute left-0 top-full z-20 mt-1 w-60 max-w-[calc(100vw-32px)] overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40 [transform-origin:top]`}
+          >
+            <div className="px-2.5 py-2">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent text-white">
+                  <BrandMark size={15} />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
+                  cairn
+                </span>
+                <AccountStatusPill />
+              </div>
+              <p className="mt-1.5 text-[12px] leading-snug text-ink-tertiary">
+                {t('account.localDesc')}
+              </p>
+            </div>
+            <div className="my-1 h-px bg-hairline" />
+            <button
+              type="button"
+              onClick={() => {
+                closeMenu();
+                void window.cairn.cloud.signIn().catch(() => {});
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+            >
+              <LogIn size={14} strokeWidth={1.75} />
+              {t('account.signIn')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                closeMenu();
+                onOpenPreferences();
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+            >
+              <Settings2 size={14} strokeWidth={1.75} />
+              {t('nav.preferences')}
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -237,6 +301,11 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
         <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-ink">
           {user.name}
         </span>
+        {expired && (
+          <span className="shrink-0 rounded-full bg-warning/15 px-1.5 py-0.5 text-[10px] font-medium text-warning">
+            {t('account.expired')}
+          </span>
+        )}
       </button>
       {open && (
         <div
@@ -255,6 +324,19 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
             </p>
           </div>
           <div className="my-1 h-px bg-hairline" />
+          {expired && (
+            <button
+              type="button"
+              onClick={() => {
+                closeMenu();
+                void window.cairn.cloud.signIn().catch(() => {});
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] text-warning transition-colors hover:bg-surface-2"
+            >
+              <LogIn size={14} strokeWidth={1.75} />
+              {t('account.reSignIn')}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {

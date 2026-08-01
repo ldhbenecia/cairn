@@ -110,10 +110,17 @@ export function parseOnboardingPayload(
   const github: OnboardingPayload['github'] = [];
   for (const g of o.github) {
     const gg = g as Record<string, unknown>;
-    if (typeof g !== 'object' || g === null || !isStr(gg.label) || !isStr(gg.token)) {
+    if (typeof g !== 'object' || g === null || !isStr(gg.label) || hasCtl(gg.label)) {
       return { ok: false, error: 'invalid-github' };
     }
-    if (hasCtl(gg.label) || hasCtl(gg.token)) return { ok: false, error: 'invalid-github' };
+    // gh CLI 가져오기 항목은 renderer 가 토큰 대신 login 만 보낸다 — main 캐시에서 해석
+    if (isStr(gg.ghLogin)) {
+      const token = ghCliTokens.get(gg.ghLogin);
+      if (!token) return { ok: false, error: 'gh-token-missing' };
+      github.push({ label: gg.label, token });
+      continue;
+    }
+    if (!isStr(gg.token) || hasCtl(gg.token)) return { ok: false, error: 'invalid-github' };
     github.push({ label: gg.label, token: gg.token });
   }
 
@@ -224,7 +231,12 @@ export async function githubAccountsFromGhCli(): Promise<GhCliAccounts> {
   const exe = process.platform === 'win32' ? 'gh.exe' : 'gh';
   const gh = findInPath(exe);
   if (!gh) return { ok: false, error: 'gh-not-found' };
-  const env = { ...process.env, PATH: searchPathEnv() };
+  // gh keychain 접근에 필요한 최소 env 만 — 전체 상속 시 모든 토큰이 자식으로 흘러간다
+  const env = {
+    PATH: searchPathEnv(),
+    HOME: process.env.HOME ?? '',
+    GH_CONFIG_DIR: process.env.GH_CONFIG_DIR ?? '',
+  };
 
   let logins: string[];
   try {
@@ -255,6 +267,25 @@ export async function githubAccountsFromGhCli(): Promise<GhCliAccounts> {
   }
   if (accounts.length === 0) return { ok: false, error: 'gh-not-authed' };
   return { ok: true, accounts };
+}
+
+// gh CLI 토큰은 renderer 로 내보내지 않는다 (ADR 0003 정신) — login 만 넘기고 토큰은 여기 캐시
+const ghCliTokens = new Map<string, string>();
+
+export type GhCliLogins = { ok: boolean; logins?: string[]; error?: string };
+
+export async function listGhCliLogins(): Promise<GhCliLogins> {
+  const r = await githubAccountsFromGhCli();
+  if (!r.ok || !r.accounts?.length) return { ok: false, error: r.error ?? 'gh-not-authed' };
+  ghCliTokens.clear();
+  for (const a of r.accounts) ghCliTokens.set(a.login, a.token);
+  return { ok: true, logins: r.accounts.map((a) => a.login) };
+}
+
+export async function probeGhCliAccount(login: unknown): Promise<GithubProbe> {
+  const token = typeof login === 'string' ? ghCliTokens.get(login) : undefined;
+  if (!token) return { ok: false, error: 'gh-not-authed' };
+  return probeGithub(token);
 }
 
 export async function probeGithub(token: string): Promise<GithubProbe> {

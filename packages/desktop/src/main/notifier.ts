@@ -118,7 +118,9 @@ let confirmResetTimer: NodeJS.Timeout | null = null;
 // 오판해 자동 발행이 앱 재시작 전까지 전면 중단되던 문제. 타임아웃 후 재프롬프트 허용
 const CONFIRM_RESET_MS = 10 * 60_000;
 
-function clearConfirm(): void {
+// 인앱 확인 배너(auto-publish)에서 수락/보류해도 알림 쪽 confirmActive 를 함께 풀어야
+// 다음 스케줄 체크가 '배너 표시 중'으로 오판하지 않는다
+export function clearConfirm(): void {
   confirmActive = false;
   if (confirmResetTimer) {
     clearTimeout(confirmResetTimer);

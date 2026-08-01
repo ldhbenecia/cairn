@@ -30,7 +30,9 @@ const STEP_TITLE_KEY: Record<Step, I18nKey> = {
 
 export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
   const { t } = useSettings();
-  const [stepIdx, setStepIdx] = useState(0);
+  // onCancel 존재 = 설정에서 진입한 재설정 — 환영 스텝을 건너뛰고 문구도 재설정 톤으로
+  const reconfigure = !!onCancel;
+  const [stepIdx, setStepIdx] = useState(reconfigure ? 1 : 0);
   const step = STEPS[stepIdx]!;
   const [github, setGithub] = useState<GithubEntry[]>([
     { label: 'Personal', token: '', status: 'idle' },
@@ -52,8 +54,22 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const patchGithubByToken = (token: string, p: Partial<GithubEntry>) =>
     setGithub((prev) => prev.map((e) => (e.token.trim() === token ? { ...e, ...p } : e)));
 
+  const patchGithubByGhLogin = (ghLogin: string, p: Partial<GithubEntry>) =>
+    setGithub((prev) => prev.map((e) => (e.ghLogin === ghLogin ? { ...e, ...p } : e)));
+
   async function testGithub(i: number) {
-    const token = github[i]!.token.trim();
+    const entry = github[i]!;
+    if (entry.ghLogin) {
+      const ghLogin = entry.ghLogin;
+      patchGithubByGhLogin(ghLogin, { status: 'testing', error: undefined });
+      const r = await window.cairn.onboarding.probeGithubGh(ghLogin);
+      patchGithubByGhLogin(
+        ghLogin,
+        r.ok ? { status: 'ok', login: r.login } : { status: 'err', error: r.error },
+      );
+      return;
+    }
+    const token = entry.token.trim();
     if (!token) return;
     patchGithubByToken(token, { status: 'testing', error: undefined });
     const r = await window.cairn.onboarding.probeGithub(token);
@@ -68,20 +84,21 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     setGhMsg(null);
     try {
       const r = await window.cairn.onboarding.githubFromGhCli();
-      if (!r.ok || !r.accounts?.length) {
+      if (!r.ok || !r.logins?.length) {
         setGhMsg(r.error === 'gh-not-found' ? 'onb.github.ghNotFound' : 'onb.github.ghNotAuthed');
         return;
       }
-      const entries: GithubEntry[] = r.accounts.map((a) => ({
-        label: a.login,
-        token: a.token,
+      const entries: GithubEntry[] = r.logins.map((login) => ({
+        label: login,
+        token: '',
+        ghLogin: login,
         status: 'testing',
       }));
       setGithub(entries);
       const probed = await Promise.all(
         entries.map(async (entry): Promise<GithubEntry> => {
           try {
-            const probe = await window.cairn.onboarding.probeGithub(entry.token);
+            const probe = await window.cairn.onboarding.probeGithubGh(entry.ghLogin!);
             return probe.ok
               ? { ...entry, status: 'ok', login: probe.login }
               : { ...entry, status: 'err', error: probe.error };
@@ -99,7 +116,8 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   }
 
   // 최소 요건: 활동 소스(GitHub 계정 또는 로컬 Git 레포) 하나 + Claude. 노션은 Preferences 연동 탭에서.
-  const sourceValid = repos.length > 0 || github.some((e) => e.status === 'ok' && e.token.trim());
+  const sourceValid =
+    repos.length > 0 || github.some((e) => e.status === 'ok' && (e.token.trim() || e.ghLogin));
   const claudeValid = claudeStatus === 'ok' || !!anthropicKey.trim();
 
   async function finish() {
@@ -108,8 +126,12 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     const r = await window.cairn.onboarding.finish({
       notion: [],
       github: github
-        .filter((e) => e.status === 'ok' && e.token.trim())
-        .map((e) => ({ label: e.label, token: e.token.trim() })),
+        .filter((e) => e.status === 'ok' && (e.token.trim() || e.ghLogin))
+        .map((e) =>
+          e.ghLogin
+            ? { label: e.label, ghLogin: e.ghLogin }
+            : { label: e.label, token: e.token.trim() },
+        ),
       anthropicApiKey: anthropicKey.trim() || undefined,
       localGitRepos: repos,
     });
@@ -145,10 +167,13 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
       <div className="h-11 shrink-0 [-webkit-app-region:drag]" />
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-hidden px-8">
         <div className="flex items-center gap-2.5 pb-3">
-          <span className="flex size-7 items-center justify-center rounded-md bg-accent text-white">
-            <BrandMark size={17} />
-          </span>
+          <BrandMark size={18} className="shrink-0 text-ink" />
           <span className="text-[17px] font-semibold tracking-[-0.3px]">cairn</span>
+          {reconfigure && (
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-muted">
+              {t('onb.reconfigure')}
+            </span>
+          )}
           {step !== 'welcome' && (
             <span className="ml-auto text-[12px] text-ink-tertiary">
               {stepIdx} / {STEPS.length - 1} · {t(STEP_TITLE_KEY[step])}
@@ -163,9 +188,9 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 className={[
                   'h-1 rounded-full transition-[width,background-color] duration-300',
                   i === stepIdx - 1
-                    ? 'w-6 bg-accent'
+                    ? 'w-6 bg-ink/80'
                     : i < stepIdx - 1
-                      ? 'w-3 bg-accent/45'
+                      ? 'w-3 bg-ink/30'
                       : 'w-3 bg-surface-3',
                 ].join(' ')}
               />
@@ -198,7 +223,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 ]}
               >
                 <div className="relative overflow-hidden rounded-lg border border-hairline-strong bg-surface-1 p-3.5">
-                  <span className="absolute inset-x-0 top-0 h-px bg-accent" />
+                  <span className="absolute inset-x-0 top-0 h-px bg-ink/25" />
                   <p className="mb-0.5 text-[13px] font-medium text-ink">
                     {t('onb.github.ghTitle')}
                   </p>
@@ -209,7 +234,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                     type="button"
                     onClick={() => void importFromGh()}
                     disabled={ghImporting}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-1.5 text-[12px] font-medium text-canvas transition-[background-color,scale] hover:bg-ink/90 active:scale-[0.96] disabled:opacity-60"
                   >
                     {ghImporting ? t('onb.github.ghImporting') : t('onb.github.ghImport')}
                   </button>
@@ -294,7 +319,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                     type="button"
                     onClick={() => void testClaude()}
                     disabled={claudeStatus === 'testing'}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
                   >
                     {claudeStatus === 'testing' && (
                       <Loader2 size={13} strokeWidth={2} className="animate-spin" />
@@ -393,11 +418,11 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
         </AnimatePresence>
 
         <div className="flex shrink-0 items-center gap-2 border-t border-hairline py-4">
-          {stepIdx > 0 && (
+          {stepIdx > (reconfigure ? 1 : 0) && (
             <button
               type="button"
               onClick={() => setStepIdx((s) => s - 1)}
-              className="rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink"
+              className="rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
             >
               {t('onb.nav.prev')}
             </button>
@@ -417,7 +442,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 type="button"
                 disabled={finishing || !sourceValid || !claudeValid}
                 onClick={() => void finish()}
-                className="flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-md bg-ink px-4 py-2 text-[13px] font-medium text-canvas transition-[background-color,scale] hover:bg-ink/90 active:scale-[0.96] disabled:opacity-50"
               >
                 {finishing && <Loader2 size={14} strokeWidth={2} className="animate-spin" />}
                 {t('onb.nav.start')}
@@ -426,7 +451,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
               <button
                 type="button"
                 onClick={() => setStepIdx((s) => s + 1)}
-                className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+                className="rounded-md bg-ink px-4 py-2 text-[13px] font-medium text-canvas transition-[background-color,scale] hover:bg-ink/90 active:scale-[0.96] disabled:opacity-50"
               >
                 {t('onb.nav.next')}
               </button>
@@ -443,11 +468,6 @@ const RISE = {
   hidden: { opacity: 0, y: 16, filter: 'blur(4px)' },
   show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.9, ease: SLOW } },
 };
-const BRAND_IN = {
-  hidden: { opacity: 0, scale: 0.8, filter: 'blur(10px)' },
-  show: { opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 1.3, ease: SLOW } },
-};
-
 function Welcome({ t }: { t: T }) {
   const { signedIn, user } = useCloudAuth();
   return (
@@ -457,11 +477,8 @@ function Welcome({ t }: { t: T }) {
       variants={{ show: { transition: { staggerChildren: 0.32, delayChildren: 0.35 } } }}
       className="flex h-full flex-col items-center justify-center gap-7 pb-6 text-center"
     >
-      <motion.span
-        variants={BRAND_IN}
-        className="flex size-20 items-center justify-center rounded-[20px] bg-accent text-white"
-      >
-        <BrandMark size={42} />
+      <motion.span variants={RISE} className="text-ink">
+        <BrandMark size={52} />
       </motion.span>
       <motion.div variants={RISE} className="flex flex-col gap-2.5">
         <h1 className="text-[28px] font-semibold tracking-[-0.6px]">{t('onb.welcome.title')}</h1>

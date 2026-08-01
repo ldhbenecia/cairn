@@ -32,8 +32,8 @@ const TABS: { id: TabId; labelKey: I18nKey }[] = [
   { id: 'prompts', labelKey: 'prefs.prompts' },
   { id: 'notifications', labelKey: 'prefs.notifications' },
   { id: 'connections', labelKey: 'prefs.connections' },
-  { id: 'billing', labelKey: 'prefs.billing' },
   { id: 'feedback', labelKey: 'prefs.feedback' },
+  { id: 'billing', labelKey: 'prefs.billing' },
   { id: 'about', labelKey: 'prefs.about' },
 ];
 
@@ -52,6 +52,7 @@ type Props = {
   onRerunSetup: () => void;
   blockEscape?: boolean;
   initialTab?: TabId | null;
+  initialTabNonce?: number;
 };
 
 export function PreferencesDialog({
@@ -60,12 +61,13 @@ export function PreferencesDialog({
   onRerunSetup,
   blockEscape,
   initialTab,
+  initialTabNonce,
 }: Props) {
   const { t } = useSettings();
   const [tab, setTab] = useState<TabId>('appearance');
   useEffect(() => {
     if (open && initialTab) setTab(initialTab);
-  }, [open, initialTab]);
+  }, [open, initialTab, initialTabNonce]);
   const active = TABS.find((x) => x.id === tab) ?? TABS[0]!;
   const descKey = TAB_DESC[tab];
 
@@ -89,9 +91,9 @@ export function PreferencesDialog({
           style={{ width: 920, height: 600, maxWidth: '92vw', maxHeight: '86vh' }}
           className="dialog-content glass-panel fixed top-1/2 left-1/2 z-50 flex overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50 focus:outline-none"
         >
-          <nav className="flex w-44 shrink-0 flex-col gap-0.5 border-r border-hairline p-3">
+          <nav className="flex w-44 shrink-0 flex-col gap-0.5 border-r border-hairline p-3.5">
             <Dialog.Title asChild>
-              <p className="px-2.5 pt-1.5 pb-2.5 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
+              <p className="px-2.5 pt-5 pb-4 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
                 {t('prefs.title')}
               </p>
             </Dialog.Title>
@@ -122,9 +124,9 @@ export function PreferencesDialog({
             >
               <X size={15} strokeWidth={2} />
             </Dialog.Close>
-            <div className="h-full overflow-y-auto px-6 py-5 [scrollbar-gutter:stable]">
+            <div className="h-full overflow-y-auto px-8 py-7 [scrollbar-gutter:stable]">
               <div key={tab} className="panel-enter max-w-[640px]">
-                <header className="pb-5">
+                <header className="pb-6">
                   <h2 className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
                     {t(active.labelKey)}
                   </h2>
