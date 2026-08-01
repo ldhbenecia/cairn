@@ -287,6 +287,15 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.on('cairn:open-connections', listener);
     return () => ipcRenderer.off('cairn:open-connections', listener);
   },
+  autoConfirm: {
+    accept: (): Promise<void> => ipcRenderer.invoke('cairn:auto-confirm:accept') as Promise<void>,
+    dismiss: (): Promise<void> => ipcRenderer.invoke('cairn:auto-confirm:dismiss') as Promise<void>,
+    onPending: (cb: (modes: CoreMode[] | null) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, modes: CoreMode[] | null): void => cb(modes);
+      ipcRenderer.on('cairn:auto-confirm', listener);
+      return () => ipcRenderer.off('cairn:auto-confirm', listener);
+    },
+  },
   onRunProgress: (cb: (payload: { mode: CoreMode } & RunProgress) => void): (() => void) => {
     const listener = (
       _e: Electron.IpcRendererEvent,

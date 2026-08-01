@@ -269,6 +269,11 @@ declare global {
       onRunLine: (cb: (l: RunLine) => void) => () => void;
       onFocusMode: (cb: (mode: CoreMode) => void) => () => void;
       onOpenConnections: (cb: () => void) => () => void;
+      autoConfirm: {
+        accept: () => Promise<void>;
+        dismiss: () => Promise<void>;
+        onPending: (cb: (modes: CoreMode[] | null) => void) => () => void;
+      };
       onRunStep: (cb: (p: { mode: CoreMode; step: RunStep }) => void) => () => void;
       onRunProgress: (cb: (p: { mode: CoreMode } & RunProgress) => void) => () => void;
       onRunDone: (cb: (p: { mode: CoreMode; result: CoreResult }) => void) => () => void;

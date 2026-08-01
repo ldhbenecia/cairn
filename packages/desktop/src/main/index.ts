@@ -1,7 +1,12 @@
 import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
+import {
+  acceptAutoConfirm,
+  dismissAutoConfirm,
+  initAutoPublish,
+  reconfigureAutoPublish,
+} from './auto-publish';
 import { warmClaudePath } from './claude-path';
 import { exportStatus, pickExportFolder, saveMarkdown, savePdf, savePng } from './export';
 import { notifyCloudExpired, notifyConnectionIssue, sendTestNotification } from './notifier';
@@ -342,6 +347,8 @@ void app.whenReady().then(() => {
   );
   ipcMain.handle('cairn:connections:accounts', () => probeConnectionAccounts());
   ipcMain.handle('cairn:connections:refresh-github', () => refreshGithubFromGhCli());
+  ipcMain.handle('cairn:auto-confirm:accept', () => acceptAutoConfirm());
+  ipcMain.handle('cairn:auto-confirm:dismiss', () => dismissAutoConfirm());
   ipcMain.handle('cairn:integrations:add-notion', (_e, raw: unknown) => {
     const parsed = parseNotionWorkspacePayload(raw);
     if (!parsed.ok) return { ok: false, error: parsed.error };

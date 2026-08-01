@@ -19,6 +19,7 @@ import type {
 import { AnimatePresence } from 'framer-motion';
 import { invalidateReportsScan, prefetchReportsScan } from './lib/reports-scan';
 import { resetRunLines } from './lib/run-line-store';
+import { AutoConfirmToast } from './components/auto-confirm-toast';
 import { RunToast, type RunToastData } from './components/run-toast';
 import { useSettings } from './settings-context';
 import { Dashboard } from './components/dashboard';
@@ -75,6 +76,7 @@ export function App() {
   const [view, setView] = useState<MainView>('stats');
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [prefsTab, setPrefsTab] = useState<'connections' | null>(null);
+  const [autoConfirmModes, setAutoConfirmModes] = useState<CoreMode[] | null>(null);
   const [cmdkOpen, setCmdkOpen] = useState(false);
   // 팔레트 발행 → worklogs 뷰의 PublishDialog 를 진행 화면으로 여는 신호
   const [publishProgressSignal, setPublishProgressSignal] = useState(0);
@@ -342,6 +344,11 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const off = window.cairn.autoConfirm.onPending(setAutoConfirmModes);
+    return off;
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === ',') {
         e.preventDefault();
@@ -534,6 +541,17 @@ export function App() {
         onOpenPage={(pageId, url) => {
           void openPublishedPage(pageId, url);
           setToast(null);
+        }}
+      />
+      <AutoConfirmToast
+        modes={autoConfirmModes}
+        onAccept={() => {
+          void window.cairn.autoConfirm.accept().catch(() => {});
+          setAutoConfirmModes(null);
+        }}
+        onDismiss={() => {
+          void window.cairn.autoConfirm.dismiss().catch(() => {});
+          setAutoConfirmModes(null);
         }}
       />
       <PreferencesDialog
