@@ -63,7 +63,12 @@ function broadcastAuth(): void {
   }
 }
 
-const DONE_HTML = `<!doctype html><meta charset="utf-8"><title>cairn</title><body style="margin:0;display:flex;height:100vh;align-items:center;justify-content:center;background:#0a0a0a;color:#e5e5e5;font-family:system-ui,sans-serif"><div style="text-align:center"><p style="font-size:15px;font-weight:600">로그인 완료</p><p style="font-size:13px;color:#a3a3a3">이제 cairn 앱으로 돌아가세요.</p></div><script>setTimeout(()=>window.close(),1200)</script></body>`;
+// 웹 페이지가 fetch 로 토큰을 넘길 수 있게(주소창에 토큰 미노출) — 대상은 우리 도메인만
+const WEB_ORIGIN = new URL(WEB_BASE).origin;
+const CORS_HEADERS = {
+  'access-control-allow-origin': WEB_ORIGIN,
+  vary: 'origin',
+} as const;
 
 let server: Server | null = null;
 let authTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -85,6 +90,17 @@ export function startCloudSignIn(): void {
   // 드라이브바이를 차단. 우리가 연 플로우의 state 를 에코한 콜백만 수용한다
   const expectedState = randomBytes(16).toString('hex');
   const current = createServer((req, res) => {
+    // Chrome PNA(public→local) preflight — 허용해야 fetch 경로가 열린다
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        ...CORS_HEADERS,
+        'access-control-allow-methods': 'GET',
+        'access-control-allow-private-network': 'true',
+        'access-control-max-age': '600',
+      });
+      res.end();
+      return;
+    }
     if (req.method !== 'GET') {
       res.writeHead(405);
       res.end();
@@ -104,8 +120,15 @@ export function startCloudSignIn(): void {
       res.end();
       return;
     }
-    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    res.end(DONE_HTML);
+    // fetch 경로(Sec-Fetch-Mode: cors)는 JSON, 페이지 이동 폴백은 웹 완료 화면으로 302 —
+    // 어느 쪽이든 토큰 붙은 로컬 URL 이 주소창에 머물지 않는다
+    if (req.headers['sec-fetch-mode'] === 'cors') {
+      res.writeHead(200, { ...CORS_HEADERS, 'content-type': 'application/json' });
+      res.end('{"ok":true}');
+    } else {
+      res.writeHead(302, { location: `${WEB_BASE}/desktop-login` });
+      res.end();
+    }
     void completeSignIn(ott);
     if (authTimeout) {
       clearTimeout(authTimeout);
