@@ -12,7 +12,6 @@ import { useEffect, useState } from 'react';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
-import { BrandMark } from './brand-mark';
 import { GithubCard } from './onboarding-cards';
 import type { GithubEntry, Status } from './onboarding-cards';
 
@@ -167,9 +166,6 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
       <div className="h-11 shrink-0 [-webkit-app-region:drag]" />
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-hidden px-8">
         <div className="flex items-center gap-2.5 pb-3">
-          <span className="flex size-7 items-center justify-center rounded-md bg-accent text-white">
-            <BrandMark size={17} />
-          </span>
           <span className="text-[17px] font-semibold tracking-[-0.3px]">cairn</span>
           {reconfigure && (
             <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-muted">
@@ -190,9 +186,9 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 className={[
                   'h-1 rounded-full transition-[width,background-color] duration-300',
                   i === stepIdx - 1
-                    ? 'w-6 bg-accent'
+                    ? 'w-6 bg-ink/80'
                     : i < stepIdx - 1
-                      ? 'w-3 bg-accent/45'
+                      ? 'w-3 bg-ink/30'
                       : 'w-3 bg-surface-3',
                 ].join(' ')}
               />
@@ -444,7 +440,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 type="button"
                 disabled={finishing || !sourceValid || !claudeValid}
                 onClick={() => void finish()}
-                className="flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-md bg-ink px-4 py-2 text-[13px] font-medium text-canvas hover:bg-ink/90 disabled:opacity-50"
               >
                 {finishing && <Loader2 size={14} strokeWidth={2} className="animate-spin" />}
                 {t('onb.nav.start')}
@@ -453,7 +449,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
               <button
                 type="button"
                 onClick={() => setStepIdx((s) => s + 1)}
-                className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+                className="rounded-md bg-ink px-4 py-2 text-[13px] font-medium text-canvas hover:bg-ink/90 disabled:opacity-50"
               >
                 {t('onb.nav.next')}
               </button>
@@ -470,11 +466,6 @@ const RISE = {
   hidden: { opacity: 0, y: 16, filter: 'blur(4px)' },
   show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.9, ease: SLOW } },
 };
-const BRAND_IN = {
-  hidden: { opacity: 0, scale: 0.8, filter: 'blur(10px)' },
-  show: { opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 1.3, ease: SLOW } },
-};
-
 function Welcome({ t }: { t: T }) {
   const { signedIn, user } = useCloudAuth();
   return (
@@ -484,12 +475,6 @@ function Welcome({ t }: { t: T }) {
       variants={{ show: { transition: { staggerChildren: 0.32, delayChildren: 0.35 } } }}
       className="flex h-full flex-col items-center justify-center gap-7 pb-6 text-center"
     >
-      <motion.span
-        variants={BRAND_IN}
-        className="flex size-20 items-center justify-center rounded-[20px] bg-accent text-white"
-      >
-        <BrandMark size={42} />
-      </motion.span>
       <motion.div variants={RISE} className="flex flex-col gap-2.5">
         <h1 className="text-[28px] font-semibold tracking-[-0.6px]">{t('onb.welcome.title')}</h1>
         <p className="mx-auto max-w-md text-[14px] leading-relaxed text-ink-muted">
