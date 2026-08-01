@@ -159,6 +159,27 @@ async function completeSignIn(ott: string): Promise<void> {
   }
 }
 
+export type CloudSessionHealth = 'ok' | 'expired' | 'unreachable' | 'signed-out';
+
+// 저장 파일 존재만으로 '로그인됨'을 그리던 것과 달리 서버 세션 실검증 — 만료(401/세션 null)면
+// syncStats 가 조용히 죽는 상태라 사용자에게 알려야 한다
+export async function validateCloudSession(): Promise<CloudSessionHealth> {
+  const token = cloudToken();
+  if (!token) return 'signed-out';
+  try {
+    const res = await fetch(`${WEB_BASE}/api/auth/get-session`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (res.status === 401 || res.status === 403) return 'expired';
+    if (!res.ok) return 'unreachable';
+    const data = (await res.json()) as { user?: { email?: string } } | null;
+    return data?.user?.email ? 'ok' : 'expired';
+  } catch {
+    return 'unreachable';
+  }
+}
+
 export async function cloudSignOut(): Promise<void> {
   const token = cloudToken();
   if (token) {

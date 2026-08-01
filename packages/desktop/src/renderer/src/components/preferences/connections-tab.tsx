@@ -1,6 +1,6 @@
 import { FolderGit2, Loader2, RotateCw } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import type { ConnectionAccounts } from '../../cairn-api';
+import { useCallback, useEffect, useState } from 'react';
+import type { AccountHealth, ConnectionAccounts } from '../../cairn-api';
 import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';
 import { ClaudeMark, GithubMark, NotionMark } from '../brand-icons';
@@ -16,7 +16,7 @@ type ParsedConfig = {
 };
 
 type Claude = 'checking' | 'ok' | 'err';
-type Item = { primary: string; secondary?: string };
+type Item = { primary: string; secondary?: string; health?: AccountHealth };
 
 // 연결 탭을 열 때마다 코어를 fork(probeClaude, 최대 ~1분)하지 않도록 세션 단위 캐시
 let claudeCache: Exclude<Claude, 'checking'> | null = null;
@@ -49,30 +49,52 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
   const [claude, setClaude] = useState<Claude>(claudeCache ?? 'checking');
   const [accounts, setAccounts] = useState<ConnectionAccounts | null>(null);
   const [open, setOpen] = useState<Set<string>>(new Set());
+  const [ghRefreshing, setGhRefreshing] = useState(false);
+  const [ghMsg, setGhMsg] = useState<'done' | 'fail' | null>(null);
 
-  useEffect(() => {
-    let alive = true;
+  const reload = useCallback((alive?: () => boolean) => {
     void window.cairn
       .readConfig()
       .then((r) => {
-        if (alive) setCfg((r.parsed as ParsedConfig | null) ?? {});
+        if (!alive || alive()) setCfg((r.parsed as ParsedConfig | null) ?? {});
       })
       .catch(() => {
-        if (alive) setCfg({});
+        if (!alive || alive()) setCfg({});
       });
-    void probeClaudeCached().then((c) => {
-      if (alive) setClaude(c);
-    });
     void window.cairn.connections
       .accounts()
       .then((a) => {
-        if (alive) setAccounts(a);
+        if (!alive || alive()) setAccounts(a);
       })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    reload(() => alive);
+    void probeClaudeCached().then((c) => {
+      if (alive) setClaude(c);
+    });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [reload]);
+
+  const refreshGithub = (): void => {
+    setGhRefreshing(true);
+    setGhMsg(null);
+    void window.cairn.connections
+      .refreshGithub()
+      .then((r) => {
+        setGhMsg(r.ok ? 'done' : 'fail');
+        if (r.ok) {
+          setAccounts(null);
+          reload();
+        }
+      })
+      .catch(() => setGhMsg('fail'))
+      .finally(() => setGhRefreshing(false));
+  };
 
   const refreshClaude = (): void => {
     setClaude('checking');
@@ -102,13 +124,18 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
 
   const notionItems: Item[] = notion.map((w) => {
     const acc = accounts?.notion?.find((n) => n.label === w.label);
-    return { primary: w.label, secondary: acc?.workspace };
+    return { primary: w.label, secondary: acc?.workspace, health: acc?.health };
   });
   const githubItems: Item[] = github.map((g) => {
     const acc = accounts?.github?.find((a) => a.label === g.label);
-    return { primary: g.label, secondary: acc?.login ? `@${acc.login}` : undefined };
+    return {
+      primary: g.label,
+      secondary: acc?.login ? `@${acc.login}` : undefined,
+      health: acc?.health,
+    };
   });
   const repoItems: Item[] = repos.map((p) => ({ primary: basename(p), secondary: p }));
+  const githubInvalid = githubItems.some((i) => i.health === 'invalid');
 
   return (
     <Section label={t('prefs.section.sources')} action={<AccountStatusPill />}>
@@ -131,8 +158,31 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
         }
         label="GitHub"
         items={githubItems}
-        expanded={open.has('github')}
+        expanded={open.has('github') || githubInvalid}
         onToggle={() => toggle('github')}
+        footer={
+          <div className="flex items-center gap-2 pt-1.5">
+            <button
+              type="button"
+              onClick={refreshGithub}
+              disabled={ghRefreshing}
+              className="flex items-center gap-1.5 rounded-md border border-hairline px-2 py-1 text-[11.5px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+            >
+              {ghRefreshing ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <RotateCw size={11} strokeWidth={2} />
+              )}
+              {t('prefs.conn.ghRefresh')}
+            </button>
+            {ghMsg === 'done' && (
+              <span className="text-[11.5px] text-success">{t('prefs.conn.ghRefreshDone')}</span>
+            )}
+            {ghMsg === 'fail' && (
+              <span className="text-[11.5px] text-danger">{t('prefs.conn.ghRefreshFail')}</span>
+            )}
+          </div>
+        }
       />
       <Row
         icon={<ClaudeMark size={13} />}
@@ -178,6 +228,7 @@ function Row({
   onRefresh,
   expanded,
   onToggle,
+  footer,
 }: {
   icon?: React.ReactNode;
   label: string;
@@ -187,19 +238,23 @@ function Row({
   onRefresh?: () => void;
   expanded?: boolean;
   onToggle?: () => void;
+  footer?: React.ReactNode;
 }) {
   const { t } = useSettings();
   const connected = pending ? false : items ? items.length > 0 : !!ok;
+  const invalid = (items ?? []).some((i) => i.health === 'invalid');
   const canExpand = !!items && items.length > 0 && !!onToggle;
   const summary = pending
     ? t('prefs.conn.checking')
-    : items
-      ? connected
-        ? String(items.length)
-        : t('prefs.conn.missing')
-      : connected
-        ? t('prefs.conn.connected')
-        : t('prefs.conn.missing');
+    : invalid
+      ? t('prefs.conn.invalid')
+      : items
+        ? connected
+          ? String(items.length)
+          : t('prefs.conn.missing')
+        : connected
+          ? t('prefs.conn.connected')
+          : t('prefs.conn.missing');
 
   const header = (
     <>
@@ -207,7 +262,7 @@ function Row({
         <Loader2 className="size-3.5 shrink-0 animate-spin text-ink-tertiary" />
       ) : (
         <span
-          className={`size-1.5 shrink-0 rounded-full ${connected ? 'bg-success' : 'bg-ink-tertiary'}`}
+          className={`size-1.5 shrink-0 rounded-full ${invalid ? 'bg-danger' : connected ? 'bg-success' : 'bg-ink-tertiary'}`}
         />
       )}
       {icon}
@@ -247,8 +302,15 @@ function Row({
                 {it.secondary}
               </span>
             )}
+            {it.health === 'invalid' && (
+              <span className="text-danger">{t('prefs.conn.invalid')}</span>
+            )}
+            {it.health === 'unreachable' && (
+              <span className="text-ink-tertiary">{t('prefs.conn.unreachable')}</span>
+            )}
           </div>
         ))}
+        {footer}
       </div>
     </AccordionItem>
   );

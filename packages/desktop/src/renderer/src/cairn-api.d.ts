@@ -111,7 +111,15 @@ export type CoreResult = {
   noActivity: boolean;
   cancelled: boolean;
   summaryFailed: boolean;
-  failureHint: 'auth' | 'quota' | 'network' | 'notion' | 'collect' | null;
+  failureHint:
+    | 'auth'
+    | 'claude-auth'
+    | 'quota'
+    | 'summarize'
+    | 'network'
+    | 'notion'
+    | 'collect'
+    | null;
   journalWriteFailed: boolean;
   prCount: number;
   commitCount: number;
@@ -136,9 +144,10 @@ export type NotionPage = { id: string; title: string };
 export type NotionDb = { databaseId: string; dataSourceId: string; title: string };
 export type GithubProbe = { ok: boolean; login?: string; error?: string };
 export type LocalRepoProbe = { ok: boolean; reason?: 'not-git' | 'no-email' };
+export type AccountHealth = 'ok' | 'invalid' | 'missing' | 'unreachable';
 export type ConnectionAccounts = {
-  github: { label: string; login?: string }[];
-  notion: { label: string; workspace?: string }[];
+  github: { label: string; login?: string; health: AccountHealth }[];
+  notion: { label: string; workspace?: string; health: AccountHealth }[];
 };
 export type DbRef = { databaseId: string; dataSourceId: string };
 export type NotionWorkspacePayload = {
@@ -228,12 +237,14 @@ declare global {
       };
       connections: {
         accounts: () => Promise<ConnectionAccounts>;
+        refreshGithub: () => Promise<{ ok: boolean; count?: number; error?: string }>;
       };
       integrations: {
         addNotion: (payload: NotionWorkspacePayload) => Promise<{ ok: boolean; error?: string }>;
       };
       cloud: {
         state: () => Promise<CloudAuthState>;
+        validate: () => Promise<'ok' | 'expired' | 'unreachable' | 'signed-out'>;
         signIn: () => Promise<void>;
         signOut: () => Promise<void>;
         syncNow: () => Promise<void>;
@@ -257,6 +268,7 @@ declare global {
       repoStars: () => Promise<number | null>;
       onRunLine: (cb: (l: RunLine) => void) => () => void;
       onFocusMode: (cb: (mode: CoreMode) => void) => () => void;
+      onOpenConnections: (cb: () => void) => () => void;
       onRunStep: (cb: (p: { mode: CoreMode; step: RunStep }) => void) => () => void;
       onRunProgress: (cb: (p: { mode: CoreMode } & RunProgress) => void) => () => void;
       onRunDone: (cb: (p: { mode: CoreMode; result: CoreResult }) => void) => () => void;

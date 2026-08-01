@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { initAutoPublish, reconfigureAutoPublish } from './auto-publish';
 import { warmClaudePath } from './claude-path';
 import { exportStatus, pickExportFolder, saveMarkdown, savePdf, savePng } from './export';
-import { sendTestNotification } from './notifier';
+import { notifyCloudExpired, notifyConnectionIssue, sendTestNotification } from './notifier';
 import {
   busyState,
   cancelRun,
@@ -16,7 +16,7 @@ import {
   type CoreMode,
   type CoreRunOptions,
 } from './core-runner';
-import { cloudAuthState, cloudSignOut, startCloudSignIn } from './cloud-auth';
+import { cloudAuthState, cloudSignOut, startCloudSignIn, validateCloudSession } from './cloud-auth';
 import { syncStats } from './cloud-sync';
 import { readConfig } from './files';
 import { type RecentCategory } from './notion-client';
@@ -43,6 +43,7 @@ import {
   probeGithub,
   probeLocalRepo,
   probeNotion,
+  refreshGithubFromGhCli,
   searchNotionPages,
   setLocalGitEnabled,
   parseNotionWorkspacePayload,
@@ -184,6 +185,30 @@ void app.whenReady().then(() => {
   }
   // 로그인 셸 PATH 캡처를 미리 비동기로 — 첫 발행/probe 의 UI 프리즈 방지
   void warmClaudePath();
+  // 시작 시 토큰 건강 체크 — 인증 실패(invalid)면 발행이 깨지기 전에 미리 알림. 창 로드와 경합 방지 지연
+  setTimeout(() => {
+    void Promise.all([probeConnectionAccounts(), validateCloudSession()])
+      .then(([acc, cloud]) => {
+        const bad = [
+          ...acc.github.filter((a) => a.health === 'invalid').map((a) => `GitHub ${a.label}`),
+          ...acc.notion.filter((a) => a.health === 'invalid').map((a) => `Notion ${a.label}`),
+        ];
+        notifyConnectionIssue(bad, () => {
+          const win = BrowserWindow.getAllWindows()[0];
+          if (!win) return;
+          if (win.isMinimized()) win.restore();
+          win.show();
+          win.focus();
+          win.webContents.send('cairn:open-connections');
+        });
+        // 클라우드 세션 만료는 sync 가 조용히 죽는 상태 — 클릭하면 재로그인 플로우 바로 시작
+        if (cloud === 'expired') notifyCloudExpired(() => startCloudSignIn());
+      })
+      .catch(() => {});
+  }, 8000);
+  // 주기 sync — 상주 앱이 재시작 없이 오래 떠 있어도 stats 가 기기 간 최신으로 유지되고,
+  // 서버 세션도 사용 시 연장(updateAge)되어 재로그인 없이 지속된다
+  setInterval(() => void syncStats(), 6 * 60 * 60 * 1000);
   if (!app.isPackaged && process.platform === 'darwin') {
     try {
       app.dock?.setIcon(join(__dirname, '../../resources/icon.png'));
@@ -316,6 +341,7 @@ void app.whenReady().then(() => {
     probeLocalRepo(String(path ?? '')),
   );
   ipcMain.handle('cairn:connections:accounts', () => probeConnectionAccounts());
+  ipcMain.handle('cairn:connections:refresh-github', () => refreshGithubFromGhCli());
   ipcMain.handle('cairn:integrations:add-notion', (_e, raw: unknown) => {
     const parsed = parseNotionWorkspacePayload(raw);
     if (!parsed.ok) return { ok: false, error: parsed.error };
@@ -329,6 +355,7 @@ void app.whenReady().then(() => {
     return result;
   });
   ipcMain.handle('cairn:auth:state', () => cloudAuthState());
+  ipcMain.handle('cairn:auth:validate', () => validateCloudSession());
   ipcMain.handle('cairn:auth:sign-in', () => startCloudSignIn());
   ipcMain.handle('cairn:auth:sign-out', () => cloudSignOut());
   ipcMain.handle('cairn:sync:now', () => syncStats());

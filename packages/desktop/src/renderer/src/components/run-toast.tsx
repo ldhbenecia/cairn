@@ -40,8 +40,10 @@ export function RunToast({
             const url = result.notionUrl;
             const hasCounts = ok && (result.prCount > 0 || result.commitCount > 0);
             const failHint =
-              kind === 'fail' && result.failureHint
-                ? (`fail.${result.failureHint}` as const)
+              kind === 'fail'
+                ? result.failureHint
+                  ? (`fail.${result.failureHint}` as const)
+                  : ('fail.unknown' as const)
                 : null;
             return (
               <motion.div

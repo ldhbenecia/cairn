@@ -144,7 +144,15 @@ export type CoreResult = {
   noActivity: boolean;
   cancelled: boolean;
   summaryFailed: boolean;
-  failureHint: 'auth' | 'quota' | 'network' | 'notion' | 'collect' | null;
+  failureHint:
+    | 'auth'
+    | 'claude-auth'
+    | 'quota'
+    | 'summarize'
+    | 'network'
+    | 'notion'
+    | 'collect'
+    | null;
   journalWriteFailed: boolean;
   prCount: number;
   commitCount: number;
@@ -192,8 +200,22 @@ contextBridge.exposeInMainWorld('cairn', {
   connections: {
     accounts: () =>
       ipcRenderer.invoke('cairn:connections:accounts') as Promise<{
-        github: { label: string; login?: string }[];
-        notion: { label: string; workspace?: string }[];
+        github: {
+          label: string;
+          login?: string;
+          health: 'ok' | 'invalid' | 'missing' | 'unreachable';
+        }[];
+        notion: {
+          label: string;
+          workspace?: string;
+          health: 'ok' | 'invalid' | 'missing' | 'unreachable';
+        }[];
+      }>,
+    refreshGithub: () =>
+      ipcRenderer.invoke('cairn:connections:refresh-github') as Promise<{
+        ok: boolean;
+        count?: number;
+        error?: string;
       }>,
   },
   integrations: {
@@ -202,6 +224,10 @@ contextBridge.exposeInMainWorld('cairn', {
   },
   cloud: {
     state: () => ipcRenderer.invoke('cairn:auth:state') as Promise<CloudAuthState>,
+    validate: () =>
+      ipcRenderer.invoke('cairn:auth:validate') as Promise<
+        'ok' | 'expired' | 'unreachable' | 'signed-out'
+      >,
     signIn: () => ipcRenderer.invoke('cairn:auth:sign-in') as Promise<void>,
     signOut: () => ipcRenderer.invoke('cairn:auth:sign-out') as Promise<void>,
     syncNow: () => ipcRenderer.invoke('cairn:sync:now') as Promise<void>,
@@ -255,6 +281,11 @@ contextBridge.exposeInMainWorld('cairn', {
     const listener = (_e: Electron.IpcRendererEvent, mode: CoreMode): void => cb(mode);
     ipcRenderer.on('cairn:focus-mode', listener);
     return () => ipcRenderer.off('cairn:focus-mode', listener);
+  },
+  onOpenConnections: (cb: () => void): (() => void) => {
+    const listener = (): void => cb();
+    ipcRenderer.on('cairn:open-connections', listener);
+    return () => ipcRenderer.off('cairn:open-connections', listener);
   },
   onRunProgress: (cb: (payload: { mode: CoreMode } & RunProgress) => void): (() => void) => {
     const listener = (

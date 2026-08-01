@@ -270,9 +270,12 @@ export async function probeGithub(token: string): Promise<GithubProbe> {
   }
 }
 
+// invalid(401/403)만 사용자 행동 필요 — missing 은 토큰 미설정, unreachable 은 네트워크/타임아웃
+export type AccountHealth = 'ok' | 'invalid' | 'missing' | 'unreachable';
+
 export type ConnectionAccounts = {
-  github: { label: string; login?: string }[];
-  notion: { label: string; workspace?: string }[];
+  github: { label: string; login?: string; health: AccountHealth }[];
+  notion: { label: string; workspace?: string; health: AccountHealth }[];
 };
 
 const PROBE_TIMEOUT_MS = 6000;
@@ -294,6 +297,20 @@ async function notionWorkspaceName(token: string): Promise<string | undefined> {
   return me.bot?.workspace_name ?? me.name ?? undefined;
 }
 
+async function probeNotionHealth(
+  token: string,
+): Promise<{ workspace?: string; health: AccountHealth }> {
+  try {
+    const workspace = await notionWorkspaceName(token);
+    return { workspace, health: 'ok' };
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    return {
+      health: code === 'unauthorized' || code === 'restricted_resource' ? 'invalid' : 'unreachable',
+    };
+  }
+}
+
 type ConnConfig = {
   githubAccounts?: { label: string; tokenEnv: string }[];
   notionWorkspaces?: { label: string; tokenEnv?: string }[];
@@ -311,32 +328,39 @@ export async function probeConnectionAccounts(): Promise<ConnectionAccounts> {
   // GitHub·Notion probe 를 동시에 — 순차 대기하면 연결 탭 최악 지연이 2배
   const [github, notion] = await Promise.all([
     Promise.all(
-      (config.githubAccounts ?? []).map(async (g) => {
-        const token = envMap[g.tokenEnv];
-        if (!token) return { label: g.label };
-        try {
-          const probe = await withTimeout(probeGithub(token), PROBE_TIMEOUT_MS, { ok: false });
-          return probe.ok ? { label: g.label, login: probe.login } : { label: g.label };
-        } catch {
-          return { label: g.label };
-        }
-      }),
+      (config.githubAccounts ?? []).map(
+        async (g): Promise<ConnectionAccounts['github'][number]> => {
+          const token = envMap[g.tokenEnv];
+          if (!token) return { label: g.label, health: 'missing' };
+          try {
+            const probe = await withTimeout(probeGithub(token), PROBE_TIMEOUT_MS, {
+              ok: false,
+              error: 'timeout',
+            });
+            if (probe.ok) return { label: g.label, login: probe.login, health: 'ok' };
+            const invalid = probe.error === 'HTTP 401' || probe.error === 'HTTP 403';
+            return { label: g.label, health: invalid ? 'invalid' : 'unreachable' };
+          } catch {
+            return { label: g.label, health: 'unreachable' };
+          }
+        },
+      ),
     ),
     Promise.all(
-      (config.notionWorkspaces ?? []).map(async (w) => {
-        const token = envMap[w.tokenEnv ?? envKey('NOTION_TOKEN', w.label)];
-        if (!token) return { label: w.label };
-        try {
-          const workspace = await withTimeout(
-            notionWorkspaceName(token),
-            PROBE_TIMEOUT_MS,
-            undefined,
-          );
-          return { label: w.label, workspace };
-        } catch {
-          return { label: w.label };
-        }
-      }),
+      (config.notionWorkspaces ?? []).map(
+        async (w): Promise<ConnectionAccounts['notion'][number]> => {
+          const token = envMap[w.tokenEnv ?? envKey('NOTION_TOKEN', w.label)];
+          if (!token) return { label: w.label, health: 'missing' };
+          try {
+            const probe = await withTimeout(probeNotionHealth(token), PROBE_TIMEOUT_MS, {
+              health: 'unreachable',
+            });
+            return { label: w.label, workspace: probe.workspace, health: probe.health };
+          } catch {
+            return { label: w.label, health: 'unreachable' };
+          }
+        },
+      ),
     ),
   ]);
   return { github, notion };
@@ -402,6 +426,46 @@ export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; er
       mkdirSync(dirname(CONFIG_PATH), { recursive: true });
       writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
       return { ok: true };
+    });
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
+// Preferences 연결 탭 — 온보딩 전체를 재실행하지 않고 gh CLI 토큰만 다시 가져와 갱신.
+// 온보딩과 같은 매핑(label=login)으로 같은 라벨은 제자리 교체, gh 에 없는 계정(수동 PAT)은 보존
+export async function refreshGithubFromGhCli(): Promise<{
+  ok: boolean;
+  count?: number;
+  error?: string;
+}> {
+  const r = await githubAccountsFromGhCli();
+  if (!r.ok || !r.accounts?.length) return { ok: false, error: r.error ?? 'gh-not-authed' };
+  const ghAccounts = r.accounts;
+  try {
+    return withFileLock(CONFIG_PATH, () => {
+      let existing: Record<string, unknown>;
+      try {
+        const parsed = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as unknown;
+        existing = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+      } catch {
+        existing = {};
+      }
+      let accounts = Array.isArray(existing.githubAccounts)
+        ? (existing.githubAccounts as { label: string; tokenEnv: string }[])
+        : [];
+      const env: Record<string, string> = {};
+      for (const a of ghAccounts) {
+        const tokenEnv = envKey('GITHUB_TOKEN', a.login);
+        env[tokenEnv] = a.token;
+        accounts = upsertByLabel(accounts, { label: a.login, tokenEnv }, a.login);
+      }
+      writeSecretEnvMerged(env);
+      for (const [k, v] of Object.entries(env)) process.env[k] = v;
+      const config = { ...existing, githubAccounts: accounts };
+      mkdirSync(dirname(CONFIG_PATH), { recursive: true });
+      writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
+      return { ok: true, count: ghAccounts.length };
     });
   } catch (err) {
     return { ok: false, error: errorMessage(err) };
