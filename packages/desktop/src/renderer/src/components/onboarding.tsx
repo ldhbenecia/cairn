@@ -223,7 +223,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 ]}
               >
                 <div className="relative overflow-hidden rounded-lg border border-hairline-strong bg-surface-1 p-3.5">
-                  <span className="absolute inset-x-0 top-0 h-px bg-accent" />
+                  <span className="absolute inset-x-0 top-0 h-px bg-ink/25" />
                   <p className="mb-0.5 text-[13px] font-medium text-ink">
                     {t('onb.github.ghTitle')}
                   </p>
@@ -234,7 +234,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                     type="button"
                     onClick={() => void importFromGh()}
                     disabled={ghImporting}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-1.5 text-[12px] font-medium text-canvas transition-[background-color,scale] hover:bg-ink/90 active:scale-[0.96] disabled:opacity-60"
                   >
                     {ghImporting ? t('onb.github.ghImporting') : t('onb.github.ghImport')}
                   </button>
@@ -319,7 +319,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                     type="button"
                     onClick={() => void testClaude()}
                     disabled={claudeStatus === 'testing'}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
                   >
                     {claudeStatus === 'testing' && (
                       <Loader2 size={13} strokeWidth={2} className="animate-spin" />
@@ -422,7 +422,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             <button
               type="button"
               onClick={() => setStepIdx((s) => s - 1)}
-              className="rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted hover:bg-surface-2 hover:text-ink"
+              className="rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
             >
               {t('onb.nav.prev')}
             </button>
@@ -442,7 +442,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 type="button"
                 disabled={finishing || !sourceValid || !claudeValid}
                 onClick={() => void finish()}
-                className="flex items-center gap-1.5 rounded-md bg-ink px-4 py-2 text-[13px] font-medium text-canvas hover:bg-ink/90 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-md bg-ink px-4 py-2 text-[13px] font-medium text-canvas transition-[background-color,scale] hover:bg-ink/90 active:scale-[0.96] disabled:opacity-50"
               >
                 {finishing && <Loader2 size={14} strokeWidth={2} className="animate-spin" />}
                 {t('onb.nav.start')}
@@ -451,7 +451,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
               <button
                 type="button"
                 onClick={() => setStepIdx((s) => s + 1)}
-                className="rounded-md bg-ink px-4 py-2 text-[13px] font-medium text-canvas hover:bg-ink/90 disabled:opacity-50"
+                className="rounded-md bg-ink px-4 py-2 text-[13px] font-medium text-canvas transition-[background-color,scale] hover:bg-ink/90 active:scale-[0.96] disabled:opacity-50"
               >
                 {t('onb.nav.next')}
               </button>
