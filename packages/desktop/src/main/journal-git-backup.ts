@@ -200,10 +200,17 @@ export function createJournalBackup(deps: BackupDeps): {
 function realExec(args: string[], dir: string, timeoutMs: number): Promise<{ stdout: string }> {
   const gitBin = findInPath('git');
   if (!gitBin) return Promise.reject(new Error('git not found'));
+  // 전체 process.env 를 물려주면 journal 폴더의 git hook/credential helper 가 모든 토큰을 상속한다 —
+  // git 동작에 필요한 최소 env 만
   return execFileAsync(gitBin, ['-C', dir, ...args], {
     encoding: 'utf8',
     timeout: timeoutMs,
-    env: { ...process.env, PATH: searchPathEnv() },
+    env: {
+      PATH: searchPathEnv(),
+      HOME: process.env.HOME ?? '',
+      LANG: process.env.LANG ?? 'en_US.UTF-8',
+      SSH_AUTH_SOCK: process.env.SSH_AUTH_SOCK ?? '',
+    },
   });
 }
 

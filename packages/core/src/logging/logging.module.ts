@@ -24,9 +24,10 @@ const REDACT_PATHS = [
   '*.authorization',
   'headers.authorization',
   'headers["x-api-key"]',
-  'env.GITHUB_TOKEN',
-  'env.NOTION_TOKEN',
-  'env.ANTHROPIC_OAUTH_TOKEN',
+  '*.*.headers.authorization',
+  // 실제 키는 GITHUB_TOKEN_<LABEL> 형태(envKey) — 고정 이름('env.GITHUB_TOKEN')은 매칭이 안 됐고
+  // pino redact 는 부분 이름 와일드카드가 없어 env 값 전체를 가린다
+  'env.*',
 ];
 
 @Global()

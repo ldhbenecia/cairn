@@ -16,6 +16,7 @@ worklog.config.json
 # runtime data (cairn local state lives at ~/.cairn/, but in dev it mirrors to repo root)
 .cairn/
 auth.json
+secrets.enc
 worklog-stats.json
 
 # logs

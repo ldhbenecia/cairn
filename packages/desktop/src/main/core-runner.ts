@@ -100,10 +100,14 @@ let runLogStream: WriteStream | null = null;
 function openRunLog(): void {
   closeRunLog();
   try {
-    mkdirSync(LOGS_DIR, { recursive: true });
+    mkdirSync(LOGS_DIR, { recursive: true, mode: 0o700 });
     const now = new Date();
     const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const stream = createWriteStream(join(LOGS_DIR, `desktop-run.${day}.log`), { flags: 'a' });
+    // 로그엔 절대경로·커밋 제목 등이 그대로 담긴다 — 시크릿 파일들(0600)과 같은 수준으로 잠금
+    const stream = createWriteStream(join(LOGS_DIR, `desktop-run.${day}.log`), {
+      flags: 'a',
+      mode: 0o600,
+    });
     stream.on('error', () => closeRunLog()); // 디스크 오류 등 — 로깅은 best-effort
     runLogStream = stream;
   } catch {
