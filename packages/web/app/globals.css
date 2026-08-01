@@ -16,7 +16,6 @@
   --color-accent-hover: #818cf8;
   --color-accent-deep: #4338ca;
 
-  /* shadcn 토큰 alias — 외부 컴포넌트(bg-card, text-muted-foreground 등)용, cairn 다크 팔레트로 매핑 */
   --color-background: #050507;
   --color-foreground: #f7f8f8;
   --color-card: #0d0e11;
@@ -46,17 +45,14 @@ html {
 body {
   background: var(--color-canvas);
   color: var(--color-ink);
-  /* 다크 고정 사이트 — UA 위젯(스크롤바·폼 컨트롤 등)도 다크로 렌더 */
   color-scheme: dark;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.011em;
   overflow-x: hidden;
-  /* 한글이 어절(단어) 중간에서 끊기지 않게 — 공백에서만 줄바꿈 (영어엔 영향 적음) */
   word-break: keep-all;
 }
 
-/* 코드·명령어·링크 토큰은 keep-all 예외 (긴 토큰이 넘치지 않게) */
 code,
 pre {
   word-break: normal;
@@ -67,8 +63,6 @@ pre {
   background: color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
 
-/* 페이지 배경 — 위쪽에 아주 옅은 그리드 라인(엔지니어드 톤) + 상단 단색 글로우 한 겹.
-   무지개 오로라 대신 절제된 단일 accent 만. */
 body::before {
   content: '';
   position: fixed;
@@ -107,9 +101,7 @@ body::after {
   pointer-events: none;
 }
 
-/* 에디토리얼 세리프 디스플레이 — 히어로·섹션 타이틀 전용 (본문은 Inter 유지) */
 .font-display {
-  /* var 미정의 시 선언 전체가 무효 → body Inter 로 떨어지는 것 방지 — fallback 을 var 안에 */
   font-family: var(--font-serif-display, Georgia), Georgia, serif;
   font-weight: 470;
   letter-spacing: -0.015em;
@@ -118,7 +110,6 @@ body::after {
     'SOFT' 40;
 }
 
-/* 스크롤 진입 페이드업 — 잔잔한 모션 */
 @keyframes rise {
   from {
     opacity: 0;
@@ -134,7 +125,6 @@ body::after {
   animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* 카드 hover — 바운스/글로우 없이 hairline·면만 차분히 */
 .card-hover {
   transition:
     border-color 0.2s ease,
@@ -146,7 +136,6 @@ body::after {
   background: var(--color-surface-2);
 }
 
-/* 제품 스크린샷 프레임 — 중립적 깊은 그림자 + 크리스프 hairline. accent 글로우 없음. */
 .screenshot-frame {
   position: relative;
   border-radius: 14px;
@@ -168,7 +157,6 @@ body::after {
   box-shadow: 0 0 0 1px color-mix(in srgb, #ffffff 6%, transparent) inset;
 }
 
-/* 스크린샷은 이미 투명 마진 trim + 둥근 모서리 마스크로 정리됨 — 확대 크롭 불필요 */
 .screenshot-frame > img,
 .screenshot-frame > video {
   display: block;
@@ -191,7 +179,6 @@ body::after {
   animation: lightbox-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* 라이트박스 닫힘 — 열림보다 짧고 부드럽게 (exit 는 enter 보다 절제) */
 .lightbox-fade-out {
   animation: lightbox-out 0.13s ease-in both;
 }
@@ -204,7 +191,29 @@ body::after {
   }
 }
 
-/* 네비 드롭다운 팝 — 짧고 절제된 진입 */
+@keyframes drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes drawer-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.drawer-in {
+  animation: drawer-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.drawer-out {
+  animation: drawer-out 0.26s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
 @keyframes menu-pop {
   from {
     opacity: 0;

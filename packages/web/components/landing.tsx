@@ -1,9 +1,17 @@
-import { CalendarDays, FileText, GitPullRequest, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import {
+  CalendarDays,
+  ClipboardCopy,
+  FileText,
+  GitPullRequest,
+  LayoutDashboard,
+  ShieldCheck,
+} from 'lucide-react';
 import Link from 'next/link';
 
 import { VIDEO } from '../lib/assets';
 import { content, type Lang } from '../lib/content';
 import { getRepoStats, RELEASES_LATEST, REPO_URL } from '../lib/github';
+import { FileBadge, GithubMark, NotionMark, ObsidianMark } from './brand-icons';
 import { BrandMark } from './brand-mark';
 import { CopyCommand } from './copy-command';
 import { HeroVideo } from './hero-video';
@@ -17,11 +25,11 @@ import { BentoGrid, type BentoItem } from './ui/bento-grid';
 
 const HL_ICONS = [GitPullRequest, FileText, CalendarDays, LayoutDashboard, ShieldCheck];
 const HL_SPAN = [2, 1, 2, 1, 2];
+
 const HL_PERSIST = [true, false, false, false, false];
 
 export async function Landing({ lang }: { lang: Lang }) {
   const c = content[lang];
-  // Instrument Serif 는 한글 글리프가 없어 ko 타이틀은 sans 유지 — 히어로만 영문 세리프
   const headClass =
     lang === 'ko'
       ? 'text-[clamp(26px,3.4vw,36px)] font-semibold tracking-[-0.025em]'
@@ -148,7 +156,7 @@ export async function Landing({ lang }: { lang: Lang }) {
           </Reveal>
         </div>
 
-        <Reveal delay={0.1} className="relative mx-auto mt-10 max-w-4xl">
+        <Reveal delay={0.1} className="relative mt-10">
           <Screenshot
             src={`/summarizing_${lang === 'ko' ? 'ko' : 'us'}.png`}
             alt="cairn publishing a worklog"
@@ -196,77 +204,55 @@ export async function Landing({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      <section id="setup" className="mx-auto max-w-6xl scroll-mt-14 px-6 py-24">
+      <section id="export" className="mx-auto max-w-6xl scroll-mt-14 px-6 py-24">
         <SectionHead
-          eyebrow={c.setup.eyebrow}
-          title={c.setup.title}
-          lead={c.setup.lead}
+          eyebrow={c.exports.eyebrow}
+          title={c.exports.title}
+          lead={c.exports.lead}
           titleClass={headClass}
         />
-        <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
-          <SetupCard tag="Notion" title={c.setup.notion.title}>
-            <li>
-              {c.setup.notion.s1pre}
-              <SetupLink href="https://www.notion.so/my-integrations">
-                {c.setup.notion.s1link}
-              </SetupLink>
-              {c.setup.notion.s1post}
-              <code className="text-ink-muted">ntn_…</code>).
-            </li>
-            <li>{c.setup.notion.s2}</li>
-            <li>{c.setup.notion.s3}</li>
-          </SetupCard>
-          <SetupCard tag="GitHub" title={c.setup.github.title}>
-            <li className="marker:text-accent-hover">
-              <span className="text-ink-muted">{c.setup.github.ghAuto}</span>
-            </li>
-            <li>
-              {c.setup.github.s1pre}
-              <SetupLink href="https://github.com/settings/tokens/new?scopes=repo,read:user&description=cairn%20worklog">
-                {c.setup.github.s1link}
-              </SetupLink>
-              {c.setup.github.s1post}
-            </li>
-            <li>
-              {c.setup.github.s2pre}
-              <em>{c.setup.github.s2em}</em>
-            </li>
-            <li>{c.setup.github.s3}</li>
-          </SetupCard>
-          <SetupCard tag="Claude" title={c.setup.claude.title}>
-            <li>
-              {c.setup.claude.s1pre}
-              <SetupLink href="https://docs.claude.com/en/docs/claude-code/setup">
-                {c.setup.claude.s1link}
-              </SetupLink>
-              {c.setup.claude.s1post}
-            </li>
-            <li>{c.setup.claude.s2}</li>
-          </SetupCard>
-        </div>
-        <div className="mt-8 flex items-start gap-3 rounded-xl border border-hairline bg-surface-1 px-5 py-4 text-[13.5px] leading-relaxed text-ink-subtle">
-          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#d4a574]" />
-          <p className="min-w-0">
-            <strong className="font-medium text-ink-muted">{c.setup.gatekeeperPre}</strong>
-            {c.setup.gatekeeper}
-            <code className="rounded bg-surface-2 px-1.5 py-0.5 text-ink-muted">
-              xattr -d com.apple.quarantine /Applications/Cairn.app
-            </code>
-            {c.setup.gatekeeperPost}
-          </p>
+        <div className="mt-14 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+          {c.exports.items.map((it, i) => {
+            const icons = [
+              <FileBadge key="md" label="MD" size={20} />,
+              <NotionMark key="notion" size={19} />,
+              <ObsidianMark key="obsidian" size={20} />,
+              <FileBadge key="pdf" label="PDF" size={20} />,
+              <ClipboardCopy key="clip" size={18} strokeWidth={1.9} />,
+              <GithubMark key="github" size={19} />,
+            ];
+            return (
+              <div
+                key={it.t}
+                className="card-hover rounded-2xl border border-hairline bg-surface-1 p-6"
+              >
+                <span className="flex size-10 items-center justify-center rounded-lg bg-surface-2 text-ink-muted">
+                  {icons[i]}
+                </span>
+                <h3 className="mt-4 text-[16px] font-semibold tracking-[-0.01em]">{it.t}</h3>
+                <p className="mt-2 text-[13.5px] leading-relaxed text-ink-subtle">{it.d}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
       <section id="faq" className="mx-auto max-w-6xl scroll-mt-14 px-6 pb-24">
-        <SectionHead
-          eyebrow={c.faq.eyebrow}
-          title={c.faq.title}
-          lead={c.faq.lead}
-          titleClass={headClass}
-        />
-        <Reveal delay={0.06} className="mx-auto mt-12 max-w-2xl">
-          <Accordion items={c.faq.items} idPrefix="faq" />
-        </Reveal>
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-[1fr_1.4fr] md:gap-16">
+          <div className="text-center md:sticky md:top-28 md:self-start md:text-left">
+            <p className="mb-3.5 inline-flex items-center gap-2 font-mono text-[12px] tracking-wider text-ink-tertiary uppercase">
+              <span className="size-1 rounded-full bg-accent" />
+              {c.faq.eyebrow}
+            </p>
+            <h2 className={`${headClass} text-balance`}>{c.faq.title}</h2>
+            <p className="mx-auto mt-4 max-w-md text-[15.5px] leading-relaxed text-pretty text-ink-subtle md:mx-0">
+              {c.faq.lead}
+            </p>
+          </div>
+          <Reveal delay={0.06}>
+            <Accordion items={c.faq.items} idPrefix="faq" />
+          </Reveal>
+        </div>
       </section>
 
       <section className="px-6 pb-24">
@@ -297,46 +283,53 @@ export async function Landing({ lang }: { lang: Lang }) {
       </section>
 
       <footer className="border-t border-hairline">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
-          <div className="flex items-center gap-2 text-[14px]">
-            <BrandMark size={16} className="text-accent" />
-            <span className="font-semibold">cairn</span>
-            <span className="text-ink-tertiary">
-              © {new Date().getFullYear()} Cairn · All rights reserved
-            </span>
-            <StatusDot ok={c.footer.statusOk} fail={c.footer.statusFail} />
-            <ClaudeStatusDot
-              ok={c.footer.claudeOk}
-              issues={c.footer.claudeIssues}
-              unknown={c.footer.claudeUnknown}
-            />
+        <div className="mx-auto max-w-6xl px-6 pt-16 pb-10">
+          <div>
+            <div className="flex items-center gap-2.5 text-[16px]">
+              <BrandMark size={20} className="text-accent" />
+              <span className="font-semibold">cairn</span>
+            </div>
+            <p className="mt-4 max-w-sm text-[13.5px] leading-relaxed text-ink-subtle">
+              {c.footer.tagline}
+            </p>
+            <p className="mt-3 text-[13px] text-ink-tertiary">
+              © {new Date().getFullYear()} Cairn. All rights reserved.
+            </p>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13.5px] text-ink-subtle">
-            <a href={REPO_URL} target="_blank" rel="noreferrer" className="py-2 hover:text-ink">
-              GitHub
-            </a>
-            <a
-              href={`${REPO_URL}/blob/main/docs/SETUP.md`}
-              target="_blank"
-              rel="noreferrer"
-              className="py-2 hover:text-ink"
-            >
-              {c.footer.docs}
-            </a>
-            <Link href="/privacy" className="py-2 hover:text-ink">
-              {c.footer.privacy}
-            </Link>
-            <Link href="/terms" className="py-2 hover:text-ink">
-              {c.footer.terms}
-            </Link>
-            <a
-              href={`${REPO_URL}/blob/main/LICENSE`}
-              target="_blank"
-              rel="noreferrer"
-              className="py-2 hover:text-ink"
-            >
-              AGPL-3.0
-            </a>
+          <div className="mt-14 grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 md:flex md:justify-between md:gap-x-0 md:pr-24">
+            <FooterCol title={c.footer.product}>
+              <FooterItem href={download}>{c.footer.download}</FooterItem>
+              <FooterItem href={lang === 'ko' ? '/ko/pricing' : '/pricing'} internal>
+                {c.nav.pricing}
+              </FooterItem>
+              <FooterItem href={lang === 'ko' ? '/ko/setup/notion' : '/setup/notion'} internal>
+                {c.nav.setup}
+              </FooterItem>
+            </FooterCol>
+            <FooterCol title={c.footer.resources}>
+              <FooterItem href={REPO_URL}>GitHub</FooterItem>
+              <FooterItem href={`${REPO_URL}/blob/main/docs/SETUP.md`}>{c.footer.docs}</FooterItem>
+              <FooterItem href="#faq">FAQ</FooterItem>
+            </FooterCol>
+            <FooterCol title={c.footer.legal}>
+              <FooterItem href="/privacy" internal>
+                {c.footer.privacy}
+              </FooterItem>
+              <FooterItem href="/terms" internal>
+                {c.footer.terms}
+              </FooterItem>
+              <FooterItem href={`${REPO_URL}/blob/main/LICENSE`}>AGPL-3.0</FooterItem>
+            </FooterCol>
+          </div>
+          <div className="mt-14 flex flex-col gap-4 border-t border-hairline pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <StatusDot ok={c.footer.statusOk} fail={c.footer.statusFail} />
+              <ClaudeStatusDot
+                ok={c.footer.claudeOk}
+                issues={c.footer.claudeIssues}
+                unknown={c.footer.claudeUnknown}
+              />
+            </div>
             <LangSwitcher lang={lang} />
           </div>
         </div>
@@ -395,6 +388,45 @@ function BentoTile({
   );
 }
 
+function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">{title}</p>
+      <ul className="mt-3.5 flex flex-col gap-1 text-[13.5px] text-ink-subtle">{children}</ul>
+    </div>
+  );
+}
+
+function FooterItem({
+  href,
+  internal = false,
+  children,
+}: {
+  href: string;
+  internal?: boolean;
+  children: React.ReactNode;
+}) {
+  const cls = 'inline-block py-1 transition-colors hover:text-ink';
+  const external = href.startsWith('http');
+  return (
+    <li>
+      {internal ? (
+        <Link href={href} className={cls}>
+          {children}
+        </Link>
+      ) : (
+        <a
+          href={href}
+          className={cls}
+          {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
+        >
+          {children}
+        </a>
+      )}
+    </li>
+  );
+}
+
 function SectionHead({
   eyebrow,
   title,
@@ -417,43 +449,6 @@ function SectionHead({
         {lead}
       </p>
     </div>
-  );
-}
-
-function SetupCard({
-  tag,
-  title,
-  children,
-}: {
-  tag: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="card-hover bg-canvas p-6">
-      <h3 className="mb-4 flex items-center gap-2.5 text-[15px] font-semibold">
-        <span className="rounded-md border border-hairline-strong bg-surface-1 px-2 py-0.5 font-mono text-[10.5px] tracking-wide text-ink-muted uppercase">
-          {tag}
-        </span>
-        {title}
-      </h3>
-      <ol className="list-decimal space-y-2.5 pl-4 text-[13.5px] leading-relaxed text-ink-subtle marker:text-ink-tertiary">
-        {children}
-      </ol>
-    </div>
-  );
-}
-
-function SetupLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="text-accent-hover underline underline-offset-2 hover:text-accent"
-    >
-      {children}
-    </a>
   );
 }
 

@@ -1,13 +1,13 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import type { Lang } from '../lib/content';
 
 const LABELS: Record<Lang, string> = { en: 'English', ko: '한국어' };
 
-// 현재 경로를 유지한 채 로케일만 바꾼다 — 예전엔 항상 홈으로 가 /pricing 등에서 페이지를 잃었다
 function localizedHref(pathname: string, target: Lang): string {
   const rest = pathname.replace(/^\/ko(?=\/|$)/, '') || '/';
   if (target === 'en') return rest;
@@ -18,6 +18,11 @@ export function LangSwitcher({ lang }: { lang: Lang }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    for (const l of ['en', 'ko'] as const) router.prefetch(localizedHref(pathname, l));
+  }, [pathname, router]);
 
   useEffect(() => {
     if (!open) return;
@@ -59,7 +64,7 @@ export function LangSwitcher({ lang }: { lang: Lang }) {
       {open && (
         <div className="absolute right-0 z-50 mt-1.5 min-w-[130px] overflow-hidden rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40">
           {(['en', 'ko'] as const).map((l) => (
-            <a
+            <Link
               key={l}
               href={localizedHref(pathname, l)}
               className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-[13px] transition-colors ${
@@ -80,7 +85,7 @@ export function LangSwitcher({ lang }: { lang: Lang }) {
                   />
                 </svg>
               )}
-            </a>
+            </Link>
           ))}
         </div>
       )}

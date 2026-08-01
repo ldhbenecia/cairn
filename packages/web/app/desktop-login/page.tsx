@@ -7,8 +7,6 @@ import { authClient } from '@/lib/auth-client';
 
 type Phase = 'loading' | 'signin' | 'bridging' | 'done' | 'error';
 
-// port 는 순수 숫자만 허용 — `1@evil.com` 같은 값으로 loopback URL 의 호스트가
-// 바뀌어 one-time token 이 외부로 새는 오픈 리다이렉트를 차단.
 function readPort(): string | null {
   if (typeof window === 'undefined') return null;
   const raw = new URLSearchParams(window.location.search).get('port');
@@ -16,8 +14,6 @@ function readPort(): string | null {
   return ok ? raw : null;
 }
 
-// 데스크톱이 연 플로우의 CSRF state — hex 만 통과시켜 리다이렉트 URL 오염 차단.
-// 구버전 앱은 state 없이 열므로 없으면 그대로 생략 (하위 호환)
 function readState(): string | null {
   if (typeof window === 'undefined') return null;
   const raw = new URLSearchParams(window.location.search).get('state');
@@ -29,13 +25,9 @@ const getNull = (): string | null => null;
 
 export default function DesktopLogin() {
   const { data: session, isPending } = authClient.useSession();
-  // SSR 에선 window 가 없어 서버 스냅샷 null, 클라이언트 스냅샷은 쿼리값 —
-  // useSyncExternalStore 가 hydration mismatch 없이(setState-in-effect 없이) 전환한다.
-  // 쿼리는 페이지 수명 동안 안 바뀌므로 subscribe 는 no-op
   const port = useSyncExternalStore(subscribeNoop, readPort, getNull);
   const state = useSyncExternalStore(subscribeNoop, readState, getNull);
   const [errored, setErrored] = useState(false);
-  // one-time token 은 단일 사용 — StrictMode 재마운트·재렌더로 generate 가 중복 호출되지 않도록 1회 가드
   const bridged = useRef(false);
 
   let phase: Phase = 'loading';
@@ -75,7 +67,6 @@ export default function DesktopLogin() {
 
   return (
     <div className="relative flex min-h-screen w-full flex-col bg-black">
-      {/* 셰이더 도트 배경 — 실제 OAuth 로직과 무관한 비주얼 레이어 */}
       <div className="absolute inset-0 z-0">
         <CanvasRevealEffect
           containerClassName="bg-black"

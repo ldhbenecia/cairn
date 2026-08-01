@@ -32,9 +32,6 @@ export function StatusDot({ ok, fail }: { ok: string; fail: string }) {
   );
 }
 
-// Anthropic 공개 status API — indicator 'none' 만 정상, 그 외는 이상, fetch 실패는 확인 불가.
-// status.anthropic.com 은 status.claude.com 으로 302 (redirect 응답에 CORS 헤더가 없어
-// 브라우저 fetch 가 실패) — 최종 도메인을 직접 호출한다
 export function ClaudeStatusDot({
   ok,
   issues,

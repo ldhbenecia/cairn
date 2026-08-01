@@ -3,8 +3,8 @@ import Link from 'next/link';
 
 import { VIDEO } from '../lib/assets';
 import type { Lang } from '../lib/content';
-import { RELEASES_LATEST } from '../lib/github';
-import { BrandMark } from './brand-mark';
+import { getRepoStats, RELEASES_LATEST } from '../lib/github';
+import { Nav } from './nav';
 
 const GUIDE = {
   en: {
@@ -63,29 +63,12 @@ const GUIDE = {
   },
 } satisfies Record<Lang, unknown>;
 
-export function NotionGuide({ lang }: { lang: Lang }) {
+export async function NotionGuide({ lang }: { lang: Lang }) {
+  const { stars } = await getRepoStats();
   const c = GUIDE[lang];
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-hairline">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-5">
-          <Link
-            href={c.home}
-            className="inline-flex items-center gap-2 text-[15px] font-semibold text-ink"
-          >
-            <span className="flex size-6 items-center justify-center rounded-md bg-accent text-white">
-              <BrandMark size={15} />
-            </span>
-            cairn
-          </Link>
-          <Link
-            href={lang === 'ko' ? '/setup/notion' : '/ko/setup/notion'}
-            className="rounded-lg border border-hairline-strong bg-surface-1 px-2.5 py-1.5 text-[13px] font-medium text-ink-muted transition-colors hover:border-ink-subtle hover:text-ink"
-          >
-            {lang === 'ko' ? 'English' : '한국어'}
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen pt-16">
+      <Nav stars={stars} lang={lang} />
 
       <main className="mx-auto max-w-3xl px-6 py-12">
         <h1 className="text-[28px] font-semibold tracking-[-0.025em]">{c.title}</h1>

@@ -5,7 +5,6 @@ import { useState } from 'react';
 export function CopyCommand({ command, copyLabel }: { command: string; copyLabel: string }) {
   const [copied, setCopied] = useState(false);
 
-  // 상태 전환 아이콘은 교체 대신 크로스페이드 — 둘 다 DOM 에 두고 opacity·scale·blur 로 전환
   const iconBase =
     'absolute inset-0 transition-[opacity,scale,filter] duration-200 ease-[cubic-bezier(0.2,0,0,1)]';
 

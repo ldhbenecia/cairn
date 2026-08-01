@@ -16,7 +16,6 @@ export function Screenshot({
   const [closing, setClosing] = useState(false);
   const closeTimer = useRef<number | null>(null);
 
-  // 닫힘도 부드럽게 — 짧은 페이드아웃 후 언마운트 (exit 는 enter 보다 절제)
   const close = (): void => {
     if (closing) return;
     setClosing(true);

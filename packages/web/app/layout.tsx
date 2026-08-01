@@ -3,7 +3,6 @@ import './globals.css';
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
 import { Fraunces } from 'next/font/google';
-import { headers } from 'next/headers';
 
 import { REPO_URL } from '../lib/github';
 import { SITE_URL } from '../lib/site';
@@ -66,7 +65,6 @@ export const metadata: Metadata = {
   },
 };
 
-// 구글 '사이트 이름'(검색 결과 브랜드 표기)은 WebSite 구조화 데이터를 1차 신호로 쓴다
 const WEBSITE_JSON_LD = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
@@ -90,11 +88,11 @@ const JSON_LD = {
   author: { '@type': 'Person', name: 'ldhbenecia', url: REPO_URL },
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const pathname = (await headers()).get('x-pathname') ?? '';
-  const lang = pathname.startsWith('/ko') ? 'ko' : 'en';
+import { LangAttr } from './lang-attr';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang={lang} className={serif.variable}>
+    <html lang="en" suppressHydrationWarning className={serif.variable}>
       <head>
         <link rel="preconnect" href="https://rsms.me/" />
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
@@ -108,6 +106,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
+        <LangAttr />
         {children}
         <Analytics />
       </body>
