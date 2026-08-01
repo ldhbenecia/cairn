@@ -32,8 +32,8 @@ const TABS: { id: TabId; labelKey: I18nKey }[] = [
   { id: 'prompts', labelKey: 'prefs.prompts' },
   { id: 'notifications', labelKey: 'prefs.notifications' },
   { id: 'connections', labelKey: 'prefs.connections' },
-  { id: 'billing', labelKey: 'prefs.billing' },
   { id: 'feedback', labelKey: 'prefs.feedback' },
+  { id: 'billing', labelKey: 'prefs.billing' },
   { id: 'about', labelKey: 'prefs.about' },
 ];
 
@@ -91,7 +91,7 @@ export function PreferencesDialog({
         >
           <nav className="flex w-44 shrink-0 flex-col gap-0.5 border-r border-hairline p-3">
             <Dialog.Title asChild>
-              <p className="px-2.5 pt-1.5 pb-2.5 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
+              <p className="px-2.5 pt-4 pb-3 text-[11px] font-medium tracking-wider text-ink-tertiary uppercase">
                 {t('prefs.title')}
               </p>
             </Dialog.Title>
