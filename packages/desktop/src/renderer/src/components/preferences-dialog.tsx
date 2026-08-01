@@ -52,6 +52,7 @@ type Props = {
   onRerunSetup: () => void;
   blockEscape?: boolean;
   initialTab?: TabId | null;
+  initialTabNonce?: number;
 };
 
 export function PreferencesDialog({
@@ -60,12 +61,13 @@ export function PreferencesDialog({
   onRerunSetup,
   blockEscape,
   initialTab,
+  initialTabNonce,
 }: Props) {
   const { t } = useSettings();
   const [tab, setTab] = useState<TabId>('appearance');
   useEffect(() => {
     if (open && initialTab) setTab(initialTab);
-  }, [open, initialTab]);
+  }, [open, initialTab, initialTabNonce]);
   const active = TABS.find((x) => x.id === tab) ?? TABS[0]!;
   const descKey = TAB_DESC[tab];
 

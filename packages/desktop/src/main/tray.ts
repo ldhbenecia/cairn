@@ -51,23 +51,19 @@ function buildMenu(window: BrowserWindow, onQuit: () => void): Menu {
   const items: MenuItemConstructorOptions[] = [
     {
       label: mt('tray.daily'),
-      accelerator: 'CommandOrControl+1',
       click: () => triggerCore('daily'),
     },
     {
       label: mt('tray.weekly'),
-      accelerator: 'CommandOrControl+2',
       click: () => triggerCore('weekly'),
     },
     {
       label: mt('tray.monthly'),
-      accelerator: 'CommandOrControl+3',
       click: () => triggerCore('monthly'),
     },
     { type: 'separator' },
     {
       label: mt('tray.dashboard'),
-      accelerator: 'CommandOrControl+D',
       click: () => showWindow(window),
     },
     { type: 'separator' },

@@ -75,7 +75,8 @@ export function App() {
   const [filter, setFilter] = useState<WorklogFilter>('all');
   const [view, setView] = useState<MainView>('stats');
   const [prefsOpen, setPrefsOpen] = useState(false);
-  const [prefsTab, setPrefsTab] = useState<'connections' | null>(null);
+  // nonce 포함 — 이미 열린 채 다른 탭으로 옮긴 뒤 두 번째 알림 클릭이 무시되지 않게
+  const [prefsTab, setPrefsTab] = useState<{ tab: 'connections'; nonce: number } | null>(null);
   const [autoConfirmModes, setAutoConfirmModes] = useState<CoreMode[] | null>(null);
   const [cmdkOpen, setCmdkOpen] = useState(false);
   // 팔레트 발행 → worklogs 뷰의 PublishDialog 를 진행 화면으로 여는 신호
@@ -337,7 +338,7 @@ export function App() {
   useEffect(() => {
     const off = window.cairn.onOpenConnections(() => {
       setCmdkOpen(false);
-      setPrefsTab('connections');
+      setPrefsTab((prev) => ({ tab: 'connections', nonce: (prev?.nonce ?? 0) + 1 }));
       setPrefsOpen(true);
     });
     return off;
@@ -562,7 +563,8 @@ export function App() {
         }}
         onRerunSetup={() => setSetupComplete(false)}
         blockEscape={cmdkOpen}
-        initialTab={prefsTab}
+        initialTab={prefsTab?.tab ?? null}
+        initialTabNonce={prefsTab?.nonce ?? 0}
       />
     </div>
   );

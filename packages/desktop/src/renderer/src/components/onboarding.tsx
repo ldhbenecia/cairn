@@ -30,7 +30,9 @@ const STEP_TITLE_KEY: Record<Step, I18nKey> = {
 
 export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
   const { t } = useSettings();
-  const [stepIdx, setStepIdx] = useState(0);
+  // onCancel 존재 = 설정에서 진입한 재설정 — 환영 스텝을 건너뛰고 문구도 재설정 톤으로
+  const reconfigure = !!onCancel;
+  const [stepIdx, setStepIdx] = useState(reconfigure ? 1 : 0);
   const step = STEPS[stepIdx]!;
   const [github, setGithub] = useState<GithubEntry[]>([
     { label: 'Personal', token: '', status: 'idle' },
@@ -169,6 +171,11 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             <BrandMark size={17} />
           </span>
           <span className="text-[17px] font-semibold tracking-[-0.3px]">cairn</span>
+          {reconfigure && (
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-muted">
+              {t('onb.reconfigure')}
+            </span>
+          )}
           {step !== 'welcome' && (
             <span className="ml-auto text-[12px] text-ink-tertiary">
               {stepIdx} / {STEPS.length - 1} · {t(STEP_TITLE_KEY[step])}
@@ -413,7 +420,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
         </AnimatePresence>
 
         <div className="flex shrink-0 items-center gap-2 border-t border-hairline py-4">
-          {stepIdx > 0 && (
+          {stepIdx > (reconfigure ? 1 : 0) && (
             <button
               type="button"
               onClick={() => setStepIdx((s) => s - 1)}
