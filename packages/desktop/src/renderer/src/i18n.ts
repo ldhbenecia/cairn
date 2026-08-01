@@ -134,6 +134,7 @@ const STRINGS = {
       '예) 개인 계정 = Fine-grained PAT · 조직 private repo = classic token (scope: repo)',
     'onb.github.add': '계정 추가',
     'onb.github.connected': '연결됨',
+    'onb.github.ghManaged': 'gh CLI 연동 — 토큰은 앱 내부에만 보관돼요',
     'onb.claude.desc': 'cairn 은 활동을 한국어로 요약하는 데 Claude 를 씁니다.',
     'onb.claude.autoTitle': 'Claude Code CLI 가 설치·로그인돼 있으면 자동 — 추가 과금 0',
     'onb.claude.autoBody':
@@ -287,6 +288,7 @@ const STRINGS = {
     'snap.loading': '불러오는 중…',
     'snap.legend': '− 선택 버전에만 · + 현재에만',
     'snap.restore': '이 버전으로 복원',
+    'snap.restoreFail': '복원 실패 — 다시 시도해 주세요',
     'drawer.loading': '노션에서 불러오는 중…',
     'drawer.empty': '내용 없음',
     'drawer.loadError': '본문을 불러오지 못했어요 — 잠시 후 다시 열어 주세요',
@@ -681,6 +683,7 @@ const STRINGS = {
       'e.g. personal = fine-grained PAT · org private repo = classic token (scope: repo)',
     'onb.github.add': 'Add account',
     'onb.github.connected': 'connected',
+    'onb.github.ghManaged': 'Linked via gh CLI — token stays inside the app',
     'onb.claude.desc': 'cairn uses Claude to summarize your activity.',
     'onb.claude.autoTitle':
       'Automatic when Claude Code CLI is installed and logged in — no extra cost',
@@ -837,6 +840,7 @@ const STRINGS = {
     'snap.loading': 'Loading…',
     'snap.legend': '− selected version only · + current only',
     'snap.restore': 'Restore this version',
+    'snap.restoreFail': 'Restore failed — try again',
     'drawer.loading': 'Loading from Notion…',
     'drawer.empty': 'Empty',
     'drawer.loadError': 'Could not load content — please reopen in a moment',

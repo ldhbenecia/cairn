@@ -160,7 +160,7 @@ export type NotionWorkspacePayload = {
 };
 export type OnboardingPayload = {
   notion: NotionWorkspacePayload[];
-  github: { label: string; token: string }[];
+  github: ({ label: string; token: string } | { label: string; ghLogin: string })[];
   anthropicApiKey?: string;
   localGitRepos: string[];
 };
@@ -227,9 +227,10 @@ declare global {
         probeGithub: (token: string) => Promise<GithubProbe>;
         githubFromGhCli: () => Promise<{
           ok: boolean;
-          accounts?: { login: string; token: string }[];
+          logins?: string[];
           error?: string;
         }>;
+        probeGithubGh: (login: string) => Promise<GithubProbe>;
         probeClaude: () => Promise<{ ok: boolean }>;
         probeRepo: (path: string) => Promise<LocalRepoProbe>;
         finish: (payload: OnboardingPayload) => Promise<{ ok: boolean; error?: string }>;

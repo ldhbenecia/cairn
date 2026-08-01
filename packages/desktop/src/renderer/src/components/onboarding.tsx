@@ -52,8 +52,22 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const patchGithubByToken = (token: string, p: Partial<GithubEntry>) =>
     setGithub((prev) => prev.map((e) => (e.token.trim() === token ? { ...e, ...p } : e)));
 
+  const patchGithubByGhLogin = (ghLogin: string, p: Partial<GithubEntry>) =>
+    setGithub((prev) => prev.map((e) => (e.ghLogin === ghLogin ? { ...e, ...p } : e)));
+
   async function testGithub(i: number) {
-    const token = github[i]!.token.trim();
+    const entry = github[i]!;
+    if (entry.ghLogin) {
+      const ghLogin = entry.ghLogin;
+      patchGithubByGhLogin(ghLogin, { status: 'testing', error: undefined });
+      const r = await window.cairn.onboarding.probeGithubGh(ghLogin);
+      patchGithubByGhLogin(
+        ghLogin,
+        r.ok ? { status: 'ok', login: r.login } : { status: 'err', error: r.error },
+      );
+      return;
+    }
+    const token = entry.token.trim();
     if (!token) return;
     patchGithubByToken(token, { status: 'testing', error: undefined });
     const r = await window.cairn.onboarding.probeGithub(token);
@@ -68,20 +82,21 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     setGhMsg(null);
     try {
       const r = await window.cairn.onboarding.githubFromGhCli();
-      if (!r.ok || !r.accounts?.length) {
+      if (!r.ok || !r.logins?.length) {
         setGhMsg(r.error === 'gh-not-found' ? 'onb.github.ghNotFound' : 'onb.github.ghNotAuthed');
         return;
       }
-      const entries: GithubEntry[] = r.accounts.map((a) => ({
-        label: a.login,
-        token: a.token,
+      const entries: GithubEntry[] = r.logins.map((login) => ({
+        label: login,
+        token: '',
+        ghLogin: login,
         status: 'testing',
       }));
       setGithub(entries);
       const probed = await Promise.all(
         entries.map(async (entry): Promise<GithubEntry> => {
           try {
-            const probe = await window.cairn.onboarding.probeGithub(entry.token);
+            const probe = await window.cairn.onboarding.probeGithubGh(entry.ghLogin!);
             return probe.ok
               ? { ...entry, status: 'ok', login: probe.login }
               : { ...entry, status: 'err', error: probe.error };
@@ -99,7 +114,8 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   }
 
   // 최소 요건: 활동 소스(GitHub 계정 또는 로컬 Git 레포) 하나 + Claude. 노션은 Preferences 연동 탭에서.
-  const sourceValid = repos.length > 0 || github.some((e) => e.status === 'ok' && e.token.trim());
+  const sourceValid =
+    repos.length > 0 || github.some((e) => e.status === 'ok' && (e.token.trim() || e.ghLogin));
   const claudeValid = claudeStatus === 'ok' || !!anthropicKey.trim();
 
   async function finish() {
@@ -108,8 +124,12 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     const r = await window.cairn.onboarding.finish({
       notion: [],
       github: github
-        .filter((e) => e.status === 'ok' && e.token.trim())
-        .map((e) => ({ label: e.label, token: e.token.trim() })),
+        .filter((e) => e.status === 'ok' && (e.token.trim() || e.ghLogin))
+        .map((e) =>
+          e.ghLogin
+            ? { label: e.label, ghLogin: e.ghLogin }
+            : { label: e.label, token: e.token.trim() },
+        ),
       anthropicApiKey: anthropicKey.trim() || undefined,
       localGitRepos: repos,
     });
