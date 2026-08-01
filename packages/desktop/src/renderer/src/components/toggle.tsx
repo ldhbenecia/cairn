@@ -25,6 +25,8 @@ export function Toggle({ checked, onChange, disabled, label, ariaLabel }: Props)
         onClick={() => onChange(!checked)}
         className={[
           'relative inline-flex h-[18px] w-[30px] shrink-0 items-center rounded-full transition-colors',
+          // 히트영역 확장(약 46×42) — 시각 크기 유지, 스위치가 행 우측에 단독이라 인접 오버랩 없음
+          "before:absolute before:-inset-x-2 before:-inset-y-3 before:content-['']",
           checked ? 'bg-accent' : 'bg-hairline-strong',
         ].join(' ')}
       >

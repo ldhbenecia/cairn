@@ -14,6 +14,7 @@ import { pageSinks } from '../lib/sinks';
 import { blocksToMarkdown } from '../../../shared/markdown';
 import { blocksToHtml } from '../../../shared/html';
 import { useSettings } from '../settings-context';
+import { CrossfadeIcon } from './crossfade-icon';
 import { SnapshotDialog } from './snapshot-dialog';
 
 // 드로어·전체 화면 상세가 공유하는 내보내기·공유 메뉴 (스냅샷 다이얼로그 포함)
@@ -114,13 +115,25 @@ export function WorklogActions({
   const actions: Act[] = [
     shareText && {
       key: 'share',
-      icon: copied ? <Check size={15} strokeWidth={2.5} /> : <Copy size={15} strokeWidth={2} />,
+      icon: (
+        <CrossfadeIcon
+          active={copied}
+          from={<Copy size={15} strokeWidth={2} />}
+          to={<Check size={15} strokeWidth={2.5} />}
+        />
+      ),
       label: copied ? t('drawer.copied') : t('drawer.menuShare'),
       run: copyShare,
     },
     markdown && {
       key: 'md',
-      icon: mdCopied ? <Check size={15} strokeWidth={2.5} /> : <Copy size={15} strokeWidth={2} />,
+      icon: (
+        <CrossfadeIcon
+          active={mdCopied}
+          from={<Copy size={15} strokeWidth={2} />}
+          to={<Check size={15} strokeWidth={2.5} />}
+        />
+      ),
       label: mdCopied ? t('drawer.copied') : t('drawer.menuCopyMd'),
       run: copyMarkdown,
     },

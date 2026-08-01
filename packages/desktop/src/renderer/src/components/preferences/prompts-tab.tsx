@@ -59,7 +59,7 @@ export function PromptsTab() {
                   key={m.id}
                   type="button"
                   onClick={() => update({ summaryModel: m.id })}
-                  className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 transition-all duration-200 ease-out active:scale-[0.96] ${
+                  className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 transition-[border-color,background-color,color,scale] duration-200 ease-out active:scale-[0.96] ${
                     selected
                       ? 'border-hairline-strong bg-surface-3 text-ink'
                       : 'border-hairline bg-surface-2 text-ink-muted hover:border-ink-tertiary hover:bg-surface-3'

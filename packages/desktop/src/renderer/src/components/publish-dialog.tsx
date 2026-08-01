@@ -363,7 +363,7 @@ export function PublishDialog({
                   });
                 }}
                 className={[
-                  'flex h-8 items-center rounded-md px-4 text-[13px] font-medium transition-all active:scale-[0.98]',
+                  'flex h-8 items-center rounded-md px-4 text-[13px] font-medium transition-[background-color,color,scale] active:scale-[0.96]',
                   busy
                     ? 'cursor-not-allowed bg-accent-focus text-white/70'
                     : 'bg-accent text-white hover:bg-accent-hover',
