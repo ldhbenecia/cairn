@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
+import { BrandMark } from './brand-mark';
 import { GithubCard } from './onboarding-cards';
 import type { GithubEntry, Status } from './onboarding-cards';
 
@@ -166,6 +167,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
       <div className="h-11 shrink-0 [-webkit-app-region:drag]" />
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-hidden px-8">
         <div className="flex items-center gap-2.5 pb-3">
+          <BrandMark size={18} className="shrink-0 text-ink" />
           <span className="text-[17px] font-semibold tracking-[-0.3px]">cairn</span>
           {reconfigure && (
             <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-muted">
@@ -475,6 +477,9 @@ function Welcome({ t }: { t: T }) {
       variants={{ show: { transition: { staggerChildren: 0.32, delayChildren: 0.35 } } }}
       className="flex h-full flex-col items-center justify-center gap-7 pb-6 text-center"
     >
+      <motion.span variants={RISE} className="text-ink">
+        <BrandMark size={52} />
+      </motion.span>
       <motion.div variants={RISE} className="flex flex-col gap-2.5">
         <h1 className="text-[28px] font-semibold tracking-[-0.6px]">{t('onb.welcome.title')}</h1>
         <p className="mx-auto max-w-md text-[14px] leading-relaxed text-ink-muted">
