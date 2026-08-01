@@ -61,7 +61,21 @@ export default function DesktopLogin() {
             setHandedOff(true);
           })
           .catch(() => {
-            if (!cancelled) window.location.href = dest;
+            if (cancelled) return;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `http://127.0.0.1:${port}/`;
+            const add = (name: string, value: string): void => {
+              const input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = name;
+              input.value = value;
+              form.appendChild(input);
+            };
+            add('token', token);
+            if (state) add('state', state);
+            document.body.appendChild(form);
+            form.submit();
           });
       })
       .catch(() => {

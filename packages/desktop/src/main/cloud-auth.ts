@@ -1,4 +1,5 @@
-import { BrowserWindow, shell } from 'electron';
+import { BrowserWindow, dialog, shell } from 'electron';
+import { mt } from './i18n';
 import { randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { writeFileAtomic } from './atomic-write';
@@ -101,13 +102,33 @@ export function startCloudSignIn(): void {
       res.end();
       return;
     }
+    // 폴백은 폼 POST(body) — 토큰이 URL/히스토리에 실리지 않는다. GET 쿼리는 fetch 경로용
+    if (req.method === 'POST') {
+      let body = '';
+      req.setEncoding('utf8');
+      req.on('data', (chunk: string) => {
+        if (body.length < 8192) body += chunk;
+      });
+      req.on('end', () => {
+        const params = new URLSearchParams(body);
+        handleToken(params.get('token'), params.get('state'), req, res);
+      });
+      return;
+    }
     if (req.method !== 'GET') {
       res.writeHead(405);
       res.end();
       return;
     }
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
-    const ott = url.searchParams.get('token');
+    handleToken(url.searchParams.get('token'), url.searchParams.get('state'), req, res);
+  });
+  const handleToken = (
+    ott: string | null,
+    state: string | null,
+    req: import('node:http').IncomingMessage,
+    res: import('node:http').ServerResponse,
+  ): void => {
     // favicon 등 토큰 없는 부가 요청은 무시 — 세션 닫지 않음
     if (!ott) {
       res.writeHead(204);
@@ -115,7 +136,7 @@ export function startCloudSignIn(): void {
       return;
     }
     // state 불일치는 거부하되 서버는 유지 — 공격 시도가 정상 플로우를 죽이지 못하게
-    if (url.searchParams.get('state') !== expectedState) {
+    if (state !== expectedState) {
       res.writeHead(403);
       res.end();
       return;
@@ -136,12 +157,23 @@ export function startCloudSignIn(): void {
     }
     current.close();
     if (server === current) server = null;
-  });
+  };
   server = current;
+  // 리스너 없으면 listen/소켓 에러가 uncaught 로 메인 프로세스를 죽인다
+  current.on('error', (err) => {
+    if (server === current) stopServer();
+    signInFailed(`loopback server: ${err.message}`);
+  });
   current.listen(0, '127.0.0.1', () => {
     const addr = current.address();
     const port = addr && typeof addr === 'object' ? addr.port : 0;
-    void shell.openExternal(`${WEB_BASE}/desktop-login?port=${port}&state=${expectedState}`);
+    // 기본 브라우저가 없으면 여기서 조용히 끝나 '로그인 눌러도 아무 일 없음'이 되던 경로
+    shell
+      .openExternal(`${WEB_BASE}/desktop-login?port=${port}&state=${expectedState}`)
+      .catch((err: unknown) => {
+        if (server === current) stopServer();
+        signInFailed(`openExternal: ${err instanceof Error ? err.message : String(err)}`);
+      });
   });
   // 브라우저 로그인 플로우를 포기하면 포트가 무기한 점유되지 않도록 5분 후 정리
   authTimeout = setTimeout(
@@ -152,6 +184,13 @@ export function startCloudSignIn(): void {
   );
 }
 
+// 브라우저 쪽은 '로그인 완료'를 띄우는데 앱은 영영 로컬 상태로 남던 조용한 실패 —
+// 각 단계 실패를 로그 + 네이티브 다이얼로그로 표면화한다 (알림 클릭은 프론트 배너에서 미전달)
+function signInFailed(reason: string): void {
+  console.error(`[cloud-auth] sign-in failed: ${reason}`);
+  dialog.showErrorBox(mt('cloud.signInFailTitle'), mt('cloud.signInFailBody'));
+}
+
 async function completeSignIn(ott: string): Promise<void> {
   try {
     const verify = await fetch(`${WEB_BASE}/api/auth/one-time-token/verify`, {
@@ -160,7 +199,10 @@ async function completeSignIn(ott: string): Promise<void> {
       body: JSON.stringify({ token: ott }),
     });
     const token = verify.headers.get('set-auth-token');
-    if (!token) return;
+    if (!token) {
+      signInFailed(`token verify HTTP ${verify.status}`);
+      return;
+    }
     const sess = await fetch(`${WEB_BASE}/api/auth/get-session`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -168,7 +210,10 @@ async function completeSignIn(ott: string): Promise<void> {
       user?: { name?: string; email?: string; image?: string | null };
     };
     const u = data.user;
-    if (!u?.email) return;
+    if (!u?.email) {
+      signInFailed(`get-session HTTP ${sess.status} — no user`);
+      return;
+    }
     writeStored({
       token,
       user: { name: u.name ?? u.email, email: u.email, image: u.image ?? null },
@@ -177,8 +222,8 @@ async function completeSignIn(ott: string): Promise<void> {
     const win = BrowserWindow.getAllWindows()[0];
     win?.show();
     win?.focus();
-  } catch {
-    // ignore
+  } catch (err) {
+    signInFailed(err instanceof Error ? err.message : String(err));
   }
 }
 
