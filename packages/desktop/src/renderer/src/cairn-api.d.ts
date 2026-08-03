@@ -121,6 +121,7 @@ export type CoreResult = {
     | 'collect'
     | null;
   journalWriteFailed: boolean;
+  collectPartial: string[];
   prCount: number;
   commitCount: number;
   stderrTail: string;

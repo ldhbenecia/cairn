@@ -136,7 +136,9 @@ export class GithubCollectorService {
     for (const item of involved) {
       const isAuthored = item.author === myLogin;
       const isAssigned = item.assignees.includes(myLogin);
-      if (!isAuthored && !isAssigned) continue;
+      // 소유/할당이 아니어도 버리지 않는다 — 남의 PR 에 커밋만 푸시한 날(핸드오프·페어링)이
+      // 통째로 빠지던 문제. phase1 의 내 커밋 존재 여부가 eligibility 를 결정한다
+      // (리뷰-온리 involved PR 은 내 커밋 0 → 탈락, 리뷰 활동 제외 정책 유지)
       const key = `${account.label}/${item.owner}/${item.repo}#${item.number}`;
       const bucket = buckets.get(key) ?? {
         account: account.label,
@@ -171,7 +173,10 @@ export class GithubCollectorService {
     // GitHub API secondary rate limit 회피를 위해 token 당 동시 호출 5 개로 제한
     const phase1 = await withConcurrency([...buckets.values()], 5, async (bucket) => {
       const { item, categories } = bucket;
-      const createdInDay = item.createdAt >= sinceIso && item.createdAt <= untilIso;
+      const ownedOrAssigned = categories.has('authored') || categories.has('assigned');
+      // 소유/할당 아닌 PR 은 '그날 열림'만으로는 내 활동이 아니다 — 내 커밋이 있어야 통과
+      const createdInDay =
+        ownedOrAssigned && item.createdAt >= sinceIso && item.createdAt <= untilIso;
       const hasAuthoredMerged = categories.has('authored_merged');
       const needsCommitsForEligibility = !hasAuthoredMerged && !createdInDay;
       const commitsOnDate = needsCommitsForEligibility

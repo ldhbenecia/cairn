@@ -51,23 +51,34 @@ export class LocalGitClient {
       `--until=${new Date(untilMs + slackMs).toISOString()}`,
       '--no-merges',
       `--author=${author}`,
-      '--pretty=format:%h%x09%s%x09%aI',
+      '--pretty=format:%h%x09%s%x09%aI%x09%cI',
     ]);
-    return out
-      .split('\n')
-      .filter((line) => line.trim().length > 0)
-      .map((line) => {
-        const [shortSha, subject, authoredAt] = line.split('\t');
-        // 빈 subject(--allow-empty-message)는 정상 커밋 — throw 하면 레포 전체가 그 날짜에서 탈락한다
-        if (!shortSha || !authoredAt) {
-          throw new Error(`unexpected git log line shape: ${line}`);
-        }
-        return { shortSha, subject: subject ?? '', authoredAt };
-      })
-      .filter((c) => {
-        const t = Date.parse(c.authoredAt);
-        return t >= sinceMs && t <= untilMs;
-      });
+    const inWindow = (iso: string | undefined): boolean => {
+      if (!iso) return false;
+      const t = Date.parse(iso);
+      return t >= sinceMs && t <= untilMs;
+    };
+    return (
+      out
+        .split('\n')
+        .filter((line) => line.trim().length > 0)
+        .map((line) => {
+          const [shortSha, subject, authoredAt, committedAt] = line.split('\t');
+          // 빈 subject(--allow-empty-message)는 정상 커밋 — throw 하면 레포 전체가 그 날짜에서 탈락한다
+          if (!shortSha || !authoredAt) {
+            throw new Error(`unexpected git log line shape: ${line}`);
+          }
+          return { shortSha, subject: subject ?? '', authoredAt, committedAt };
+        })
+        // rebase/cherry-pick 날은 author date 가 과거라 0으로 잡히던 문제 — committer date 폴백,
+        // 귀속 시각도 윈도우에 든 쪽으로 (GitHub PR 커밋 경로와 동일 규칙)
+        .filter((c) => inWindow(c.authoredAt) || inWindow(c.committedAt))
+        .map(({ shortSha, subject, authoredAt, committedAt }) => ({
+          shortSha,
+          subject,
+          authoredAt: inWindow(authoredAt) ? authoredAt : (committedAt ?? authoredAt),
+        }))
+    );
   }
 
   // local·remote 를 한 번의 git 스폰으로 조회 (커밋당 프로세스 2회 → 1회)

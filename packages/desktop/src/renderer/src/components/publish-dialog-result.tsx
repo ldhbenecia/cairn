@@ -281,6 +281,15 @@ export function Result({
             </p>
           </div>
         )}
+        {/* 부분 수집 실패 — 발행은 됐지만 일부 계정/레포 활동이 빠졌을 수 있음 */}
+        {isSuccess && result.collectPartial.length > 0 && (
+          <div className="mt-1 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/[0.08] px-3 py-2.5">
+            <TriangleAlert size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-warning" />
+            <p className="text-[12px] leading-relaxed text-ink-muted">
+              {t('publish.result.collectPartial')} — {result.collectPartial.join(', ')}
+            </p>
+          </div>
+        )}
       </div>
       <div
         className={

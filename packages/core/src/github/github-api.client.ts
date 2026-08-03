@@ -27,6 +27,7 @@ interface GqlCommitNode {
     oid: string;
     messageHeadline: string;
     authoredDate: string;
+    committedDate?: string | null;
     author: { user: { login: string } | null } | null;
     parents: { totalCount: number };
   };
@@ -45,6 +46,7 @@ interface RawPrCommit {
   subject: string;
   authoredAt: string;
   authorLogin: string | null;
+  committedAt: string | null;
   isMerge: boolean;
 }
 
@@ -212,14 +214,24 @@ export class GithubApiClient {
     // 사전식 문자열 비교는 offset 차이로 어긋나므로 instant(Date.parse) 로 비교한다.
     const since = Date.parse(sinceIso);
     const until = Date.parse(untilIso);
+    // rebase/cherry-pick 날은 author date 가 과거라 0으로 잡히던 문제 — committer date 폴백.
+    // 귀속 시각도 윈도우에 든 쪽을 쓴다 (히스토그램·날짜 배정 일관)
+    const inWindow = (iso: string | null): boolean => {
+      if (!iso) return false;
+      const t = Date.parse(iso);
+      return t >= since && t <= until;
+    };
     return all
       .filter((c) => {
         if (c.isMerge) return false;
         if (authorLogin && c.authorLogin && c.authorLogin !== authorLogin) return false;
-        const t = Date.parse(c.authoredAt);
-        return t >= since && t <= until;
+        return inWindow(c.authoredAt) || inWindow(c.committedAt);
       })
-      .map(({ shortSha, subject, authoredAt }) => ({ shortSha, subject, authoredAt }));
+      .map(({ shortSha, subject, authoredAt, committedAt }) => ({
+        shortSha,
+        subject,
+        authoredAt: inWindow(authoredAt) ? authoredAt : (committedAt ?? authoredAt),
+      }));
   }
 
   private listPrCommitsCached(
@@ -264,6 +276,7 @@ export class GithubApiClient {
           shortSha: c.sha.slice(0, 7),
           subject: subjectFull.split('\n')[0]?.trim() ?? '',
           authoredAt: authorDate,
+          committedAt: c.commit.committer?.date ?? null,
           authorLogin: c.author?.login ?? null,
           isMerge: c.parents.length > 1,
         });
@@ -306,7 +319,7 @@ export class GithubApiClient {
     if (chunk.length === 0) return out;
     const octokit = this.getOctokit(token);
     const commitFields =
-      'commits(first: 100) { totalCount nodes { commit { oid messageHeadline authoredDate author { user { login } } parents { totalCount } } } }';
+      'commits(first: 100) { totalCount nodes { commit { oid messageHeadline authoredDate committedDate author { user { login } } parents { totalCount } } } }';
     const aliases = chunk
       .map(
         (ref, idx) =>
@@ -404,6 +417,7 @@ function mapGqlCommit(node: GqlCommitNode): RawPrCommit {
     shortSha: c.oid.slice(0, 7),
     subject: c.messageHeadline?.trim() ?? '',
     authoredAt: c.authoredDate,
+    committedAt: c.committedDate ?? null,
     authorLogin: c.author?.user?.login ?? null,
     isMerge: (c.parents?.totalCount ?? 0) > 1,
   };

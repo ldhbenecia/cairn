@@ -360,11 +360,11 @@ export class OrchestratorService {
     }
 
     const { prCount, commitCount } = computeDayTotals(githubActivity, localGitActivity);
+    const sourceErrors = collectSourceErrors(githubActivity, localGitActivity);
 
     if (prCount + commitCount === 0) {
       // 수집 에러로 인한 0건은 '활동 없음'으로 위장하지 않는다 — 토큰 만료 등이 매일
       // 무음으로 넘어가 일지가 통째로 누락되던 문제. throw 로 실패 알림·재시도 경로 복원
-      const sourceErrors = collectSourceErrors(githubActivity, localGitActivity);
       if (sourceErrors.length > 0) {
         const first = sourceErrors[0]!;
         this.logger.warn(
@@ -391,6 +391,19 @@ export class OrchestratorService {
         await this.notification.notify('cairn 일지', `${date} 활동 없음 — 일지 생략`);
       }
       return 'no-activity';
+    }
+
+    // 부분 수집 실패(한 계정/레포만 실패 + 다른 소스 활동 있음)는 총량>0 이라 조용히 넘어가
+    // 그 계정 활동이 빠진 일지가 정상처럼 발행되던 문제 — 경고 이벤트로 표면화
+    if (sourceErrors.length > 0) {
+      const labels = sourceErrors.map((e) =>
+        e.source === 'local-git' ? (e.label.split('/').pop() ?? e.label) : e.label,
+      );
+      this.logger.warn(
+        { date, labels },
+        'daily: partial collect failure — journal may be missing activity',
+      );
+      emitParentEvent({ type: 'collect-partial', labels });
     }
 
     // 그랜드 토탈(로컬+GitHub PR dedup)을 요약 전에 한 번 — 발행 진행 UI 칩이
