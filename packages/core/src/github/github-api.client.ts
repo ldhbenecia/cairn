@@ -98,7 +98,12 @@ export class GithubApiClient {
   }
 
   async searchPrs(token: string, query: string): Promise<SearchPrItem[]> {
-    const { items } = await this.fetchSearchPrs(token, query);
+    const { items, truncated } = await this.fetchSearchPrs(token, query);
+    if (truncated)
+      this.logger.warn(
+        { query, count: items.length },
+        'github pr search truncated at cap — oldest results dropped',
+      );
     return items;
   }
 
@@ -141,7 +146,12 @@ export class GithubApiClient {
     entry.promise.catch(() => {
       if (this.prSearchCache.get(key) === entry) this.prSearchCache.delete(key);
     });
-    const { items } = await entry.promise;
+    const { items, truncated } = await entry.promise;
+    if (truncated)
+      this.logger.warn(
+        { baseQuery, lowerBoundIso, count: items.length },
+        'github pr search truncated at cap — oldest results dropped',
+      );
     return items;
   }
 

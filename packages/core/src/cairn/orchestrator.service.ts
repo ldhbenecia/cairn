@@ -88,8 +88,9 @@ export class OrchestratorService {
     // journal 은 있는데 노션에 없는 날짜 — 과거 실행에서 journal 쓰기 성공 후 Notion 발행만
     // 실패한 케이스. 아래 hasDaily 필터가 이 날짜를 backfill 에서 영구 제외하던 문제를,
     // 재요약 없이 journal 내용 그대로 재발행하는 경로로 복구한다 (리뷰 PR-B)
+    let republishedCount = 0;
     if (!options.force && !options.skipNotion) {
-      await this.republishFromJournal(targetDates, published, options);
+      republishedCount = await this.republishFromJournal(targetDates, published, options);
     }
 
     // 노션 발행 목록 + journal 파일 둘 다 없는 날짜만 backfill — 노션 미연동에서도 중복 재요약 방지
@@ -102,8 +103,11 @@ export class OrchestratorService {
         { rangeStart, rangeEnd, checked: targetDates.length },
         'daily: all dates in backfill window already published — nothing to do',
       );
-      // 이벤트 없이 끝나면 데스크톱이 기본값 '발행 완료'로 오보한다 — 요청 날짜 기준 skipped 로 보고
-      emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
+      // 이벤트 없이 끝나면 데스크톱이 기본값 '발행 완료'로 오보한다 — 재발행이 있었으면 그 이벤트가
+      // 이미 정확하고, 없었을 때만 skipped 로 보고 (재발행 created 를 skipped 로 덮지 않게)
+      if (republishedCount === 0) {
+        emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
+      }
       return;
     }
 
@@ -181,6 +185,16 @@ export class OrchestratorService {
     });
 
     await this.notifyBackfillBatch(backfillDates, results);
+
+    // 전 날짜 실패인데 exit 0 이면 데스크톱이 '발행 완료'로 오보한다 — 런 실패로 전파
+    if (failedDates.length === backfillTotal) {
+      throw CairnError.from(
+        new Error(
+          `백필 ${backfillTotal}건 전부 실패 — 마지막 실패: ${failedDates[failedDates.length - 1]}`,
+        ),
+        'config',
+      );
+    }
   }
 
   // Notion 발행만 실패했던 날짜(journal 있음 + published 없음)를 재요약 비용 없이 복구.
@@ -189,16 +203,24 @@ export class OrchestratorService {
     targetDates: readonly string[],
     published: ReadonlySet<string>,
     options: RunOptions,
-  ): Promise<void> {
+  ): Promise<number> {
     const candidates = targetDates.filter(
       (d) => !published.has(d) && this.journalWriter.hasDaily(d),
     );
-    if (candidates.length === 0) return;
+    if (candidates.length === 0) return 0;
 
     const republished: string[] = [];
     for (const date of candidates) {
       const summary = this.journalSource.readDailySummary(date);
-      if (!summary) continue;
+      if (!summary) {
+        // 사용자가 편집해 파싱 불가한 journal — 조용히 건너뛰면 이 날짜가 영영 미발행으로 남는다.
+        // 파일은 보존(재수집 덮어쓰기 금지), 가시화만
+        this.logger.warn(
+          { date },
+          'daily: journal unparseable — republish skipped (--force 로 재생성 가능)',
+        );
+        continue;
+      }
       try {
         const result = await this.notionPublisher.publish({
           date,
@@ -209,10 +231,17 @@ export class OrchestratorService {
           lang: options.lang,
         });
         // 노션 미연동이면 나머지 날짜도 동일 — 재발행 자체가 해당 없음
-        if (result.kind === 'no-target') return;
+        if (result.kind === 'no-target') return republished.length;
         if (result.kind === 'created' || result.kind === 'recreated') {
           republished.push(date);
           this.logger.info({ date, publishResult: result }, 'daily: republished from journal');
+          // 이벤트 없이 넘어가면 이후 '전체 기발행' 분기가 skipped 로 오보한다 — 실제 발행을 보고
+          emitParentEvent({
+            type: 'publish-result',
+            kind: result.kind,
+            pageId: 'pageId' in result ? result.pageId : null,
+            url: 'url' in result ? result.url : null,
+          });
         }
       } catch (err) {
         // Notion 장애 지속 등 — 다음 예약 실행에서 같은 경로로 재시도되므로 런은 계속
@@ -229,6 +258,7 @@ export class OrchestratorService {
           : `${republished[0]} 외 ${republished.length - 1}건`;
       await this.notification.notify('cairn 일지', `미발행 일지 재발행 — ${label}`);
     }
+    return republished.length;
   }
 
   private async runDailyForDate(
@@ -241,6 +271,7 @@ export class OrchestratorService {
 
     if (!wantsGithub && !wantsLocalGit) {
       this.logger.warn({ sources: options.sources }, 'daily: no enabled source — skipping');
+      emitParentEvent({ type: 'no-activity', date });
       return 'no-activity';
     }
 

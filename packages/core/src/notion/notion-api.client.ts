@@ -141,7 +141,11 @@ export class NotionApiClient {
             { property: 'Date', date: { on_or_before: rangeEnd } },
           ],
         },
-        sorts: [{ property: 'Date', direction: 'ascending' }],
+        // 2차 정렬(최근 편집 우선)이 있어야 롤업의 날짜 dedup '첫 등장 유지'가 최신 페이지를 잡는다
+        sorts: [
+          { property: 'Date', direction: 'ascending' },
+          { timestamp: 'last_edited_time', direction: 'descending' },
+        ],
         start_cursor: cursor,
         page_size: 100,
       });

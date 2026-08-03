@@ -19,9 +19,6 @@ export type FailureHint =
 // 실패 원인 힌트 — raw 로그는 UI 비노출 정책이라 대표 패턴만 내부 분류해 친화 문구 키로 전달.
 // 어떤 패턴에도 안 걸리면 null
 export function deriveFailureHint(text: string): FailureHint {
-  // 비치명 경고 라인 제외 — "contribution calendar fetch failed — backfill gate falls open" 이
-  // network 로 오탐되어 뒤의 진짜 원인(Bad credentials 등)을 가리던 문제
-  if (/backfill gate falls open/i.test(text)) return null;
   if (/OAuth token.*(expired|revoked)|Please run \/login|authentication_error/i.test(text))
     return 'claude-auth';
   if (/auth_failed|Bad credentials|Missing required secret|"status"\s*:\s*401/i.test(text))

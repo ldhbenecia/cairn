@@ -58,10 +58,11 @@ export class LocalGitClient {
       .filter((line) => line.trim().length > 0)
       .map((line) => {
         const [shortSha, subject, authoredAt] = line.split('\t');
-        if (!shortSha || !subject || !authoredAt) {
+        // 빈 subject(--allow-empty-message)는 정상 커밋 — throw 하면 레포 전체가 그 날짜에서 탈락한다
+        if (!shortSha || !authoredAt) {
           throw new Error(`unexpected git log line shape: ${line}`);
         }
-        return { shortSha, subject, authoredAt };
+        return { shortSha, subject: subject ?? '', authoredAt };
       })
       .filter((c) => {
         const t = Date.parse(c.authoredAt);
