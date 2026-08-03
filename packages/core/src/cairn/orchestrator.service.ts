@@ -650,6 +650,8 @@ export class OrchestratorService {
         titleKor,
         `${activity.rangeStart} ~ ${activity.rangeEnd} ${missing} — ${periodKor} 생략`,
       );
+      // 이벤트 없이 끝나면 데스크톱이 기본값 '발행 완료'로 오보한다 (runDaily 와 동일 클래스)
+      emitParentEvent({ type: 'no-activity', date: activity.rangeStart });
       return;
     }
 
