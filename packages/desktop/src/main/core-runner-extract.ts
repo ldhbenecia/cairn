@@ -19,9 +19,6 @@ export type FailureHint =
 // 실패 원인 힌트 — raw 로그는 UI 비노출 정책이라 대표 패턴만 내부 분류해 친화 문구 키로 전달.
 // 어떤 패턴에도 안 걸리면 null
 export function deriveFailureHint(text: string): FailureHint {
-  // 비치명 경고 라인 제외 — "contribution calendar fetch failed — backfill gate falls open" 이
-  // network 로 오탐되어 뒤의 진짜 원인(Bad credentials 등)을 가리던 문제
-  if (/backfill gate falls open/i.test(text)) return null;
   if (/OAuth token.*(expired|revoked)|Please run \/login|authentication_error/i.test(text))
     return 'claude-auth';
   if (/auth_failed|Bad credentials|Missing required secret|"status"\s*:\s*401/i.test(text))
@@ -58,6 +55,8 @@ export interface RunExtractor {
   // 로컬 journal(1차 기록) 쓰기 실패 — 노션 발행이 성공해도 로컬 기록이 통째로 빠질 수 있어
   // 결과가 ok 라도 사용자에게 경고해야 한다 (예: macOS TCC 로 Documents 접근 거부 → EPERM)
   journalWriteFailed: boolean;
+  // 부분 수집 실패(계정/레포 일부만) — 성공 발행이어도 그 소스 활동이 빠졌음을 경고
+  collectPartialLabels: string[];
 }
 
 // core fork-IPC 이벤트 (ADR 0033) — 송신 타입: core/src/common/parent-events.ts
@@ -82,7 +81,8 @@ export type ParentEvent =
       doneDates: string[];
       failedDates: string[];
     }
-  | { type: 'day-done'; date: string; pr: number; commit: number; pageId: string | null };
+  | { type: 'day-done'; date: string; pr: number; commit: number; pageId: string | null }
+  | { type: 'collect-partial'; labels: string[] };
 
 const PUBLISH_KINDS = new Set(['created', 'recreated', 'skipped', 'no-target']);
 const STEPS = new Set(['collect', 'summarize', 'publish']);
@@ -137,6 +137,11 @@ export function parseParentEvent(raw: unknown): ParentEvent | null {
         ? { type: 'backfill-progress', done: m.done, total: m.total, doneDates, failedDates }
         : null;
     }
+    case 'collect-partial': {
+      const labels =
+        Array.isArray(m.labels) && m.labels.every((l) => typeof l === 'string') ? m.labels : null;
+      return labels ? { type: 'collect-partial', labels } : null;
+    }
     case 'day-done':
       return typeof m.date === 'string' &&
         ISO_DATE.test(m.date) &&
@@ -176,6 +181,9 @@ export function applyParentEvent(state: RunExtractor, event: ParentEvent): RunSt
     case 'summary-failed':
       state.summaryFailed = true;
       return null;
+    case 'collect-partial':
+      state.collectPartialLabels = [...new Set([...state.collectPartialLabels, ...event.labels])];
+      return null;
     case 'backfill-start':
     case 'backfill-date-start':
     case 'backfill-progress':
@@ -196,6 +204,7 @@ export function createExtractor(): RunExtractor {
     summaryFailed: false,
     failureHint: null,
     journalWriteFailed: false,
+    collectPartialLabels: [],
   };
   // 결과 필드(url·kind·pageId·journal·noActivity·summaryFailed)는 applyParentEvent 가 채운다 —
   // stdout 은 failureHint 분류만. HINT_PRIORITY 로 더 구체적인 원인이 나오면 갱신

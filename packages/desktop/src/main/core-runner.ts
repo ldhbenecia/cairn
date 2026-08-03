@@ -63,6 +63,7 @@ export type CoreResult = {
   summaryFailed: boolean;
   failureHint: FailureHint;
   journalWriteFailed: boolean;
+  collectPartial: string[];
   prCount: number;
   commitCount: number;
   stderrTail: string;
@@ -396,6 +397,7 @@ export async function runCore(
         summaryFailed,
         failureHint: exitCode === 0 ? null : ext.failureHint,
         journalWriteFailed: ext.journalWriteFailed,
+        collectPartial: ext.collectPartialLabels,
         prCount: totals.pr,
         commitCount: totals.commit,
         stderrTail: tail,
@@ -458,6 +460,7 @@ export async function runCore(
         summaryFailed: false,
         failureHint: deriveFailureHint(err.message),
         journalWriteFailed: false,
+        collectPartial: [],
         prCount: 0,
         commitCount: 0,
         stderrTail: err.message,

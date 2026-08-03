@@ -21,13 +21,6 @@ describe('createExtractor — failureHint (stdout 의 남은 유일한 용도)',
     ext.feed('fetch failed');
     expect(ext.failureHint).toBe('auth');
   });
-  it('비치명 경고(backfill gate falls open)는 network 로 오탐하지 않는다', () => {
-    const ext = createExtractor();
-    ext.feed('{"msg":"contribution calendar fetch failed — backfill gate falls open"}');
-    expect(ext.failureHint).toBeNull();
-    ext.feed('{"data":{"message":"Bad credentials","status":"401"}}');
-    expect(ext.failureHint).toBe('auth');
-  });
   it('Claude 로그인 만료 패턴은 claude-auth', () => {
     const ext = createExtractor();
     ext.feed('API Error: OAuth token has expired. Please run /login');

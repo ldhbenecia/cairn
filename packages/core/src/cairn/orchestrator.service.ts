@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { withConcurrency } from '../common/concurrency.js';
-import { localDateToUtcWindow } from '../common/date-window.js';
 import { collectSourceErrors, computeDayTotals, shaKey } from '../common/day-totals.js';
 import { CairnError } from '../common/error.js';
 import { emitParentEvent } from '../common/parent-events.js';
@@ -89,8 +88,9 @@ export class OrchestratorService {
     // journal 은 있는데 노션에 없는 날짜 — 과거 실행에서 journal 쓰기 성공 후 Notion 발행만
     // 실패한 케이스. 아래 hasDaily 필터가 이 날짜를 backfill 에서 영구 제외하던 문제를,
     // 재요약 없이 journal 내용 그대로 재발행하는 경로로 복구한다 (리뷰 PR-B)
+    let republishedCount = 0;
     if (!options.force && !options.skipNotion) {
-      await this.republishFromJournal(targetDates, published, options);
+      republishedCount = await this.republishFromJournal(targetDates, published, options);
     }
 
     // 노션 발행 목록 + journal 파일 둘 다 없는 날짜만 backfill — 노션 미연동에서도 중복 재요약 방지
@@ -103,23 +103,18 @@ export class OrchestratorService {
         { rangeStart, rangeEnd, checked: targetDates.length },
         'daily: all dates in backfill window already published — nothing to do',
       );
+      // 이벤트 없이 끝나면 데스크톱이 기본값 '발행 완료'로 오보한다 — 재발행이 있었으면 그 이벤트가
+      // 이미 정확하고, 없었을 때만 skipped 로 보고 (재발행 created 를 skipped 로 덮지 않게)
+      if (republishedCount === 0) {
+        emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
+      }
       return;
     }
 
-    // 로컬 git 전역 OFF + GitHub 소스 ON 이면, 기여 캘린더상 활동 0인 날을 백필에서 제외해 가속한다.
-    // 로컬 git 이 켜져 있으면(또는 GitHub 미사용) 캘린더가 못 잡는 로컬 커밋이 있을 수 있어 게이트 미적용.
-    const backfillDates =
-      !this.localGitCollector.isEnabled() && wantsSource(options.sources, 'github')
-        ? await this.gateByContributions(missingDates)
-        : missingDates;
-
-    if (backfillDates.length === 0) {
-      this.logger.info(
-        { rangeStart, rangeEnd, checked: targetDates.length },
-        'daily: backfill — all missing dates gated out by contribution calendar (no github activity)',
-      );
-      return;
-    }
+    // 기여 캘린더 백필 게이트는 제거됨 — 캘린더가 기본 브랜치 커밋·PR 오픈만 세서, 기존 PR 브랜치에
+    // 푸시만 한 실제 작업일(회사 워크플로우의 흔한 패턴)을 0으로 오판해 일지가 통째로 누락되던 실사례
+    // (2026-08-03: PR 3건 업데이트에도 캘린더 0). 빈 날짜의 검색 쿼리 비용은 백필 3~7일 기준 무시 가능.
+    const backfillDates = missingDates;
 
     if (backfillDates.length === 1) {
       await this.runDailyForDate(backfillDates[0]!, options, { silent: false });
@@ -190,28 +185,16 @@ export class OrchestratorService {
     });
 
     await this.notifyBackfillBatch(backfillDates, results);
-  }
 
-  // 백필 후보 중 GitHub 기여 캘린더상 활동 0인 날을 제외한다(오름차순 dates 가정).
-  // 캘린더 조회 실패면 gateBackfillDates 가 원본을 그대로 반환해 게이트가 사실상 꺼진다(fail-open).
-  private async gateByContributions(dates: readonly string[]): Promise<string[]> {
-    const fromIso = localDateToUtcWindow(dates[0]!).startIso;
-    const toIso = localDateToUtcWindow(dates[dates.length - 1]!).endIso;
-    const counts = await this.githubCollector.contributionCounts(fromIso, toIso);
-    const gated = gateBackfillDates(dates, counts);
-    if (!counts) {
-      this.logger.info(
-        { candidateCount: dates.length },
-        'daily: backfill contribution gate skipped — calendar unavailable (fail-open)',
-      );
-    } else if (gated.length < dates.length) {
-      const excluded = dates.filter((d) => !gated.includes(d));
-      this.logger.info(
-        { excludedCount: excluded.length, excluded: excluded.join(','), keptCount: gated.length },
-        'daily: backfill contribution gate — excluded dates with no github activity',
+    // 전 날짜 실패인데 exit 0 이면 데스크톱이 '발행 완료'로 오보한다 — 런 실패로 전파
+    if (failedDates.length === backfillTotal) {
+      throw CairnError.from(
+        new Error(
+          `백필 ${backfillTotal}건 전부 실패 — 마지막 실패: ${failedDates[failedDates.length - 1]}`,
+        ),
+        'config',
       );
     }
-    return gated;
   }
 
   // Notion 발행만 실패했던 날짜(journal 있음 + published 없음)를 재요약 비용 없이 복구.
@@ -220,16 +203,24 @@ export class OrchestratorService {
     targetDates: readonly string[],
     published: ReadonlySet<string>,
     options: RunOptions,
-  ): Promise<void> {
+  ): Promise<number> {
     const candidates = targetDates.filter(
       (d) => !published.has(d) && this.journalWriter.hasDaily(d),
     );
-    if (candidates.length === 0) return;
+    if (candidates.length === 0) return 0;
 
     const republished: string[] = [];
     for (const date of candidates) {
       const summary = this.journalSource.readDailySummary(date);
-      if (!summary) continue;
+      if (!summary) {
+        // 사용자가 편집해 파싱 불가한 journal — 조용히 건너뛰면 이 날짜가 영영 미발행으로 남는다.
+        // 파일은 보존(재수집 덮어쓰기 금지), 가시화만
+        this.logger.warn(
+          { date },
+          'daily: journal unparseable — republish skipped (--force 로 재생성 가능)',
+        );
+        continue;
+      }
       try {
         const result = await this.notionPublisher.publish({
           date,
@@ -240,10 +231,17 @@ export class OrchestratorService {
           lang: options.lang,
         });
         // 노션 미연동이면 나머지 날짜도 동일 — 재발행 자체가 해당 없음
-        if (result.kind === 'no-target') return;
+        if (result.kind === 'no-target') return republished.length;
         if (result.kind === 'created' || result.kind === 'recreated') {
           republished.push(date);
           this.logger.info({ date, publishResult: result }, 'daily: republished from journal');
+          // 이벤트 없이 넘어가면 이후 '전체 기발행' 분기가 skipped 로 오보한다 — 실제 발행을 보고
+          emitParentEvent({
+            type: 'publish-result',
+            kind: result.kind,
+            pageId: 'pageId' in result ? result.pageId : null,
+            url: 'url' in result ? result.url : null,
+          });
         }
       } catch (err) {
         // Notion 장애 지속 등 — 다음 예약 실행에서 같은 경로로 재시도되므로 런은 계속
@@ -260,6 +258,7 @@ export class OrchestratorService {
           : `${republished[0]} 외 ${republished.length - 1}건`;
       await this.notification.notify('cairn 일지', `미발행 일지 재발행 — ${label}`);
     }
+    return republished.length;
   }
 
   private async runDailyForDate(
@@ -272,6 +271,7 @@ export class OrchestratorService {
 
     if (!wantsGithub && !wantsLocalGit) {
       this.logger.warn({ sources: options.sources }, 'daily: no enabled source — skipping');
+      emitParentEvent({ type: 'no-activity', date });
       return 'no-activity';
     }
 
@@ -360,11 +360,11 @@ export class OrchestratorService {
     }
 
     const { prCount, commitCount } = computeDayTotals(githubActivity, localGitActivity);
+    const sourceErrors = collectSourceErrors(githubActivity, localGitActivity);
 
     if (prCount + commitCount === 0) {
       // 수집 에러로 인한 0건은 '활동 없음'으로 위장하지 않는다 — 토큰 만료 등이 매일
       // 무음으로 넘어가 일지가 통째로 누락되던 문제. throw 로 실패 알림·재시도 경로 복원
-      const sourceErrors = collectSourceErrors(githubActivity, localGitActivity);
       if (sourceErrors.length > 0) {
         const first = sourceErrors[0]!;
         this.logger.warn(
@@ -391,6 +391,19 @@ export class OrchestratorService {
         await this.notification.notify('cairn 일지', `${date} 활동 없음 — 일지 생략`);
       }
       return 'no-activity';
+    }
+
+    // 부분 수집 실패(한 계정/레포만 실패 + 다른 소스 활동 있음)는 총량>0 이라 조용히 넘어가
+    // 그 계정 활동이 빠진 일지가 정상처럼 발행되던 문제 — 경고 이벤트로 표면화
+    if (sourceErrors.length > 0) {
+      const labels = sourceErrors.map((e) =>
+        e.source === 'local-git' ? (e.label.split('/').pop() ?? e.label) : e.label,
+      );
+      this.logger.warn(
+        { date, labels },
+        'daily: partial collect failure — journal may be missing activity',
+      );
+      emitParentEvent({ type: 'collect-partial', labels });
     }
 
     // 그랜드 토탈(로컬+GitHub PR dedup)을 요약 전에 한 번 — 발행 진행 UI 칩이
@@ -681,6 +694,8 @@ export class OrchestratorService {
         titleKor,
         `${activity.rangeStart} ~ ${activity.rangeEnd} ${missing} — ${periodKor} 생략`,
       );
+      // 이벤트 없이 끝나면 데스크톱이 기본값 '발행 완료'로 오보한다 (runDaily 와 동일 클래스)
+      emitParentEvent({ type: 'no-activity', date: activity.rangeStart });
       return;
     }
 
@@ -793,16 +808,6 @@ export class OrchestratorService {
 
 function wantsSource(sources: RunOptions['sources'], source: RunSource): boolean {
   return sources === 'all' || sources.includes(source);
-}
-
-// 기여 캘린더로 백필 후보를 거른다. counts=null(조회 실패)이면 원본 그대로 반환(fail-open),
-// 캘린더에 없는 날짜(범위 밖 등)는 미상으로 보고 유지 — 활동이 0으로 '확인된' 날만 제외한다.
-export function gateBackfillDates(
-  dates: readonly string[],
-  counts: ReadonlyMap<string, number> | null,
-): string[] {
-  if (!counts) return [...dates];
-  return dates.filter((d) => (counts.get(d) ?? 1) > 0);
 }
 
 function rollupKor(period: 'weekly' | 'monthly' | 'yearly'): string {

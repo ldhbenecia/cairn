@@ -99,6 +99,16 @@ export class RollupCollectorService {
     }
     pages = dedupedPages;
 
+    // 쿼리 성공 + 0건이어도 로컬 journal 은 있을 수 있다(--skip-notion 발행·페이지 아카이브 등).
+    // 여기서 빈손으로 끝나면 성공 종료 → rollup anchor 기록 → 그 기간이 영구 누락된다
+    if (pages.length === 0) {
+      this.logger.info(
+        { period, rangeStart: start, rangeEnd: end },
+        'rollup: notion range empty — falling back to local journal',
+      );
+      return this.collectFromJournal(period, start, end, previous);
+    }
+
     this.logger.info(
       { period, dailyCount: pages.length, dailyDates: pages.map((p) => p.date) },
       'rollup dailies',

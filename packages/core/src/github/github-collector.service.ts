@@ -41,22 +41,6 @@ export class GithubCollectorService {
     private readonly logger: PinoLogger,
   ) {}
 
-  // 백필 게이트 전용: 백필 날짜 범위의 기여 캘린더를 계정별로 조회해 date→기여수 합집합을 돌려준다.
-  // 다계정은 계정별 최댓값으로 union — 한 계정이라도 활동이면 그 날은 살아남는다.
-  // 전 계정 조회 실패(또는 계정 없음)면 null → 호출자가 게이트를 끈다(fail-open).
-  async contributionCounts(fromIso: string, toIso: string): Promise<Map<string, number> | null> {
-    const accounts = this.worklogConfig.getGithubAccounts();
-    if (accounts.length === 0) return null;
-    const perAccount = await Promise.all(
-      accounts.map(async (account) => {
-        const token = this.secrets.getEnv(account.tokenEnv);
-        if (!token) return null;
-        return this.client.getContributionDayCounts(token, fromIso, toIso);
-      }),
-    );
-    return unionContributionCounts(perAccount);
-  }
-
   async collect(date: string, lookbackDays = 14): Promise<GithubActivity> {
     const window = localDateToUtcWindow(date);
     const range = searchRangeFragment(window);
@@ -152,7 +136,9 @@ export class GithubCollectorService {
     for (const item of involved) {
       const isAuthored = item.author === myLogin;
       const isAssigned = item.assignees.includes(myLogin);
-      if (!isAuthored && !isAssigned) continue;
+      // 소유/할당이 아니어도 버리지 않는다 — 남의 PR 에 커밋만 푸시한 날(핸드오프·페어링)이
+      // 통째로 빠지던 문제. phase1 의 내 커밋 존재 여부가 eligibility 를 결정한다
+      // (리뷰-온리 involved PR 은 내 커밋 0 → 탈락, 리뷰 활동 제외 정책 유지)
       const key = `${account.label}/${item.owner}/${item.repo}#${item.number}`;
       const bucket = buckets.get(key) ?? {
         account: account.label,
@@ -181,14 +167,22 @@ export class GithubCollectorService {
       })),
     );
 
+    // 커밋 조회 실패로 PR 이 조용히 탈락하면, 그 PR 이 유일 활동인 날이 '활동 없음'으로 오보된다 —
+    // 실패를 모아 결과 0건일 때 계정 실패로 전파 (A4)
+    const commitFetchErrors: CairnError[] = [];
     // GitHub API secondary rate limit 회피를 위해 token 당 동시 호출 5 개로 제한
     const phase1 = await withConcurrency([...buckets.values()], 5, async (bucket) => {
       const { item, categories } = bucket;
-      const createdInDay = item.createdAt >= sinceIso && item.createdAt <= untilIso;
+      const ownedOrAssigned = categories.has('authored') || categories.has('assigned');
+      // 소유/할당 아닌 PR 은 '그날 열림'만으로는 내 활동이 아니다 — 내 커밋이 있어야 통과
+      const createdInDay =
+        ownedOrAssigned && item.createdAt >= sinceIso && item.createdAt <= untilIso;
       const hasAuthoredMerged = categories.has('authored_merged');
       const needsCommitsForEligibility = !hasAuthoredMerged && !createdInDay;
       const commitsOnDate = needsCommitsForEligibility
-        ? await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin)
+        ? await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin, (e) =>
+            commitFetchErrors.push(e),
+          )
         : [];
       const eligible = hasAuthoredMerged || createdInDay || commitsOnDate.length > 0;
       return { bucket, commitsOnDate, eligible, commitLookupAttempted: needsCommitsForEligibility };
@@ -221,7 +215,9 @@ export class GithubCollectorService {
       }
       const shouldFetchCommitsForSummary = commitsOnDate.length === 0;
       const summaryCommitsOnDate = shouldFetchCommitsForSummary
-        ? await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin)
+        ? await this.fetchSafeCommitsOnDate(token, item, sinceIso, untilIso, myLogin, (e) =>
+            commitFetchErrors.push(e),
+          )
         : commitsOnDate;
       if (shouldFetchCommitsForSummary) summaryCommitLookupCount += 1;
       const body = this.safeSearchBody(item);
@@ -246,7 +242,11 @@ export class GithubCollectorService {
       { account: account.label, summaryCommitLookupCount },
       'github collect account summarized',
     );
-    return summaries.filter((s) => s !== null);
+    const kept = summaries.filter((s) => s !== null);
+    // 커밋 조회 실패가 있었고 남은 결과가 0이면 '활동 없음'이 아니라 수집 실패다 — 계정 실패로 전파
+    const firstFetchError = commitFetchErrors[0];
+    if (kept.length === 0 && firstFetchError) throw firstFetchError;
+    return kept;
   }
 
   private async fetchSafeCommitsOnDate(
@@ -255,6 +255,7 @@ export class GithubCollectorService {
     sinceIso: string,
     untilIso: string,
     myLogin: string,
+    onError?: (err: CairnError) => void,
   ): Promise<readonly PrCommitOnDate[]> {
     let raw: Array<{ shortSha: string; subject: string; authoredAt: string }>;
     try {
@@ -268,10 +269,12 @@ export class GithubCollectorService {
         myLogin,
       );
     } catch (err) {
+      const error = CairnError.from(err, 'github');
       this.logger.warn(
-        { repo: item.repo, number: item.number, err: CairnError.from(err, 'github').code },
+        { repo: item.repo, number: item.number, err: error.code },
         'pr commits-on-date fetch failed — empty',
       );
+      onError?.(error);
       return [];
     }
     const out: PrCommitOnDate[] = [];
@@ -320,21 +323,4 @@ export class GithubCollectorService {
 function deriveState(item: SearchPrItem): GithubPrState {
   if (item.mergedAt) return 'merged';
   return item.state;
-}
-
-// 계정별 기여 캘린더를 date→최댓값으로 합친다(한 계정이라도 활동이면 유지). null 은 조회 실패 계정 —
-// 전부 null(또는 입력 없음)이면 null 반환해 호출자가 게이트를 끄게 한다(fail-open).
-export function unionContributionCounts(
-  perAccount: ReadonlyArray<ReadonlyMap<string, number> | null>,
-): Map<string, number> | null {
-  const union = new Map<string, number>();
-  let anyOk = false;
-  for (const counts of perAccount) {
-    if (!counts) continue;
-    anyOk = true;
-    for (const [date, count] of counts) {
-      union.set(date, Math.max(union.get(date) ?? 0, count));
-    }
-  }
-  return anyOk ? union : null;
 }
