@@ -103,6 +103,8 @@ export class OrchestratorService {
         { rangeStart, rangeEnd, checked: targetDates.length },
         'daily: all dates in backfill window already published — nothing to do',
       );
+      // 이벤트 없이 끝나면 데스크톱이 기본값 '발행 완료'로 오보한다 — 요청 날짜 기준 skipped 로 보고
+      emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
       return;
     }
 
@@ -118,6 +120,8 @@ export class OrchestratorService {
         { rangeStart, rangeEnd, checked: targetDates.length },
         'daily: backfill — all missing dates gated out by contribution calendar (no github activity)',
       );
+      // 이벤트 없이 끝나면 데스크톱이 기본값 '발행 완료'로 오보한다 — 활동 없음으로 보고
+      emitParentEvent({ type: 'no-activity', date: options.date });
       return;
     }
 
