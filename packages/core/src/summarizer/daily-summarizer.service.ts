@@ -58,6 +58,9 @@ export class DailySummarizerService {
           // 요약이 1.5~2분 걸리던 실측 원인. maxTurns 는 자연 종료 캡(성능 무관 — 1·2 로 줄이면
           // SDK 가 error_max_turns 를 throw 해 이미 도착한 submission 까지 버린다, 실측)
           effort: 'low',
+          // effort 는 adaptive thinking 모델(sonnet 5 등)에만 작동 — haiku 4.5 는 무시하고
+          // thinking 을 계속 태워 102초/9.5K 출력(실측). 전 모델에서 확실히 끄려면 명시 disabled
+          thinking: { type: 'disabled' },
           maxTurns: 3,
           ...summaryModelOption(),
           ...claudeExecutableOptions(),
