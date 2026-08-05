@@ -1,6 +1,6 @@
 import { app } from 'electron';
 import { fork, type ChildProcess } from 'node:child_process';
-import { createWriteStream, mkdirSync, type WriteStream } from 'node:fs';
+import { createWriteStream, mkdirSync, readdirSync, unlinkSync, type WriteStream } from 'node:fs';
 import { StringDecoder } from 'node:string_decoder';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +19,7 @@ import { claudeEnv } from './claude-path';
 import { syncWorklogToFolder } from './export';
 import { buildExportTargets, type ExportTarget } from './export-targets';
 import { sendResultNotification } from './notifier';
+import { syncStats } from './cloud-sync';
 import { scheduleJournalBackup } from './journal-git-backup';
 import { readSettings, type Settings } from './settings';
 import { secretEnv } from './secret-store';
@@ -98,10 +99,28 @@ function stripAnsi(s: string): string {
 // 이벤트 루프가 블로킹됨(백필 수천 라인). run 당 WriteStream 하나를 열어 비동기 버퍼 write 로.
 let runLogStream: WriteStream | null = null;
 
+const LOG_RETENTION_DAYS = 30;
+
+// 날짜별 로그가 무한 누적되던 문제 — 실행 시작마다 30일 지난 파일 정리 (best-effort)
+function pruneOldRunLogs(): void {
+  try {
+    const cutoff = Date.now() - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    for (const name of readdirSync(LOGS_DIR)) {
+      const m = /^desktop-run\.(\d{4}-\d{2}-\d{2})\.log$/.exec(name);
+      if (!m) continue;
+      const [y, mo, d] = m[1]!.split('-').map(Number);
+      if (new Date(y!, mo! - 1, d).getTime() < cutoff) unlinkSync(join(LOGS_DIR, name));
+    }
+  } catch {
+    // 정리는 best-effort
+  }
+}
+
 function openRunLog(): void {
   closeRunLog();
   try {
     mkdirSync(LOGS_DIR, { recursive: true, mode: 0o700 });
+    pruneOldRunLogs();
     const now = new Date();
     const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     // 로그엔 절대경로·커밋 제목 등이 그대로 담긴다 — 시크릿 파일들(0600)과 같은 수준으로 잠금
@@ -410,6 +429,8 @@ export async function runCore(
           backfillDays: options.backfillDays,
         });
         if (!cancelled) sendResultNotification(mode, result);
+        // 발행 직후 stats 를 클라우드로 — 6시간 주기만으로는 다른 기기 칩 반영이 늦다
+        if (!cancelled && result.ok) void syncStats();
         if (!cancelled && result.ok && !finalNoActivity) {
           const pad = (n: number): string => String(n).padStart(2, '0');
           const d = new Date();
