@@ -247,6 +247,97 @@ describe('rollup 일지 0건 판정', () => {
   });
 });
 
+describe('조기 리턴도 parent 이벤트를 보고한다 (무이벤트 exit 0 → "발행 완료" 오보 회귀 방지)', () => {
+  function captureEvents() {
+    const sent: Record<string, unknown>[] = [];
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- 원본 참조 저장 후 원복 (호출 안 함)
+    const original = process.send;
+    process.send = ((msg: Record<string, unknown>) => {
+      sent.push(msg);
+      return true;
+    }) as never;
+    return {
+      sent,
+      restore: () => {
+        process.send = original;
+      },
+    };
+  }
+
+  it('백필 창 전체 기발행이면 skipped 를 보고한다', async () => {
+    const { sent, restore } = captureEvents();
+    try {
+      const backfillOptions: RunOptions = {
+        ...dailyOptions,
+        dateExplicit: false,
+        force: false,
+        backfillDays: 2,
+      };
+      const service = new OrchestratorService(
+        unusable('githubCollector') as never,
+        unusable('localGitCollector') as never,
+        {
+          findPublishedDates: vi.fn().mockResolvedValue(new Set(['2026-07-08', '2026-07-09'])),
+        } as never,
+        unusable('summarizer') as never,
+        { notify: vi.fn().mockResolvedValue(undefined) } as never,
+        unusable('rollupCollector') as never,
+        unusable('rollupSummarizer') as never,
+        unusable('rollupPublisher') as never,
+        unusable('stats') as never,
+        { hasDaily: vi.fn().mockReturnValue(false) } as never,
+        unusable('journalSource') as never,
+        logger() as never,
+      );
+      await expect(service.run(backfillOptions)).resolves.toBeUndefined();
+      expect(sent).toContainEqual(
+        expect.objectContaining({ cairn: 1, type: 'publish-result', kind: 'skipped' }),
+      );
+    } finally {
+      restore();
+    }
+  });
+
+  it('롤업 일지 0건 생략은 no-activity 를 보고한다', async () => {
+    const { sent, restore } = captureEvents();
+    try {
+      const { service } = makeRollup(emptyRollup());
+      await expect(service.run({ ...dailyOptions, mode: 'weekly' })).resolves.toBeUndefined();
+      expect(sent).toContainEqual(
+        expect.objectContaining({ cairn: 1, type: 'no-activity', date: '2026-06-29' }),
+      );
+    } finally {
+      restore();
+    }
+  });
+
+  it('백필 전 날짜 실패면 성공 종료 대신 던진다', async () => {
+    const backfillOptions: RunOptions = {
+      ...dailyOptions,
+      dateExplicit: false,
+      force: false,
+      backfillDays: 2,
+    };
+    const notify = vi.fn().mockResolvedValue(undefined);
+    const service = new OrchestratorService(
+      { collect: vi.fn().mockRejectedValue(new Error('boom')) } as never,
+      { collect: vi.fn().mockResolvedValue({ repos: [] }) } as never,
+      { findPublishedDates: vi.fn().mockResolvedValue(new Set<string>()) } as never,
+      unusable('summarizer') as never,
+      { notify } as never,
+      unusable('rollupCollector') as never,
+      unusable('rollupSummarizer') as never,
+      unusable('rollupPublisher') as never,
+      unusable('stats') as never,
+      { hasDaily: vi.fn().mockReturnValue(false) } as never,
+      unusable('journalSource') as never,
+      logger() as never,
+    );
+    await expect(service.run(backfillOptions)).rejects.toThrow('전부 실패');
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('실패'), expect.any(String));
+  });
+});
+
 describe('daily precheck API 에러 구분 (페이지 없음과 다름)', () => {
   const nonForce: RunOptions = { ...dailyOptions, force: false };
 
