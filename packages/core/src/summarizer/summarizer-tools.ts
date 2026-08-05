@@ -166,12 +166,19 @@ function computeDonePrs(input: SummarizerInput): DonePrItem[] {
         mergedAt: pr.mergedAt,
         categories: pr.categories,
         htmlUrl: pr.htmlUrl,
-        body: pr.body,
+        body: capBody(pr.body),
         commitsOnDate: pr.commitsOnDate,
       });
     }
   }
   return out;
+}
+
+// PR body 는 근거용이지만 무제한이면 입력 토큰을 지배한다(회사 PR 템플릿 수천 자) — 앞부분만
+const BODY_CAP = 1200;
+function capBody(body: string | null): string | null {
+  if (!body || body.length <= BODY_CAP) return body;
+  return `${body.slice(0, BODY_CAP)}\n…(truncated)`;
 }
 
 function computeDoneCommits(input: SummarizerInput): DoneCommitItem[] {
@@ -208,7 +215,7 @@ function computeOpenPrs(input: SummarizerInput): OpenPrItem[] {
         categories: pr.categories,
         htmlUrl: pr.htmlUrl,
         updatedAt: pr.updatedAt,
-        body: pr.body,
+        body: capBody(pr.body),
         commitsOnDate: pr.commitsOnDate,
       });
     }

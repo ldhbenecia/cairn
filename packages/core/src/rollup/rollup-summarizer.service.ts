@@ -68,6 +68,10 @@ export class RollupSummarizerService {
             [MCP_SERVER_NAME]: server,
           },
           allowedTools: [`mcp__${MCP_SERVER_NAME}__submit_rollup`],
+          // 요약은 추론 태스크가 아니다 — 기본 effort('high')가 8~10K thinking 토큰을 태워
+          // 요약이 1.5~2분 걸리던 실측 원인. maxTurns 는 자연 종료 캡(성능 무관 — 1·2 로 줄이면
+          // SDK 가 error_max_turns 를 throw 해 이미 도착한 submission 까지 버린다, 실측)
+          effort: 'low',
           maxTurns: 3,
           ...summaryModelOption(),
           ...claudeExecutableOptions(),
@@ -76,8 +80,24 @@ export class RollupSummarizerService {
       agentUsage = await accumulateAgentUsage(q);
     } catch (err) {
       const error = CairnError.from(err, 'summarizer');
-      this.logger.warn({ period: a.period, error }, 'rollup summarizer threw — fallback');
-      return null;
+      // SDK 는 max-turns 등도 throw 한다 — submission 이 이미 도착했으면 유료 실행 결과를 버리지 않는다
+      if (getSubmission()) {
+        this.logger.warn(
+          { period: a.period, error },
+          'rollup summarizer threw after submission — using submitted result',
+        );
+        agentUsage = {
+          resultSubtype: 'errored_after_submit',
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheReadTokens: 0,
+          cacheCreationTokens: 0,
+          costUsd: 0,
+        };
+      } else {
+        this.logger.warn({ period: a.period, error }, 'rollup summarizer threw — fallback');
+        return null;
+      }
     }
     const {
       resultSubtype,
