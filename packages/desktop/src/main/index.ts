@@ -75,6 +75,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let allowQuit = false;
 
+// 전역 크래시 가드 — 핸들러가 없으면 uncaught 예외 한 번에 메인 프로세스가 무통보로 죽는다
+// (loopback 서버 error 리스너 부재로 실제 발생 직전까지 갔던 클래스). 로그 + 계속 실행.
+process.on('uncaughtException', (err) => {
+  console.error('[main] uncaughtException', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[main] unhandledRejection', reason);
+});
+
 // 미서명 앱이라 safeStorage 가 OS 키체인을 건드리면 암호 프롬프트가 매번 뜬다 → mock keychain 사용
 // 시크릿 암호화(ADR 0037)는 safeStorage 가 아니라 자체 키체인 키(keychain-key.ts)를 쓰므로 무관.
 // password-store=basic 은 Linux 전용
