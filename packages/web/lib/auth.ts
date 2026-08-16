@@ -19,6 +19,12 @@ function init() {
   return betterAuth({
     baseURL: required('BETTER_AUTH_URL'),
     database: drizzleAdapter(db, { provider: 'pg', schema }),
+    // 플랜은 서버(DB)에서만 변경 — input: false 로 클라이언트 세팅 차단. get-session 응답에 포함됨
+    user: {
+      additionalFields: {
+        plan: { type: 'string', defaultValue: 'free', input: false },
+      },
+    },
     socialProviders: {
       google: {
         clientId: required('GOOGLE_CLIENT_ID'),
