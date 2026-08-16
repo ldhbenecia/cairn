@@ -28,6 +28,8 @@ filter_unconventional = true
 split_commits = false
 commit_parsers = [
   { message = "^chore\\(release\\)", skip = true },
+  # 앱 릴리스 노트에서 웹 랜딩 변경 제외 — 다운로드 페이지 독자에게 무관한 잡음
+  { message = "^\\w+\\(web\\)", skip = true },
   { message = "^feat", group = "<!-- 1 -->🚀 Features" },
   { message = "^fix", group = "<!-- 2 -->🐛 Bug Fixes" },
   { message = "^perf", group = "<!-- 3 -->⚡ Performance" },
