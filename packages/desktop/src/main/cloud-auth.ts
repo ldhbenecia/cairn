@@ -12,9 +12,19 @@ import { CAIRN_ROOT } from './setup';
 export const WEB_BASE = process.env.CAIRN_WEB_URL ?? 'https://cairnlog.cloud';
 const AUTH_PATH = join(CAIRN_ROOT, 'auth.json');
 
-export type CloudUser = { name: string; email: string; image: string | null };
+export type CloudUser = { name: string; email: string; image: string | null; plan?: string };
 export type CloudAuthState = { signedIn: boolean; user: CloudUser | null };
 type Stored = { token: string; user: CloudUser };
+
+// 등록 한도의 단일 출처 — free(또는 미로그인)는 소스별 1개, 그 외 플랜은 무제한.
+// 기존 config 가 한도를 넘어도 수집·발행은 건드리지 않는다(새 등록만 차단, grandfathering)
+export function cloudPlan(): string {
+  return readStored()?.user.plan ?? 'free';
+}
+
+export function planRegistrationLimit(): number {
+  return cloudPlan() === 'free' ? 1 : Infinity;
+}
 
 // bearer 토큰 at-rest 암호화 (ADR 0037) — packaged 는 키체인 키로 암호문 저장, 실패/레거시는
 // 평문 폴백. 레거시 평문을 읽으면 다음 기회에 암호문으로 재저장(기회적 마이그레이션)
@@ -207,7 +217,7 @@ async function completeSignIn(ott: string): Promise<void> {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = (await sess.json()) as {
-      user?: { name?: string; email?: string; image?: string | null };
+      user?: { name?: string; email?: string; image?: string | null; plan?: string };
     };
     const u = data.user;
     if (!u?.email) {
@@ -216,7 +226,12 @@ async function completeSignIn(ott: string): Promise<void> {
     }
     writeStored({
       token,
-      user: { name: u.name ?? u.email, email: u.email, image: u.image ?? null },
+      user: {
+        name: u.name ?? u.email,
+        email: u.email,
+        image: u.image ?? null,
+        plan: u.plan ?? 'free',
+      },
     });
     broadcastAuth();
     const win = BrowserWindow.getAllWindows()[0];
@@ -241,8 +256,16 @@ export async function validateCloudSession(): Promise<CloudSessionHealth> {
     });
     if (res.status === 401 || res.status === 403) return 'expired';
     if (!res.ok) return 'unreachable';
-    const data = (await res.json()) as { user?: { email?: string } } | null;
-    return data?.user?.email ? 'ok' : 'expired';
+    const data = (await res.json()) as { user?: { email?: string; plan?: string } } | null;
+    if (!data?.user?.email) return 'expired';
+    // 플랜은 DB 에서만 바뀜 — 세션 검증 시 기회적으로 로컬 반영 (앱 시작·연결 점검 주기)
+    const stored = readStored();
+    const plan = data.user.plan ?? 'free';
+    if (stored && stored.user.plan !== plan) {
+      writeStored({ ...stored, user: { ...stored.user, plan } });
+      broadcastAuth();
+    }
+    return 'ok';
   } catch {
     return 'unreachable';
   }
