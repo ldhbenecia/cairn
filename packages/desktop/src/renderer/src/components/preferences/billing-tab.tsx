@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import type { I18nKey } from '../../i18n';
 import { useSettings } from '../../settings-context';
+import { useCloudAuth } from '../../use-cloud-auth';
 
 const FREE_FEATURES: I18nKey[] = [
   'billing.free.f1',
@@ -21,6 +22,8 @@ const PRO_FEATURES: I18nKey[] = [
 
 export function BillingTab() {
   const { t } = useSettings();
+  const { user } = useCloudAuth();
+  const isPro = (user?.plan ?? 'free') !== 'free';
   return (
     <div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -40,7 +43,9 @@ export function BillingTab() {
               {t('billing.free.note')}
             </span>
           </p>
-          <div className="mb-4 flex h-8 w-full items-center justify-center rounded-md border border-hairline text-[13px] font-medium text-ink-tertiary">
+          <div
+            className={`mb-4 flex h-8 w-full items-center justify-center rounded-md border border-hairline text-[13px] font-medium text-ink-tertiary ${isPro ? 'invisible' : ''}`}
+          >
             {t('billing.current')}
           </div>
           <div className="mb-4 h-px w-full bg-hairline" />
@@ -70,13 +75,19 @@ export function BillingTab() {
               {t('billing.pro.note')}
             </span>
           </p>
-          <button
-            type="button"
-            disabled
-            className="mb-4 flex h-8 w-full items-center justify-center rounded-md bg-accent text-[13px] font-medium text-white opacity-55"
-          >
-            {t('billing.checkoutSoon')}
-          </button>
+          {isPro ? (
+            <div className="mb-4 flex h-8 w-full items-center justify-center rounded-md border border-hairline text-[13px] font-medium text-ink-tertiary">
+              {t('billing.current')}
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="mb-4 flex h-8 w-full items-center justify-center rounded-md bg-accent text-[13px] font-medium text-white opacity-55"
+            >
+              {t('billing.checkoutSoon')}
+            </button>
+          )}
           <div className="mb-4 h-px w-full bg-hairline" />
           <ul className="flex flex-col gap-2.5 text-[12.5px] leading-snug text-ink-muted">
             {PRO_FEATURES.map((k) => (

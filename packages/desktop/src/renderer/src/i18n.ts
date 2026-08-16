@@ -133,6 +133,7 @@ const STRINGS = {
     'onb.github.fineExample':
       '예) 개인 계정 = Fine-grained PAT · 조직 private repo = classic token (scope: repo)',
     'onb.github.add': '계정 추가',
+    'onb.github.planLimit': '무료 플랜은 GitHub 계정을 1개까지 연결할 수 있어요',
     'onb.github.connected': '연결됨',
     'onb.github.ghManaged': 'gh CLI 연동 — 토큰은 앱 내부에만 보관돼요',
     'onb.claude.desc': 'cairn 은 활동을 한국어로 요약하는 데 Claude 를 씁니다.',
@@ -429,6 +430,7 @@ const STRINGS = {
     'integrations.notion.reconnect': '재연결',
     'integrations.notion.save': '저장',
     'integrations.notion.saveFail': '저장 실패',
+    'integrations.notion.planLimit': '무료 플랜은 노션 워크스페이스를 1개까지 연결할 수 있어요',
     'integrations.obsidian.desc':
       'cairn 일지는 전용 폴더에 기록돼요. Obsidian vault 안의 폴더를 지정하면 발행할 때마다 .md 로 미러됩니다.',
     'integrations.vaultDetected': 'Obsidian vault 감지됨',
@@ -684,6 +686,7 @@ const STRINGS = {
     'onb.github.fineExample':
       'e.g. personal = fine-grained PAT · org private repo = classic token (scope: repo)',
     'onb.github.add': 'Add account',
+    'onb.github.planLimit': 'The free plan supports one GitHub account',
     'onb.github.connected': 'connected',
     'onb.github.ghManaged': 'Linked via gh CLI — token stays inside the app',
     'onb.claude.desc': 'cairn uses Claude to summarize your activity.',
@@ -987,6 +990,7 @@ const STRINGS = {
     'integrations.notion.reconnect': 'Reconnect',
     'integrations.notion.save': 'Save',
     'integrations.notion.saveFail': 'Save failed',
+    'integrations.notion.planLimit': 'The free plan supports one Notion workspace',
     'integrations.obsidian.desc':
       'cairn keeps journals in its own folder. Pick a folder inside your Obsidian vault and every publish mirrors a .md copy.',
     'integrations.vaultDetected': 'Obsidian vault detected',
