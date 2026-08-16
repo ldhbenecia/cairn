@@ -482,16 +482,16 @@ const STRINGS = {
     'prefs.prompts': '프롬프트',
     'prefs.prompts.model': '요약 모델',
     'prefs.prompts.modelDesc':
-      '요약에 쓸 Claude 모델이에요. 빠른 모델일수록 발행이 빨라집니다. 추가 과금은 없어요(내 Claude 로그인 사용). 실제 소요 시간은 발행 결과 화면에 모델과 함께 표시돼요.',
+      '요약에 쓸 Claude 모델이에요. 어떤 모델이든 발행 속도는 30초 안팎으로 비슷해서, 실제 차이는 문장 품질과 Claude 구독 사용량이에요. 추가 과금은 없어요(내 Claude 로그인 사용). 소요 시간은 발행 결과 화면에 표시돼요.',
     'prefs.prompts.model.default': '기본',
-    'prefs.prompts.model.haikuHint': '가장 빠름',
+    'prefs.prompts.model.haikuHint': '사용량 최소',
     'prefs.prompts.model.sonnetHint': '균형 · 권장',
     'prefs.prompts.model.opusHint': '최고 품질',
     'prefs.prompts.model.defaultHint': '로그인 모델',
-    'prefs.prompts.model.haikuDesc': '가장 빠른 발행. 하루 작업이 단순할 때 충분해요.',
-    'prefs.prompts.model.sonnetDesc': '속도와 품질의 균형. 대부분의 일지·롤업에 권장해요.',
+    'prefs.prompts.model.haikuDesc': '구독 사용량을 가장 적게 써요. 일상 일지에 충분한 품질이에요.',
+    'prefs.prompts.model.sonnetDesc': '조금 더 정돈된 문장. 사용량 대비 품질 균형이 좋아요.',
     'prefs.prompts.model.opusDesc':
-      '가장 정교한 요약 — 롤업·정리 문장에 유리해요. 대신 가장 느립니다.',
+      '가장 정교한 요약 — 롤업·정리 문장에 유리해요. 구독 사용량을 가장 많이 써요.',
     'prefs.prompts.model.defaultDesc': 'Claude 로그인의 기본 모델을 그대로 사용해요.',
     'prefs.prompts.desc':
       'AI 요약에 나만의 지시를 추가해요. 기본 규칙(수집한 데이터만 요약, 출력 형식)은 유지되고 톤·강조·구성을 바꿀 수 있어요. 비워두면 기본 프롬프트만 사용합니다.',
@@ -1040,16 +1040,18 @@ const STRINGS = {
     'prefs.prompts': 'Prompts',
     'prefs.prompts.model': 'Summary model',
     'prefs.prompts.modelDesc':
-      'The Claude model used for summaries. Faster models publish quicker. No extra cost — it uses your own Claude login. Actual time per run is shown with the model on the publish result.',
+      'The Claude model used for summaries. Every model publishes in about 30 seconds, so the real difference is prose quality vs. Claude subscription usage. No extra cost — it uses your own Claude login. Time per run is shown on the publish result.',
     'prefs.prompts.model.default': 'Default',
-    'prefs.prompts.model.haikuHint': 'Fastest',
+    'prefs.prompts.model.haikuHint': 'Lightest usage',
     'prefs.prompts.model.sonnetHint': 'Balanced · recommended',
     'prefs.prompts.model.opusHint': 'Best quality',
     'prefs.prompts.model.defaultHint': 'Login model',
-    'prefs.prompts.model.haikuDesc': 'Fastest publish. Plenty for simple, short days.',
-    'prefs.prompts.model.sonnetDesc': 'Balanced speed and quality. Recommended for most worklogs.',
+    'prefs.prompts.model.haikuDesc':
+      'Uses the least subscription quota. Plenty for everyday worklogs.',
+    'prefs.prompts.model.sonnetDesc':
+      'Slightly more polished prose. Best quality-per-usage balance.',
     'prefs.prompts.model.opusDesc':
-      'The most polished summaries — best for rollups and tidy write-ups. Slowest, though.',
+      'The most polished summaries — best for rollups and tidy write-ups. Heaviest subscription usage.',
     'prefs.prompts.model.defaultDesc': 'Uses your Claude login’s default model as-is.',
     'prefs.prompts.desc':
       'Add your own instructions to the AI summary. Core rules (summarize only collected data, output format) stay intact — you can change tone, emphasis, and structure. Leave empty to use the default prompt.',
