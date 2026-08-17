@@ -9,6 +9,7 @@ export function useCloudAuth(): CloudAuthState & { ready: boolean } {
 
   useEffect(() => {
     // 리스너를 먼저 등록하고, 초기 state() 가 이벤트보다 늦게 와도 최신 상태를 덮어쓰지 않게 가드
+    let alive = true;
     let eventArrived = false;
     const off = window.cairn.cloud.onChanged((s) => {
       eventArrived = true;
@@ -18,11 +19,17 @@ export function useCloudAuth(): CloudAuthState & { ready: boolean } {
     void window.cairn.cloud
       .state()
       .then((s) => {
+        if (!alive) return;
         if (!eventArrived) setState(s);
         setReady(true);
       })
-      .catch(() => setReady(true));
-    return off;
+      // 실패는 '미확정'으로 남긴다 — ready true 로 두면 기본값(free)이 확정처럼 소비돼
+      // pro 의 gh 가져오기가 잘릴 수 있다. 미확정이면 렌더러 한도는 미적용, main 게이트가 방어
+      .catch(() => {});
+    return () => {
+      alive = false;
+      off();
+    };
   }, []);
 
   return { ...state, ready };
