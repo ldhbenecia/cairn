@@ -218,6 +218,7 @@ contextBridge.exposeInMainWorld('cairn', {
       ipcRenderer.invoke('cairn:connections:refresh-github') as Promise<{
         ok: boolean;
         count?: number;
+        limited?: boolean;
         error?: string;
       }>,
   },

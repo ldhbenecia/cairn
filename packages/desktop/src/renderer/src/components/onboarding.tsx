@@ -45,9 +45,11 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const [claudeStatus, setClaudeStatus] = useState<Status>('idle');
   const [ghImporting, setGhImporting] = useState(false);
   const [ghMsg, setGhMsg] = useState<I18nKey | null>(null);
-  // free(미로그인 포함)는 GitHub 1계정까지 — main(finishOnboarding)도 같은 한도로 방어
-  const { user: cloudUser } = useCloudAuth();
-  const planLimit = (cloudUser?.plan ?? 'free') === 'free' ? 1 : Infinity;
+  // free(미로그인 포함)는 GitHub 1계정까지 — main(finishOnboarding)도 같은 한도로 방어.
+  // 인증 상태 확정 전에는 제한하지 않는다(pro 사용자의 gh 가져오기가 잘리는 것 방지) —
+  // 그 사이 free 가 초과 등록해도 main 게이트가 finish 에서 막는다
+  const { user: cloudUser, ready: authReady } = useCloudAuth();
+  const planLimit = !authReady || cloudUser?.plan === 'pro' ? Infinity : 1;
 
   const patchGithub = (i: number, p: Partial<GithubEntry>) =>
     setGithub((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));

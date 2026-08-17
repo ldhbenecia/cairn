@@ -239,7 +239,12 @@ declare global {
       };
       connections: {
         accounts: () => Promise<ConnectionAccounts>;
-        refreshGithub: () => Promise<{ ok: boolean; count?: number; error?: string }>;
+        refreshGithub: () => Promise<{
+          ok: boolean;
+          count?: number;
+          limited?: boolean;
+          error?: string;
+        }>;
       };
       integrations: {
         addNotion: (payload: NotionWorkspacePayload) => Promise<{ ok: boolean; error?: string }>;

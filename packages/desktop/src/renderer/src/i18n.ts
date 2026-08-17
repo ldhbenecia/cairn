@@ -516,6 +516,7 @@ const STRINGS = {
     'prefs.conn.ghRefresh': 'gh CLI에서 토큰 다시 가져오기',
     'prefs.conn.ghRefreshDone': '토큰을 다시 가져왔어요',
     'prefs.conn.ghRefreshFail': '가져오기 실패 — 터미널에서 gh auth login 확인',
+    'prefs.conn.ghRefreshLimited': '갱신 완료 — 무료 플랜 한도로 새 계정은 추가되지 않았어요',
     'prefs.conn.checking': '확인 중…',
     'prefs.conn.recheck': '다시 확인',
     'prefs.billing': '결제',
@@ -1078,6 +1079,8 @@ const STRINGS = {
     'prefs.conn.ghRefresh': 'Re-import tokens from gh CLI',
     'prefs.conn.ghRefreshDone': 'Tokens re-imported',
     'prefs.conn.ghRefreshFail': 'Import failed — check gh auth login in a terminal',
+    'prefs.conn.ghRefreshLimited':
+      'Refreshed — new accounts were skipped due to the free plan limit',
     'prefs.conn.checking': 'Checking…',
     'prefs.conn.recheck': 'Re-check',
     'prefs.billing': 'Billing',

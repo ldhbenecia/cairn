@@ -474,6 +474,7 @@ export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; er
 export async function refreshGithubFromGhCli(): Promise<{
   ok: boolean;
   count?: number;
+  limited?: boolean;
   error?: string;
 }> {
   const r = await githubAccountsFromGhCli();
@@ -496,9 +497,13 @@ export async function refreshGithubFromGhCli(): Promise<{
       const allowed = Math.max(planRegistrationLimit(), accounts.length);
       const env: Record<string, string> = {};
       let applied = 0;
+      let limited = false;
       for (const a of ghAccounts) {
         const isNewLabel = !accounts.some((acc) => acc.label === a.login);
-        if (isNewLabel && accounts.length >= allowed) continue;
+        if (isNewLabel && accounts.length >= allowed) {
+          limited = true;
+          continue;
+        }
         const tokenEnv = envKey('GITHUB_TOKEN', a.login);
         env[tokenEnv] = a.token;
         accounts = upsertByLabel(accounts, { label: a.login, tokenEnv }, a.login);
@@ -509,7 +514,7 @@ export async function refreshGithubFromGhCli(): Promise<{
       const config = { ...existing, githubAccounts: accounts };
       mkdirSync(dirname(CONFIG_PATH), { recursive: true });
       writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
-      return { ok: true, count: applied };
+      return { ok: true, count: applied, limited };
     });
   } catch (err) {
     return { ok: false, error: errorMessage(err) };

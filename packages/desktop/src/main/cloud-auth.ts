@@ -23,7 +23,8 @@ export function cloudPlan(): string {
 }
 
 export function planRegistrationLimit(): number {
-  return cloudPlan() === 'free' ? 1 : Infinity;
+  // 알 수 없는 값은 free 취급(fail-closed) — 'pro' 만 무제한
+  return cloudPlan() === 'pro' ? Infinity : 1;
 }
 
 // bearer 토큰 at-rest 암호화 (ADR 0037) — packaged 는 키체인 키로 암호문 저장, 실패/레거시는

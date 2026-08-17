@@ -23,7 +23,7 @@ const PRO_FEATURES: I18nKey[] = [
 export function BillingTab() {
   const { t } = useSettings();
   const { user } = useCloudAuth();
-  const isPro = (user?.plan ?? 'free') !== 'free';
+  const isPro = user?.plan === 'pro';
   return (
     <div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
