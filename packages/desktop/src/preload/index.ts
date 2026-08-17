@@ -123,7 +123,7 @@ export type RecentPage = {
   sinks?: WorklogSink[];
 };
 
-export type CloudUser = { name: string; email: string; image: string | null };
+export type CloudUser = { name: string; email: string; image: string | null; plan?: string };
 export type CloudAuthState = { signedIn: boolean; user: CloudUser | null };
 
 export type RecentWarning =
@@ -218,6 +218,7 @@ contextBridge.exposeInMainWorld('cairn', {
       ipcRenderer.invoke('cairn:connections:refresh-github') as Promise<{
         ok: boolean;
         count?: number;
+        limited?: boolean;
         error?: string;
       }>,
   },

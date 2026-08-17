@@ -137,7 +137,7 @@ export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
 export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
 
-export type CloudUser = { name: string; email: string; image: string | null };
+export type CloudUser = { name: string; email: string; image: string | null; plan?: string };
 export type CloudAuthState = { signedIn: boolean; user: CloudUser | null };
 
 export type NotionProbe = { ok: boolean; persons: { id: string; name: string }[]; error?: string };
@@ -239,7 +239,12 @@ declare global {
       };
       connections: {
         accounts: () => Promise<ConnectionAccounts>;
-        refreshGithub: () => Promise<{ ok: boolean; count?: number; error?: string }>;
+        refreshGithub: () => Promise<{
+          ok: boolean;
+          count?: number;
+          limited?: boolean;
+          error?: string;
+        }>;
       };
       integrations: {
         addNotion: (payload: NotionWorkspacePayload) => Promise<{ ok: boolean; error?: string }>;

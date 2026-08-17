@@ -50,7 +50,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
   const [accounts, setAccounts] = useState<ConnectionAccounts | null>(null);
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [ghRefreshing, setGhRefreshing] = useState(false);
-  const [ghMsg, setGhMsg] = useState<'done' | 'fail' | null>(null);
+  const [ghMsg, setGhMsg] = useState<'done' | 'limited' | 'fail' | null>(null);
 
   const reload = useCallback((alive?: () => boolean) => {
     void window.cairn
@@ -86,7 +86,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
     void window.cairn.connections
       .refreshGithub()
       .then((r) => {
-        setGhMsg(r.ok ? 'done' : 'fail');
+        setGhMsg(r.ok ? (r.limited ? 'limited' : 'done') : 'fail');
         if (r.ok) {
           setAccounts(null);
           reload();
@@ -180,6 +180,9 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
             </button>
             {ghMsg === 'done' && (
               <span className="text-[11.5px] text-success">{t('prefs.conn.ghRefreshDone')}</span>
+            )}
+            {ghMsg === 'limited' && (
+              <span className="text-[11.5px] text-warning">{t('prefs.conn.ghRefreshLimited')}</span>
             )}
             {ghMsg === 'fail' && (
               <span className="text-[11.5px] text-danger">{t('prefs.conn.ghRefreshFail')}</span>
