@@ -6,27 +6,30 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
 import { parseCliArgs } from './cairn/cli-args.js';
 import { OrchestratorService } from './cairn/orchestrator.service.js';
+import { accumulateAgentUsage } from './common/agent-usage.js';
 import { claudeExecutableOptions } from './common/claude-executable.js';
+import { CairnError } from './common/error.js';
+import { summaryModelOption } from './common/summary-model.js';
 
+// 요약과 같은 모델로 검사해야 probe 통과 = 발행 가능이 성립한다
 async function probeClaude(): Promise<void> {
+  let reason: string;
   try {
     const q = query({
       prompt: 'Reply with the single word: ok',
-      options: { maxTurns: 1, ...claudeExecutableOptions() },
+      options: { maxTurns: 1, ...summaryModelOption(), ...claudeExecutableOptions() },
     });
-    let ok = false;
-    for await (const message of q) {
-      if (message.type === 'result') {
-        ok = message.subtype === 'success';
-        break;
-      }
+    const { resultSubtype } = await accumulateAgentUsage(q);
+    if (resultSubtype === 'success') {
+      process.stdout.write('CLAUDE_OK\n');
+      process.exit(0);
     }
-    process.stdout.write(ok ? 'CLAUDE_OK\n' : 'CLAUDE_FAIL\n');
-    process.exit(ok ? 0 : 2);
-  } catch {
-    process.stdout.write('CLAUDE_FAIL\n');
-    process.exit(2);
+    reason = resultSubtype;
+  } catch (err) {
+    reason = CairnError.from(err, 'summarizer').message;
   }
+  process.stdout.write(`CLAUDE_FAIL ${reason.replace(/\s+/g, ' ')}\n`);
+  process.exit(2);
 }
 
 async function bootstrap(): Promise<void> {
