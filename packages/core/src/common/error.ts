@@ -87,7 +87,8 @@ export function errorMessage(reason: unknown): string {
   if (reason instanceof Error) return reason.message;
   if (typeof reason === 'string') return reason;
   try {
-    return JSON.stringify(reason);
+    // undefined·함수는 JSON.stringify 가 undefined 를 돌려줘 빈 message 가 됐다
+    return JSON.stringify(reason) ?? String(reason);
   } catch {
     return String(reason);
   }
