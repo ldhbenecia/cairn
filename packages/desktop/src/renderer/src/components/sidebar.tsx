@@ -12,8 +12,9 @@ import {
   Settings2,
   type LucideIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { I18nKey } from '../i18n';
+import { probeClaude, useClaudeStatus } from '../lib/claude-status-store';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
 import { AccountStatusPill } from './account-status-pill';
@@ -132,28 +133,13 @@ const CLAUDE_PROBE_INTERVAL_MS = 5 * 60_000;
 // Claude CLI 도달 여부 소형 상태 행 — 시작 시 1회 + 5분 간격, 클릭 시 즉시 재확인
 function ClaudeStatusRow() {
   const { t } = useSettings();
-  const [status, setStatus] = useState<'checking' | 'ok' | 'fail'>('checking');
-  const probing = useRef(false);
-
-  const probe = useCallback(async (): Promise<void> => {
-    if (probing.current) return;
-    probing.current = true;
-    setStatus('checking');
-    try {
-      const r = await window.cairn.onboarding.probeClaude();
-      setStatus(r.ok ? 'ok' : 'fail');
-    } catch {
-      setStatus('fail');
-    } finally {
-      probing.current = false;
-    }
-  }, []);
+  const status = useClaudeStatus();
 
   useEffect(() => {
-    void probe();
-    const id = setInterval(() => void probe(), CLAUDE_PROBE_INTERVAL_MS);
+    void probeClaude();
+    const id = setInterval(() => void probeClaude(), CLAUDE_PROBE_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [probe]);
+  }, []);
 
   const dot = {
     checking: 'animate-pulse bg-ink-tertiary',
@@ -169,7 +155,7 @@ function ClaudeStatusRow() {
   return (
     <button
       type="button"
-      onClick={() => void probe()}
+      onClick={() => void probeClaude()}
       title={status === 'fail' ? t('claude.status.failHint') : label}
       className="flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-left text-[11.5px] text-ink-tertiary transition-colors hover:bg-surface-2/60 hover:text-ink-muted [-webkit-app-region:no-drag]"
     >

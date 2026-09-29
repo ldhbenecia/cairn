@@ -1,6 +1,7 @@
 import { FolderGit2, Loader2, RotateCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { AccountHealth, ConnectionAccounts } from '../../cairn-api';
+import { probeClaude, probeClaudeOnce, useClaudeStatus } from '../../lib/claude-status-store';
 import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';
 import { ClaudeMark, GithubMark, NotionMark } from '../brand-icons';
@@ -15,28 +16,7 @@ type ParsedConfig = {
   localGitEnabled?: boolean;
 };
 
-type Claude = 'checking' | 'ok' | 'err';
 type Item = { primary: string; secondary?: string; health?: AccountHealth };
-
-// 연결 탭을 열 때마다 코어를 fork(probeClaude, 최대 ~1분)하지 않도록 세션 단위 캐시
-let claudeCache: Exclude<Claude, 'checking'> | null = null;
-let claudeInflight: Promise<boolean> | null = null;
-
-function probeClaudeCached(force = false): Promise<Exclude<Claude, 'checking'>> {
-  if (force) claudeCache = null;
-  if (claudeCache) return Promise.resolve(claudeCache);
-  claudeInflight ??= window.cairn.onboarding
-    .probeClaude()
-    .then((r) => r.ok)
-    .catch(() => false)
-    .finally(() => {
-      claudeInflight = null;
-    });
-  return claudeInflight.then((ok) => {
-    claudeCache = ok ? 'ok' : 'err';
-    return claudeCache;
-  });
-}
 
 function basename(p: string): string {
   const parts = p.replace(/[/\\]+$/, '').split(/[/\\]/);
@@ -46,7 +26,7 @@ function basename(p: string): string {
 export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
   const { t } = useSettings();
   const [cfg, setCfg] = useState<ParsedConfig>({});
-  const [claude, setClaude] = useState<Claude>(claudeCache ?? 'checking');
+  const claude = useClaudeStatus();
   const [accounts, setAccounts] = useState<ConnectionAccounts | null>(null);
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [ghRefreshing, setGhRefreshing] = useState(false);
@@ -72,9 +52,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
   useEffect(() => {
     let alive = true;
     reload(() => alive);
-    void probeClaudeCached().then((c) => {
-      if (alive) setClaude(c);
-    });
+    probeClaudeOnce();
     return () => {
       alive = false;
     };
@@ -97,8 +75,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
   };
 
   const refreshClaude = (): void => {
-    setClaude('checking');
-    void probeClaudeCached(true).then(setClaude);
+    void probeClaude();
   };
 
   const toggle = (key: string): void =>

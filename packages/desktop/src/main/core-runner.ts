@@ -1,6 +1,13 @@
 import { app } from 'electron';
 import { fork, type ChildProcess } from 'node:child_process';
-import { createWriteStream, mkdirSync, readdirSync, unlinkSync, type WriteStream } from 'node:fs';
+import {
+  appendFileSync,
+  createWriteStream,
+  mkdirSync,
+  readdirSync,
+  unlinkSync,
+  type WriteStream,
+} from 'node:fs';
 import { StringDecoder } from 'node:string_decoder';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -116,15 +123,19 @@ function pruneOldRunLogs(): void {
   }
 }
 
+function runLogPath(): string {
+  const now = new Date();
+  const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return join(LOGS_DIR, `desktop-run.${day}.log`);
+}
+
 function openRunLog(): void {
   closeRunLog();
   try {
     mkdirSync(LOGS_DIR, { recursive: true, mode: 0o700 });
     pruneOldRunLogs();
-    const now = new Date();
-    const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     // 로그엔 절대경로·커밋 제목 등이 그대로 담긴다 — 시크릿 파일들(0600)과 같은 수준으로 잠금
-    const stream = createWriteStream(join(LOGS_DIR, `desktop-run.${day}.log`), {
+    const stream = createWriteStream(runLogPath(), {
       flags: 'a',
       mode: 0o600,
     });
@@ -139,6 +150,20 @@ function closeRunLog(): void {
   if (runLogStream) {
     runLogStream.end();
     runLogStream = null;
+  }
+}
+
+// probe 는 run 밖(5분 주기)이라 스트림이 없다 — 한 줄 동기 append. "연결됨" 표시의 근거를 사후 확인용
+function appendProbeLog(ok: boolean, detail: string): void {
+  try {
+    mkdirSync(LOGS_DIR, { recursive: true, mode: 0o700 });
+    appendFileSync(
+      runLogPath(),
+      `${new Date().toISOString()} [probe] [${ok ? 'meta' : 'err'}] ${stripAnsi(detail)}\n`,
+      { mode: 0o600 },
+    );
+  } catch {
+    // 로깅은 best-effort
   }
 }
 
@@ -165,6 +190,10 @@ function promptEnv(prompts: Settings['prompts']): Record<string, string> {
   if (prompts.monthly?.trim()) env.CAIRN_PROMPT_MONTHLY = prompts.monthly;
   if (prompts.yearly?.trim()) env.CAIRN_PROMPT_YEARLY = prompts.yearly;
   return env;
+}
+
+function summaryModelEnv(model: Settings['summaryModel']): Record<string, string> {
+  return model !== 'default' ? { CAIRN_SUMMARY_MODEL: model } : {};
 }
 
 let running: ChildProcess | null = null;
@@ -242,19 +271,25 @@ export async function probeClaude(): Promise<{ ok: boolean }> {
         ...process.env,
         CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
         ...claudeEnv(),
+        ...summaryModelEnv(readSettings().summaryModel),
       },
     });
     let out = '';
     child.stdout?.on('data', (b: Buffer) => (out += b.toString('utf8')));
     const timer = setTimeout(() => child.kill(), 60_000);
+    let settled = false;
+    const finish = (ok: boolean, detail: string): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      appendProbeLog(ok, detail);
+      resolvePromise({ ok });
+    };
     child.on('close', () => {
-      clearTimeout(timer);
-      resolvePromise({ ok: out.includes('CLAUDE_OK') });
+      const line = out.split('\n').find((l) => l.startsWith('CLAUDE_')) ?? '';
+      finish(line === 'CLAUDE_OK', line || 'no probe output');
     });
-    child.on('error', () => {
-      clearTimeout(timer);
-      resolvePromise({ ok: false });
-    });
+    child.on('error', (err) => finish(false, errorMessage(err)));
   });
 }
 
@@ -308,9 +343,7 @@ export async function runCore(
       CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
       ...claudeEnv(),
       ...promptEnv(settings.prompts),
-      ...(settings.summaryModel !== 'default'
-        ? { CAIRN_SUMMARY_MODEL: settings.summaryModel }
-        : {}),
+      ...summaryModelEnv(settings.summaryModel),
     },
   });
   running = child;
