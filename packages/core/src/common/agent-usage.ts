@@ -20,6 +20,8 @@ interface ModelUsageEntry {
 interface ResultMessage {
   type?: string;
   subtype?: string;
+  is_error?: boolean;
+  result?: unknown;
   total_cost_usd?: number;
   modelUsage?: Record<string, ModelUsageEntry>;
 }
@@ -35,26 +37,38 @@ export async function accumulateAgentUsage(q: AsyncIterable<unknown>): Promise<A
   let resultSubtype = 'unknown';
   let model: string | undefined;
   let modelOutputMax = -1;
-  for await (const message of q) {
-    const m = message as ResultMessage;
-    if (m.type !== 'result') continue;
-    resultSubtype = m.subtype ?? 'unknown';
-    if (typeof m.total_cost_usd === 'number') costUsd = m.total_cost_usd;
-    if (m.modelUsage) {
-      for (const [id, u] of Object.entries(m.modelUsage)) {
-        inputTokens +=
-          num(u.inputTokens) + num(u.cacheReadInputTokens) + num(u.cacheCreationInputTokens);
-        cacheReadTokens += num(u.cacheReadInputTokens);
-        cacheCreationTokens += num(u.cacheCreationInputTokens);
-        outputTokens += num(u.outputTokens);
-        // 여러 모델이 섞이면(오버로드 fallback 등) 출력을 가장 많이 낸 모델을 대표로
-        if (num(u.outputTokens) > modelOutputMax) {
-          modelOutputMax = num(u.outputTokens);
-          model = id;
+  // 미로그인·토큰 만료는 subtype 'success' + is_error 결과로 온다 (원인 문구는 result 텍스트).
+  // SDK 가 뒤이어 message 없는 값을 던지면 원인이 유실되므로 결과 텍스트를 붙잡아 둔다
+  let errorResult: string | undefined;
+  try {
+    for await (const message of q) {
+      const m = message as ResultMessage;
+      if (m.type !== 'result') continue;
+      if (m.is_error && typeof m.result === 'string' && m.result) errorResult = m.result;
+      resultSubtype = m.subtype ?? 'unknown';
+      if (typeof m.total_cost_usd === 'number') costUsd = m.total_cost_usd;
+      if (m.modelUsage) {
+        for (const [id, u] of Object.entries(m.modelUsage)) {
+          inputTokens +=
+            num(u.inputTokens) + num(u.cacheReadInputTokens) + num(u.cacheCreationInputTokens);
+          cacheReadTokens += num(u.cacheReadInputTokens);
+          cacheCreationTokens += num(u.cacheCreationInputTokens);
+          outputTokens += num(u.outputTokens);
+          // 여러 모델이 섞이면(오버로드 fallback 등) 출력을 가장 많이 낸 모델을 대표로
+          if (num(u.outputTokens) > modelOutputMax) {
+            modelOutputMax = num(u.outputTokens);
+            model = id;
+          }
         }
       }
     }
+  } catch (err) {
+    if (errorResult && !(err instanceof Error && err.message)) {
+      throw new Error(errorResult, { cause: err });
+    }
+    throw err;
   }
+  if (errorResult) throw new Error(errorResult);
   return {
     resultSubtype,
     inputTokens,
