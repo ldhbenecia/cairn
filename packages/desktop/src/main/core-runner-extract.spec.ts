@@ -26,6 +26,14 @@ describe('createExtractor — failureHint (stdout 의 남은 유일한 용도)',
     ext.feed('API Error: OAuth token has expired. Please run /login');
     expect(ext.failureHint).toBe('claude-auth');
   });
+  it('미로그인 결과 문구를 담은 요약기 실패 라인도 claude-auth — 뒤따르는 롤업 실패보다 우선', () => {
+    const ext = createExtractor();
+    ext.feed(
+      '{"error":{"source":"summarizer","code":"unknown","message":"Not logged in · Please run /login"},"msg":"rollup summarizer threw — fallback"}',
+    );
+    ext.feed('{"msg":"rollup: summary generation failed — aborting publish"}');
+    expect(ext.failureHint).toBe('claude-auth');
+  });
   it('롤업 요약 실패 라인은 summarize', () => {
     const ext = createExtractor();
     ext.feed('{"msg":"rollup: summary generation failed — aborting publish"}');
