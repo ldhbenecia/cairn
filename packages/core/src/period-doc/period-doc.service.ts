@@ -1,13 +1,9 @@
-import { query } from '@anthropic-ai/claude-agent-sdk';
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type { WorklogLang } from '../cairn/run-options.js';
-import { accumulateAgentUsage } from '../common/agent-usage.js';
-import { isolatedAgentOptions } from '../common/agent-isolation.js';
-import { claudeExecutableOptions } from '../common/claude-executable.js';
 import { CairnError } from '../common/error.js';
 import { emitParentEvent } from '../common/parent-events.js';
-import { summaryModelOption } from '../common/summary-model.js';
+import { runSubmitAgent } from '../common/submit-agent.js';
 import { JournalSourceService } from '../journal/journal-source.service.js';
 import { JournalWriterService } from '../journal/journal-writer.service.js';
 import { parseSummaryFromBlocks } from '../rollup/rollup-collector.service.js';
@@ -20,8 +16,6 @@ import {
   renderPeriodDocMarkdown,
   type PeriodDocMetrics,
 } from './period-doc-tools.js';
-
-const MCP_SERVER_NAME = 'cairn-period-doc';
 
 export interface PeriodDocOptions {
   since: string;
@@ -66,32 +60,18 @@ export class PeriodDocService {
 
     this.logger.info({ since, until, days: payload.days.length }, 'period-doc summarizer start');
     const { server, getSubmission } = buildPeriodDocTools();
-    let model: string | undefined;
-    try {
-      const q = query({
-        prompt: ['<activity>', JSON.stringify(payload), '</activity>'].join('\n'),
-        options: {
-          systemPrompt: periodDocSystemPrompt(lang),
-          mcpServers: { [MCP_SERVER_NAME]: server },
-          allowedTools: [`mcp__${MCP_SERVER_NAME}__submit_period_doc`],
-          effort: 'low',
-          thinking: { type: 'disabled' },
-          maxTurns: 3,
-          ...summaryModelOption(),
-          ...claudeExecutableOptions(),
-          ...isolatedAgentOptions(),
-        },
-      });
-      ({ model } = await accumulateAgentUsage(q));
-    } catch (err) {
-      // max-turns 등으로 SDK 가 throw 해도 submission 이 이미 왔으면 그 결과 사용
-      if (!getSubmission()) throw CairnError.from(err, 'summarizer');
-      this.logger.warn(
-        { error: CairnError.from(err, 'summarizer') },
-        'period-doc threw after submission',
-      );
+    const run = await runSubmitAgent({
+      prompt: ['<activity>', JSON.stringify(payload), '</activity>'].join('\n'),
+      systemPrompt: periodDocSystemPrompt(lang),
+      server,
+      toolName: 'submit_period_doc',
+      getSubmission,
+    });
+    if (run.lateError) {
+      this.logger.warn({ error: run.lateError }, 'period-doc threw after submission');
     }
-    const submission = getSubmission();
+    const { submission } = run;
+    const { model } = run.usage;
     if (!submission) {
       throw new CairnError('summarizer', 'unknown', 'period-doc ended without submit_period_doc');
     }
