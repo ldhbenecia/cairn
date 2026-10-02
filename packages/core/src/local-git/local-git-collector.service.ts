@@ -32,7 +32,7 @@ export class LocalGitCollectorService {
   async collect(date: string): Promise<LocalGitActivity> {
     const window = localDateToUtcWindow(date);
 
-    // 기본 OFF 토글 — 경로가 등록돼 있어도 수집을 끈다. getLocalGitRepos 빈 배열과 동일 shape
+    // 기본 OFF 토글 — 경로가 등록돼 있어도 수집 안 함, getLocalGitRepos 빈 배열과 같은 shape
     if (!this.worklogConfig.isLocalGitEnabled()) {
       this.logger.info('localGitEnabled=false — skipping local-git collect');
       return { date, rangeStart: window.startIso, rangeEnd: window.endIso, repos: [] };
@@ -121,8 +121,8 @@ export class LocalGitCollectorService {
   }
 }
 
-// commit subject 에 외부 송신 금지 패턴(diff·절대경로·토큰)이 있는지 검사
-// 있으면 그 commit 을 수집에서 제외 — 최종 payload 백스톱이 발행 전체를 막지 않게
+// subject 에 외부 송신 금지 패턴(diff·절대경로·토큰)이 있으면 그 commit 만 수집 제외
+// — 최종 payload 백스톱이 발행 전체를 막지 않게
 export function isForbiddenSubject(subject: string): boolean {
   try {
     assertNoForbiddenPayload(subject, 'local-git.precheck');

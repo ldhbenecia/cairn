@@ -29,8 +29,7 @@ describe('localDateToUtcWindow', () => {
   });
 
   it('연속된 날의 윈도우가 인접 — 사이에 dead zone 없음 (DST 폴백 대비)', () => {
-    // end 를 다음날 자정 −1ms 에서 유도하므로 D 의 end 와 D+1 의 start 사이 간극은 최대 1초.
-    // 고정 23:59:59 였다면 자정 DST 폴백 TZ 에서 1시간 갭이 났다
+    // end 를 다음날 자정 −1ms 에서 유도해 D 의 end 와 D+1 의 start 간극은 최대 1초
     const endD = new Date(localDateToUtcWindow('2026-06-03').endIso).getTime();
     const startNext = new Date(localDateToUtcWindow('2026-06-04').startIso).getTime();
     expect(startNext - endD).toBeLessThanOrEqual(1000);

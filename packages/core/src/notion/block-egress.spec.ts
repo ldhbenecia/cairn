@@ -36,7 +36,7 @@ describe('enforceBlockEgress', () => {
     const [obj] = logger.warn.mock.calls[0]!;
     expect(obj).toMatchObject({ index: 1, blockType: 'bulleted_list_item' });
     expect(String((obj as { err: string }).err)).toContain('github-token-classic');
-    // warn 로그에 블록 내용이 새면 안 된다
+    // warn 로그에 블록 내용이 새면 안 됨
     expect(JSON.stringify(logger.warn.mock.calls)).not.toContain('ghp_');
   });
 

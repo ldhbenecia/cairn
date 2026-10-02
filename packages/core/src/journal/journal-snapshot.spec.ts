@@ -55,7 +55,7 @@ describe('pruneSnapshots', () => {
     }
     const files = readdirSync(dir).sort();
     expect(files).toHaveLength(KEEP_PER_FILE);
-    // 가장 오래된 v0~v2 가 정리되고 최신이 남는다
+    // 가장 오래된 v0~v2 가 정리되고 최신이 남음
     expect(readFileSync(join(dir, files[files.length - 1]!), 'utf8')).toBe(`v${KEEP_PER_FILE + 2}`);
     pruneSnapshots(dir);
     expect(readdirSync(dir)).toHaveLength(KEEP_PER_FILE);

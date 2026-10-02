@@ -1,7 +1,6 @@
 import type { Client } from '@notionhq/client';
 
-// Notion pages.create 는 children 을 한 번에 100개까지만 받는다.
-// 초과분은 blocks.children.append 로 ≤100 배치 분할해 붙인다.
+// pages.create 는 children 을 100개까지만 받아 초과분은 blocks.children.append 로 ≤100 배치 분할
 export const NOTION_MAX_CHILDREN = 100;
 
 export async function appendChildrenInBatches(

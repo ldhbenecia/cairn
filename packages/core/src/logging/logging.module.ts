@@ -8,7 +8,7 @@ import { AppConfigService } from '../config/app-config.service.js';
 
 const LOG_FILE_BASE = resolve(homedir(), '.cairn', 'logs', 'cairn');
 
-// packaged Electron app 안에서 fork 되면 pino-pretty / pino-roll 의 worker thread 가 bundle 안의 path 못 잡음 → transport 없이 plain JSON stdout
+// packaged 앱에서 fork 되면 pino-pretty·pino-roll worker thread 가 bundle 안 경로를 못 잡아 transport 없이 JSON stdout
 const IS_PACKAGED = process.env.CAIRN_PACKAGED === 'true';
 
 const REDACT_PATHS = [
@@ -25,8 +25,8 @@ const REDACT_PATHS = [
   'headers.authorization',
   'headers["x-api-key"]',
   '*.*.headers.authorization',
-  // 실제 키는 GITHUB_TOKEN_<LABEL> 형태(envKey) — 고정 이름('env.GITHUB_TOKEN')은 매칭이 안 됐고
-  // pino redact 는 부분 이름 와일드카드가 없어 env 값 전체를 가린다
+  // 실제 키는 GITHUB_TOKEN_<LABEL> 형태라 고정 이름으로는 안 잡히고, pino redact 는 부분 이름
+  // 와일드카드가 없어 env 값 전체를 가림
   'env.*',
 ];
 
@@ -37,7 +37,7 @@ const REDACT_PATHS = [
       imports: [AppConfigModule],
       inject: [AppConfigService],
       useFactory: (config: AppConfigService) => {
-        // pnpm workspace 의 isolation 으로 pino worker thread 가 module name resolve 실패 → 절대 경로 명시 (packaged 가 아닐 때만 — IS_PACKAGED 시 import.meta.url 이 CJS bundle 에서 undefined 라 createRequire 호출 자체 skip)
+        // pnpm workspace isolation 으로 worker thread 가 모듈명을 못 찾아 절대 경로 명시 — packaged 는 CJS bundle 이라 import.meta.url 이 없어 skip
         const requireFromHere = IS_PACKAGED ? null : createRequire(import.meta.url);
         const transport = IS_PACKAGED
           ? undefined

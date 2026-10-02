@@ -65,9 +65,8 @@ export class WorklogConfigService {
     return this.load().notionWorkspaces;
   }
 
-  // target 워크스페이스 선택은 여기 한 곳으로 — 수집/발행이 서로 다른 predicate 로
-  // 다른 워크스페이스를 고르면 교차 발행이 생긴다. databaseId 만 설정한 구성도 유효
-  // (resolveDatabaseAndDataSource 가 databaseId-only 를 지원).
+  // target 워크스페이스 선택은 여기 한 곳 — 수집·발행이 다른 predicate 로 고르면 교차 발행이 생김
+  // databaseId 만 설정한 구성도 유효 (resolveDatabaseAndDataSource 가 지원)
   findWorklogWorkspace(): NotionWorkspaceConfig | undefined {
     return this.getNotionWorkspaces().find((ws) => ws.worklog?.pageId ?? ws.worklog?.databaseId);
   }

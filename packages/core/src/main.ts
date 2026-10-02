@@ -12,7 +12,7 @@ import { CairnError } from './common/error.js';
 import { summaryModelOption } from './common/summary-model.js';
 import { PeriodDocService } from './period-doc/period-doc.service.js';
 
-// 요약과 같은 모델로 검사해야 probe 통과 = 발행 가능이 성립한다
+// 요약과 같은 모델로 검사해야 probe 통과가 곧 발행 가능을 뜻함
 async function probeClaude(): Promise<void> {
   let reason: string;
   try {

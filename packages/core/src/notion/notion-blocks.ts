@@ -1,7 +1,7 @@
 import { CLAUDE_ICON_URL } from '../common/branding.js';
 
-// Notion rich_text text.content 한도 2000자 — 초과분은 같은 블록 안에서 여러 rich_text 로 분할.
-// 스키마가 2000 을 강제하지만 사용자 편집 journal 재발행 등 스키마 밖 텍스트가 들어오는 경로 방어
+// rich_text text.content 한도 2000자 — 초과분은 같은 블록 안 여러 rich_text 로 분할
+// 스키마 밖 텍스트(사용자 편집 journal 재발행 등)가 들어오는 경로 방어
 const RICH_TEXT_MAX = 2000;
 
 function richText(text: string): { type: 'text'; text: { content: string } }[] {

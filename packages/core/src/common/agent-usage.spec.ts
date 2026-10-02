@@ -43,7 +43,7 @@ describe('accumulateAgentUsage', () => {
       resultSubtype: 'success',
       inputTokens: 118, // 100 + 5 + 3 + 10
       outputTokens: 22,
-      cacheReadTokens: 5, // 캐시 실측용 분리 노출 (inputTokens 에도 합산 유지)
+      cacheReadTokens: 5, // inputTokens 에도 합산 유지
       cacheCreationTokens: 3,
       costUsd: 0.42,
       model: 'claude-x', // 출력 토큰이 가장 많은 모델이 대표

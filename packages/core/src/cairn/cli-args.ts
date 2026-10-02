@@ -85,7 +85,7 @@ function defaultDateForMode(mode: RunMode): string {
   return todayLocalIsoDate();
 }
 
-// 로컬 타임존 기준 (rules/timezone.md, ADR 0016)
+// 로컬 타임존 기준 — KST·UTC 단정 금지
 function localIsoDateOffset(dayOffset: number): string {
   const d = new Date();
   d.setDate(d.getDate() + dayOffset);
@@ -114,7 +114,7 @@ function assertIsoDate(value: string): void {
   if (!matched) {
     throw new Error(`--date must be YYYY-MM-DD (got: ${value})`);
   }
-  // 2026-02-30 같은 불가능한 날짜는 Date 가 롤오버시키므로 probe 로 검증 (period-range 와 동일 패턴)
+  // 2026-02-30 같은 불가능한 날짜는 Date 가 롤오버시켜 probe 로 검증 (period-range 와 같은 패턴)
   const y = Number(matched[1]);
   const m = Number(matched[2]);
   const d = Number(matched[3]);

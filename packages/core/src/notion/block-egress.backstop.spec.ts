@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-// 교차 블록 패턴은 콘텐츠만으로는 구성 불가(블록 사이에 JSON 구조 문자가 끼어 정규식이 경계를
-// 못 넘음) — 통짜 검사(label 원형)만 실패하도록 sanitize 를 스텁해 백스톱 분기를 회귀 고정한다.
+// 교차 블록 패턴은 콘텐츠만으로 구성 불가(블록 사이 JSON 구조 문자로 정규식이 경계를 못 넘음) —
+// 통짜 검사만 실패하도록 sanitize 를 스텁해 백스톱 분기 고정
 vi.mock('../common/sanitize.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../common/sanitize.js')>();
   return {

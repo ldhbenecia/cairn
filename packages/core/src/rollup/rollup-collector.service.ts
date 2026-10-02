@@ -88,8 +88,8 @@ export class RollupCollectorService {
       return { ...emptyActivity(period, start, end), error };
     }
 
-    // 같은 날짜의 daily 페이지가 둘 이상이면(재발행 경합 등) 메트릭·요약 입력이 이중 집계되던 문제.
-    // 날짜당 하나만 — 최근 편집분 우선(내림차순 정렬돼 있으므로 첫 등장 유지)
+    // 같은 날짜 daily 페이지가 둘 이상(재발행 경합 등)이면 메트릭·요약 이중 집계 —
+    // 날짜당 하나만, 내림차순 정렬이라 첫 등장(최근 편집분) 유지
     const dedupedPages = dedupeByDate(pages);
     if (dedupedPages.length !== pages.length) {
       this.logger.warn(
@@ -99,8 +99,8 @@ export class RollupCollectorService {
     }
     pages = dedupedPages;
 
-    // 쿼리 성공 + 0건이어도 로컬 journal 은 있을 수 있다(--skip-notion 발행·페이지 아카이브 등).
-    // 여기서 빈손으로 끝나면 성공 종료 → rollup anchor 기록 → 그 기간이 영구 누락된다
+    // 쿼리 성공 + 0건이어도 로컬 journal 은 있을 수 있음(--skip-notion 발행·페이지 아카이브 등)
+    // 빈손 성공 종료면 rollup anchor 가 기록돼 그 기간이 영구 누락됨
     if (pages.length === 0) {
       this.logger.info(
         { period, rangeStart: start, rangeEnd: end },
@@ -119,7 +119,7 @@ export class RollupCollectorService {
     let prTotal = 0;
     let commitTotal = 0;
 
-    // 통계 진실 소스는 로컬(노션 Source counts 제거됨).
+    // 통계 진실 소스는 로컬
     const localStats = this.stats.readAll();
     const parsedSummaries = await withConcurrency(pages, 4, async (page) => {
       const stat = localStats[`daily:${page.date}`] ?? { pr: 0, commit: 0 };
@@ -166,12 +166,12 @@ export class RollupCollectorService {
   }
 
   private findTarget(): NotionWorkspaceConfig | undefined {
-    // 발행 target 과 같은 워크스페이스에서 daily 를 읽는다 (미연동이면 로컬 journal 수집)
+    // 발행 target 과 같은 워크스페이스에서 daily 를 읽음 (미연동이면 로컬 journal 수집)
     return this.worklogConfig.findRollupWorkspace();
   }
 
-  // 연간은 일간 365개가 아니라 월간 정리 12개를 합성 — summarizer 입력 크기 제어.
-  // 메트릭(pr·commit)은 로컬 daily 통계 합산 (진실 소스)
+  // 연간은 일간 365개가 아닌 월간 정리 12개를 합성 — summarizer 입력 크기 제어
+  // 메트릭(pr·commit)은 로컬 daily 통계 합산
   private async collectYearly(start: string, end: string): Promise<RollupActivity> {
     const year = start.slice(0, 4);
     const { totals, byMonth } = this.yearStats(year);
@@ -350,7 +350,7 @@ export class RollupCollectorService {
     return { totals, byMonth };
   }
 
-  // 노션 미연동 상태의 롤업 — 로컬 journal 의 daily md 에서 같은 구조로 수집 (ADR 0031)
+  // 노션 미연동 롤업 — 로컬 journal 의 daily md 에서 같은 구조로 수집
   private collectFromJournal(
     period: RollupPeriod,
     start: string,
@@ -411,8 +411,7 @@ function emptyActivity(period: RollupPeriod, start: string, end: string): Rollup
   };
 }
 
-// 날짜당 첫 등장만 유지 (정렬이 최근순이면 최신 편집분 우선). 재발행 경합으로 같은 날짜
-// 페이지가 둘 이상일 때 메트릭·요약 이중 집계 방지
+// 날짜당 첫 등장만 유지 (최근순 정렬이면 최신 편집분 우선) — 재발행 경합 시 이중 집계 방지
 export function dedupeByDate<T extends { date: string }>(pages: readonly T[]): T[] {
   const seen = new Set<string>();
   const out: T[] = [];
@@ -484,7 +483,7 @@ function headingToSection(
   return null;
 }
 
-// 월간 정리 페이지(Summary·Highlights·테마 섹션) → 연간 합성 입력.
+// 월간 정리 페이지(Summary·Highlights·테마 섹션) → 연간 합성 입력
 // Metrics·Dailies/Monthlies 는 제외, 테마 구분은 평탄화
 export function parseRollupTextFromBlocks(
   blocks: readonly ExtractedBlock[],

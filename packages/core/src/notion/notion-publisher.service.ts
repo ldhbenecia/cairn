@@ -77,7 +77,7 @@ export class NotionPublisherService {
     }
   }
 
-  // force 실행에선 orchestrator 가 precheck 자체를 건너뛴다 — 여기선 non-force 만 가정.
+  // force 실행은 orchestrator 가 precheck 자체를 건너뛰어 여기선 non-force 만 가정
   // API 에러는 '페이지 없음'(null)과 구분 — 요약 비용 재지출 방지
   async precheckDaily(
     date: string,
@@ -154,9 +154,8 @@ export class NotionPublisherService {
         );
         return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
       }
-      // 새 페이지를 먼저 만들고 그다음 기존 것을 archive — create 실패 시 기존 일지가 보존되도록
-      // (이전엔 archive 먼저라 create 가 실패하면 그 날 일지가 소실됐다). archive 가 실패하면
-      // 중복 페이지가 잠깐 남지만 데이터 손실은 없음(다음 force 가 최신 것을 잡도록 정렬 보강)
+      // 새 페이지를 먼저 만들고 기존 것을 archive — create 실패 시 기존 일지 보존
+      // archive 실패 시 중복 페이지가 잠깐 남지만 데이터 손실 없음 (다음 force 가 최신 것을 잡음)
       const createStartedAt = Date.now();
       const created = await this.createPage(input, token, dataSourceId);
       this.logger.info(
@@ -262,8 +261,8 @@ export class NotionPublisherService {
     token: string,
     dataSourceId: string,
   ): Promise<{ id: string; url: string | null }> {
-    // fail-closed: 발행 직전 조립 블록에 금지 패턴이 섞이면(모델 입력은 pre-sanitize 되지만 방어선)
-    // 위반 블록만 drop 하고 발행 계속 — 전부 drop 이면 fallback 으로 degrade (ADR 0021 item-drop)
+    // 발행 직전 조립 블록에 금지 패턴이 섞이면 위반 블록만 drop 하고 계속, 전부 drop 이면 fallback
+    // 모델 입력은 이미 검사됐지만 마지막 방어선
     const children = enforceBlockEgress(
       input.summary ? buildSummaryBlocks(input.summary, input) : buildFallbackBlocks(input),
       () => buildFallbackBlocks(input),
@@ -299,7 +298,7 @@ export class NotionPublisherService {
   }
 }
 
-// 커밋 시각(ISO) 들의 24칸 시간 히스토그램. 머신 로컬 시간 기준(getHours) — KST 단정 금지(timezone 룰).
+// 커밋 시각(ISO)의 24칸 시간 히스토그램 — 머신 로컬 시간(getHours) 기준, KST 단정 금지
 export function hourHistogram(isoTimestamps: readonly string[]): number[] {
   const hours = new Array<number>(24).fill(0);
   for (const iso of isoTimestamps) {
@@ -379,8 +378,8 @@ function buildFallbackBlocks(input: PublishWorklogInput): readonly unknown[] {
 }
 
 function buildRawDumpToggle(input: PublishWorklogInput): unknown {
-  // operator 전용 디버그 덤프도 egress 검사(fail-closed) — 금지 패턴(절대경로·토큰·diff 등,
-  // 예: CairnError.message 의 git 에러 경로)이 있으면 통째로 redact 후 발행 계속
+  // operator 전용 디버그 덤프도 egress 검사 — 금지 패턴(예: CairnError.message 의 git 경로)이 있으면
+  // 통째로 redact 후 발행 계속
   let rawDump: string;
   try {
     assertNoForbiddenPayload({ github: input.github, localGit: input.localGit }, 'notion.rawDump');
@@ -427,16 +426,15 @@ export function buildDoneBlocks(
   bullets: readonly string[],
   accountLabels: readonly string[] = [],
 ): unknown[] {
-  // 단일(또는 0) 계정에선 모든 bullet 이 [repo] 프리픽스만 가진다(계정 라벨 프리픽스 없음).
-  // 선행 대괄호를 계정 라벨로 소비하면 [cairn] 같은 repo 프리픽스가 가짜 계정 heading 으로
-  // 렌더되고 프리픽스가 사라진다 — 그대로 verbatim 렌더해 프리픽스를 보존한다.
+  // 단일(또는 0) 계정에선 bullet 이 [repo] 프리픽스만 가짐 — 선행 대괄호를 계정 라벨로 소비하면
+  // [cairn] 이 가짜 계정 heading 이 되고 프리픽스가 사라져 그대로 렌더
   if (accountLabels.length < 2) {
     if (bullets.length === 0) return [paragraph('—')];
     return bullets.map((t) => bulletItem(t));
   }
 
-  // multi-account: 선행 대괄호가 설정된 계정 라벨과 정확히 일치할 때만 계정 heading 으로 그룹.
-  // 대소문자 무시 매칭. [project] 프리픽스(local-git bullet 등)는 라벨 불일치 → ungrouped verbatim.
+  // multi-account: 선행 대괄호가 설정된 계정 라벨과 일치할 때만(대소문자 무시) 계정 heading 으로 그룹
+  // [project] 프리픽스(local-git bullet 등)는 라벨 불일치라 ungrouped 그대로
   const ACCT = /^\[([^\]]+)\]\s*/;
   const accountKeys = new Set(accountLabels.map((a) => a.toLowerCase()));
   const groups = new Map<string, string[]>();
@@ -454,7 +452,7 @@ export function buildDoneBlocks(
 
   const out: unknown[] = ungrouped.map((b) => bulletItem(b));
   for (const acct of accountLabels) {
-    // 설정 라벨 verbatim — titleCase 는 ldhbenecia→Ldhbenecia, iOS→Ios 로 변형
+    // 설정 라벨 그대로 — titleCase 는 ldhbenecia→Ldhbenecia, iOS→Ios 로 변형함
     out.push(heading3(acct));
     const items = groups.get(acct.toLowerCase()) ?? [];
     if (items.length === 0) out.push(paragraph('None'));

@@ -12,9 +12,8 @@ function blockTypeOf(block: unknown): string {
   return 'unknown';
 }
 
-// ADR 0021 item-drop: children 블록을 개별 검사해 위반 블록만(중첩 children 포함 통째) drop.
-// 자유텍스트엔 마스킹 금지 — 완화 수단은 drop 뿐. 생존 셋엔 통짜 검사를 한 번 더(교차 블록 패턴
-// 백스톱), 전부 drop 이거나 백스톱에 걸리면 fallback 으로 degrade, fallback 도 걸리면 throw.
+// children 블록을 개별 검사해 위반 블록만(중첩 children 포함) drop — 자유텍스트엔 마스킹 금지
+// 생존 셋은 통짜로 한 번 더 검사(교차 블록 패턴), 전부 drop·백스톱 걸림이면 fallback, fallback 도 걸리면 throw
 export function enforceBlockEgress(
   blocks: readonly unknown[],
   buildFallback: () => readonly unknown[],
@@ -28,7 +27,7 @@ export function enforceBlockEgress(
       assertNoForbiddenPayload(block, `${label}.block`);
       kept.push(block);
     } catch (err) {
-      // 블록 내용은 절대 로그하지 않는다(금지 페이로드 자체일 수 있음) — 패턴명(err)·index·type 만
+      // 블록 내용은 로그 금지(금지 페이로드 자체일 수 있음) — 패턴명·index·type 만
       logger.warn(
         { label, index, blockType: blockTypeOf(block), err: String(err) },
         'block tripped forbidden pattern — dropped',

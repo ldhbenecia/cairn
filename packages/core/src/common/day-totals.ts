@@ -10,15 +10,13 @@ export interface AccountTotals {
 export interface DayTotals {
   prCount: number;
   commitCount: number;
-  // GitHub 계정 라벨(Work/Personal 등)별 PR 수 + 그 계정 PR 안 커밋 distinct
-  // 로컬 커밋은 계정이 없어 전체(commitCount)에만 반영, byAccount 미포함
+  // GitHub 계정 라벨별 PR 수 + 그 계정 PR 안 커밋 distinct
+  // 로컬 커밋은 계정이 없어 전체(commitCount)에만 반영
   byAccount: Record<string, AccountTotals>;
 }
 
-// commitCount = 로컬 + GitHub PR 안 내 커밋의 distinct
-// (shortSha 로 중복 제거 — 같은 커밋이 로컬과 PR 양쪽에 잡혀도 한 번만).
-// GitHub 은 sha.slice(0,7) 고정, local-git 은 git %h(가변 — 충돌 시 8자 이상)라 같은 커밋이
-// 서로 다른 길이로 잡혀 dedup 이 실패, 이중 집계되던 문제. 공통 7자 prefix 로 정규화.
+// commitCount = 로컬 + GitHub PR 안 내 커밋의 distinct, 공통 7자 prefix 로 중복 제거
+// GitHub 은 sha 7자 고정, local-git %h 는 충돌 시 8자 이상이라 그대로 비교하면 이중 집계
 export const shaKey = (s: string): string => s.slice(0, 7);
 
 export function computeDayTotals(
@@ -55,7 +53,7 @@ export interface SourceError {
   error: CairnError;
 }
 
-// 활동 0건이 '진짜 무활동'인지 '수집 실패로 0건'인지 구분하기 위한 소스 에러 수집
+// 활동 0건이 진짜 무활동인지 수집 실패인지 구분하기 위한 소스 에러 수집
 export function collectSourceErrors(
   github: GithubActivity | null | undefined,
   localGit: LocalGitActivity | null | undefined,

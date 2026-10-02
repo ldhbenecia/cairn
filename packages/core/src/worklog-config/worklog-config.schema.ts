@@ -24,7 +24,7 @@ export const journalConfigSchema = z.object({
 });
 
 export const worklogConfigSchema = z.object({
-  // 기본 OFF — 등록된 localGitRepos 경로는 보존하되 수집은 이 토글로만 켠다
+  // 기본 OFF — 등록된 localGitRepos 경로는 보존하고 수집만 이 토글로 켬
   localGitEnabled: z.boolean().default(false),
   localGitRepos: z.array(z.string().min(1)).default([]),
   notionWorkspaces: z.array(notionWorkspaceConfigSchema).default([]),

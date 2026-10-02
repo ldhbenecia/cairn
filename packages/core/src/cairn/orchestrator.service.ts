@@ -85,9 +85,8 @@ export class OrchestratorService {
       options.force || options.skipNotion
         ? new Set<string>()
         : await this.notionPublisher.findPublishedDates(rangeStart, rangeEnd);
-    // journal 은 있는데 노션에 없는 날짜 — 과거 실행에서 journal 쓰기 성공 후 Notion 발행만
-    // 실패한 케이스. 아래 hasDaily 필터가 이 날짜를 backfill 에서 영구 제외하던 문제를,
-    // 재요약 없이 journal 내용 그대로 재발행하는 경로로 복구한다 (리뷰 PR-B)
+    // journal 쓰기 후 노션 발행만 실패한 날짜 — 아래 hasDaily 필터에 영구 제외되지 않도록
+    // 재요약 없이 journal 내용으로 재발행
     let republishedCount = 0;
     if (!options.force && !options.skipNotion) {
       republishedCount = await this.republishFromJournal(targetDates, published, options);
@@ -103,17 +102,14 @@ export class OrchestratorService {
         { rangeStart, rangeEnd, checked: targetDates.length },
         'daily: all dates in backfill window already published — nothing to do',
       );
-      // 이벤트 없이 끝나면 데스크톱이 기본값 '발행 완료'로 오보한다 — 재발행이 있었으면 그 이벤트가
-      // 이미 정확하고, 없었을 때만 skipped 로 보고 (재발행 created 를 skipped 로 덮지 않게)
+      // 이벤트 없이 끝나면 데스크톱이 '발행 완료'로 오보함 — 재발행이 없었을 때만 skipped 로 보고
       if (republishedCount === 0) {
         emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
       }
       return;
     }
 
-    // 기여 캘린더 백필 게이트는 제거됨 — 캘린더가 기본 브랜치 커밋·PR 오픈만 세서, 기존 PR 브랜치에
-    // 푸시만 한 실제 작업일(회사 워크플로우의 흔한 패턴)을 0으로 오판해 일지가 통째로 누락되던 실사례
-    // (2026-08-03: PR 3건 업데이트에도 캘린더 0). 빈 날짜의 검색 쿼리 비용은 백필 3~7일 기준 무시 가능.
+    // 기여 캘린더로 빈 날짜를 거르지 않음 — 기존 PR 브랜치에 푸시만 한 날을 0으로 세서 일지가 누락됨
     const backfillDates = missingDates;
 
     if (backfillDates.length === 1) {
@@ -133,7 +129,7 @@ export class OrchestratorService {
     const completedDates: string[] = [];
     const failedDates: string[] = [];
     const backfillTotal = backfillDates.length;
-    // 데스크톱 배치 진행 UI 가 시작 즉시 총개수·날짜 목록을 알도록(완료 로그 전부터 날짜별 행 렌더링)
+    // 데스크톱 배치 진행 UI 가 시작 즉시 총개수·날짜 목록으로 행을 그리는 용도
     this.logger.info(
       { total: backfillTotal, dates: backfillDates.join(',') },
       'daily: backfill batch start',
@@ -143,7 +139,7 @@ export class OrchestratorService {
       string,
       { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' }
     >(backfillDates, BACKFILL_CONCURRENCY, async (date) => {
-      // 날짜별 "시작" — 요약 중(완료 전)에도 동시 처리 중인 칸 펄스 표시
+      // 날짜별 시작 — 요약 중인 칸 펄스 표시용
       this.logger.info({ date }, 'daily: backfill date start');
       emitParentEvent({ type: 'backfill-date-start', date });
       let result: { date: string; kind: PublishWorklogResult['kind'] | 'no-activity' | 'failed' };
@@ -162,8 +158,8 @@ export class OrchestratorService {
       }
       backfillDone += 1;
       completedDates.push(date);
-      // doneDates: 완료 순서가 날짜 순서와 달라도 UI 가 멤버십으로 정확히 상태 판정하도록 누적 목록 전달
-      // failedDates: 실패 날짜도 done 에 포함되므로, UI 가 ✓ 대신 실패로 구분 표시할 수 있게 별도 누적
+      // doneDates: 완료 순서가 날짜 순서와 달라 UI 가 멤버십으로 판정하도록 누적
+      // failedDates: done 에도 포함되는 실패 날짜를 UI 가 구분 표시하도록 별도 누적
       this.logger.info(
         {
           date,
@@ -186,7 +182,7 @@ export class OrchestratorService {
 
     await this.notifyBackfillBatch(backfillDates, results);
 
-    // 전 날짜 실패인데 exit 0 이면 데스크톱이 '발행 완료'로 오보한다 — 런 실패로 전파
+    // 전 날짜 실패인데 exit 0 이면 데스크톱이 '발행 완료'로 오보함 — 런 실패로 전파
     if (failedDates.length === backfillTotal) {
       throw CairnError.from(
         new Error(
@@ -197,8 +193,8 @@ export class OrchestratorService {
     }
   }
 
-  // Notion 발행만 실패했던 날짜(journal 있음 + published 없음)를 재요약 비용 없이 복구.
-  // publish 는 페이지가 실제로 있으면 skipped 를 반환하므로(findPublishedDates 일시 오류 대비) 안전
+  // 노션 발행만 실패했던 날짜(journal 있음 + published 없음)를 재요약 없이 복구
+  // publish 는 페이지가 실제로 있으면 skipped 를 돌려줘 findPublishedDates 일시 오류에도 안전
   private async republishFromJournal(
     targetDates: readonly string[],
     published: ReadonlySet<string>,
@@ -213,8 +209,7 @@ export class OrchestratorService {
     for (const date of candidates) {
       const summary = this.journalSource.readDailySummary(date);
       if (!summary) {
-        // 사용자가 편집해 파싱 불가한 journal — 조용히 건너뛰면 이 날짜가 영영 미발행으로 남는다.
-        // 파일은 보존(재수집 덮어쓰기 금지), 가시화만
+        // 사용자 편집으로 파싱 불가한 journal — 조용히 넘기면 영영 미발행이라 경고, 파일은 보존
         this.logger.warn(
           { date },
           'daily: journal unparseable — republish skipped (--force 로 재생성 가능)',
@@ -230,12 +225,12 @@ export class OrchestratorService {
           summary,
           lang: options.lang,
         });
-        // 노션 미연동이면 나머지 날짜도 동일 — 재발행 자체가 해당 없음
+        // 노션 미연동이면 나머지 날짜도 재발행 대상 아님
         if (result.kind === 'no-target') return republished.length;
         if (result.kind === 'created' || result.kind === 'recreated') {
           republished.push(date);
           this.logger.info({ date, publishResult: result }, 'daily: republished from journal');
-          // 이벤트 없이 넘어가면 이후 '전체 기발행' 분기가 skipped 로 오보한다 — 실제 발행을 보고
+          // 이벤트 없이 넘어가면 뒤의 '전체 기발행' 분기가 skipped 로 오보함
           emitParentEvent({
             type: 'publish-result',
             kind: result.kind,
@@ -244,7 +239,7 @@ export class OrchestratorService {
           });
         }
       } catch (err) {
-        // Notion 장애 지속 등 — 다음 예약 실행에서 같은 경로로 재시도되므로 런은 계속
+        // Notion 장애 지속 등은 다음 예약 실행에서 같은 경로로 재시도되므로 런 계속
         this.logger.warn(
           { date, error: CairnError.from(err, 'notion') },
           'daily: journal republish failed — will retry next run',
@@ -279,7 +274,7 @@ export class OrchestratorService {
       const pre = options.skipNotion
         ? ({ kind: 'no-target' } as const)
         : await this.notionPublisher.precheckDaily(date);
-      // precheck 에러 + 일지 있음 → 재요약 없이 skip (journal-first)
+      // precheck 에러여도 일지가 있으면 재요약 없이 skip
       if (pre?.kind === 'precheck-error') {
         if (this.journalWriter.hasDaily(date)) {
           this.logger.info(
@@ -296,7 +291,7 @@ export class OrchestratorService {
           return 'skipped';
         }
       } else if (pre && pre.kind !== 'no-target') {
-        // no-target(노션 미연동)은 단락하지 않는다 — journal 가 1차 기록이라 런은 계속돼야 함 (ADR 0031)
+        // no-target(노션 미연동)은 단락 안 함 — journal 이 1차 기록이라 런은 계속
         this.logger.info(
           { date, publishResult: pre },
           'daily: precheck short-circuit — skip collect/summarize',
@@ -316,9 +311,9 @@ export class OrchestratorService {
         }
         return pre.kind;
       }
-      // 노션 미연동이어도 journal 에 이미 기록된 날짜는 재요약하지 않는다 (요약 비용 보호)
+      // 노션 미연동이어도 journal 에 이미 있는 날짜는 재요약 안 함 — 요약 비용 보호
       if (pre?.kind === 'no-target' && this.journalWriter.hasDaily(date)) {
-        // 데스크톱이 precheck 단락과 동일한 publishResult 모양으로 skip 을 판정하도록 구조화 필드 포함
+        // 데스크톱이 precheck 단락과 같은 publishResult 모양으로 skip 을 판정하도록 구조화 필드 포함
         this.logger.info(
           { date, publishResult: { kind: 'skipped', reason: 'already-published' } },
           'daily: journal file exists — skip collect/summarize',
@@ -363,8 +358,7 @@ export class OrchestratorService {
     const sourceErrors = collectSourceErrors(githubActivity, localGitActivity);
 
     if (prCount + commitCount === 0) {
-      // 수집 에러로 인한 0건은 '활동 없음'으로 위장하지 않는다 — 토큰 만료 등이 매일
-      // 무음으로 넘어가 일지가 통째로 누락되던 문제. throw 로 실패 알림·재시도 경로 복원
+      // 수집 에러로 인한 0건은 '활동 없음'으로 위장하지 않음 — 토큰 만료 등이 무음으로 넘어가지 않게 throw
       if (sourceErrors.length > 0) {
         const first = sourceErrors[0]!;
         this.logger.warn(
@@ -393,8 +387,7 @@ export class OrchestratorService {
       return 'no-activity';
     }
 
-    // 부분 수집 실패(한 계정/레포만 실패 + 다른 소스 활동 있음)는 총량>0 이라 조용히 넘어가
-    // 그 계정 활동이 빠진 일지가 정상처럼 발행되던 문제 — 경고 이벤트로 표면화
+    // 부분 수집 실패(일부 계정/레포)는 총량>0 이라 정상 발행처럼 보임 — 경고 이벤트로 표면화
     if (sourceErrors.length > 0) {
       const labels = sourceErrors.map((e) =>
         e.source === 'local-git' ? (e.label.split('/').pop() ?? e.label) : e.label,
@@ -406,8 +399,7 @@ export class OrchestratorService {
       emitParentEvent({ type: 'collect-partial', labels });
     }
 
-    // 그랜드 토탈(로컬+GitHub PR dedup)을 요약 전에 한 번 — 발행 진행 UI 칩이
-    // local-git collect 의 로컬-온리 수치 대신 실제 합계를 표시하도록
+    // 로컬+GitHub PR dedup 합계를 요약 전에 기록 — 발행 진행 UI 칩이 로컬 전용 수치 대신 실제 합계 표시
     this.logger.info({ date, prCount, commitCountTotal: commitCount }, 'daily: day totals');
 
     opts.onStep?.('summarize');
@@ -423,8 +415,7 @@ export class OrchestratorService {
     );
     const summarizeMs = Date.now() - summarizeStart;
 
-    // 요약 실패(Claude 세션 만료·쿼터 소진·중단 등)면 발행 안 함 — 빈 fallback 페이지를
-    // '성공'으로 만들어 가짜 발행이 남던 문제 방지, 발행 전에 던져 기존 페이지도 안 건드림
+    // 요약 실패(세션 만료·쿼터 소진·중단)면 발행 안 함 — 빈 fallback 페이지가 성공처럼 남지 않게 발행 전에 throw
     if (!summary) {
       this.logger.warn({ date }, 'daily: summary generation failed — aborting publish');
       emitParentEvent({ type: 'summary-failed', date });
@@ -459,7 +450,7 @@ export class OrchestratorService {
     }
     const hours = hourHistogram(stamps);
 
-    // 일지의 1차 기록은 로컬 journal — 노션은 연동 싱크 (ADR 0031). journal 실패가 연동 발행을 막지 않는다
+    // 1차 기록은 로컬 journal, 노션은 연동 싱크 — journal 실패가 연동 발행을 막지 않음
     const journalInput = {
       date,
       lang: options.lang,
@@ -511,11 +502,11 @@ export class OrchestratorService {
       try {
         this.journalWriter.writeDaily({ ...journalInput, notionPageId: result.pageId });
       } catch {
-        // frontmatter 의 notion 참조 갱신 실패는 치명적이지 않다 — 본문은 이미 기록됨
+        // frontmatter 의 notion 참조 갱신 실패는 치명적이지 않음 — 본문은 이미 기록됨
       }
     }
 
-    // 통계는 노션이 아닌 로컬에 기록(진실 소스). pr·commit 은 위 distinct 총량과 동일
+    // 통계의 진실 소스는 노션이 아닌 로컬, pr·commit 은 위 distinct 총량과 동일
     if (journalWritten || result.kind === 'created' || result.kind === 'recreated') {
       this.stats.record('daily', date, {
         pr: prCount,
@@ -625,7 +616,7 @@ export class OrchestratorService {
       const pre = options.skipNotion
         ? ({ kind: 'no-target' } as const)
         : await this.rollupPublisher.precheck(period, options.date);
-      // no-target(노션 미연동)은 단락하지 않는다 — journal 가 1차 기록 (ADR 0031)
+      // no-target(노션 미연동)은 단락 안 함 — journal 이 1차 기록
       if (pre && pre.kind !== 'no-target') {
         const { start, end } = periodRange(period, options.date);
         this.logger.info(
@@ -641,7 +632,7 @@ export class OrchestratorService {
         await this.notifyRollup(period, start, end, pre, false);
         return;
       }
-      // 노션 미연동이어도 journal 에 이미 기록된 기간은 재요약하지 않는다 (요약 비용 보호)
+      // 노션 미연동이어도 journal 에 이미 있는 기간은 재요약 안 함 — 요약 비용 보호
       if (pre?.kind === 'no-target') {
         const { start, end } = periodRange(period, options.date);
         if (this.journalWriter.hasRollup(period, start)) {
@@ -676,8 +667,7 @@ export class OrchestratorService {
     }
 
     if (activity.metrics.dailyCount === 0) {
-      // 수집 실패의 0건은 '일지 없음'이 아니다 — 성공 종료 시 데스크톱이 rollup anchor 를
-      // 기록해 해당 기간이 catch-up 에서 영구 제외되던 문제. 실패로 전파해 재시도 복원
+      // 수집 실패의 0건은 '일지 없음'이 아님 — 성공 종료하면 데스크톱이 rollup anchor 를 기록해 catch-up 에서 영구 제외됨
       if (activity.error) {
         this.logger.warn(
           { period, error: activity.error },
@@ -694,7 +684,7 @@ export class OrchestratorService {
         titleKor,
         `${activity.rangeStart} ~ ${activity.rangeEnd} ${missing} — ${periodKor} 생략`,
       );
-      // 이벤트 없이 끝나면 데스크톱이 기본값 '발행 완료'로 오보한다 (runDaily 와 동일 클래스)
+      // 이벤트 없이 끝나면 데스크톱이 '발행 완료'로 오보함
       emitParentEvent({ type: 'no-activity', date: activity.rangeStart });
       return;
     }
@@ -713,7 +703,7 @@ export class OrchestratorService {
       );
     }
 
-    // 롤업도 로컬 journal 가 1차 기록 (ADR 0031)
+    // 롤업도 로컬 journal 이 1차 기록
     const rollupJournalInput = {
       period,
       rangeStart: activity.rangeStart,
@@ -758,7 +748,7 @@ export class OrchestratorService {
       try {
         this.journalWriter.writeRollup({ ...rollupJournalInput, notionPageId: result.pageId });
       } catch {
-        // frontmatter 의 notion 참조 갱신 실패는 치명적이지 않다 — 본문은 이미 기록됨
+        // frontmatter 의 notion 참조 갱신 실패는 치명적이지 않음 — 본문은 이미 기록됨
       }
     }
 

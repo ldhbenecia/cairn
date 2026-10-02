@@ -1,5 +1,5 @@
-// desktop fork(ipc) 전용 이벤트 (ADR 0033) — CLI 단독 실행은 no-op
-// 소비 측: packages/desktop/src/main/core-runner-extract.ts
+// desktop fork(ipc) 전용 이벤트 — CLI 단독 실행은 no-op
+// 소비 측: desktop core-runner-extract.ts · period-doc-events.ts
 
 export type ParentEvent =
   | { type: 'date-step'; date: string; step: 'collect' | 'summarize' | 'publish' }

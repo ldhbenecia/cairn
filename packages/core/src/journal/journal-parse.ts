@@ -6,8 +6,8 @@ export interface ParsedJournalFile {
   blocks: ExtractedBlock[];
 }
 
-// journal md 는 자체 생성물(헤딩·불릿·문단)이라 이 범위만 블록으로 복원한다.
-// 외부 에디터가 CRLF 로 저장할 수 있어 파싱 전 정규화.
+// journal md 는 자체 생성물(헤딩·불릿·문단)이라 이 범위만 블록으로 복원
+// 외부 에디터가 CRLF 로 저장할 수 있어 파싱 전 정규화
 export function parseJournalFile(raw: string): ParsedJournalFile {
   const text = raw.replace(/\r\n/g, '\n');
   const { fm, body } = stripFrontmatter(text);
@@ -40,8 +40,7 @@ function markdownToBlocks(body: string): ExtractedBlock[] {
   return blocks;
 }
 
-// daily journal 블록 → WorklogSummary 복원 — renderDailyJournalMarkdown 의 역방향.
-// Notion 발행만 실패한 날짜를 재요약 없이 journal 로 재발행하는 경로에서 사용
+// renderDailyJournalMarkdown 의 역방향 — 노션 발행만 실패한 날짜를 재요약 없이 재발행하는 경로용
 export function blocksToWorklogSummary(blocks: readonly ExtractedBlock[]): WorklogSummary | null {
   // 다중 문단 수집 — 첫 문단만 취하면 왕복에서 뒷문단 유실
   const paragraphs: string[] = [];

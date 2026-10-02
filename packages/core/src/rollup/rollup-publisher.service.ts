@@ -40,7 +40,7 @@ export class RollupPublisherService {
     private readonly logger: PinoLogger,
   ) {}
 
-  // force 실행에선 orchestrator 가 precheck 자체를 건너뛴다 — 여기선 non-force 만 가정
+  // force 실행은 orchestrator 가 precheck 자체를 건너뛰어 여기선 non-force 만 가정
   async precheck(
     period: 'weekly' | 'monthly' | 'yearly',
     localDate: string,
@@ -122,8 +122,8 @@ export class RollupPublisherService {
         );
         return { kind: 'skipped', reason: 'already-published', pageId: existing.pageId };
       }
-      // 새 페이지를 먼저 만들고 그다음 기존 것을 archive — create 실패 시 기존 rollup 이 보존되도록
-      // (daily publisher 와 동일 패턴). archive 가 실패하면 중복이 잠깐 남지만 데이터 손실은 없음
+      // 새 페이지를 먼저 만들고 기존 것을 archive — create 실패 시 기존 rollup 보존
+      // archive 실패 시 중복이 잠깐 남지만 데이터 손실 없음
       const created = await this.createPage(input, token, dataSourceId);
       try {
         await this.api.archivePage(token, existing.pageId);
@@ -204,7 +204,7 @@ export class RollupPublisherService {
   ): Promise<{ id: string; url: string | null }> {
     const { activity, summary, lang } = input;
     const title = buildTitle(activity, lang);
-    // 위반 블록만 drop 하고 발행 계속 — 전부 drop 이면 fallback 으로 degrade (ADR 0021 item-drop)
+    // 위반 블록만 drop 하고 발행 계속 — 전부 drop 이면 fallback
     const children = enforceBlockEgress(
       summary
         ? buildRollupBlocks(summary, activity, lang)

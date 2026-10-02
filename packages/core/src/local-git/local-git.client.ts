@@ -20,7 +20,7 @@ export class LocalGitClient {
   }
 
   async getUserEmail(repoPath: string): Promise<string> {
-    // user.email 미설정 시 git config 가 exit 1 로 throw — '' 반환해 collector 의 validation 경로로
+    // user.email 미설정이면 git config 가 exit 1 — '' 를 돌려 collector 의 validation 경로로
     try {
       const out = await this.git(repoPath).raw(['config', 'user.email']);
       return out.trim();
@@ -35,9 +35,8 @@ export class LocalGitClient {
     until: string,
     author: string,
   ): Promise<RawLocalCommit[]> {
-    // git --since/--until 은 committer date 기준인데 리포트는 author date(%aI) 기준 —
-    // rebase/amend 로 두 날짜가 갈리면 누락·중복 집계가 생긴다. git 윈도우를 양쪽으로
-    // 벌려 후보를 받고, GitHub PR commit 경로와 동일하게 author date instant 로 필터.
+    // git --since/--until 은 committer date 기준이고 리포트는 author date 기준 — rebase/amend 로 갈리면
+    // 누락·중복이 생겨 윈도우를 양쪽으로 벌려 받고 GitHub PR commit 경로와 같이 author date instant 로 필터
     const sinceMs = Date.parse(since);
     const untilMs = Date.parse(until);
     if (Number.isNaN(sinceMs) || Number.isNaN(untilMs)) {
@@ -64,14 +63,14 @@ export class LocalGitClient {
         .filter((line) => line.trim().length > 0)
         .map((line) => {
           const [shortSha, subject, authoredAt, committedAt] = line.split('\t');
-          // 빈 subject(--allow-empty-message)는 정상 커밋 — throw 하면 레포 전체가 그 날짜에서 탈락한다
+          // 빈 subject(--allow-empty-message)도 정상 커밋 — throw 하면 레포 전체가 그 날짜에서 탈락
           if (!shortSha || !authoredAt) {
             throw new Error(`unexpected git log line shape: ${line}`);
           }
           return { shortSha, subject: subject ?? '', authoredAt, committedAt };
         })
-        // rebase/cherry-pick 날은 author date 가 과거라 0으로 잡히던 문제 — committer date 폴백,
-        // 귀속 시각도 윈도우에 든 쪽으로 (GitHub PR 커밋 경로와 동일 규칙)
+        // rebase/cherry-pick 은 author date 가 과거라 committer date 폴백, 귀속 시각도 윈도우에 든 쪽
+        // (GitHub PR 커밋 경로와 같은 규칙)
         .filter((c) => inWindow(c.authoredAt) || inWindow(c.committedAt))
         .map(({ shortSha, subject, authoredAt, committedAt }) => ({
           shortSha,
@@ -81,7 +80,7 @@ export class LocalGitClient {
     );
   }
 
-  // local·remote 를 한 번의 git 스폰으로 조회 (커밋당 프로세스 2회 → 1회)
+  // local·remote 를 git 스폰 한 번으로 조회
   async branchesContaining(
     repoPath: string,
     sha: string,

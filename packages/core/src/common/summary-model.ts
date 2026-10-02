@@ -12,8 +12,8 @@ export function summaryModelOption(): { model?: string; fallbackModel?: string }
 
 const FAMILIES = ['sonnet', 'opus', 'haiku'];
 
-// 발행물 표기 라벨 — 실제 모델 id 면 버전 포함('claude-opus-4-8*' → 'Claude Opus 4.8'),
-// 설정 별칭 폴백이면 버전 없이('Claude Opus') — 별칭은 실행 시점 최신으로 해석되므로 버전을 단정하지 않는다
+// 실제 모델 id 면 버전 포함('claude-opus-4-8*' → 'Claude Opus 4.8'), 설정 별칭이면 버전 없이
+// — 별칭은 실행 시점 최신으로 해석돼 버전을 단정할 수 없음
 export function summaryModelLabel(model?: string): string {
   const title = (f: string): string => `Claude ${f.charAt(0).toUpperCase()}${f.slice(1)}`;
   const id = model?.trim().toLowerCase();
@@ -27,7 +27,7 @@ export function summaryModelLabel(model?: string): string {
   return alias ? title(alias) : 'Claude';
 }
 
-// id 의 숫자 세그먼트를 버전으로 — 'claude-opus-4-8-20260101' → '4.8'. 4자리 이상은 날짜 스냅샷이라 제외
+// id 의 숫자 세그먼트가 버전 — 'claude-opus-4-8-20260101' → '4.8', 4자리 이상은 날짜 스냅샷이라 제외
 function versionFromModelId(id: string, family: string): string {
   const parts = id.split('-');
   const i = parts.indexOf(family);
@@ -41,6 +41,6 @@ function versionFromModelId(id: string, family: string): string {
     return out;
   };
   const after = nums(parts.slice(i + 1));
-  // 구형 id('claude-3-5-sonnet-*')는 버전이 family 앞에 온다
+  // 구형 id('claude-3-5-sonnet-*')는 버전이 family 앞에 옴
   return (after.length > 0 ? after : nums(parts.slice(1, i))).join('.');
 }

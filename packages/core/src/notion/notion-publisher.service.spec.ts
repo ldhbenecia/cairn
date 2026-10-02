@@ -63,7 +63,7 @@ describe('NotionPublisherService egress item-drop (ADR 0021)', () => {
     expect(json).toContain('clean done bullet');
     expect(json).toContain('clean summary paragraph');
     expect(json).not.toContain('/Users/');
-    // 위반 블록 1개 때문에 통짜 fallback 으로 degrade 되면 안 된다
+    // 위반 블록 1개로 통짜 fallback 으로 degrade 되면 안 됨
     expect(json).not.toContain('Summarizer 미실행');
     expect(warn).toHaveBeenCalledTimes(1);
   });

@@ -7,12 +7,12 @@ export interface RollupSummarizerInput {
   activity: RollupActivity;
 }
 
-// highlights 파싱 계약: 모든 항목은 "[project]" 또는 "[label] [project]" 대괄호 프리픽스로 시작해야
-// downstream 프로젝트 매핑이 깨지지 않는다 (daily done 불릿과 동일 계약). 미충족 시 검증 실패 → 재생성 유도
+// highlights 파싱 계약: 모든 항목이 "[project]" 또는 "[label] [project]" 로 시작해야 downstream
+// 프로젝트 매핑이 안 깨짐 (daily done 불릿과 같은 계약) — 미충족 시 검증 실패로 재생성 유도
 const HIGHLIGHT_PREFIX = /^\[[^\]]+\]\s*(?:\[[^\]]+\]\s*)?\S/;
 
 export const submitRollupSchema = z.object({
-  // Notion rich_text text.content 한도가 2000자 — 2500 이면 스키마는 통과하고 발행이 터진다
+  // Notion rich_text text.content 한도 2000자 — 넘기면 스키마는 통과하고 발행이 실패함
   paragraph: z.string().min(1).max(2000),
   themes: z
     .array(
@@ -99,9 +99,8 @@ export function buildRollupActivityPayload(input: RollupSummarizerInput): Rollup
   return payload;
 }
 
-// daily 페이지는 발행 후 사용자가 자유 편집하는 대상 — 어느 날의 bullet 하나에 금지 패턴
-// (이메일·절대경로 등)이 들어가면 전체-payload fail-closed 가 롤업을 결정적·영구적으로
-// 실패시키던 문제. 항목(날짜) 단위로 검사해 위반 항목만 drop 한다 (ADR 0021 item-drop)
+// daily 페이지는 발행 후 사용자가 자유 편집 — bullet 하나의 금지 패턴(이메일·절대경로 등)이
+// 전체 payload 검사로 롤업을 영구 실패시키지 않도록 날짜 단위로 위반 항목만 drop
 export function dropForbiddenSummaries(
   summaries: readonly RollupDailySummaryText[],
   onDrop: (date: string) => void,
@@ -123,7 +122,7 @@ export interface RollupToolsBundle {
   getSubmission: () => SubmitRollupInput | null;
 }
 
-// 활동 데이터는 user 프롬프트에 인라인 — get_rollup_activity 도구 왕복 제거 (daily 와 동일 근거)
+// 활동 데이터는 user 프롬프트에 인라인 — get_rollup_activity 도구 왕복 제거
 export function buildRollupTools(): RollupToolsBundle {
   let submission: SubmitRollupInput | null = null;
 

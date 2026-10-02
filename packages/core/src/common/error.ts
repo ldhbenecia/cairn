@@ -55,8 +55,7 @@ export class CairnError extends Error {
       const code = reason.message.startsWith('Missing required secret:')
         ? ErrorCode.AuthFailed
         : ErrorCode.Unknown;
-      // message 가 빈 에러(Claude SDK 등)는 name 이라도 남긴다 — {"code":"unknown","message":""} 로
-      // 원인 추적이 불가능했던 문제
+      // message 가 빈 에러(Claude SDK 등)는 name 이라도 남김 — 원인 추적용
       return new CairnError(source, code, reason.message || reason.name);
     }
     return new CairnError(source, ErrorCode.Unknown, errorMessage(reason));
@@ -87,7 +86,7 @@ export function errorMessage(reason: unknown): string {
   if (reason instanceof Error) return reason.message;
   if (typeof reason === 'string') return reason;
   try {
-    // undefined·함수는 JSON.stringify 가 undefined 를 돌려줘 빈 message 가 됐다
+    // undefined·함수는 JSON.stringify 가 undefined 를 돌려줘 빈 message 가 됨
     return JSON.stringify(reason) ?? String(reason);
   } catch {
     return String(reason);

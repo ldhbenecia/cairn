@@ -9,12 +9,12 @@ export function snapshotStamp(now = new Date()): string {
   return now.toISOString().replace(/[:.]/g, '-');
 }
 
-// 파일명(상대 키) 기반 — 절대경로 키는 폴더 이동 시 스냅샷 고아를 만든다
+// 파일명(상대 키) 기반 — 절대경로 키는 폴더 이동 시 스냅샷 고아를 만듦
 export function snapshotDirFor(fileName: string, root = SNAPSHOT_ROOT): string {
   return join(root, fileName.replace(/\.md$/, ''));
 }
 
-// 덮어쓰기 직전의 이전본 보존. 내용이 같으면 저장 안 함. 저장했으면 true
+// 덮어쓰기 직전 이전본 보존, 내용이 같으면 저장 안 함
 export function saveSnapshotIfChanged(
   currentPath: string,
   fileName: string,

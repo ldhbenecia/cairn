@@ -20,7 +20,7 @@ export const submitSummarySchema = z.object({
   paragraph: z.string().min(1).max(2000),
   shareBullets: z.array(z.string().min(1).max(200)).max(10).default([]),
   doneBullets: z.array(z.string().min(1).max(300)).max(20),
-  // 리뷰 활동은 수집·요약하지 않음 — 과거 페이지 호환을 위해 필드만 유지 (생략 시 빈 배열)
+  // 리뷰 활동은 수집·요약 안 함 — 과거 페이지 호환을 위해 필드만 유지 (생략 시 빈 배열)
   reviewedBullets: z.array(z.string().min(1).max(300)).max(20).default([]),
   inProgressBullets: z.array(z.string().min(1).max(300)).max(20),
   notesBullets: z.array(z.string().min(1).max(300)).max(20),
@@ -122,8 +122,8 @@ export interface SummarizerToolsBundle {
   getSubmission: () => SubmitSummaryInput | null;
 }
 
-// 활동 데이터는 user 프롬프트에 인라인 — get_activity 도구 왕복(모델 턴 1회)을 없애 지연 단축.
-// payload 는 인라인 전에 동일한 assertNoForbiddenPayload 를 통과한다 (egress 불변)
+// 활동 데이터는 user 프롬프트에 인라인 — get_activity 도구 왕복(모델 턴 1회) 제거
+// payload 는 인라인 전에 같은 assertNoForbiddenPayload 를 통과
 export function buildSummarizerTools(): SummarizerToolsBundle {
   let submission: SubmitSummaryInput | null = null;
 
@@ -152,8 +152,7 @@ export function buildSummarizerTools(): SummarizerToolsBundle {
 function computeDonePrs(input: SummarizerInput): DonePrItem[] {
   const out: DonePrItem[] = [];
   for (const pr of input.github?.prs ?? []) {
-    // closed-unmerged 도 포함 — prCount 에는 잡히는데 done/inProgress 어디에도 없으면
-    // 요약이 "N개 PR" 과 본문이 어긋난다
+    // closed-unmerged 도 포함 — prCount 에 잡히는데 done/inProgress 어디에도 없으면 요약 수치와 본문이 어긋남
     if ((pr.mergedAt || pr.state === 'closed') && isMyWork(pr)) {
       out.push({
         source: 'github',
@@ -174,7 +173,7 @@ function computeDonePrs(input: SummarizerInput): DonePrItem[] {
   return out;
 }
 
-// PR body 는 근거용이지만 무제한이면 입력 토큰을 지배한다(회사 PR 템플릿 수천 자) — 앞부분만
+// PR body 는 근거용이지만 무제한이면 입력 토큰을 지배함(회사 PR 템플릿 수천 자) — 앞부분만
 const BODY_CAP = 1200;
 function capBody(body: string | null): string | null {
   if (!body || body.length <= BODY_CAP) return body;

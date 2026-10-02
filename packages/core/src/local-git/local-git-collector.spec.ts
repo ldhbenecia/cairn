@@ -18,7 +18,7 @@ describe('LocalGitCollectorService — localGitEnabled 토글', () => {
 
     expect(result.repos).toEqual([]);
     expect(svc.isEnabled()).toBe(false);
-    // 경로 조회·git 스폰까지 도달하지 않는다 (수집만 중단, 경로는 config 에 보존)
+    // 경로 조회·git 스폰까지 도달 안 함 (수집만 중단, 경로는 config 에 보존)
     expect(getLocalGitRepos).not.toHaveBeenCalled();
     expect(client.checkIsRepo).not.toHaveBeenCalled();
   });

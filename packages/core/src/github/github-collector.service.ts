@@ -44,12 +44,11 @@ export class GithubCollectorService {
   async collect(date: string, lookbackDays = 14): Promise<GithubActivity> {
     const window = localDateToUtcWindow(date);
     const range = searchRangeFragment(window);
-    // 오늘 (live daily) 은 PR.updated_at 이 아직 밀리지 않은 시점 → narrow 로 충분
-    // 과거 (backfill) 만 widening 적용해서 updated_at 이 밀린 케이스 cover
+    // 오늘(live daily)은 updated_at 이 아직 안 밀려 narrow 로 충분, backfill 만 widening
     const isBackfill = date < todayLocalIsoDate();
     const effectiveLookback = isBackfill ? lookbackDays : 0;
-    // backfill 은 updated_at 이 D 이후로 밀린 PR 까지 잡으려 lower bound 만 둔다(상한 없음).
-    // 매우 활발한 계정의 오래된 날짜 backfill 은 updated-desc 1000 cap 에 잘릴 수 있음 — 페이징 재설계는 별도 과제.
+    // backfill 은 updated_at 이 D 이후로 밀린 PR 까지 잡도록 lower bound 만 둠
+    // 매우 활발한 계정의 오래된 날짜는 updated-desc 1000 cap 에 잘릴 수 있음
     const backfillLowerBoundIso =
       effectiveLookback > 0 ? localDateStartIsoBefore(date, effectiveLookback) : null;
     const widenedRange = backfillLowerBoundIso ? `>=${backfillLowerBoundIso}` : range;
@@ -136,9 +135,8 @@ export class GithubCollectorService {
     for (const item of involved) {
       const isAuthored = item.author === myLogin;
       const isAssigned = item.assignees.includes(myLogin);
-      // 소유/할당이 아니어도 버리지 않는다 — 남의 PR 에 커밋만 푸시한 날(핸드오프·페어링)이
-      // 통째로 빠지던 문제. phase1 의 내 커밋 존재 여부가 eligibility 를 결정한다
-      // (리뷰-온리 involved PR 은 내 커밋 0 → 탈락, 리뷰 활동 제외 정책 유지)
+      // 소유/할당이 아니어도 버리지 않음 — 남의 PR 에 커밋만 푸시한 날(핸드오프·페어링)도 내 활동
+      // eligibility 는 phase1 의 내 커밋 존재 여부로 결정 (리뷰 전용 PR 은 내 커밋 0 → 탈락)
       const key = `${account.label}/${item.owner}/${item.repo}#${item.number}`;
       const bucket = buckets.get(key) ?? {
         account: account.label,
@@ -156,8 +154,7 @@ export class GithubCollectorService {
       buckets.set(key, bucket);
     }
 
-    // PR 커밋 목록을 GraphQL alias 배치로 선적재 — 이후 phase1·요약의 REST N 콜 제거.
-    // 배치 실패·100+ 커밋 PR 은 캐시 미적재로 남아 기존 REST 경로가 그대로 폴백된다.
+    // PR 커밋 목록 GraphQL 배치 선적재 — 배치 실패·100+ 커밋 PR 은 기존 REST 경로로 폴백
     await this.client.primePrCommits(
       token,
       [...buckets.values()].map((b) => ({
@@ -167,14 +164,14 @@ export class GithubCollectorService {
       })),
     );
 
-    // 커밋 조회 실패로 PR 이 조용히 탈락하면, 그 PR 이 유일 활동인 날이 '활동 없음'으로 오보된다 —
-    // 실패를 모아 결과 0건일 때 계정 실패로 전파 (A4)
+    // 커밋 조회 실패로 PR 이 조용히 빠지면 그 PR 만 있던 날이 '활동 없음'으로 오보됨 —
+    // 실패를 모아 결과 0건일 때 계정 실패로 전파
     const commitFetchErrors: CairnError[] = [];
-    // GitHub API secondary rate limit 회피를 위해 token 당 동시 호출 5 개로 제한
+    // secondary rate limit 회피 — token 당 동시 호출 5개
     const phase1 = await withConcurrency([...buckets.values()], 5, async (bucket) => {
       const { item, categories } = bucket;
       const ownedOrAssigned = categories.has('authored') || categories.has('assigned');
-      // 소유/할당 아닌 PR 은 '그날 열림'만으로는 내 활동이 아니다 — 내 커밋이 있어야 통과
+      // 소유/할당 아닌 PR 은 그날 열림만으로 내 활동 아님 — 내 커밋이 있어야 통과
       const createdInDay =
         ownedOrAssigned && item.createdAt >= sinceIso && item.createdAt <= untilIso;
       const hasAuthoredMerged = categories.has('authored_merged');
@@ -203,7 +200,7 @@ export class GithubCollectorService {
     let summaryCommitLookupCount = 0;
     const summaries = await withConcurrency(eligible, 5, async ({ bucket, commitsOnDate }) => {
       const { account: acc, item, categories } = bucket;
-      // title 은 필수 필드라 null 화 불가 — 금지 패턴이면 PR 만 drop (전체 payload 백스톱이 하루치 발행을 막지 않게)
+      // title 은 필수라 null 화 불가 — 금지 패턴이면 PR 만 drop 해 하루치 발행이 막히지 않게
       try {
         assertNoForbiddenPayload(item.title, `github.pr-title.${item.repo}#${item.number}`);
       } catch {
@@ -243,7 +240,7 @@ export class GithubCollectorService {
       'github collect account summarized',
     );
     const kept = summaries.filter((s) => s !== null);
-    // 커밋 조회 실패가 있었고 남은 결과가 0이면 '활동 없음'이 아니라 수집 실패다 — 계정 실패로 전파
+    // 커밋 조회 실패가 있었고 남은 결과가 0이면 '활동 없음'이 아닌 수집 실패 — 계정 실패로 전파
     const firstFetchError = commitFetchErrors[0];
     if (kept.length === 0 && firstFetchError) throw firstFetchError;
     return kept;
@@ -280,13 +277,13 @@ export class GithubCollectorService {
     const out: PrCommitOnDate[] = [];
     for (const c of raw) {
       try {
-        // body 와 동일 — 자르기 전 원본 subject 로 검사해 경계 회피를 막는다
+        // body 와 같이 자르기 전 원본 subject 로 검사 — 경계 회피 방지
         assertNoForbiddenPayload(
           c.subject,
           `github.pr-commit.${item.repo}#${item.number}.${c.shortSha}`,
         );
       } catch {
-        // commit subject 에 금지 패턴이 있으면 그 commit 만 빼고 계속
+        // subject 에 금지 패턴이 있으면 그 commit 만 빼고 계속
         this.logger.warn(
           { repo: item.repo, number: item.number, sha: c.shortSha },
           'pr commit subject contains forbidden pattern — commit dropped',
@@ -306,8 +303,8 @@ export class GithubCollectorService {
     const raw = item.body;
     if (!raw) return null;
     try {
-      // 자르기 전 원본으로 검사한다 — 토큰/이메일이 PR_BODY_MAX_CHARS 경계에 걸치면 잘린 조각이
-      // length-gated 정규식(ghp_{30,}·이메일 TLD 등)을 회피할 수 있어, 원본을 먼저 검사 후 truncate
+      // 자르기 전 원본으로 검사 — 토큰·이메일이 PR_BODY_MAX_CHARS 경계에 걸치면 잘린 조각이
+      // length-gated 정규식(ghp_{30,}·이메일 TLD 등)을 피해 감
       assertNoForbiddenPayload(raw, `github.pr-body.${item.repo}#${item.number}`);
     } catch (err) {
       this.logger.warn(

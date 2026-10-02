@@ -11,8 +11,8 @@ type CairnOctokit = InstanceType<typeof CairnOctokit>;
 
 const GITHUB_REQUEST_TIMEOUT_MS = 20_000;
 const MAX_RATE_LIMIT_RETRY_AFTER_SECONDS = 30;
-// PR 커밋 목록을 GraphQL alias 로 배치 — REST pulls.listCommits N 콜을 한 요청으로.
-// commits(first:100) 이므로 100 초과 PR 은 배치에서 제외하고 REST 페이징으로 폴백
+// PR 커밋 목록을 GraphQL alias 로 묶어 REST listCommits N 콜을 한 요청으로
+// commits(first:100) 라 100 초과 PR 은 배치에서 빼고 REST 페이징으로 폴백
 const GRAPHQL_PR_BATCH_SIZE = 15;
 const GRAPHQL_PR_COMMITS_PAGE = 100;
 
@@ -109,9 +109,8 @@ export class GithubApiClient {
     return items;
   }
 
-  // backfill 전용: `updated:>=lowerBound` 검색을 (token, baseQuery) 단위로 캐시.
-  // 날짜별 backfill 은 lower bound 만 하루씩 다른 동일 검색을 반복하므로,
-  // 더 넓은(과거) lower bound 로 받아둔 결과를 client-side 필터로 재사용 (정당성: pr-search-reuse.ts)
+  // backfill 전용 — lower bound 만 하루씩 다른 동일 검색을 (token, baseQuery) 단위로 캐시하고
+  // 더 넓은 lower bound 결과를 client-side 필터로 재사용 (정당성은 pr-search-reuse.ts)
   async searchPrsUpdatedSince(
     token: string,
     baseQuery: string,
@@ -139,7 +138,7 @@ export class GithubApiClient {
       );
       return sliced;
     }
-    // get→set 사이 await 없음 — 동시 호출자는 같은 entry 를 보고 같은 fetch 를 기다린다
+    // get→set 사이 await 없음 — 동시 호출자가 같은 entry 의 fetch 를 함께 기다림
     const entry: PrSearchCacheEntry = {
       lowerBoundIso,
       promise: this.fetchSearchPrs(token, `${baseQuery} updated:>=${lowerBoundIso}`),
@@ -160,10 +159,10 @@ export class GithubApiClient {
   private async fetchSearchPrs(token: string, query: string): Promise<PrSearchFetchResult> {
     const octokit = this.getOctokit(token);
     const out: SearchPrItem[] = [];
-    // 10 페이지 모두 가득 차면 GitHub 1000 cap 도달 가능성 → truncated 로 보수적 처리
+    // 10 페이지가 모두 가득 차면 GitHub 1000 cap 도달 가능 → truncated 로 보수 처리
     let truncated = true;
-    // 페이징 필수: 백필은 넓은 updated 범위라 첫 100건만 받으면 오래된 PR(2월 작성→3월 머지 등
-    // updated_at 밀린 케이스)이 잘려 누락 — updated desc 로 결정적, GitHub 상한(1000)까지
+    // 백필은 updated 범위가 넓어 첫 100건만 받으면 updated_at 이 밀린 오래된 PR 이 누락됨 —
+    // updated desc 로 GitHub 상한(1000)까지 페이징
     for (let page = 1; page <= 10; page += 1) {
       const { data } = await octokit.rest.search.issuesAndPullRequests({
         q: `is:pr ${query}`,
@@ -210,12 +209,10 @@ export class GithubApiClient {
     authorLogin?: string,
   ): Promise<Array<{ shortSha: string; subject: string; authoredAt: string }>> {
     const all = await this.listPrCommitsCached(token, owner, repo, pullNumber);
-    // authoredAt 은 커미터 offset 을 보존한 ISO(예: +09:00), sinceIso/untilIso 는 Z 정규화 윈도우.
-    // 사전식 문자열 비교는 offset 차이로 어긋나므로 instant(Date.parse) 로 비교한다.
+    // authoredAt 은 커미터 offset 보존 ISO, 윈도우는 Z 정규화 — 문자열 대신 instant 로 비교
     const since = Date.parse(sinceIso);
     const until = Date.parse(untilIso);
-    // rebase/cherry-pick 날은 author date 가 과거라 0으로 잡히던 문제 — committer date 폴백.
-    // 귀속 시각도 윈도우에 든 쪽을 쓴다 (히스토그램·날짜 배정 일관)
+    // rebase/cherry-pick 은 author date 가 과거라 committer date 로 폴백, 귀속 시각도 윈도우에 든 쪽 사용
     const inWindow = (iso: string | null): boolean => {
       if (!iso) return false;
       const t = Date.parse(iso);
@@ -259,7 +256,7 @@ export class GithubApiClient {
     const out: RawPrCommit[] = [];
     let page = 1;
     const perPage = 100;
-    // GitHub 가 commit 순서를 author date 로 보장 X — 모두 가져온 뒤 client-side 필터
+    // GitHub 가 commit 순서를 author date 로 보장 안 함 — 전부 받은 뒤 client-side 필터
     while (true) {
       const { data } = await octokit.rest.pulls.listCommits({
         owner,
@@ -283,14 +280,13 @@ export class GithubApiClient {
       }
       if (data.length < perPage) break;
       page += 1;
-      if (page > 10) break; // 안전 가드 (PR 에 1000+ commit 은 비정상)
+      if (page > 10) break; // PR 에 1000+ commit 은 비정상 — 무한 페이징 방지
     }
     return out;
   }
 
-  // PR 커밋 목록을 GraphQL alias 배치로 미리 받아 prCommitsCache 에 선적재한다.
-  // listPrCommitsInRange 가 이후 캐시에서 바로 꺼내 REST N 콜을 없앤다.
-  // 배치 실패·PR 100+ 커밋·alias 누락은 선적재하지 않아 기존 REST 경로로 폴백된다.
+  // PR 커밋 목록을 GraphQL alias 배치로 prCommitsCache 에 선적재 — 이후 REST N 콜 제거
+  // 배치 실패·100+ 커밋·alias 누락은 선적재 안 해 기존 REST 경로로 폴백
   async primePrCommits(token: string, refs: readonly PrCommitRef[]): Promise<void> {
     const pending = new Map<string, PrCommitRef>();
     for (const ref of refs) {
@@ -309,8 +305,7 @@ export class GithubApiClient {
     }
   }
 
-  // 한 chunk(≤15 PR)를 GraphQL alias 한 요청으로. 완전 수집된(≤100 커밋) PR 만 반환,
-  // 나머지(null·100+·에러)는 제외해 호출자가 REST 로 폴백하게 한다.
+  // 완전 수집된(≤100 커밋) PR 만 반환 — null·100+·에러는 빼서 호출자가 REST 로 폴백
   private async fetchPrCommitsBatch(
     token: string,
     chunk: readonly PrCommitRef[],
@@ -359,8 +354,7 @@ export class GithubApiClient {
       try {
         out.set(ref, commits.nodes.map(mapGqlCommit));
       } catch (mapErr) {
-        // 스키마와 다른 malformed 응답으로 매핑이 던지면 이 PR 만 선적재 스킵 → 기존 REST 경로로
-        // 폴백. chunk·계정 전체가 죽지 않게 격리한다.
+        // malformed 응답으로 매핑이 던지면 이 PR 만 선적재 스킵 — chunk·계정 전체가 죽지 않게 격리
         this.logger.warn(
           { owner: ref.owner, repo: ref.repo, number: ref.number, err: String(mapErr) },
           'pr commit node mapping failed — rest fallback for this pr',
@@ -406,11 +400,8 @@ export class GithubApiClient {
   }
 }
 
-// GraphQL 커밋 노드 → RawPrCommit. 산출 필드는 REST fetchAllPrCommits 와 동일:
-// shortSha 는 oid 앞 7자(REST sha.slice(0,7) 와 동일), subject 는 headline(첫 줄),
-// authoredAt 은 authoredDate(GitHub GitTimestamp — DateTime 과 달리 UTC 로 정규화되지 않고
-//   원본 오프셋을 보존. 필터·histogram 모두 Date.parse 로 instant 를 다뤄 오프셋 유무와 무관하게 동치),
-// isMerge 는 parents.totalCount > 1. 노드/필드 null 은 방어적으로 처리(malformed 응답 대비).
+// 산출 필드는 REST fetchAllPrCommits 와 같아야 함 — shortSha 는 oid 앞 7자, subject 는 headline
+// authoredDate 는 원본 오프셋을 보존하지만 필터·histogram 이 Date.parse instant 로 다뤄 동치
 function mapGqlCommit(node: GqlCommitNode): RawPrCommit {
   const c = node.commit;
   return {

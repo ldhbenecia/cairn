@@ -32,11 +32,11 @@ export class RollupSummarizerService {
     const { server, getSubmission } = buildRollupTools();
     const a = input.activity;
 
-    // 데스크톱 단계 표시가 이 라인으로 collect → summarize 전환을 감지한다 (core-runner STEP_TRIGGERS)
+    // 데스크톱 단계 표시가 이 라인으로 collect → summarize 전환을 감지 (core-runner STEP_TRIGGERS)
     this.logger.info({ period: a.period }, 'rollup summarizer start');
 
-    // 활동을 프롬프트에 인라인 — 도구 왕복 제거, egress 검사는 동일 (ADR 0003/0021)
-    // 사용자가 편집한 daily 페이지의 위반 항목은 날짜 단위로 drop (전체 실패 방지), 최종 전체 검사는 백스톱
+    // 활동을 프롬프트에 인라인 — 사용자가 편집한 daily 의 위반 항목은 날짜 단위로 drop 해 전체 실패 방지
+    // 최종 전체 검사는 백스톱
     const safeSummaries = dropForbiddenSummaries(a.summaries, (date) =>
       this.logger.warn(
         { period: a.period, date },
@@ -68,12 +68,10 @@ export class RollupSummarizerService {
             [MCP_SERVER_NAME]: server,
           },
           allowedTools: [`mcp__${MCP_SERVER_NAME}__submit_rollup`],
-          // 요약은 추론 태스크가 아니다 — 기본 effort('high')가 8~10K thinking 토큰을 태워
-          // 요약이 1.5~2분 걸리던 실측 원인. maxTurns 는 자연 종료 캡(성능 무관 — 1·2 로 줄이면
-          // SDK 가 error_max_turns 를 throw 해 이미 도착한 submission 까지 버린다, 실측)
+          // 요약은 추론 태스크가 아님 — 기본 effort('high')는 수천 thinking 토큰으로 수 분 걸림
+          // maxTurns 는 자연 종료 캡 — 1·2 로 줄이면 SDK 가 error_max_turns 를 던져 도착한 submission 까지 버림
           effort: 'low',
-          // effort 는 adaptive thinking 모델(sonnet 5 등)에만 작동 — haiku 4.5 는 무시하고
-          // thinking 을 계속 태워 102초/9.5K 출력(실측). 전 모델에서 확실히 끄려면 명시 disabled
+          // effort 는 adaptive thinking 모델에만 작동하고 haiku 4.5 는 무시함 — 전 모델에서 끄려면 명시 disabled
           thinking: { type: 'disabled' },
           maxTurns: 3,
           ...summaryModelOption(),
@@ -83,7 +81,7 @@ export class RollupSummarizerService {
       agentUsage = await accumulateAgentUsage(q);
     } catch (err) {
       const error = CairnError.from(err, 'summarizer');
-      // SDK 는 max-turns 등도 throw 한다 — submission 이 이미 도착했으면 유료 실행 결과를 버리지 않는다
+      // SDK 는 max-turns 등도 throw — submission 이 이미 도착했으면 유료 실행 결과를 버리지 않음
       if (getSubmission()) {
         this.logger.warn(
           { period: a.period, error },
@@ -137,7 +135,7 @@ export class RollupSummarizerService {
       return null;
     }
     if (resultSubtype !== 'success') {
-      // submit_rollup 은 이미 도착 — maxTurns 등 비정상 종료여도 유료 실행 결과를 버리지 않는다 (daily 와 동일)
+      // submit_rollup 은 이미 도착 — maxTurns 등 비정상 종료여도 유료 실행 결과 사용
       this.logger.warn(
         { period: a.period, resultSubtype },
         'rollup summarizer non-success but submission present — using it',

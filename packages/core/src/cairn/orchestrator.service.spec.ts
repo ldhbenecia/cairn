@@ -6,8 +6,8 @@ import type { RollupActivity } from '../contracts/rollup-activity.types.js';
 import { OrchestratorService } from './orchestrator.service.js';
 import type { RunOptions } from './run-options.js';
 
-// 실패가 '활동 없음/일지 없음' 성공으로 위장되던 회귀 방지 스펙 —
-// 도달하지 않아야 하는 의존성은 호출 시 throw 하는 스텁으로 고정
+// 실패가 '활동 없음/일지 없음' 성공으로 위장되지 않는지 고정
+// 도달하면 안 되는 의존성은 호출 시 throw 하는 스텁
 
 const logger = () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() });
 const unusable = (name: string) =>
@@ -154,7 +154,7 @@ describe('daily 활동 0건 판정', () => {
 });
 
 describe('journal 재발행 (Notion 발행만 실패했던 날짜 복구)', () => {
-  // backfill 창 3일: 07-07·07-08·07-09. 07-07 은 journal 만 있고 노션에 없음 → 재발행 대상
+  // backfill 창 3일(07-07·07-08·07-09) — 07-07 은 journal 만 있고 노션에 없어 재발행 대상
   const backfillOptions: RunOptions = {
     ...dailyOptions,
     dateExplicit: false,

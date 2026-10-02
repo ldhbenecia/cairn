@@ -2,8 +2,7 @@ export interface AgentUsage {
   resultSubtype: string;
   inputTokens: number;
   outputTokens: number;
-  // 프롬프트 캐시 실측용 분리 노출 (inputTokens 에는 합산돼 있음) — 백필 연속 실행에서
-  // 시스템 프롬프트 프리픽스가 실제로 캐시 히트하는지 로그로 확인하는 용도
+  // 프롬프트 캐시 히트 확인용 분리 노출 (inputTokens 에는 합산돼 있음)
   cacheReadTokens: number;
   cacheCreationTokens: number;
   costUsd: number;
@@ -37,8 +36,8 @@ export async function accumulateAgentUsage(q: AsyncIterable<unknown>): Promise<A
   let resultSubtype = 'unknown';
   let model: string | undefined;
   let modelOutputMax = -1;
-  // 미로그인·토큰 만료는 subtype 'success' + is_error 결과로 온다 (원인 문구는 result 텍스트).
-  // SDK 가 뒤이어 message 없는 값을 던지면 원인이 유실되므로 결과 텍스트를 붙잡아 둔다
+  // 미로그인·토큰 만료는 subtype 'success' + is_error 로 옴 — 결과 텍스트를 잡아두지 않으면
+  // SDK 가 빈 값을 던질 때 원인이 사라짐
   let errorResult: string | undefined;
   try {
     for await (const message of q) {
@@ -54,7 +53,7 @@ export async function accumulateAgentUsage(q: AsyncIterable<unknown>): Promise<A
           cacheReadTokens += num(u.cacheReadInputTokens);
           cacheCreationTokens += num(u.cacheCreationInputTokens);
           outputTokens += num(u.outputTokens);
-          // 여러 모델이 섞이면(오버로드 fallback 등) 출력을 가장 많이 낸 모델을 대표로
+          // 여러 모델이 섞이면(오버로드 fallback 등) 출력을 가장 많이 낸 모델이 대표
           if (num(u.outputTokens) > modelOutputMax) {
             modelOutputMax = num(u.outputTokens);
             model = id;

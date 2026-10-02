@@ -105,7 +105,7 @@ function pushBullets(body: string[], heading: string, bullets: readonly string[]
   body.push('');
 }
 
-// 값 종류가 한정돼 있어 yaml 라이브러리 없이 직렬화 (string·number·number[]·null)
+// 값 종류가 한정돼(string·number·number[]·null) yaml 라이브러리 없이 직렬화
 function frontmatter(fields: readonly [string, string | number | number[] | null][]): string {
   const lines = ['---'];
   for (const [key, value] of fields) {
