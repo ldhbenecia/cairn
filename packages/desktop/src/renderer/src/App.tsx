@@ -94,9 +94,8 @@ export function App() {
   });
   const [sessions, setSessions] = useState<Record<CoreMode, RunSession | null>>(EMPTY_SESSIONS);
   const [runningMode, setRunningMode] = useState<CoreMode | null>(null);
-  const [busy, setBusy] = useState<BusyState>({ busy: false, mode: null });
-  const busyRef = useRef(busy);
-  busyRef.current = busy;
+  // 렌더에 안 쓰는 값이라 ref 로만 — busy 브로드캐스트마다 앱 전체가 리렌더되지 않게
+  const busyRef = useRef<BusyState>({ busy: false, mode: null });
   const signedInRef = useRef(false);
   const [recent, setRecent] = useState<RecentListResult | null>(readRecentCache);
   const recentRef = useRef(recent);
@@ -281,9 +280,11 @@ export function App() {
   }, [loadRecent]);
 
   useEffect(() => {
+    const setBusy = (s: BusyState): void => {
+      busyRef.current = s;
+    };
     void window.cairn.busyState().then(setBusy);
-    const off = window.cairn.onBusy(setBusy);
-    return off;
+    return window.cairn.onBusy(setBusy);
   }, []);
 
   useEffect(() => {

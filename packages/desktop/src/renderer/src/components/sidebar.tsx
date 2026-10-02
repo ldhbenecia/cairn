@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { I18nKey } from '../i18n';
-import { probeClaude, useClaudeStatus } from '../lib/claude-status-store';
+import { keepClaudeStatusFresh, probeClaude, useClaudeStatus } from '../lib/claude-status-store';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
 import { AccountStatusPill } from './account-status-pill';
@@ -130,16 +130,12 @@ export function Sidebar({
 
 const CLAUDE_PROBE_INTERVAL_MS = 5 * 60_000;
 
-// Claude CLI 도달 여부 소형 상태 행 — 시작 시 1회 + 5분 간격, 클릭 시 즉시 재확인
+// Claude CLI 도달 여부 소형 상태 행 — 5분 간격(창 숨김 중 제외), 클릭 시 즉시 재확인
 function ClaudeStatusRow() {
   const { t } = useSettings();
   const status = useClaudeStatus();
 
-  useEffect(() => {
-    void probeClaude();
-    const id = setInterval(() => void probeClaude(), CLAUDE_PROBE_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, []);
+  useEffect(() => keepClaudeStatusFresh(CLAUDE_PROBE_INTERVAL_MS), []);
 
   const dot = {
     checking: 'animate-pulse bg-ink-tertiary',
