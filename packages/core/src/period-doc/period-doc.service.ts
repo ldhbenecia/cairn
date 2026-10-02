@@ -82,7 +82,7 @@ export class PeriodDocService {
       });
       ({ model } = await accumulateAgentUsage(q));
     } catch (err) {
-      // max-turns 등 SDK throw 여도 submission 이 이미 왔으면 결과를 쓴다
+      // max-turns 등으로 SDK 가 throw 해도 submission 이 이미 왔으면 그 결과 사용
       if (!getSubmission()) throw CairnError.from(err, 'summarizer');
       this.logger.warn(
         { error: CairnError.from(err, 'summarizer') },

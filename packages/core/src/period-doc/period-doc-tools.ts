@@ -32,7 +32,7 @@ export interface PeriodDocPayload {
   days: { date: string; done: string[] }[];
 }
 
-// 사용자가 편집한 일지 불릿에 경로·diff·토큰이 섞일 수 있다 — 위반 불릿만 빼고 계속 (ADR 0021)
+// 사용자가 편집한 일지 불릿에 경로·diff·토큰이 섞일 수 있음 — 위반 불릿만 빼고 진행
 export function buildPeriodDocPayload(input: {
   rangeStart: string;
   rangeEnd: string;
@@ -119,10 +119,10 @@ export function renderPeriodDocMarkdown(input: {
   return `${lines.join('\n')}\n`;
 }
 
-// 모델 출력의 개행이 헤딩·불릿 구조를 깨지 않게
+// 모델 출력의 개행이 헤딩·불릿 구조를 깨지 않도록 한 줄로 정리
 const oneLine = (s: string): string => s.replace(/\s+/g, ' ').trim();
 
-// 모델이 불릿 브래킷을 그대로 옮기는 경우('[계정] [repo]') — 마지막 브래킷이 레포 (실측)
+// 모델이 '[계정] [repo]' 브래킷을 이름에 그대로 옮기기도 함 — 마지막 브래킷이 레포
 function projectName(name: string): string {
   const brackets = [...name.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]!.trim());
   return oneLine(brackets.at(-1) ?? name);

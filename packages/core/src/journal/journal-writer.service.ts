@@ -42,7 +42,7 @@ export class JournalWriterService {
     );
   }
 
-  // 일지 목록·검색은 폴더 최상위만 읽으므로 하위 폴더에 두면 기존 뷰에 섞이지 않는다
+  // 일지 목록·검색은 폴더 최상위만 읽어 하위 폴더 파일은 기존 뷰에 안 섞임
   writePeriodDoc(fileName: string, content: string): JournalWriteResult {
     return this.write(fileName, content, PERIOD_DOC_DIR);
   }
@@ -69,7 +69,7 @@ export class JournalWriterService {
     const folder = subdir ? join(this.folder(), subdir) : this.folder();
     mkdirSync(folder, { recursive: true });
     const path = join(folder, fileName);
-    // 스냅샷 키는 파일명이 곧 디렉토리명 — 하위 폴더 파일은 평평한 키로
+    // 스냅샷 키가 곧 디렉토리명이라 하위 폴더 파일은 평평한 키 사용
     const snapshotKey = subdir ? `${subdir}-${fileName}` : fileName;
     try {
       // 재발행이 이전본(사용자 편집 포함)을 지우지 않게 — 실패해도 발행은 계속

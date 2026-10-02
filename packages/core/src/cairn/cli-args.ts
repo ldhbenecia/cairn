@@ -47,7 +47,7 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
   };
 }
 
-// 프로젝트 뷰의 최대 범위(365일)에 맞춘 상한 — 입력 페이로드가 한 번의 요약 호출에 들어가도록
+// 프로젝트 뷰 최대 범위(365일)에 맞춘 상한 — 입력이 요약 1회 호출에 들어가야 함
 const PERIOD_DOC_MAX_DAYS = 366;
 
 export function parsePeriodDocArgs(argv: readonly string[]): {

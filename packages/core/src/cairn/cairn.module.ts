@@ -20,7 +20,7 @@ import { OrchestratorService } from './orchestrator.service.js';
     RollupModule,
     JournalModule,
     WorklogStatsModule,
-    // AppModule 직접 import 는 LoggingModule 평가 뒤라 @InjectPinoLogger 컨텍스트가 등록 안 된다
+    // AppModule 에서 직접 import 하면 LoggingModule 평가 뒤라 PinoLogger 컨텍스트 미등록 — 여기 둬야 함
     PeriodDocModule,
   ],
   providers: [OrchestratorService],
