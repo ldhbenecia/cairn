@@ -78,11 +78,11 @@ export function PreferencesDialog({
         <Dialog.Content
           onOpenAutoFocus={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => {
-            // cmd+K 팔레트가 위에 떠 있으면 ESC 는 팔레트만 닫는다
+            // cmd+K 팔레트가 위에 떠 있으면 ESC 는 팔레트만 닫음
             if (blockEscape) e.preventDefault();
           }}
           onPointerDownOutside={(e) => {
-            // 팔레트 오버레이가 전체를 덮어 모든 클릭이 outside 로 판정됨 — 팔레트만 닫는다
+            // 팔레트 오버레이가 전체를 덮어 모든 클릭이 outside 로 판정됨 — 팔레트만 닫음
             if (blockEscape) e.preventDefault();
           }}
           onInteractOutside={(e) => {

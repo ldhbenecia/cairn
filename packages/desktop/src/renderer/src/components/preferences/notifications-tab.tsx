@@ -9,7 +9,7 @@ const ghostBtn =
 
 export function NotificationsTab() {
   const { settings, update, t } = useSettings();
-  // macOS 는 앱이 앞에 있으면 배너를 안 띄워서 인앱 피드백이 필요하다
+  // macOS 는 앱이 앞에 있으면 배너를 안 띄워 인앱 피드백 필요
   const [sent, setSent] = useState<'ok' | 'unsupported' | null>(null);
 
   const test = async (): Promise<void> => {

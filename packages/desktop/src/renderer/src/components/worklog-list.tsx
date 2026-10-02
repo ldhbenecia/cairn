@@ -170,8 +170,8 @@ export function WorklogList({
     if (drawerOpen) return;
     const onKey = (e: KeyboardEvent): void => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      // CommandPalette·StandupDialog 등 App 소유 오버레이 상태는 prop 으로 안 내려옴 —
-      // 열린 오버레이는 전부 role="dialog"(radix) 또는 fixed inset-0 레이어로만 마운트되므로 DOM 으로 감지
+      // App 소유 오버레이 상태는 prop 으로 안 내려와 DOM 으로 감지 — 열린 오버레이는 role="dialog" 또는
+      // fixed inset-0 레이어로만 마운트됨
       if (document.querySelector('[role="dialog"]')) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -487,7 +487,7 @@ function PageRow({
         )}
         {snippet && <span className="ml-2 text-[12px] text-ink-tertiary">{snippet}</span>}
       </span>
-      {/* 우측 메타 — 고정 폭 칼럼 그리드. 값 없는 칸도 자리를 유지해 행끼리 세로 정렬이 맞는다 */}
+      {/* 우측 메타 — 고정 폭 칼럼 그리드. 값 없는 칸도 자리를 유지해 행끼리 세로 정렬 */}
       <span className="grid shrink-0 grid-cols-[76px_52px] items-center justify-items-end sm:grid-cols-[76px_56px_52px] lg:grid-cols-[116px_76px_56px_52px]">
         <span className="hidden lg:block">
           {counts && (

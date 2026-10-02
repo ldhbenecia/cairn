@@ -97,7 +97,7 @@ export function AutoPublishTab() {
   );
 }
 
-// 환경설정 안 긴 세로 드롭다운 대체 — 오버레이 없이 인라인으로 완결
+// 긴 세로 드롭다운 대신 오버레이 없이 인라인으로 완결되는 시각 입력
 function TimeField({
   value,
   disabled,
@@ -124,7 +124,7 @@ function TimeField({
     if (next !== value) onChange(next);
   };
 
-  // blur 커밋 직후 클로저의 value 가 stale 할 수 있어(#245 리뷰) 스텝 기준은 현재 입력 텍스트
+  // blur 커밋 직후 클로저의 value 가 stale 할 수 있어 스텝 기준은 현재 입력 텍스트
   const step = (deltaMin: number): void => {
     const m = /^(\d{1,2}):(\d{2})$/.exec(text.trim());
     const base = m

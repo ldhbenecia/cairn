@@ -9,7 +9,7 @@ export function AccountStatusPill({ className = '' }: { className?: string }) {
   const online = useOnline();
   const [expired, setExpired] = useState(false);
 
-  // 저장 파일 존재만으론 만료를 못 본다 — 세션 실검증으로 '로그인됨인데 sync 죽음' 상태 노출
+  // 저장 파일 존재만으론 만료를 못 봄 — 세션 실검증으로 '로그인됨인데 sync 죽음' 상태 노출
   useEffect(() => {
     if (!signedIn || !online) {
       setExpired(false);

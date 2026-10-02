@@ -14,7 +14,7 @@ type PageItem = number | 'dots';
 
 function generatePages(total: number, current: number, maxVisible: number): PageItem[] {
   if (total <= maxVisible) return Array.from({ length: total }, (_, i) => i + 1);
-  // current 주변 고정 폭 창 — 양 끝에선 창을 밀어 폭을 유지(시작/끝에서 버튼이 줄던 버그)
+  // current 주변 고정 폭 창 — 양 끝에선 창을 밀어 버튼 수 유지
   const delta = Math.max(1, Math.floor((maxVisible - 5) / 2));
   let start = current - delta;
   let end = current + delta;

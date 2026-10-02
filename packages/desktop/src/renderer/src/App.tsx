@@ -75,7 +75,7 @@ export function App() {
   const [filter, setFilter] = useState<WorklogFilter>('all');
   const [view, setView] = useState<MainView>('stats');
   const [prefsOpen, setPrefsOpen] = useState(false);
-  // nonce 포함 — 이미 열린 채 다른 탭으로 옮긴 뒤 두 번째 알림 클릭이 무시되지 않게
+  // nonce 포함 — 이미 열린 채 다른 탭으로 옮긴 뒤 두 번째 알림 클릭도 반영
   const [prefsTab, setPrefsTab] = useState<{ tab: 'connections'; nonce: number } | null>(null);
   const [autoConfirmModes, setAutoConfirmModes] = useState<CoreMode[] | null>(null);
   const [cmdkOpen, setCmdkOpen] = useState(false);
@@ -103,13 +103,13 @@ export function App() {
   recentRef.current = recent;
   const { t } = useSettings();
 
-  // 어디서 열든 새 일지는 드로어부터 — 전체 화면은 드로어의 확장 버튼으로만 진입
+  // 어디서 열든 새 일지는 드로어부터 — 전체 화면은 드로어의 확장 버튼으로만
   const openPage = useCallback((p: RecentPage) => {
     setDetailFull(false);
     setSelectedPage(p);
   }, []);
 
-  // 명시적 뷰 전환은 전체 화면 상세·드로어 상태도 함께 정리 — detailFull 분기가 새 뷰를 가리는 문제 방지
+  // 명시적 뷰 전환은 전체 화면 상세·드로어도 정리 — detailFull 분기가 새 뷰를 가리지 않게
   const switchView = useCallback((v: MainView) => {
     setPrefsOpen(false);
     setSelectedPage(null);
@@ -128,7 +128,7 @@ export function App() {
     return r;
   }, []);
 
-  // 발행 완료 CTA — 노션으로 내보내지 않고 앱 안 드로어로 (목록에 없으면 갱신 후 재탐색)
+  // 발행 완료 CTA — 노션 대신 앱 안 드로어로 (목록에 없으면 갱신 후 재탐색)
   const openPublishedPage = useCallback(
     async (pageId: string, url: string | null) => {
       const inState = recentRef.current?.pages.find((p) => p.pageId === pageId);
@@ -162,12 +162,12 @@ export function App() {
     document.body.style.userSelect = 'none';
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-    // 창 밖에서 버튼을 놓으면 mouseup 이 안 옴 — blur 로도 종료
+    // 창 밖에서 버튼을 놓으면 mouseup 이 안 와 blur 로도 종료
     window.addEventListener('blur', onUp);
   }, []);
 
   useEffect(() => {
-    // 로드 완료 즉시 고정 범위(최근 365일)를 미리 스캔 — 뷰 첫 진입 시 스피너 제거
+    // 로드 완료 즉시 고정 범위(최근 365일)를 미리 스캔 — 뷰 첫 진입 스피너 제거
     void loadRecent().then((r) => prefetchReportsScan(r));
   }, [loadRecent]);
 
@@ -243,14 +243,13 @@ export function App() {
         if (toastTimer.current) window.clearTimeout(toastTimer.current);
         toastTimer.current = window.setTimeout(() => setToast(null), 6000);
       }
-      // 노션 인덱싱 지연으로 방금 발행한 페이지가 첫 조회에 안 잡히는 경우에만 잠시 뒤 재조회 —
-      // 이미 잡혔으면 스킵해 발행당 노션 목록 조회를 절반으로 (연속 run-done 타이머 중첩 방지 — #241)
+      // 노션 인덱싱 지연으로 방금 발행한 페이지가 첫 조회에 없을 때만 잠시 뒤 재조회
+      // (연속 run-done 의 타이머 중첩 방지)
       if (recentRetryTimer.current) window.clearTimeout(recentRetryTimer.current);
       void loadRecent().then((r) => {
-        // 언마운트 후 늦게 도착한 콜백이 새 타이머를 걸지 않도록 (누수·불필요 IPC 방지)
+        // 언마운트 후 늦게 온 콜백이 새 타이머를 걸지 않게
         if (!active) return;
-        // 발행 직후 발행된 페이지만 스캔 캐시에서 evict 후 고정 범위 재스캔 —
-        // 재발행(같은 pageId 덮어쓰기)도 그 페이지 하나만 다시 읽어 반영
+        // 발행된 페이지만 스캔 캐시에서 evict 후 재스캔 — 재발행(같은 pageId)도 그 페이지만 다시 읽음
         invalidateReportsScan(result.publishPageId);
         prefetchReportsScan(r);
         const pid = result.publishPageId;
@@ -268,7 +267,7 @@ export function App() {
     };
   }, [loadRecent]);
 
-  // 창을 다시 볼 때 목록 최신화(자동 발행 등 외부 변화 인지) — 과호출 방지 60초 스로틀
+  // 창을 다시 볼 때 목록 최신화(자동 발행 등 외부 변화) — 60초 스로틀
   const lastFocusLoad = useRef(0);
   useEffect(() => {
     const onFocus = (): void => {
@@ -291,7 +290,7 @@ export function App() {
     void window.cairn.runSnapshot().then((s) => {
       if (s.busy && s.mode) {
         setRunningMode(s.mode);
-        // 마운트 중 트리거/브로드캐스트가 이미 세션을 만들었으면 덮지 않는다(스냅샷이 라이브를 지우는 레이스 방지)
+        // 마운트 중 트리거·브로드캐스트가 이미 세션을 만들었으면 덮지 않음 — 스냅샷이 라이브를 지우는 레이스 방지
         setSessions((prev) =>
           prev[s.mode!]
             ? prev
@@ -316,7 +315,7 @@ export function App() {
                 [mode]: {
                   state: 'done',
                   step: 'done',
-                  startedAt: 0, // 복원 시 실제 시작 시각 미상 → elapsed 표시 숨김
+                  startedAt: 0, // 복원 시 실제 시작 시각 미상 → elapsed 숨김
                   result,
                   endedAt,
                 },
@@ -329,7 +328,7 @@ export function App() {
   useEffect(() => {
     const off = window.cairn.onFocusMode((focused) => {
       switchView('worklogs');
-      // 연간은 사이드바 필터에서 제거됨 — 연간 일지는 '전체' 목록에서만 노출
+      // 연간은 사이드바 필터에 없음 — '전체' 목록에서만 노출
       setFilter(focused === 'yearly' ? 'all' : focused);
     });
     return off;
@@ -353,7 +352,7 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === ',') {
         e.preventDefault();
-        // 팔레트를 열어둔 채 환경설정(radix modal)이 뜨면 body pointer-events 가 죽어 팔레트가 안 닫힘
+        // 팔레트를 연 채 환경설정(radix modal)이 뜨면 body pointer-events 가 죽어 팔레트가 안 닫힘
         setCmdkOpen(false);
         setPrefsOpen(true);
       } else if (e.metaKey && e.key === 'k') {
@@ -369,7 +368,7 @@ export function App() {
     async (mode: CoreMode, options?: CoreRunOptions) => {
       const active = busyRef.current;
       if (active.busy) {
-        // 라이브 run 의 라인은 지우면 안 됨 — 다른 mode 가 busy 일 때만 리셋 (기존 lines: [] 동작 유지)
+        // 라이브 run 의 라인은 지우면 안 됨 — 다른 mode 가 busy 일 때만 리셋
         if (active.mode !== mode) resetRunLines(mode);
         setSessions((prev) => {
           if (prev[mode]?.state === 'running' || active.mode === mode) return prev;
@@ -514,8 +513,8 @@ export function App() {
             onView={switchView}
             onPreferences={() => setPrefsOpen(true)}
             onPublish={(mode) => {
-              // 대시보드/그래프 뷰에서 팔레트로 발행하면 진행 표시가 없어 무반응처럼 보이던 문제 —
-              // worklogs 뷰로 전환하고 진행 다이얼로그를 열어 스피너/단계를 보여준다
+              // 대시보드·그래프 뷰에서 팔레트로 발행하면 진행 표시가 없어 무반응처럼 보임
+              // — worklogs 뷰로 전환하고 진행 다이얼로그를 엶
               switchView('worklogs');
               setPublishProgressSignal((n) => n + 1);
               void trigger(mode);

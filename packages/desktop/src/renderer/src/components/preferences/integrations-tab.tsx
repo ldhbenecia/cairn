@@ -116,7 +116,7 @@ function NotionIntegrationCard() {
 
   const patch = (p: Partial<NotionEntry>): void => setEntry((prev) => ({ ...prev, ...p }));
 
-  // 재연결은 대상 라벨을 명시해 프리필 — 라벨이 달라지면 교체가 아닌 추가가 되므로
+  // 재연결은 대상 라벨을 명시해 프리필 — 라벨이 달라지면 교체가 아닌 추가가 됨
   const openForm = (target?: string): void => {
     setEntry({ ...emptyNotionEntry(), label: target ?? labels[0] ?? 'Personal' });
     setOpen(true);
@@ -439,7 +439,7 @@ function GitBackupCard() {
   useEffect(() => {
     if (!enabled) return;
     refresh();
-    // 시작 pull/디바운스 커밋이 뒤에서 도는 동안 상태 반영
+    // 시작 pull·디바운스 커밋이 뒤에서 도는 동안 상태 반영
     const id = window.setInterval(refresh, 5000);
     return () => window.clearInterval(id);
   }, [enabled]);

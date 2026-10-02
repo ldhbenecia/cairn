@@ -35,7 +35,7 @@ export function AccordionItem({
               tabIndex: 0,
               onClick: onToggle,
               onKeyDown: (e: KeyboardEvent) => {
-                // header 안 버튼(refresh 등)에서 버블된 Enter/Space 가 행 토글·클릭 취소로 새지 않게 (#242 리뷰)
+                // header 안 버튼(refresh 등)에서 버블된 Enter·Space 가 행 토글로 새지 않게
                 if (e.target !== e.currentTarget) return;
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();

@@ -1,5 +1,4 @@
-// lucide-react 1.x 가 브랜드 아이콘(Github)을 제거해 — GitHub octocat 마크를 인라인 SVG 로.
-// 웹 nav 와 동일 path
+// lucide-react 1.x 가 브랜드 아이콘을 제거해 GitHub octocat 마크를 인라인 SVG 로 (웹 nav 와 같은 path)
 export function GithubMark({ size = 16, className }: { size?: number; className?: string }) {
   return (
     <svg

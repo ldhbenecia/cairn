@@ -3,7 +3,7 @@ import type { I18nKey } from '../i18n';
 
 export type T = (key: I18nKey) => string;
 
-// raw 로그는 UI 에 노출하지 않고, 수집 중인 소스 판단에만 내부 사용
+// raw 로그는 UI 비노출 — 수집 중인 소스 판단에만 내부 사용
 export function collectHintKey(lines: RunLine[]): I18nKey {
   for (let i = lines.length - 1; i >= 0; i--) {
     const t = lines[i]?.line.toLowerCase();
@@ -66,7 +66,7 @@ export function buildPanelDates(
   countsByDate: Record<string, { pr: number; commit: number }>,
   lang: string,
 ): PanelDate[] {
-  // 멤버십 기반 — 동시 완료 순서가 날짜 순서와 달라도 정확(인덱스 가정 제거)
+  // 멤버십 기반 — 동시 완료 순서가 날짜 순서와 달라도 정확
   const doneSet = new Set(doneDates);
   // 실패 날짜는 doneDates 에도 포함 — failed 판정이 우선
   const failedSet = new Set(failedDates);

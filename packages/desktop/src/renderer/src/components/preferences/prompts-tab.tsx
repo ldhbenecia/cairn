@@ -106,7 +106,7 @@ export function PromptsTab() {
   );
 }
 
-// 저장은 blur 시점 (키 입력마다 settings.json 을 쓰지 않게)
+// 저장은 blur 시점 — 키 입력마다 settings.json 을 쓰지 않게
 function PromptField({
   label,
   placeholder,
@@ -136,7 +136,7 @@ function PromptField({
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => onSave(draft.trim().length > 0 ? draft : null)}
         onKeyDown={(e) => {
-          // ESC 가 다이얼로그를 바로 닫으면 blur 커밋 전에 편집 내용이 유실 — 첫 ESC 는 커밋만
+          // ESC 가 다이얼로그를 바로 닫으면 blur 커밋 전에 편집 내용 유실 — 첫 ESC 는 커밋만
           if (e.key === 'Escape') {
             e.stopPropagation();
             e.currentTarget.blur();

@@ -9,7 +9,7 @@ export function FeedbackTab() {
   const [feedback, setFeedback] = useState('');
   const [opened, setOpened] = useState(false);
   const openedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // 언마운트(설정 다이얼로그 닫기) 시 타이머 정리 — 언마운트 후 setState 경고·누수 방지
+  // 언마운트(설정 다이얼로그 닫기) 시 타이머 정리 — setState 경고·누수 방지
   useEffect(
     () => () => {
       if (openedTimer.current) clearTimeout(openedTimer.current);
@@ -21,8 +21,7 @@ export function FeedbackTab() {
     const subject = `${t('prefs.feedback.subject')} (v${window.cairn.version})`;
     const url = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(feedback)}`;
     void window.cairn.openExternal(url);
-    // 본문은 지우지 않는다 — 메일 클라이언트 미설정·이슈 로그인 리다이렉트로
-    // 전송이 안 됐을 때 작성 내용이 유실되지 않도록
+    // 본문은 안 지움 — 메일 클라이언트 미설정·이슈 로그인 리다이렉트로 전송이 안 됐을 때 작성 내용 보존
     markOpened();
   }
 

@@ -37,7 +37,7 @@ export function StandupDialog({
     };
   }, []);
 
-  // 자체 오버레이(Radix 아님)라 ESC 닫기를 직접 — 다른 다이얼로그와 동작 통일
+  // 자체 오버레이(Radix 아님)라 ESC 닫기를 직접 처리 — 다른 다이얼로그와 동작 통일
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key !== 'Escape') return;

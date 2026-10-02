@@ -42,7 +42,7 @@ export function SnapshotDialog({
         if (list.length > 0) setSelected(list[0]!.stamp);
       },
       () => {
-        // 거부 시 스피너가 영구 표시되던 문제 — 빈 목록으로 정착
+        // 거부 시 스피너가 영구 표시되지 않게 빈 목록으로 정착
         if (alive) setSnaps([]);
       },
     );

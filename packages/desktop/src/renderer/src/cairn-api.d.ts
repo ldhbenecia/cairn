@@ -68,8 +68,7 @@ export type RecentPage = {
   commit: number | null;
   hours: number[] | null;
   workspaceLabel: string;
-  // 구버전 로컬 캐시에는 없음 — optional
-  sinks?: WorklogSink[];
+  sinks?: WorklogSink[]; // 구버전 로컬 캐시에는 없음
 };
 
 export type RecentWarning =

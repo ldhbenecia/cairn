@@ -29,7 +29,7 @@ const page = (date: string): RecentPage => ({
 type DoneRef = { pageId: string; workspaceLabel: string };
 type DoneResult = { pageId: string; bullets: string[]; failed: boolean };
 
-// reportsDone(배치 API) mock — 스캔은 페이지당 1건씩 호출하므로 refs 를 그대로 결과로 매핑한다
+// reportsDone(배치 API) mock — 스캔은 페이지당 1건씩 호출해 refs 를 그대로 결과로 매핑
 const done =
   (bullets: string[], failed = false) =>
   (refs: DoneRef[]): Promise<DoneResult[]> =>
@@ -117,7 +117,7 @@ describe('진행 구독', () => {
     const first = startScan('2026-07-01', '2026-07-02', targets);
     await new Promise((r) => setTimeout(r, 0));
 
-    // 뷰 재진입 시나리오 — 이미 완료된 1건이 합류 즉시 통지된다
+    // 뷰 재진입 시나리오 — 이미 완료된 1건이 합류 즉시 통지됨
     const seen: [number, number][] = [];
     const joined = startScan('2026-07-01', '2026-07-02', targets, (d, t) => seen.push([d, t]));
     expect(joined).toBe(first);

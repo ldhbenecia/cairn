@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 
 export type ClaudeStatus = 'checking' | 'ok' | 'fail';
 
-// probe 는 코어 fork + 실제 쿼리(최대 ~1분)라 사이드바·연결 탭이 결과 하나를 공유하고, 동시 요청은 합친다
+// probe 는 코어 fork + 실제 쿼리(최대 ~1분)라 사이드바·연결 탭이 결과 하나를 공유하고 동시 요청은 합침
 let status: ClaudeStatus = 'checking';
 let probed = false;
 let inflight: Promise<void> | null = null;

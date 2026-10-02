@@ -30,7 +30,7 @@ const STEP_TITLE_KEY: Record<Step, I18nKey> = {
 
 export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
   const { t } = useSettings();
-  // onCancel 존재 = 설정에서 진입한 재설정 — 환영 스텝을 건너뛰고 문구도 재설정 톤으로
+  // onCancel 존재 = 설정에서 진입한 재설정 — 환영 스텝을 건너뛰고 문구도 재설정 톤
   const reconfigure = !!onCancel;
   const [stepIdx, setStepIdx] = useState(reconfigure ? 1 : 0);
   const step = STEPS[stepIdx]!;
@@ -49,8 +49,8 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const patchGithub = (i: number, p: Partial<GithubEntry>) =>
     setGithub((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
 
-  // 프로브 결과는 index 가 아니라 token 으로 적용한다 — 프로브 중 계정을 제거·수정하면 index 가
-  // 밀려 엉뚱한 항목에 status/login 이 찍히던 버그(감사 지적). token 이 안 맞으면 결과는 버려진다
+  // 프로브 결과는 index 가 아닌 token 으로 적용 — 프로브 중 계정을 제거·수정하면 index 가 밀려
+  // 엉뚱한 항목에 찍힘, token 이 안 맞으면 결과 폐기
   const patchGithubByToken = (token: string, p: Partial<GithubEntry>) =>
     setGithub((prev) => prev.map((e) => (e.token.trim() === token ? { ...e, ...p } : e)));
 
@@ -115,7 +115,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     }
   }
 
-  // 최소 요건: 활동 소스(GitHub 계정 또는 로컬 Git 레포) 하나 + Claude. 노션은 Preferences 연동 탭에서.
+  // 최소 요건: 활동 소스(GitHub 계정 또는 로컬 Git 레포) 하나 + Claude — 노션은 Preferences 연동 탭에서
   const sourceValid =
     repos.length > 0 || github.some((e) => e.status === 'ok' && (e.token.trim() || e.ghLogin));
   const claudeValid = claudeStatus === 'ok' || !!anthropicKey.trim();

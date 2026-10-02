@@ -31,7 +31,7 @@ import { PeriodDocDialog } from './period-doc-dialog';
 
 const laneKey = (repo: string | null): string => repo ?? '__none';
 
-// 상세 뷰 — 날짜 내림차순으로 정렬된 항목을 날짜별 섹션으로 묶는다
+// 날짜 내림차순 항목을 날짜별 섹션으로 묶음
 function groupByDate(rows: readonly DoneItem[]): { date: string; items: DoneItem[] }[] {
   const groups: { date: string; items: DoneItem[] }[] = [];
   for (const it of rows) {
@@ -71,10 +71,10 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
 
   const [perDay, setPerDay] = useState<PerDay[] | null>(null);
   const [scan, setScan] = useState<{ done: number; total: number } | null>(null);
-  // 로드된 구간 시작일 — 진입 시 초기 청크(최근 90일)만, 좌측 스크롤 경계 근접 시 90일씩 확장
+  // 로드된 구간 시작일 — 진입 시 최근 90일만, 좌측 스크롤 경계 근접 시 90일씩 확장
   const [loadedSince, setLoadedSince] = useState<string | null>(null);
   const [chunkLoading, setChunkLoading] = useState(false);
-  // 내보내기(전체 365일 로드) 중에만 진행 바 유지 — 초기 진입은 스트리밍 렌더라 바를 숨긴다
+  // 내보내기(전체 365일 로드) 중에만 진행 바 — 초기 진입은 스트리밍 렌더라 바 숨김
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -82,10 +82,8 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
     setLoadedSince((cur) => cur ?? initialLoadedSince(recent.pages));
   }, [recent]);
 
-  // 로드 구간 스캔 — 세션 페이지 캐시(reports-scan) 히트는 IPC 를 생략하고 미캐시 페이지만
-  // 읽는다. 스캔은 최신부터 진행되고, 페이지가 읽히는 대로 부분 렌더(스트리밍)해 전체 스캔을
-  // 기다리지 않는다 — 초기 청크는 첫 페이지 전까지만 스켈레톤, 청크 확장은 가장자리 소형 표시.
-  // 스캔은 뷰 이탈과 무관하게 계속되고 여기서는 진행 구독만 해제한다
+  // 세션 페이지 캐시 히트는 IPC 생략하고 미캐시 페이지만 읽어, 최신부터 읽히는 대로 부분 렌더
+  // 스캔은 뷰 이탈과 무관하게 계속되고 여기선 진행 구독만 해제
   useEffect(() => {
     if (loadedSince === null) return;
     const loadedTargets = dailyTargets(pages, loadedSince, until);
@@ -96,23 +94,21 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
       setChunkLoading(false);
       return;
     }
-    // 청크 확장(가장자리 표시)이 아닌 로드만 인라인 진행 바 — 부분 결과가 있으면 먼저 그린다
+    // 청크 확장(가장자리 표시)이 아닌 로드만 인라인 진행 바 — 부분 결과가 있으면 먼저 그림
     const inlineBar = !chunkLoading;
     setPerDay(rows.length > 0 ? rows : null);
     if (inlineBar) setScan({ done: loadedTargets.length - missing, total: loadedTargets.length });
     let alive = true;
     let raf = 0;
-    // 스트리밍 — 스캔이 페이지 캐시를 최신부터 채우는 대로 부분 렌더. 페이지마다 즉시 렌더하면
-    // 뚝뚝 끊겨 보이므로 프레임 단위로 묶고(rAF), 바 자체는 CSS 트랜지션으로 부드럽게 늘어난다
+    // 페이지마다 즉시 렌더하면 끊겨 보여 rAF 로 프레임 단위 묶음, 바는 CSS 트랜지션으로 늘어남
     const flush = (): void => {
       raf = 0;
       if (!alive) return;
       const streamed = assembleCached(loadedTargets).rows;
       if (streamed.length > 0) setPerDay(streamed);
     };
-    // 초기 로드는 진행 바(scanning && exporting)가 안 보여 done/total 이 화면에 안 쓰인다 —
-    // 페이지마다 setScan 하면 숨겨진 수치 때문에 뷰 전체가 재렌더되므로, scanning 은 위에서 1회만
-    // 세팅하고 여기선 rAF 로 묶은 스트리밍 렌더만 한다
+    // 초기 로드는 진행 바가 안 보여 done/total 이 화면에 안 쓰임 — 페이지마다 setScan 하면
+    // 숨겨진 수치 때문에 뷰 전체가 재렌더돼 scanning 은 위에서 1회만 세팅
     const onProgress = (): void => {
       if (!alive) return;
       if (raf === 0) raf = requestAnimationFrame(flush);
@@ -143,9 +139,8 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
 
   const items = useMemo(() => parseDoneItems(perDay ?? []), [perDay]);
   const lanes = useMemo(() => buildLanes(items), [items]);
-  // 표시 순서·색은 로드에 불변인 키로 고정한다 — 최근 활동일(last) 내림차순, 동률은 레포명.
-  // 과거 청크를 더 불러와도 기존 레인의 last 는 안 바뀌고 더 오래된 레포만 아래로 붙어,
-  // 레이지 로드 때 레인 재정렬·재배색이 없다(진입/스크롤 튐 방지). 색도 이 순서 인덱스로 고정
+  // 표시 순서·색은 로드에 불변인 키(최근 활동일 내림차순, 동률은 레포명)로 고정
+  // 과거 청크를 더 불러와도 기존 레인이 재정렬·재배색되지 않아 진입·스크롤 튐 방지
   const orderedLanes = useMemo(() => orderLanesStable(lanes), [lanes]);
   const laneColor = useMemo(() => {
     const m = new Map<string, string>();
@@ -174,7 +169,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
     [targets, items],
   );
 
-  // 기존 다이얼로그의 md 포맷 그대로 — 헤더 + 월별 섹션 (Done 없어도 수치 헤더는 유지)
+  // 헤더 + 월별 섹션 — Done 이 없어도 수치 헤더는 유지
   const buildMarkdown = (rows: PerDay[]): string => {
     const byMonth = new Map<string, string[]>();
     for (const d of rows) {
@@ -200,8 +195,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
     return body ? `${header}\n\n${body}` : header;
   };
 
-  // 내보내기는 고정 범위(365일) 전체 기준 — 미로드 구간이 있으면 먼저 전체를 로드하고
-  // (그때만 인라인 진행 바), 로드 완료된 rows 로 md 를 만든다
+  // 내보내기는 고정 범위(365일) 전체 기준 — 미로드 구간이 있으면 먼저 전체 로드 후 md 생성
   const allRows = async (): Promise<PerDay[] | null> => {
     if (perDay === null) return null;
     if (loadedSince !== null && loadedSince <= since) return perDay;
@@ -316,7 +310,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
             </button>
           </div>
         </div>
-        {/* 내보내기 전체 로드 때만 얇은 진행 바 — 초기 진입은 스트리밍 렌더라 바 없이 내용이 채워진다 */}
+        {/* 내보내기 전체 로드 때만 얇은 진행 바 — 초기 진입은 스트리밍 렌더라 바 없음 */}
         {scanning && exporting && (
           <div className="mx-auto mt-3 flex w-full max-w-5xl items-center gap-2.5 px-6">
             <div
@@ -480,8 +474,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
   );
 }
 
-// 초기 청크 스캔 동안의 자리 표시 — 실 레이아웃(타임라인 레인·레포 테이블)을 본뜬 스켈레톤.
-// 부분 조립이 렌더를 시작하면 실데이터가 대체한다. 모션은 pulse 만
+// 초기 청크 스캔 동안 실 레이아웃(타임라인 레인·레포 테이블)을 본뜬 스켈레톤 — 모션은 pulse 만
 function ScanSkeleton() {
   const { t } = useSettings();
   const laneShapes = [
@@ -561,13 +554,13 @@ function ActivitySpark({
   );
 }
 
-// 월 라벨 — 영문 3글자 대문자 고정 (APR/MAY)
+// 영문 3글자 대문자 고정 (APR·MAY)
 const monthLabel = (date: string): string =>
   new Date(2000, Number(date.slice(5, 7)) - 1, 1)
     .toLocaleDateString('en-US', { month: 'short' })
     .toUpperCase();
 
-// 마일스톤 라벨 — 다이아 아래 날짜 단축 표기, 월 라벨과 같은 en-US 고정 ('Jul 4')
+// 다이아 아래 날짜 단축 표기 — 월 라벨과 같은 en-US 고정 ('Jul 4')
 const peakLabel = (date: string): string =>
   new Date(
     Number(date.slice(0, 4)),
@@ -575,11 +568,11 @@ const peakLabel = (date: string): string =>
     Number(date.slice(8, 10)),
   ).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-// 진행 중 판정 — 마지막 활동일이 기간 끝 3일 이내(오늘 포함). 문자열 달력 산술이라 TZ 무관
+// 마지막 활동일이 기간 끝 3일 이내(오늘 포함)면 진행 중 — 문자열 달력 산술이라 TZ 무관
 const isOngoing = (last: string, until: string): boolean =>
   dayIndex(last, until) <= 3 || last === todayLocal();
 
-// 일당 고정 px 스케일 — 365일 × 7px ≈ 2555px 를 가로 스크롤로 훑는다
+// 일당 고정 px — 365일 × 7px ≈ 2555px 를 가로 스크롤로 훑음
 const PX_PER_DAY = 7;
 
 function Timeline({
@@ -603,9 +596,8 @@ function Timeline({
   onNeedMore: () => void;
   onLaneClick: (lane: Lane) => void;
 }) {
-  // 축·트랙·바 위치의 기준 범위는 loadedSince..until — 로드된 구간만 그려, 왼쪽 청크가
-  // 로드되면 트랙이 왼쪽으로 자란다. 미로드 구간은 트랙 밖이라 뷰포트에 보이지 않는다.
-  // lanes 는 부모에서 이미 고정 순서(최근 활동일 순)로 정렬돼 오고, 색은 laneColor 로 받는다
+  // 축·트랙·바의 기준 범위는 로드된 구간만 — 왼쪽 청크가 로드되면 트랙이 왼쪽으로 자람
+  // lanes 는 부모가 이미 고정 순서로 정렬하고 색은 laneColor 로 받음
   const span = daySpan(loadedSince, until);
   const axis = timelineAxis(loadedSince, until);
 
@@ -620,9 +612,8 @@ function Timeline({
     return () => ro.disconnect();
   }, []);
 
-  // 스크롤 앵커 — 오늘(오른쪽 끝) 픽셀을 고정한다. 왼쪽 청크 로드로 트랙이 넓어지면
-  // 늘어난 폭만큼 scrollLeft 를 밀어 보고 있던 위치를 그대로 유지(시각적 점프 방지).
-  // 최초 로드(prev 없음)엔 오른쪽 끝(오늘)으로 스크롤
+  // 오늘(오른쪽 끝) 픽셀 앵커 — 왼쪽 청크 로드로 트랙이 넓어진 만큼 scrollLeft 를 밀어 시각적 점프 방지
+  // 최초 로드엔 오른쪽 끝(오늘)으로 스크롤
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const prevScrollWidthRef = useRef<number | null>(null);
   useLayoutEffect(() => {
@@ -634,9 +625,7 @@ function Timeline({
     prevScrollWidthRef.current = el.scrollWidth;
   }, [loadedSince]);
 
-  // 좌측 로드 경계 감지 — 로드된 구간 왼쪽 끝(loadedSince)이 트랙 좌단이라, 사용자가 왼쪽
-  // 경계 300px 안으로 스크롤할 때 이전 청크를 요청한다. 진입 시엔 오른쪽 끝(오늘)에 앵커돼
-  // 있어 스크롤로 과거를 훑을 때만 로드된다
+  // 왼쪽 경계 300px 안으로 스크롤하면 이전 청크 요청 — 진입 시엔 오늘에 앵커돼 과거를 훑을 때만 로드
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -662,7 +651,6 @@ function Timeline({
           ))}
         </div>
 
-        {/* 축 — 월 라벨 행 */}
         <div className="relative h-6">
           {axis.months.map((tk) => (
             <span
@@ -674,7 +662,6 @@ function Timeline({
             </span>
           ))}
         </div>
-        {/* 축 — 틱 마크 행 (짧은 세로 눈금선 + 일 숫자) */}
         <div className="relative h-6 border-t border-hairline">
           {axis.days.map((tk) => (
             <span
@@ -707,12 +694,12 @@ function Timeline({
             const first = lane.dates[0]!;
             const last = lane.dates[lane.dates.length - 1]!;
             const left = (dayIndex(loadedSince, first) / span) * 100;
-            // 라벨 행은 바 시작 x 에 정렬 — 우측 끝 레인만 잘리지 않게 클램프
+            // 라벨은 바 시작 x 에 정렬 — 우측 끝 레인만 잘리지 않게 클램프
             const labelLeft = Math.min(left, 78);
-            // 진행 중이면 바를 기간 끝까지 연장 후 오른쪽 끝을 페이드로 오픈
+            // 진행 중이면 바를 기간 끝까지 연장하고 오른쪽 끝을 페이드
             const ongoing = isOngoing(last, until);
             const barEnd = ongoing ? until : last;
-            // 다이아 라벨 — 날짜순, 앞 라벨과 60px 미만이면 뒤 것 생략 (실측 전엔 모두 표시)
+            // 다이아 라벨은 날짜순, 앞 라벨과 60px 미만이면 뒤 것 생략 (실측 전엔 모두 표시)
             const peaksByDate = [...lane.peaks].sort((a, b) => a.date.localeCompare(b.date));
             const labeledPeaks = peaksByDate.filter((p, i) => {
               if (i === 0 || trackWidth === 0) return true;
@@ -721,12 +708,11 @@ function Timeline({
             });
             return (
               <div key={laneKey(lane.repo)} className="lane-reveal">
-                {/* 높이 0→auto 로 펼쳐지는 클립 영역 — 간격(pt)도 이 안에 넣어 함께 자란다 */}
+                {/* 높이 0→auto 로 펼쳐지는 클립 영역 — 간격(pt)도 안에 넣어 함께 자람 */}
                 <div className={`relative pb-1.5 text-left ${idx > 0 ? 'pt-6' : 'pt-1.5'}`}>
                   <span
                     style={{ marginLeft: `${labelLeft}%`, maxWidth: `${100 - labelLeft}%` }}
-                    // 막대가 스트리밍으로 왼쪽으로 자랄 때 레이블도 같은 등속 트랜지션으로 따라가게 —
-                    // 트랜지션이 없으면 데이터 들어올 때마다 순간이동해 저프레임처럼 끊겨 보인다
+                    // 막대가 스트리밍으로 왼쪽으로 자랄 때 레이블도 같은 등속 트랜지션으로 따라가게 — 없으면 순간이동
                     className="flex w-fit items-baseline gap-1.5 pl-0.5 whitespace-nowrap transition-[margin] duration-[600ms] ease-linear"
                   >
                     <span
@@ -742,8 +728,7 @@ function Timeline({
                     </span>
                   </span>
                   <span className="relative mt-1.5 block h-7">
-                    {/* 막대 자체가 클릭 대상 — 누르면 그 레포 작업 내역을 연다. 넓은 행 hover 없이
-                      cursor 포인터로만 클릭 가능함을 알린다 */}
+                    {/* 막대 자체가 클릭 대상(그 레포 작업 내역) — 넓은 행 hover 없이 cursor 포인터로만 표시 */}
                     <button
                       type="button"
                       onClick={() => onLaneClick(lane)}
@@ -751,22 +736,20 @@ function Timeline({
                       style={{
                         left: `${left}%`,
                         width: `${(daySpan(first, barEnd) / span) * 100}%`,
-                        // 단일 활동일도 원형 알약이 아니라 짧은 바로 보이게
+                        // 단일 활동일도 원형 알약이 아닌 짧은 바로
                         minWidth: 24,
-                        // 채움은 거의 투명 — 배경 위에 살짝 얹힌 유리 질감
+                        // 채움은 거의 투명 — 배경 위 유리 질감
                         background: `color-mix(in srgb, ${color} 6%, transparent)`,
                         borderColor: `${color}38`,
-                        // 진행 중 — 마지막 ~64px 를 mask 로 페이드 (보더째 흐려짐), 짧은 바는 절반 보전
+                        // 진행 중이면 마지막 ~64px 를 mask 로 페이드(보더째), 짧은 바는 절반 보전
                         maskImage: ongoing
                           ? 'linear-gradient(to right, #000 max(50%, 100% - 64px), transparent)'
                           : undefined,
                       }}
-                      // 스트리밍으로 바 구간이 채워질 때 left·width 가 스르륵 늘어나게 — 스트리밍은
-                      // 목표값이 계속 갱신되므로 등속(linear)이라야 이어지는 글라이드로 부드럽다
+                      // 스트리밍 중 목표값이 계속 갱신돼 등속(linear) 트랜지션이어야 이어지는 글라이드로 보임
                       className="absolute inset-y-0 cursor-pointer rounded-[5px] border transition-[left,width] duration-[600ms] ease-linear"
                     />
-                    {/* 다이아(피크)는 스캔 중엔 숨긴다 — top-2 가 계속 재계산돼 위치가 튀기 때문.
-                      스캔이 끝나 확정된 뒤 제자리에서 페이드로 드러난다. 클릭은 막대로 통과 */}
+                    {/* 다이아(피크)는 스캔 중 숨김 — top-2 가 계속 재계산돼 위치가 튐, 확정 후 제자리 페이드 (클릭은 막대로 통과) */}
                     {!revealing &&
                       lane.peaks.map((p) => (
                         <span

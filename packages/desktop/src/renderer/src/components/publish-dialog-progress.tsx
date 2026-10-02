@@ -70,7 +70,7 @@ const DSTEP_DESC: Record<DateStep, I18nKey> = {
 
 type Layout = 'tree' | 'compact';
 
-// 칩은 무채 소형(border-hairline) — 상태 색은 좌측 아이콘이 담당, 실패만 텍스트로 시맨틱 유지
+// 칩은 무채 소형 — 상태 색은 좌측 아이콘이 담당, 실패만 텍스트로 시맨틱 유지
 const STATUS_BADGE: Record<DStatus, { key: I18nKey; cls: string }> = {
   done: { key: 'publish.status.done', cls: 'text-ink-muted' },
   active: { key: 'publish.status.active', cls: 'text-ink' },
@@ -384,7 +384,7 @@ function CompactRow({ d, i, t }: { d: PanelDate; i: number; t: T }) {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.2, delay: Math.min(i * 0.012, 0.15) }}
       className={[
-        // 트리 행과 동일 메트릭 — 레이아웃 전환 시 모달 크기가 출렁이지 않게
+        // 트리 행과 같은 메트릭 — 레이아웃 전환 시 모달 크기가 출렁이지 않게
         'flex h-9 items-center gap-2.5 rounded-md px-2',
         d.status === 'active' ? 'bg-surface-2' : '',
       ].join(' ')}

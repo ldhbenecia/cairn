@@ -45,7 +45,7 @@ type Props = {
   onChange: (iso: string) => void;
 };
 
-// body portal + 고정 위치(모달에 안 갇힘). pointer-events-auto: Radix 가 body 에 none 을 걸어도 클릭이 먹게
+// body portal + 고정 위치로 모달에 안 갇힘, pointer-events-auto 로 Radix 가 body 에 none 을 걸어도 클릭 수신
 export function DatePicker({ value, max, disabled, onChange }: Props) {
   const { t, settings } = useSettings();
   const en = settings.language === 'en';
@@ -73,7 +73,7 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
       const tgt = e.target as Node;
       if (!triggerRef.current?.contains(tgt) && !popRef.current?.contains(tgt)) close();
     };
-    // capture 단계에서 가로채 stopPropagation — Radix Dialog 의 ESC 닫기보다 먼저 팝오버만 닫는다
+    // capture 단계에서 stopPropagation — Radix Dialog 의 ESC 닫기보다 먼저 팝오버만 닫음
     const onKey = (e: KeyboardEvent): void => {
       if (e.key !== 'Escape') return;
       e.stopPropagation();
@@ -87,8 +87,8 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
     };
   }, [open, closing]);
 
-  // 트리거에 붙여 배치 — 아래 공간이 없으면 위로. 예상치(POP_H) 대신 열린 뒤 실측 높이로
-  // 재배치해야 day/month 뷰 높이 차이·모달 안 트리거에서도 어긋나지 않는다
+  // 트리거에 붙여 배치, 아래 공간이 없으면 위로 — 예상치(POP_H) 대신 열린 뒤 실측 높이로 재배치해야
+  // day·month 뷰 높이 차이·모달 안 트리거에서도 안 어긋남
   const place = (): void => {
     const r = triggerRef.current?.getBoundingClientRect();
     if (!r) return;

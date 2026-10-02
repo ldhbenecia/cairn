@@ -170,8 +170,7 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
   const { signedIn, user } = useCloudAuth();
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
-  // macOS 는 앱이 프론트일 때 표시된 알림 배너의 click 이벤트를 전달하지 않는다(electron#51885) —
-  // 알림만 믿지 않고 만료 상태를 계정 행에 상시 노출해 앱 안에서 복구할 수 있게 한다
+  // macOS 는 앱이 프론트일 때 알림 배너 click 을 전달하지 않음 — 만료 상태를 계정 행에 상시 노출해 앱 안에서 복구
   const [expired, setExpired] = useState(false);
   useEffect(() => {
     if (!signedIn) {
@@ -188,7 +187,7 @@ function AccountTop({ onOpenPreferences }: { onOpenPreferences: () => void }) {
     return () => {
       alive = false;
     };
-    // user 참조는 재로그인 시 갱신된다 — 성공 직후 만료 배지가 남지 않게 재검증 트리거로 포함
+    // user 참조는 재로그인 시 갱신됨 — 성공 직후 만료 배지가 남지 않게 재검증 트리거로 포함
   }, [signedIn, user]);
   const ref = useRef<HTMLDivElement>(null);
   const closeMenu = (): void => {

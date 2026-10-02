@@ -15,19 +15,18 @@ import { CancelledCard, ErrorCard, Result } from './publish-dialog-result';
 type Props = {
   sessions: Record<CoreMode, RunSession | null>;
   runningMode: CoreMode | null;
-  // 커맨드 팔레트 등 외부에서 '진행 화면으로 열기'를 요청하는 신호 (증가할 때마다 오픈)
+  // 외부(커맨드 팔레트 등)의 '진행 화면으로 열기' 요청 — 증가할 때마다 오픈
   openProgressSignal?: number;
-  // 신호 소비 후 부모 상태를 리셋 — 뷰 전환 후 재마운트 때 옛 신호로 다시 열리는 것 방지
+  // 신호 소비 후 부모 상태 리셋 — 뷰 전환 후 재마운트 때 옛 신호로 다시 열리지 않게
   onConsumeSignal?: () => void;
   onTrigger: (mode: CoreMode, options?: CoreRunOptions) => Promise<void>;
   onOpenPublished: (pageId: string, url: string | null) => void;
 };
 
-// 최근 실패 결과를 오픈 시 자동 회수할 시간 창 (30분) — 그 이후는 stale 로 안 띄운다
+// 최근 실패 결과를 오픈 시 자동 회수할 시간 창 — 이후는 stale
 const RECALL_WINDOW_MS = 30 * 60_000;
 
-// 가장 최근에 '실패'로 끝난 완료 세션 — !ok / 요약 실패 / 에러. 성공은 회수 대상 아님.
-// 사용자 취소도 제외 — 취소는 exit!=0 이라 ok=false 지만 본인이 방금 한 행동이라 다시 띄울 게 없다
+// 가장 최근에 실패로 끝난 완료 세션(!ok·요약 실패·에러) — 성공과 사용자 취소는 제외
 function mostRecentFailed(
   sessions: Record<CoreMode, RunSession | null>,
 ): { mode: CoreMode; endedAt: number } | null {
@@ -48,7 +47,7 @@ const MODE_OPTIONS: { mode: CoreMode; key: I18nKey }[] = [
   { mode: 'monthly', key: 'publish.month' },
 ];
 
-// 백필 일수 게이팅 — 미로그인 1일, 로그인 7일. 초과 구간은 Pro 잠금(결제 준비 중이라 선택 불가)
+// 백필 일수 게이팅 — 미로그인 1일, 로그인 7일, 초과 구간은 Pro 잠금
 const BACKFILL_OPTIONS = [0, 1, 3, 5, 7, 14, 30];
 const FREE_BACKFILL_MAX = 7;
 const ANON_BACKFILL_MAX = 1;
@@ -85,11 +84,11 @@ export function PublishDialog({
   const [skipNotion, setSkipNotion] = useState(false);
   const [notionConnected, setNotionConnected] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
-  // 최근 실패 결과를 오픈 시 1회만 자동 회수 — 같은 결과를 재오픈 때마다 다시 띄우지 않게
+  // 최근 실패 결과는 오픈 시 1회만 자동 회수 — 재오픈마다 다시 띄우지 않게
   const recalledEndedAt = useRef(0);
   const isToday = date === todayIso();
 
-  // 미로그인 게이팅 — 일간만 허용. 로그아웃으로 잠긴 모드가 남지 않게 일간으로 되돌림
+  // 미로그인은 일간만 — 로그아웃으로 잠긴 모드가 남지 않게 일간으로 되돌림
   useEffect(() => {
     if (!signedIn && mode !== 'daily') setMode('daily');
   }, [signedIn, mode]);
@@ -112,7 +111,7 @@ export function PublishDialog({
       .catch(() => {});
   }, [open]);
 
-  // runningMode 만으론 시작 시 자동 발행이 도는 걸 모르므로 전역 busy·mode 를 따로 확인
+  // runningMode 만으론 시작 시 자동 발행을 몰라 전역 busy·mode 를 따로 확인
   const [externalBusy, setExternalBusy] = useState(false);
   const [busyMode, setBusyMode] = useState<CoreMode | null>(null);
   useEffect(() => {
@@ -126,8 +125,8 @@ export function PublishDialog({
     });
   }, []);
 
-  // 외부(자동) 발행이 다른 mode 로 돌면 그 mode 세션을 보여줘야 진행 화면이 'boot' 에 고정 안 됨.
-  // 종료 시 busy=false 가 run-done 보다 먼저 오므로, 보던 mode 를 latch 해 결과 화면이 폼으로 튕기지 않게.
+  // 외부(자동) 발행이 다른 mode 로 돌면 그 세션을 보여줘야 진행 화면이 'boot' 에 안 멈춤
+  // 종료 시 busy=false 가 run-done 보다 먼저 와서 보던 mode 를 latch 해 결과 화면이 폼으로 안 튕김
   const [watchedExternal, setWatchedExternal] = useState<CoreMode | null>(null);
   useEffect(() => {
     if (externalBusy && busyMode) setWatchedExternal(busyMode);
@@ -135,7 +134,7 @@ export function PublishDialog({
   useEffect(() => {
     if (!showProgress) setWatchedExternal(null);
   }, [showProgress]);
-  // 팔레트 발행처럼 외부에서 요청하면 진행 화면으로 즉시 오픈 — 무피드백 방지 (초기 undefined 무시)
+  // 외부에서 요청하면 진행 화면으로 즉시 오픈 — 무피드백 방지 (초기 undefined 무시)
   useEffect(() => {
     if (openProgressSignal === undefined || openProgressSignal === 0) return;
     setShowProgress(true);
@@ -149,12 +148,11 @@ export function PublishDialog({
   const isRunning = session?.state === 'running';
   const isDone = session?.state === 'done';
   const wide = showProgress && (isRunning || isDone || busy);
-  // 폼 화면(결과·진행 화면이 아닐 때)에만 하단 footer CTA 를 보인다
+  // 폼 화면(결과·진행 화면이 아닐 때)에만 하단 footer CTA
   const formShown =
     !showProgress || (!(isDone && (session?.error || session?.result)) && !isRunning && !busy);
 
-  // 결과·취소·에러 화면을 연 채로 본 세션은 확인된 것으로 기록 —
-  // 닫고 다시 열 때 recall 경로가 같은 결과를 또 띄우지 않게 (취소 화면 재표시 버그)
+  // 결과·취소·에러 화면을 연 채로 본 세션은 확인된 것으로 기록 — recall 이 같은 결과를 또 띄우지 않게
   useEffect(() => {
     if (open && showProgress && isDone && session?.endedAt) {
       recalledEndedAt.current = session.endedAt;
@@ -167,8 +165,7 @@ export function PublishDialog({
       onOpenChange={(o) => {
         setOpen(o);
         if (o) {
-          // 진행 중이면 진행 화면. 아니면, 방금(30분 내) 실패로 끝난 결과가 아직 확인 전이면
-          // 결과 화면을 먼저 — 6초 토스트가 유일해 실패를 다시 볼 수 없던 문제
+          // 진행 중이면 진행 화면, 아니면 30분 내 확인 안 한 실패 결과를 먼저 — 토스트만으론 실패를 다시 볼 수 없음
           if (busy) {
             setShowProgress(true);
           } else {
@@ -185,7 +182,7 @@ export function PublishDialog({
               setShowProgress(false);
             }
           }
-          // 자정을 넘겨 열면 mount 시점의 어제 날짜가 남아 있음 — 사용자가 직접 고른 날짜는 유지 (#236 리뷰)
+          // 자정을 넘겨 열면 mount 시점의 어제 날짜가 남음 — 사용자가 직접 고른 날짜는 유지
           if (!dateTouched.current) setDate((prev) => (prev === todayIso() ? prev : todayIso()));
           if (!busy) setSkipNotion(false);
         }
@@ -351,7 +348,7 @@ export function PublishDialog({
                 type="button"
                 disabled={busy}
                 onClick={() => {
-                  // 이전 외부 발행에서 latch 된 mode 가 새 수동 발행 화면을 끌고 가지 않게 (#236 리뷰)
+                  // 이전 외부 발행에서 latch 된 mode 가 새 수동 발행 화면을 끌고 가지 않게
                   setWatchedExternal(null);
                   setShowProgress(true);
                   void onTrigger(mode, {

@@ -84,7 +84,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     applyAccent(settings.accent);
   }, [settings.accent]);
 
-  // in-app CSS 전용. 창 vibrancy 는 토글 시 깜빡여서 폐기 (2026-06-13)
+  // in-app CSS 전용 — 창 vibrancy 는 토글 시 깜빡여 미사용
   useEffect(() => {
     applyGlass(settings.liquidGlass);
   }, [settings.liquidGlass]);
@@ -112,7 +112,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         backup: { ...prev.backup, ...(patch.backup ?? {}) },
       };
     });
-    // 낙관 반영 후 디스크 결과로 정합 — 쓰기 실패가 다음 실행에서야 무통보 롤백되던 문제
+    // 낙관 반영 후 디스크 결과로 정합 — 쓰기 실패가 다음 실행에서야 무통보 롤백되지 않게
     window.cairn
       .setSettings(patch)
       .then((canonical) => setSettings(canonical))

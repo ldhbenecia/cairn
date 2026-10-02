@@ -266,7 +266,7 @@ function Centered({ children, column }: { children: ReactNode; column?: boolean 
   );
 }
 
-// 연속된 불릿은 한 목록으로 묶어 렌더
+// 연속된 불릿은 한 목록으로 묶음
 function DocBody({ blocks }: { blocks: readonly DocBlock[] }) {
   const groups: (DocBlock | DocBlock[])[] = [];
   for (const b of blocks) {

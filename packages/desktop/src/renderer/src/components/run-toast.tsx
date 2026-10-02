@@ -22,7 +22,7 @@ export function RunToast({
         {toast &&
           (() => {
             const { mode, result } = toast;
-            // '활동 없음/skip/대상 없음' 을 초록 '발행 완료' 로 오보하지 않도록 결과 종류 구분
+            // '활동 없음·skip·대상 없음'을 초록 '발행 완료'로 오보하지 않게 결과 종류 구분
             const kind =
               !result.ok || result.summaryFailed
                 ? ('fail' as const)

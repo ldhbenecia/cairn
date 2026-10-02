@@ -1,9 +1,8 @@
 import type { RecentPage } from '../cairn-api';
 import { addDays, todayLocal } from './reports';
 
-// '그때의 오늘' — 오늘(로컬 날짜) 기준 1주/1달/1년 전의 일간 일지를 되살린다.
-// 날짜 산술은 ISO 문자열 + UTC-only 캘린더 계산 — 로컬 TZ 의존 없음(ADR 0016 패턴).
-// 월·연 이동은 말일 클램프(예: 07-31 → 06-30, 윤년 02-29 → 평년 02-28)
+// 오늘(로컬 날짜) 기준 1주·1달·1년 전 일간 일지 — 날짜 산술은 ISO 문자열 + UTC 캘린더라 로컬 TZ 무관
+// 월·연 이동은 말일 클램프 (07-31 → 06-30, 윤년 02-29 → 평년 02-28)
 
 export type RecallKey = 'week' | 'month' | 'year';
 export type RecallEntry = { key: RecallKey; date: string; page: RecentPage };
@@ -29,7 +28,7 @@ export function recallDates(todayIso: string): { key: RecallKey; date: string }[
   ];
 }
 
-// 해당 날짜의 일간 일지가 있는 항목만 — 하나도 없으면 카드 자체를 숨긴다
+// 해당 날짜 일간 일지가 있는 항목만 — 하나도 없으면 카드 숨김
 export function recallEntries(
   pages: readonly RecentPage[],
   todayIso: string = todayLocal(),

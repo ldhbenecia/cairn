@@ -45,8 +45,7 @@ export type GithubEntry = {
   status: Status;
   error?: string;
   login?: string;
-  // gh CLI 가져오기 항목 — 토큰은 main 프로세스에만 있고 renderer 로 오지 않는다
-  ghLogin?: string;
+  ghLogin?: string; // gh CLI 가져오기 항목 — 토큰은 main 에만 있고 renderer 로 안 옴
 };
 
 function StatusDot({ status }: { status: Status }) {
@@ -87,8 +86,8 @@ function LabelToken({
       return;
     }
     if (!token.trim() || mismatchKey) return;
-    // gh import 는 token 과 status 'testing' 을 함께 세팅하고 스스로 probe — 그 변경만 skip.
-    // probe 진행 중 사용자가 직접 타이핑한 경우는 최종 토큰 검증이 누락되지 않게 재장전 (#239 리뷰)
+    // gh import 는 token 과 status 'testing' 을 함께 세팅하고 스스로 probe — 그 변경만 skip
+    // probe 중 사용자가 직접 타이핑하면 최종 토큰 검증이 누락되지 않게 재장전
     if (status === 'testing' && !manualEdit.current) return;
     manualEdit.current = false;
     const id = setTimeout(() => onTestRef.current(), 800);

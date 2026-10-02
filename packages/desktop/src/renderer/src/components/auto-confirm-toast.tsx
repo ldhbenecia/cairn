@@ -3,8 +3,8 @@ import { CalendarClock } from 'lucide-react';
 import type { CoreMode } from '../cairn-api';
 import { useSettings } from '../settings-context';
 
-// confirmBeforeRun 의 인앱 확인 배너 — macOS 는 앱이 프론트일 때 표시된 알림 배너의 click 을
-// 전달하지 않아(electron#51885) 알림만으로는 발행 확인이 막힐 수 있다
+// confirmBeforeRun 의 인앱 확인 배너 — macOS 는 앱이 프론트일 때 알림 배너 click 을 전달하지 않아
+// 알림만으로는 발행 확인이 막힐 수 있음
 export function AutoConfirmToast({
   modes,
   onAccept,

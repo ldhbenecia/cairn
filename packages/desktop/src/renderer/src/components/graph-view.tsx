@@ -15,7 +15,7 @@ type GraphNode = {
   y: number;
   vx: number;
   vy: number;
-  // 수렴 후 '행성처럼' 계속 떠다니는 gentle float 용 — 정착 위치(hx,hy)를 중심으로 사인 드리프트
+  // 수렴 후 정착 위치(hx,hy)를 중심으로 한 사인 드리프트용
   hx: number;
   hy: number;
   phase: number;
@@ -31,7 +31,7 @@ const LEGEND_CSS: Record<Kind, string> = {
   monthly: 'var(--color-accent)',
 };
 
-// canvas 는 var() 를 못 쓰므로 ink 계열만 probe 로 해석 (테마 의존)
+// canvas 는 var() 를 못 써서 ink 계열만 probe 로 해석 (테마 의존)
 function resolveColor(css: string): string {
   const probe = document.createElement('span');
   probe.style.color = css;
@@ -78,8 +78,7 @@ function buildPalette(accentId: string): Palette {
   };
 }
 
-// 날짜 문자열(YYYY-MM-DD) 달력 산술 — core period-range 와 동일하게 파싱값을 UTC 로만 계산
-// (로컬 TZ 무관: 문자열 in → 문자열 out)
+// 날짜 문자열 달력 산술 — core period-range 와 같이 UTC 로만 계산해 로컬 TZ 무관
 function isoWeekEnd(date: string): string {
   const [y, m, d] = date.split('-').map(Number);
   if (!y || !m || d === undefined) return date;
@@ -90,7 +89,7 @@ function isoWeekEnd(date: string): string {
 }
 
 function buildGraph(pages: RecentPage[], showRollups: boolean): Graph {
-  // yearly 는 그래프 미표시 — 연 1개 노드는 시각적 의미가 약함
+  // yearly 는 미표시 — 연 1개 노드는 시각적 의미가 약함
   const dated = pages.filter(
     (p) => p.date !== null && p.category !== 'yearly' && (showRollups || p.category === 'daily'),
   );
@@ -103,7 +102,7 @@ function buildGraph(pages: RecentPage[], showRollups: boolean): Graph {
         : kind === 'weekly'
           ? 9
           : 3.5 + Math.min(5, Math.sqrt(activity) * 1.4);
-    // phase: 인덱스 기반(결정적) — 노드마다 드리프트 위상을 흩어 동시에 같은 방향으로 안 흐르게
+    // 인덱스 기반 위상 — 노드마다 드리프트 위상을 흩어 같은 방향으로 안 흐르게
     return { page, kind, r, x: 0, y: 0, vx: 0, vy: 0, hx: 0, hy: 0, phase: i * 1.7 };
   });
 
@@ -137,21 +136,18 @@ function buildGraph(pages: RecentPage[], showRollups: boolean): Graph {
     neighbors[b]!.add(a);
   }
 
-  // 초기 배치: 각 월을 원환 위 '클러스터 중심'에 두고, 같은 달 노드를 그 중심 근처에 compact
-  // blob 으로 흩뿌린다(반경별 동심원 링 X). 링으로 뿌리면 스프링이 같은 달 노드를 반경선 따라
-  // 뭉치며 진입 순간 눈에 띄게 '오므라들어' 이상해짐 — blob 시드는 수렴 형태(월별 blob)에 가까워
-  // 그 수축을 없앤다. clusterR 은 월 개수에 맞춰 클러스터가 겹치지 않게 스케일.
+  // 각 월을 원환 위 클러스터 중심에 두고 같은 달 노드를 근처에 compact blob 으로 시드
+  // 동심원 링으로 뿌리면 스프링이 반경선 따라 뭉치며 진입 순간 오므라들어 보임
   const months = [...new Set(dated.map((p) => p.date!.slice(0, 7)))].sort();
   const m = months.length;
-  // 클러스터 원환 반경 — 월 개수에 맞춰 이웃 클러스터가 겹치지 않게(수렴 위치에 근접해 전역 수축 최소화)
+  // 월 개수에 맞춰 이웃 클러스터가 안 겹치게 — 수렴 위치에 근접해 전역 수축 최소화
   const clusterR = m <= 1 ? 0 : Math.max(190, Math.min(480, 140 / Math.sin(Math.PI / m)));
   const monthAngle = new Map(months.map((mo, i) => [mo, (i / m) * Math.PI * 2]));
   nodes.forEach((n, i) => {
     const angle = monthAngle.get(n.page.date!.slice(0, 7)) ?? 0;
     const cx = Math.cos(angle) * clusterR;
     const cy = Math.sin(angle) * clusterR;
-    // 결정적 스캐터(인덱스 해시) — 같은 데이터면 같은 초기 모양. monthly 는 중심 가까이, daily 는
-    // 조금 더 퍼지게(반경 링이 아닌 blob)
+    // 결정적 스캐터(인덱스 해시) — 같은 데이터면 같은 초기 모양, monthly 는 중심 가까이 daily 는 더 넓게
     const j1 = Math.sin(i * 12.9898) * 43758.5453;
     const j2 = Math.sin(i * 78.233) * 12543.8567;
     const sx = j1 - Math.floor(j1) - 0.5;
@@ -195,13 +191,13 @@ export function GraphView({
   const [query, setQuery] = useState('');
   const queryRef = useRef('');
   queryRef.current = query.trim().toLowerCase();
-  // 레이아웃에 영향 주는 설정(간격·중력)만 물리를 다시 돌려 재배치. nodeScale·labels 같은 시각 설정은
-  // 물리 없이 아래 단발 재드로로 — 노드 크기 슬라이더 조작 시 그래프가 들썩이지 않게(cfg 전체 의존 X).
+  // 레이아웃 설정(간격·중력)만 물리를 다시 돌림 — nodeScale·labels 는 단발 재드로라
+  // 노드 크기 슬라이더 조작 시 그래프가 들썩이지 않음
   const wakeRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     wakeRef.current?.();
   }, [cfg.spread, cfg.gravity]);
-  // 유휴(rAF 정지) 중 테마·강조색·검색어·시각 설정(nodeScale·labels)이 바뀌면 단발 재드로 — 레이아웃 불변
+  // 유휴(rAF 정지) 중 테마·강조색·검색어·시각 설정이 바뀌면 단발 재드로 — 레이아웃 불변
   const redrawRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     redrawRef.current?.();
@@ -209,8 +205,7 @@ export function GraphView({
   const pages = recent?.pages;
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
-  // 백그라운드 목록 갱신(포커스 재조회 등)마다 배열 참조가 바뀌어도 내용이 같으면 재구성하지 않고,
-  // 재구성하더라도 카메라·기존 노드 위치는 이어받는다
+  // 백그라운드 목록 갱신으로 배열 참조만 바뀌면 재구성 안 함, 재구성해도 카메라·노드 위치는 이어받음
   const signature = useMemo(
     () => (pages ?? []).map((p) => `${p.pageId}:${p.pr}:${p.commit}:${p.date}`).join('|'),
     [pages],
@@ -242,7 +237,7 @@ export function GraphView({
     let width = 0;
     let height = 0;
     let { zoom, panX, panY } = cameraRef.current;
-    // 첫 진입은 부드럽게 정착하도록 낮은 alpha(과거 1 은 스텝이 커 '확 움직이고 멈춤'), 위치 복원 시 미세 재정착
+    // 첫 진입은 부드럽게 정착하도록 낮은 alpha — 위치 복원 시엔 미세 재정착
     let alpha = seeded === nodes.length ? 0.1 : 0.55;
     let hover = -1;
     let dragging: { idx: number } | { pan: true } | null = null;
@@ -251,9 +246,9 @@ export function GraphView({
     let lastY = 0;
     let raf = 0;
     let settled = false; // 물리 수렴 완료 여부
-    let drift = 0; // 드리프트 진폭 예산(1→0). 수렴 후 서서히 감쇠해 완전 정지 → rAF 도 멈춰 유휴 비용 0
+    let drift = 0; // 드리프트 진폭 예산(1→0) — 0 이 되면 rAF 도 멈춰 유휴 비용 0
     let tf = 0; // 드리프트 시간 카운터 (프레임당 증가)
-    const DRIFT_AMP = 5.5; // 드리프트 최대 진폭(px) — 행성처럼 눈에 띄게 부유
+    const DRIFT_AMP = 5.5; // 드리프트 최대 진폭(px)
     const fontFamily = getComputedStyle(document.body).fontFamily;
     let palette = buildPalette(accentRef.current);
     let paletteKey = `${accentRef.current}|${themeRef.current}`;
@@ -322,8 +317,7 @@ export function GraphView({
           n.vy = 0;
           continue;
         }
-        // 감쇠 완화(과거 0.86 은 속도를 ~0.3s 만에 죽여 '확 움직이고 굳음'). alpha 감쇠와 보조를
-        // 맞춰 속도가 함께 사그라들며 부드럽게 정착
+        // 감쇠를 alpha 감쇠와 맞춰 속도가 함께 사그라들며 정착 — 너무 강하면 '확 움직이고 굳음'
         n.vx *= 0.9;
         n.vy *= 0.9;
         n.x += n.vx * alpha;
@@ -362,7 +356,7 @@ export function GraphView({
         const dim = (dimOthers && !isHover && !isNeighbor) || (!isHover && !matches(n));
         ctx.globalAlpha = dim ? 0.25 : 1;
         ctx.shadowColor = palette.node[n.kind];
-        // glow 축소 — 과거 r*2.2 는 밀집 클러스터에서 halo 가 겹쳐 '뽀얀' 안개가 됨. 노드를 또렷하게
+        // 밀집 클러스터에서 halo 가 겹쳐 안개처럼 보이지 않게 작은 glow
         ctx.shadowBlur = (isHover ? r * 2.4 : r * 1.1) * zoom;
         ctx.fillStyle = isHover ? palette.hoverFill : palette.node[n.kind];
         ctx.beginPath();
@@ -411,17 +405,17 @@ export function GraphView({
       } else {
         pendingKey = null;
       }
-      // 물리는 수렴 전 or '노드' 드래그 중에만. 패닝({pan})은 물리를 건드리지 않는다 —
-      // 패닝이 물리로 전환하면 드리프트 앵커가 재캡처되며 클릭마다 노드가 딱딱 튐(staccato)
+      // 물리는 수렴 전이나 노드 드래그 중에만 — 패닝이 물리로 전환하면 드리프트 앵커가 재캡처돼
+      // 클릭마다 노드가 튐
       const nodeDrag = dragging !== null && 'idx' in dragging;
       if (alpha > 0.02 || nodeDrag) {
         // 레이아웃 단계 — 수렴할 때까지 O(n²)
         tick();
         settled = false;
-        drift = 1; // 수렴 후 쓸 드리프트 예산을 채워둠
+        drift = 1; // 수렴 후 쓸 드리프트 예산 충전
       } else {
-        // 수렴 완료 → 드리프트 진폭을 서서히 0 으로(ease-out) 감쇠하며 완전히 멈춤.
-        // 앵커는 드리프트 offset 을 뺀 순수 정착 위치로 캡처 → 재진입해도 불연속 없음
+        // 수렴 완료 → 드리프트 진폭을 ease-out 으로 0 까지 감쇠해 완전 정지
+        // 앵커는 드리프트 offset 을 뺀 정착 위치라 재진입해도 불연속 없음
         if (!settled) {
           for (const n of nodes) {
             n.hx = n.x - Math.sin(tf * 0.02 + n.phase) * DRIFT_AMP * drift;
@@ -431,7 +425,7 @@ export function GraphView({
         }
         if (drift > 0) {
           tf += 1;
-          drift = Math.max(0, drift - 0.004); // ≈4s 에 걸쳐 눈에 띄게 부유하다 서서히 멈춤
+          drift = Math.max(0, drift - 0.004); // 약 4초에 걸쳐 부유하다 서서히 멈춤
           const A = DRIFT_AMP * drift; // 진폭이 선형으로 줄며 부드럽게 멈춤
           for (const n of nodes) {
             n.x = n.hx + Math.sin(tf * 0.02 + n.phase) * A;
@@ -440,8 +434,8 @@ export function GraphView({
         }
       }
       draw();
-      // 움직임(수렴·노드드래그·드리프트)·패닝/줌·팔레트 스왑 대기가 있을 때만 계속.
-      // 완전 정지하면 rAF 도 멈춰 유휴 비용 0 (검색·테마·줌은 redraw/ensureLoop 로 단발 재개)
+      // 움직임·패닝/줌·팔레트 스왑 대기가 있을 때만 계속 — 완전 정지면 rAF 도 멈춰 유휴 비용 0
+      // (검색·테마·줌은 redraw/ensureLoop 로 단발 재개)
       const animating = alpha > 0.02 || nodeDrag || drift > 0;
       if (animating || dragging !== null || pendingKey !== null) {
         raf = requestAnimationFrame(loop);
@@ -452,7 +446,7 @@ export function GraphView({
     const ensureLoop = (): void => {
       if (raf === 0) raf = requestAnimationFrame(loop);
     };
-    // 레이아웃에 영향 주는 설정 변경 시: 물리를 짧게 재개해 재배치 후 다시 정지
+    // 레이아웃 설정 변경 시 물리를 짧게 재개해 재배치 후 다시 정지
     const wake = (): void => {
       alpha = Math.max(alpha, 0.4);
       settled = false;
@@ -460,15 +454,14 @@ export function GraphView({
       ensureLoop();
     };
     wakeRef.current = wake;
-    // 테마·강조색·검색어 변경 시: 레이아웃은 그대로, 단발 재드로만(유휴 정지 상태에서도 반영)
+    // 테마·강조색·검색어 변경 시 레이아웃은 그대로 단발 재드로만
     redrawRef.current = ensureLoop;
 
-    // 진입 '오므라듦' 제거 — 첫 프레임 전에 물리를 오프스크린으로 수렴시킨다. 수렴 과정(수축/재배치)을
-    // 화면에 안 보여주고 정착된 레이아웃이 바로 나타난 뒤 gentle drift 만 재생. 최대 300틱 O(n²) 라
-    // 최초 진입 시 짧은 계산뿐. 재진입(위치 복원)은 alpha 가 낮아 몇 틱만 돌아 저장 위치를 유지.
+    // 첫 프레임 전에 물리를 오프스크린으로 수렴(최대 300틱) — 수축·재배치 과정 없이 정착된 레이아웃만 표시
+    // 재진입(위치 복원)은 alpha 가 낮아 몇 틱만 돌아 저장 위치 유지
     if (seeded < nodes.length) alpha = 1;
     for (let it = 0; it < 300 && alpha > 0.02; it++) tick();
-    drift = 1; // 표시 단계에선 물리 없이 gentle drift 만
+    drift = 1; // 표시 단계에선 물리 없이 드리프트만
     raf = requestAnimationFrame(loop);
 
     const toWorld = (e: PointerEvent | WheelEvent): { x: number; y: number } => {
@@ -478,8 +471,8 @@ export function GraphView({
         y: (e.clientY - rect.top - height / 2 - panY) / zoom,
       };
     };
-    // pad: 히트 반경 여유(px). 커서/hover 는 0(노드 위에서만 포인터), 클릭/드래그는 5(작은 노드도
-    // 잡기 쉽게). 밀집 클러스터에서 +5 여유가 노드 사이 빈틈까지 잡아 커서가 상시 포인터로 뜨던 문제 해소
+    // pad: 히트 반경 여유(px) — 커서·hover 는 0(노드 위에서만 포인터), 클릭·드래그는 5(작은 노드도 잡기 쉽게)
+    // 밀집 클러스터에서 hover 에 여유를 주면 노드 사이 빈틈까지 잡혀 커서가 상시 포인터가 됨
     const hitTest = (e: PointerEvent, pad = 5): number => {
       const { x, y } = toWorld(e);
       for (let i = nodes.length - 1; i >= 0; i--) {
@@ -497,11 +490,11 @@ export function GraphView({
       lastY = e.clientY;
       const hit = hitTest(e);
       dragging = hit !== -1 ? { idx: hit } : { pan: true };
-      ensureLoop(); // 유휴 중이면 드래그/패닝 프레임을 위해 재개
+      ensureLoop(); // 유휴 중이면 드래그·패닝 프레임을 위해 재개
     };
     const onPointerMove = (e: PointerEvent): void => {
       if (!dragging) {
-        const hit = hitTest(e, 0); // 커서/하이라이트는 노드 위에서만(빈틈 여유 없음)
+        const hit = hitTest(e, 0); // 커서·하이라이트는 노드 위에서만
         if (hit !== hover) {
           hover = hit;
           canvas.style.cursor = hit !== -1 ? 'pointer' : 'grab';
@@ -569,7 +562,7 @@ export function GraphView({
     };
   }, [signature, cfg.showRollups]);
 
-  // recent===null 은 최초 로드 중 — '일지 없음' 오표시 대신 로딩. empty 는 로드 완료 후 빈 경우만
+  // recent===null 은 최초 로드 중 — '일지 없음' 오표시 대신 로딩, empty 는 로드 완료 후 빈 경우만
   const loading = recent === null;
   const empty = !loading && (!pages || pages.filter((p) => p.date !== null).length === 0);
   const setGraph = (patch: Partial<GraphConfig>): void => update({ graph: { ...cfg, ...patch } });
@@ -588,8 +581,7 @@ export function GraphView({
       ) : (
         <>
           <canvas ref={canvasRef} className="h-full w-full [-webkit-app-region:no-drag]" />
-          {/* 상단 80px 풀폭 드래그 밴드 — 창 이동 핸들(대시보드·일지 뷰와 동일 패턴).
-              캔버스가 no-drag 로 상단을 덮어 제목 폭만 잡히던 문제 해소. 우측 컨트롤은 no-drag 상위 형제라 클릭 유지 */}
+          {/* 상단 80px 풀폭 창 이동 핸들 — 캔버스가 no-drag 로 상단을 덮어 따로 둠, 우측 컨트롤은 no-drag 형제라 클릭 유지 */}
           <div className="absolute inset-x-0 top-0 flex h-20 items-center px-6 [-webkit-app-region:drag]">
             <h1 className="text-[15px] font-semibold tracking-[-0.2px] text-ink">
               {t('nav.graph')}

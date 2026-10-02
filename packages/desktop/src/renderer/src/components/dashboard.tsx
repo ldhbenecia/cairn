@@ -63,7 +63,7 @@ function aggregate(pages: RecentPage[]): Agg {
     if (total > 0) mb.days.add(p.date);
     byMonth.set(month, mb);
     if (total > 0) {
-      // 로컬 자정 기준 요일 — date 는 사용자 로컬 날짜이므로 T00:00 로 파싱
+      // 로컬 자정 기준 요일 — date 는 사용자 로컬 날짜라 T00:00 으로 파싱
       const wd = new Date(`${p.date}T00:00:00`).getDay();
       weekday[wd]! += total;
     }
@@ -95,7 +95,7 @@ function computeStreak(byDate: Map<string, DayActivity>): { current: number; lon
   let prev: Date | null = null;
   for (const ds of sorted) {
     const d = new Date(`${ds}T00:00:00`);
-    // Math.round — DST 전환일은 로컬 자정 간격이 23/25h 라 정수 나눗셈만으론 1 이 안 됨
+    // DST 전환일은 로컬 자정 간격이 23·25h 라 Math.round 해야 1 이 됨
     if (prev && Math.round((d.getTime() - prev.getTime()) / 86400000) === 1) run += 1;
     else run = 1;
     longest = Math.max(longest, run);
@@ -179,7 +179,7 @@ function computeInsights(data: Agg): Insights {
   const lastMonth = monthTotal(prevKey);
   const monthDelta = lastMonth > 0 ? Math.round(((thisMonth - lastMonth) / lastMonth) * 100) : null;
 
-  // 주간 리듬 — 이번 주(월요일 시작, 로컬 TZ)와 직전 주 비교. 월간 카드와 동일하게 부분 주 vs 온전한 주
+  // 이번 주(월요일 시작, 로컬 TZ)와 직전 주 비교 — 월간 카드와 같이 부분 주 vs 온전한 주
   const monday = new Date(now);
   monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
   const sumRange = (from: Date, days: number): number => {
@@ -394,7 +394,7 @@ function SectionHead({ label, right }: { label: string; right?: ReactNode }) {
   );
 }
 
-// '그때의 오늘' — 1주/1달/1년 전 오늘의 일간 일지 되살림. 클릭 시 해당 일지 열기(onPickDate)
+// 1주·1달·1년 전 오늘의 일간 일지 되살림 — 클릭 시 해당 일지 열기
 function RecallCard({
   entries,
   t,
@@ -679,7 +679,7 @@ function Heatmap({
     'var(--color-accent)',
   ];
 
-  // 툴팁 좌표는 absolute(컨테이너 기준) — transform 가진 상위(.dash-rise) 때문에 fixed 면 위치가 틀어진다
+  // 툴팁 좌표는 컨테이너 기준 absolute — transform 가진 상위(.dash-rise) 때문에 fixed 면 위치가 틀어짐
   const wrapRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<{ label: string; x: number; y: number } | null>(null);
 
@@ -891,7 +891,7 @@ function TimeOfDayChart({ hours, t }: { hours: number[]; t: T }) {
       <div className="flex flex-col gap-1.5 rounded-lg border border-hairline bg-surface-1 p-4">
         {TOD_PERIODS.map((p, i) => (
           <div key={i} className="flex items-center gap-2">
-            {/* EN 라벨(Late night·Afternoon)이 안 들어가던 폭 — nowrap + 여유 폭 */}
+            {/* EN 라벨(Late night·Afternoon)이 들어가도록 nowrap + 여유 폭 */}
             <span className="w-[4.5rem] shrink-0 text-[11px] whitespace-nowrap text-ink-tertiary">
               {t(p.key)}
             </span>

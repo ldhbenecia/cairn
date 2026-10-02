@@ -49,12 +49,11 @@ export function CommandPalette({
     inputRef.current?.focus();
   }, []);
 
-  // 아래 radix Dialog(환경설정)가 같은 ESC/클릭을 받아 함께 닫히지 않도록,
-  // window 캡처 단계(문서 리스너보다 먼저)에서 가로채 팔레트만 닫는다
+  // 아래 radix Dialog(환경설정)가 같은 ESC·클릭으로 함께 닫히지 않게 window 캡처 단계에서 가로채 팔레트만 닫음
   useEffect(() => {
     const onKeyCapture = (e: KeyboardEvent): void => {
       if (e.key !== 'Escape') return;
-      // IME 조합 취소(ESC)는 팔레트 닫기가 아니다
+      // IME 조합 취소 ESC 는 팔레트 닫기 아님
       if (e.isComposing || e.keyCode === 229) return;
       e.preventDefault();
       e.stopPropagation();
@@ -155,7 +154,7 @@ export function CommandPalette({
     setSel(0);
   }, [q]);
 
-  // 화살표로 접힌 영역 아래 항목을 선택하면 보이도록 스크롤 (worklog-list PageRow 와 동일 패턴)
+  // 화살표로 접힌 영역 아래 항목을 선택하면 보이도록 스크롤 (worklog-list PageRow 와 같은 패턴)
   useEffect(() => {
     selRef.current?.scrollIntoView({ block: 'nearest' });
   }, [sel]);
@@ -212,7 +211,7 @@ export function CommandPalette({
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKey}
             placeholder={t('cmd.placeholder')}
-            // Chromium 이 프로그램적 포커스에 그리는 파란 focus ring 억제
+            // 프로그램적 포커스에 그려지는 Chromium focus ring 억제
             className="w-full appearance-none bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-tertiary focus:outline-none focus-visible:outline-none"
           />
         </div>

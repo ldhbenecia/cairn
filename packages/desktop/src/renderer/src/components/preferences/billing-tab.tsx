@@ -24,7 +24,7 @@ export function BillingTab() {
   return (
     <div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {/* 두 카드는 슬롯 순서(제목/설명·가격·CTA·구분선·기능)를 동일하게 — 행이 어긋나면 한쪽이 비어 보인다 */}
+        {/* 두 카드는 슬롯 순서(제목/설명·가격·CTA·구분선·기능)를 동일하게 — 행이 어긋나면 한쪽이 비어 보임 */}
         <div className="flex flex-col rounded-xl border border-hairline bg-surface-1 p-4 transition-colors hover:border-hairline-strong">
           <div className="mb-4">
             <h3 className="text-[14.5px] font-semibold text-ink">Free</h3>

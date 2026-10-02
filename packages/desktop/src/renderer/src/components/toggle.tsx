@@ -3,9 +3,7 @@ type Props = {
   onChange: (next: boolean) => void;
   disabled?: boolean;
   label?: string;
-  // 시각 라벨이 형제(Field/PanelRow)에 있어 switch 에 접근성 이름이 없다 — 호출부에서 같은
-  // 라벨 텍스트를 넘겨 스크린리더가 각 스위치를 구분하게 한다
-  ariaLabel?: string;
+  ariaLabel?: string; // 시각 라벨이 형제(Field·PanelRow)에 있어 호출부가 같은 텍스트를 넘겨 스위치 구분
 };
 
 export function Toggle({ checked, onChange, disabled, label, ariaLabel }: Props) {
