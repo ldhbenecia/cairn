@@ -310,17 +310,7 @@ void app.whenReady().then(() => {
     };
   });
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {
-    // renderer 는 신뢰 불가 — 부작용 있는 필드는 타입 강제 (truthy 문자열로 OS 로그인 항목·
-    // 임의 경로 열기/쓰기가 켜지는 것 방지)
-    if (patch.backup) patch.backup = { enabled: patch.backup.enabled === true };
-    if (patch.launchAtLogin !== undefined) patch.launchAtLogin = patch.launchAtLogin === true;
-    if (patch.export) {
-      const folder = patch.export.folder;
-      patch.export = {
-        ...patch.export,
-        folder: typeof folder === 'string' || folder === null ? folder : null,
-      };
-    }
+    // 필드 타입 보정은 writeSettings(normalizeSettings) 가 담당 — renderer 값은 신뢰 불가
     const next = writeSettings(patch);
     if (patch.autoPublish) {
       reconfigureAutoPublish();
