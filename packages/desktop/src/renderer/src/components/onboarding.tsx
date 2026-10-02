@@ -45,6 +45,11 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const [claudeStatus, setClaudeStatus] = useState<Status>('idle');
   const [ghImporting, setGhImporting] = useState(false);
   const [ghMsg, setGhMsg] = useState<I18nKey | null>(null);
+  // free(미로그인 포함)는 GitHub 1계정까지 — main(finishOnboarding)도 같은 한도로 방어.
+  // 인증 상태 확정 전에는 제한하지 않는다(pro 사용자의 gh 가져오기가 잘리는 것 방지) —
+  // 그 사이 free 가 초과 등록해도 main 게이트가 finish 에서 막는다
+  const { user: cloudUser, ready: authReady } = useCloudAuth();
+  const planLimit = !authReady || cloudUser?.plan === 'pro' ? Infinity : 1;
 
   const patchGithub = (i: number, p: Partial<GithubEntry>) =>
     setGithub((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
@@ -88,7 +93,8 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
         setGhMsg(r.error === 'gh-not-found' ? 'onb.github.ghNotFound' : 'onb.github.ghNotAuthed');
         return;
       }
-      const entries: GithubEntry[] = r.logins.map((login) => ({
+      if (r.logins.length > planLimit) setGhMsg('onb.github.planLimit');
+      const entries: GithubEntry[] = r.logins.slice(0, planLimit).map((login) => ({
         label: login,
         token: '',
         ghLogin: login,
@@ -267,15 +273,17 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                     }
                   />
                 ))}
-                <AddButton
-                  label={t('onb.github.add')}
-                  onClick={() =>
-                    setGithub((p) => [
-                      ...p,
-                      { label: `Account ${p.length + 1}`, token: '', status: 'idle' },
-                    ])
-                  }
-                />
+                {github.length < planLimit && (
+                  <AddButton
+                    label={t('onb.github.add')}
+                    onClick={() =>
+                      setGithub((p) => [
+                        ...p,
+                        { label: `Account ${p.length + 1}`, token: '', status: 'idle' },
+                      ])
+                    }
+                  />
+                )}
               </Section>
             )}
             {step === 'claude' && (
@@ -409,7 +417,8 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 )}
                 {finishErr && (
                   <p className="text-[13px] text-danger">
-                    {t('onb.review.failPrefix')}: {finishErr}
+                    {t('onb.review.failPrefix')}:{' '}
+                    {finishErr === 'plan-limit' ? t('onb.github.planLimit') : finishErr}
                   </p>
                 )}
               </Section>

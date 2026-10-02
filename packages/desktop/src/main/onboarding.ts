@@ -10,6 +10,7 @@ import { findInPath, searchPathEnv } from './claude-path';
 import { CONFIG_PATH } from './setup';
 import { secretEnv, writeSecretEnvMerged } from './secret-store';
 import { keepIfEmpty, upsertByLabel } from './onboarding-merge';
+import { planRegistrationLimit } from './cloud-auth';
 
 const execFileAsync = promisify(execFile);
 
@@ -449,6 +450,11 @@ export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; er
       const prevWorkspaces = Array.isArray(existing.notionWorkspaces)
         ? (existing.notionWorkspaces as ExistingWs[])
         : [];
+      // 같은 라벨은 재연결(교체)이라 한도와 무관 — 새 라벨 추가만 플랜 한도로 차단
+      const isNewLabel = !prevWorkspaces.some((p) => p.label === w.label);
+      if (isNewLabel && prevWorkspaces.length >= planRegistrationLimit()) {
+        return { ok: false, error: 'plan-limit' };
+      }
       const env: Record<string, string> = {};
       const ws = buildNotionWorkspace(w, prevWorkspaces, env);
       writeSecretEnvMerged(env);
@@ -468,6 +474,7 @@ export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; er
 export async function refreshGithubFromGhCli(): Promise<{
   ok: boolean;
   count?: number;
+  limited?: boolean;
   error?: string;
 }> {
   const r = await githubAccountsFromGhCli();
@@ -485,18 +492,29 @@ export async function refreshGithubFromGhCli(): Promise<{
       let accounts = Array.isArray(existing.githubAccounts)
         ? (existing.githubAccounts as { label: string; tokenEnv: string }[])
         : [];
+      // 기존 라벨은 토큰 갱신(교체)이라 항상 허용, 새 라벨 추가만 플랜 한도로 제한.
+      // 이미 한도를 넘는 기존 config 는 유지 (grandfathering)
+      const allowed = Math.max(planRegistrationLimit(), accounts.length);
       const env: Record<string, string> = {};
+      let applied = 0;
+      let limited = false;
       for (const a of ghAccounts) {
+        const isNewLabel = !accounts.some((acc) => acc.label === a.login);
+        if (isNewLabel && accounts.length >= allowed) {
+          limited = true;
+          continue;
+        }
         const tokenEnv = envKey('GITHUB_TOKEN', a.login);
         env[tokenEnv] = a.token;
         accounts = upsertByLabel(accounts, { label: a.login, tokenEnv }, a.login);
+        applied += 1;
       }
       writeSecretEnvMerged(env);
       for (const [k, v] of Object.entries(env)) process.env[k] = v;
       const config = { ...existing, githubAccounts: accounts };
       mkdirSync(dirname(CONFIG_PATH), { recursive: true });
       writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
-      return { ok: true, count: ghAccounts.length };
+      return { ok: true, count: applied, limited };
     });
   } catch (err) {
     return { ok: false, error: errorMessage(err) };
@@ -548,6 +566,10 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
       const prevGithub = Array.isArray(existing.githubAccounts)
         ? (existing.githubAccounts as { label: string; tokenEnv: string }[])
         : [];
+      // 렌더러가 입구에서 막지만 main 도 방어 — 기존 config 개수까지는 재입력 허용 (grandfathering)
+      if (payload.github.length > Math.max(planRegistrationLimit(), prevGithub.length)) {
+        return { ok: false, error: 'plan-limit' };
+      }
       // 재입력한 계정만 반영, 빈 payload 는 기존 보존 — 토큰은 재발급 부담이 큰 값이라 무경고 삭제 방지
       const githubAccounts = keepIfEmpty(
         payload.github.map((g) => {

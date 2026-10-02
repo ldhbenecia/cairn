@@ -276,7 +276,9 @@ function NotionIntegrationCard() {
           />
           {saveErr && (
             <p className="text-[12px] text-danger">
-              {t('integrations.notion.saveFail')}: {saveErr}
+              {saveErr === 'plan-limit'
+                ? t('integrations.notion.planLimit')
+                : `${t('integrations.notion.saveFail')}: ${saveErr}`}
             </p>
           )}
           <div className="flex items-center justify-end gap-2">
