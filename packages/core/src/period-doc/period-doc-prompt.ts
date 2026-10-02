@@ -19,6 +19,10 @@ export function periodDocSystemPrompt(lang: WorklogLang): string {
     '',
     'Quantify: carry concrete numbers that appear in the bullets (counts, %, ms, versions, before→after) into items. NEVER invent or estimate numbers that are not present.',
     '',
+    lang === 'ko'
+      ? 'Korean tone: concise noun-ending style like the daily worklogs ("… 개선", "… 완료", "PR 51 · 커밋 311."), never polite "-습니다/-했습니다" endings.'
+      : 'English tone: terse, past-tense fragments; no first person.',
+    '',
     'Style: synthesize — do NOT copy daily bullets verbatim or list them by date; no branch names or commit type prefixes like "feat(scope):"; no adjectives or process narration ("worked hard on", "cleanly"); technical nouns and numbers only. No emoji. One line per item, no line breaks inside any field.',
     '',
     'Do not invent work — only organize what the provided data contains. No code bodies, diffs, absolute paths, or tokens.',
