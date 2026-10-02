@@ -1,5 +1,5 @@
 import type { RecentPage, SimpleBlock } from '../cairn-api';
-import { sectionBullets } from './blocks';
+import { sectionBullets } from '../../../shared/section-bullets';
 
 export type StandupLabels = {
   yesterday: string;

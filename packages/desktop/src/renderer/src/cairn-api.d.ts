@@ -222,7 +222,6 @@ declare global {
   interface Window {
     cairn: {
       version: string;
-      isPackaged: boolean;
       initialSettings: Settings;
       initialSetupComplete: boolean;
       setSettings: (patch: Partial<Settings>) => Promise<Settings>;
@@ -259,7 +258,6 @@ declare global {
         onStatsSynced: (cb: () => void) => () => void;
       };
       run: (mode: CoreMode, options?: CoreRunOptions) => Promise<CoreResult>;
-      running: () => Promise<boolean>;
       busyState: () => Promise<BusyState>;
       runSnapshot: () => Promise<RunSnapshot>;
       cancelRun: () => Promise<boolean>;

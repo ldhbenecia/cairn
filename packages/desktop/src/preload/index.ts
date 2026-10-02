@@ -1,6 +1,20 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-const IS_PACKAGED = process.argv.includes('--cairn-packaged');
+function subscribe<T>(channel: string): (cb: (payload: T) => void) => () => void {
+  return (cb) => {
+    const listener = (_e: Electron.IpcRendererEvent, payload: T): void => cb(payload);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.off(channel, listener);
+  };
+}
+
+function subscribeSignal(channel: string): (cb: () => void) => () => void {
+  return (cb) => {
+    const listener = (): void => cb();
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.off(channel, listener);
+  };
+}
 
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
@@ -174,7 +188,6 @@ export type RunLine = {
 
 contextBridge.exposeInMainWorld('cairn', {
   version: boot.version,
-  isPackaged: IS_PACKAGED,
   initialSettings: boot.settings,
   initialSetupComplete: boot.setupComplete,
   setSettings: (patch: Partial<Settings>): Promise<Settings> =>
@@ -240,29 +253,16 @@ contextBridge.exposeInMainWorld('cairn', {
     signIn: () => ipcRenderer.invoke('cairn:auth:sign-in') as Promise<void>,
     signOut: () => ipcRenderer.invoke('cairn:auth:sign-out') as Promise<void>,
     syncNow: () => ipcRenderer.invoke('cairn:sync:now') as Promise<void>,
-    onChanged: (cb: (s: CloudAuthState) => void): (() => void) => {
-      const listener = (_e: Electron.IpcRendererEvent, s: CloudAuthState): void => cb(s);
-      ipcRenderer.on('cairn:auth:changed', listener);
-      return () => ipcRenderer.off('cairn:auth:changed', listener);
-    },
-    onStatsSynced: (cb: () => void): (() => void) => {
-      const listener = (): void => cb();
-      ipcRenderer.on('cairn:stats:synced', listener);
-      return () => ipcRenderer.off('cairn:stats:synced', listener);
-    },
+    onChanged: subscribe<CloudAuthState>('cairn:auth:changed'),
+    onStatsSynced: subscribeSignal('cairn:stats:synced'),
   },
   run: (mode: CoreMode, options?: CoreRunOptions): Promise<CoreResult> =>
     ipcRenderer.invoke('cairn:run', mode, options) as Promise<CoreResult>,
   cancelRun: (): Promise<boolean> => ipcRenderer.invoke('cairn:run-cancel') as Promise<boolean>,
-  running: (): Promise<boolean> => ipcRenderer.invoke('cairn:running') as Promise<boolean>,
   busyState: (): Promise<BusyState> => ipcRenderer.invoke('cairn:busy-state') as Promise<BusyState>,
   runSnapshot: (): Promise<RunSnapshot> =>
     ipcRenderer.invoke('cairn:run-snapshot') as Promise<RunSnapshot>,
-  onBusy: (cb: (s: BusyState) => void): (() => void) => {
-    const listener = (_e: Electron.IpcRendererEvent, payload: BusyState): void => cb(payload);
-    ipcRenderer.on('cairn:busy', listener);
-    return () => ipcRenderer.off('cairn:busy', listener);
-  },
+  onBusy: subscribe<BusyState>('cairn:busy'),
   openExternal: (url: string): Promise<void> =>
     ipcRenderer.invoke('cairn:open-external', url) as Promise<void>,
   exportMarkdown: (defaultName: string, content: string): Promise<SaveResult> =>
@@ -289,54 +289,17 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:export:save-png', defaultName, dataUrl) as Promise<SaveResult>,
   repoStars: (): Promise<number | null> =>
     ipcRenderer.invoke('cairn:repo:stars') as Promise<number | null>,
-  onRunLine: (cb: (l: RunLine) => void): (() => void) => {
-    const listener = (_e: Electron.IpcRendererEvent, payload: RunLine): void => cb(payload);
-    ipcRenderer.on('cairn:run-line', listener);
-    return () => ipcRenderer.off('cairn:run-line', listener);
-  },
-  onFocusMode: (cb: (mode: CoreMode) => void): (() => void) => {
-    const listener = (_e: Electron.IpcRendererEvent, mode: CoreMode): void => cb(mode);
-    ipcRenderer.on('cairn:focus-mode', listener);
-    return () => ipcRenderer.off('cairn:focus-mode', listener);
-  },
-  onOpenConnections: (cb: () => void): (() => void) => {
-    const listener = (): void => cb();
-    ipcRenderer.on('cairn:open-connections', listener);
-    return () => ipcRenderer.off('cairn:open-connections', listener);
-  },
+  onRunLine: subscribe<RunLine>('cairn:run-line'),
+  onFocusMode: subscribe<CoreMode>('cairn:focus-mode'),
+  onOpenConnections: subscribeSignal('cairn:open-connections'),
   autoConfirm: {
     accept: (): Promise<void> => ipcRenderer.invoke('cairn:auto-confirm:accept') as Promise<void>,
     dismiss: (): Promise<void> => ipcRenderer.invoke('cairn:auto-confirm:dismiss') as Promise<void>,
-    onPending: (cb: (modes: CoreMode[] | null) => void): (() => void) => {
-      const listener = (_e: Electron.IpcRendererEvent, modes: CoreMode[] | null): void => cb(modes);
-      ipcRenderer.on('cairn:auto-confirm', listener);
-      return () => ipcRenderer.off('cairn:auto-confirm', listener);
-    },
+    onPending: subscribe<CoreMode[] | null>('cairn:auto-confirm'),
   },
-  onRunProgress: (cb: (payload: { mode: CoreMode } & RunProgress) => void): (() => void) => {
-    const listener = (
-      _e: Electron.IpcRendererEvent,
-      payload: { mode: CoreMode } & RunProgress,
-    ): void => cb(payload);
-    ipcRenderer.on('cairn:run-progress', listener);
-    return () => ipcRenderer.off('cairn:run-progress', listener);
-  },
-  onRunStep: (cb: (payload: { mode: CoreMode; step: RunStep }) => void): (() => void) => {
-    const listener = (
-      _e: Electron.IpcRendererEvent,
-      payload: { mode: CoreMode; step: RunStep },
-    ): void => cb(payload);
-    ipcRenderer.on('cairn:run-step', listener);
-    return () => ipcRenderer.off('cairn:run-step', listener);
-  },
-  onRunDone: (cb: (payload: { mode: CoreMode; result: CoreResult }) => void): (() => void) => {
-    const listener = (
-      _e: Electron.IpcRendererEvent,
-      payload: { mode: CoreMode; result: CoreResult },
-    ): void => cb(payload);
-    ipcRenderer.on('cairn:run-done', listener);
-    return () => ipcRenderer.off('cairn:run-done', listener);
-  },
+  onRunProgress: subscribe<{ mode: CoreMode } & RunProgress>('cairn:run-progress'),
+  onRunStep: subscribe<{ mode: CoreMode; step: RunStep }>('cairn:run-step'),
+  onRunDone: subscribe<{ mode: CoreMode; result: CoreResult }>('cairn:run-done'),
   readConfig: (): Promise<ConfigResult> =>
     ipcRenderer.invoke('cairn:config:read') as Promise<ConfigResult>,
   setLocalGitEnabled: (enabled: boolean): Promise<{ ok: boolean; error?: string }> =>

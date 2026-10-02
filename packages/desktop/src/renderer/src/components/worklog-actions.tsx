@@ -9,7 +9,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import type { PageContent, RecentPage, SimpleBlock } from '../cairn-api';
-import { sectionBullets } from '../lib/blocks';
+import { sectionBullets } from '../../../shared/section-bullets';
 import { pageSinks } from '../lib/sinks';
 import { blocksToMarkdown } from '../../../shared/markdown';
 import { blocksToHtml } from '../../../shared/html';

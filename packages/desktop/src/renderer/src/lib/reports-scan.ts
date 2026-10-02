@@ -1,6 +1,6 @@
 import type { RecentListResult, RecentPage } from '../cairn-api';
 import { addDays, localDateDaysAgo, todayLocal } from './reports';
-import { pool } from './blocks';
+import { pool } from '../../../shared/pool';
 
 export type PerDay = { date: string; bullets: string[] };
 
