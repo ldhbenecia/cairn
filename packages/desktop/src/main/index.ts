@@ -8,7 +8,14 @@ import {
   reconfigureAutoPublish,
 } from './auto-publish';
 import { claudePathReady } from './claude-path';
-import { exportStatus, pickExportFolder, saveMarkdown, savePdf, savePng } from './export';
+import {
+  exportStatus,
+  isAllowedExportFolder,
+  pickExportFolder,
+  saveMarkdown,
+  savePdf,
+  savePng,
+} from './export';
 import { notifyCloudExpired, notifyConnectionIssue, sendTestNotification } from './notifier';
 import {
   busyState,
@@ -309,8 +316,13 @@ void app.whenReady().then(() => {
       setupComplete: isSetupComplete(secretEnv()),
     };
   });
-  ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {
+  ipcMain.handle('cairn:settings:set', (_e, raw: Partial<Settings>) => {
     // 필드 타입 보정은 writeSettings(normalizeSettings) 가 담당 — renderer 값은 신뢰 불가
+    let patch = raw;
+    if (patch.export && !isAllowedExportFolder(patch.export.folder, readSettings().export.folder)) {
+      const { folder: _rejected, ...rest } = patch.export;
+      patch = { ...patch, export: rest as Settings['export'] };
+    }
     const next = writeSettings(patch);
     if (patch.autoPublish) {
       reconfigureAutoPublish();

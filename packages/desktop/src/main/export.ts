@@ -65,9 +65,22 @@ export async function exportStatus(): Promise<ExportStatus> {
   }
 }
 
+// 네이티브 선택창에서 고른 경로만 설정 허용 — 렌더러가 임의 경로(.app 번들 등)를 심어 openPath 로 실행하거나 쓰기 위치를 돌리지 못하게
+const pickedFolders = new Set<string>();
+
 export async function pickExportFolder(): Promise<string | null> {
   const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] });
-  return r.canceled ? null : (r.filePaths[0] ?? null);
+  const folder = r.canceled ? null : (r.filePaths[0] ?? null);
+  if (folder) pickedFolders.add(folder);
+  return folder;
+}
+
+export function isAllowedExportFolder(folder: unknown, current: string | null): boolean {
+  return (
+    folder === null ||
+    folder === current ||
+    (typeof folder === 'string' && pickedFolders.has(folder))
+  );
 }
 
 // 저장 실패가 렌더러에서 무시되면 '메뉴 닫힘 + 무반응' — 네이티브로 표면화
