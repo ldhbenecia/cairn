@@ -77,7 +77,7 @@ export type CoreResult = {
   stderrTail: string;
 };
 
-const CORE_ENTRY = app.isPackaged
+export const CORE_ENTRY = app.isPackaged
   ? resolve(process.resourcesPath, 'core/bundle/index.js')
   : resolve(__dirname, '../../../core/dist/main.js');
 const LOGS_DIR = join(CAIRN_ROOT, 'logs');
@@ -153,13 +153,13 @@ function closeRunLog(): void {
   }
 }
 
-// probe 는 run 밖(5분 주기)이라 스트림이 없다 — 한 줄 동기 append. "연결됨" 표시의 근거를 사후 확인용
-function appendProbeLog(ok: boolean, detail: string): void {
+// run 밖 fork(probe·기간 정리 문서)는 스트림이 없어 한 줄씩 동기 append
+export function appendSideLog(tag: string, level: 'info' | 'err' | 'meta', line: string): void {
   try {
     mkdirSync(LOGS_DIR, { recursive: true, mode: 0o700 });
     appendFileSync(
       runLogPath(),
-      `${new Date().toISOString()} [probe] [${ok ? 'meta' : 'err'}] ${stripAnsi(detail)}\n`,
+      `${new Date().toISOString()} [${tag}] [${level}] ${stripAnsi(line)}\n`,
       { mode: 0o600 },
     );
   } catch {
@@ -192,7 +192,7 @@ function promptEnv(prompts: Settings['prompts']): Record<string, string> {
   return env;
 }
 
-function summaryModelEnv(model: Settings['summaryModel']): Record<string, string> {
+export function summaryModelEnv(model: Settings['summaryModel']): Record<string, string> {
   return model !== 'default' ? { CAIRN_SUMMARY_MODEL: model } : {};
 }
 
@@ -282,7 +282,7 @@ export async function probeClaude(): Promise<{ ok: boolean }> {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      appendProbeLog(ok, detail);
+      appendSideLog('probe', ok ? 'meta' : 'err', detail);
       resolvePromise({ ok });
     };
     child.on('close', () => {
