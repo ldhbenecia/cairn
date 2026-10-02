@@ -453,7 +453,6 @@ export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; er
       const env: Record<string, string> = {};
       const ws = buildNotionWorkspace(w, prevWorkspaces, env);
       writeSecretEnvMerged(env);
-      for (const [k, v] of Object.entries(env)) process.env[k] = v;
       const config = { ...existing, notionWorkspaces: upsertByLabel(prevWorkspaces, ws, w.label) };
       mkdirSync(dirname(CONFIG_PATH), { recursive: true });
       writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
@@ -493,7 +492,6 @@ export async function refreshGithubFromGhCli(): Promise<{
         accounts = upsertByLabel(accounts, { label: a.login, tokenEnv }, a.login);
       }
       writeSecretEnvMerged(env);
-      for (const [k, v] of Object.entries(env)) process.env[k] = v;
       const config = { ...existing, githubAccounts: accounts };
       mkdirSync(dirname(CONFIG_PATH), { recursive: true });
       writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
@@ -565,7 +563,6 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
       if (payload.anthropicApiKey?.trim()) env.ANTHROPIC_API_KEY = payload.anthropicApiKey.trim();
 
       writeSecretEnvMerged(env);
-      for (const [k, v] of Object.entries(env)) process.env[k] = v;
 
       const config = {
         ...existing,

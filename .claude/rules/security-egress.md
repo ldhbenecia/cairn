@@ -31,7 +31,7 @@
    - `allowedTools` 는 "확인 없이 허용" 목록일 뿐 도구를 **제한하지 않는다**. 기본 도구(Bash·Read·Grep 등)가 남으면 입력(PR 본문·일지 불릿)에 심은 지시로 모델이 로컬 파일·env 를 읽어 Anthropic 으로 보내고 결과에 끼워 넣는다 — 위 1~3 의 payload 검사를 통째로 우회 (읽기 전용 셸·cwd Read 는 기본 허용이라 사용자 설정과 무관하게 재현됨).
    - `tools: []` 는 ToolSearch 까지 꺼서, 제출 도구가 지연 로딩되면 요약이 제출되지 않는다 → `alwaysLoad` 필수.
    - 새 `query()` 호출을 추가하면 `common/agent-isolation.spec.ts` 에 케이스를 더한다.
-6. **토큰 불필요 fork 의 env**: probe·기간 정리 문서처럼 토큰이 필요 없는 core fork 는 `envWithoutSecrets()` 로 시크릿 키를 뺀 env 를 넘긴다 (메인은 복호화한 토큰을 `process.env` 에 올림).
+6. **토큰은 전역 env 에 올리지 않는다**: desktop main 은 복호화한 토큰을 `process.env` 에 쓰지 않고 필요할 때 `secretValue(name)` 로 읽는다 (전역 env 에 두면 모든 fork 가 상속). 자식 core env 는 `coreChildEnv(settings, { secrets })` 하나로 조립 — 토큰은 발행 run(`secrets: true`)에만, 그 외 fork 는 셸에서 export 된 같은 이름의 키까지 뺀다.
 
 ## 보안 ADR
 
