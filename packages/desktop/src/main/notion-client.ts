@@ -3,24 +3,23 @@ import { errorMessage } from './error-message';
 import { readStatsFile } from './cloud-sync';
 import { readConfig } from './files';
 import { secretValue } from './secret-store';
-
-export type RecentCategory = 'daily' | 'weekly' | 'monthly' | 'yearly';
-
-export type WorklogSink = 'journal' | 'notion' | 'obsidian';
-
-export type RecentPage = {
-  pageId: string;
-  url: string;
-  title: string;
-  date: string | null;
-  status: string | null;
-  category: RecentCategory;
-  pr: number | null;
-  commit: number | null;
-  hours: number[] | null;
-  workspaceLabel: string;
-  sinks?: WorklogSink[]; // listRecentMerged 에서 채움
-};
+import type {
+  RecentCategory,
+  RecentPage,
+  RecentWarning,
+  RichSpan,
+  SimpleBlock,
+  PageContent,
+} from '../shared/ipc-types';
+export type {
+  RecentCategory,
+  WorklogSink,
+  RecentPage,
+  RecentWarning,
+  RichSpan,
+  SimpleBlock,
+  PageContent,
+} from '../shared/ipc-types';
 
 type NotionWorkspaceConfig = {
   label: string;
@@ -91,13 +90,6 @@ function readDate(props: Record<string, unknown>, key: string): string | null {
   const p = props[key] as { date?: { start?: string } | null } | undefined;
   return p?.date?.start ?? null;
 }
-
-// 경고는 코드로만 — renderer 가 i18n 으로 매핑해 한국어가 EN 사용자에게 안 샘
-export type RecentWarning =
-  | { code: 'no-workspaces' }
-  | { code: 'token-missing'; workspace: string; tokenEnv: string }
-  | { code: 'no-data-source'; workspace: string }
-  | { code: 'fetch-failed'; workspace: string; kind: 'worklog' | 'rollup'; detail: string };
 
 export async function listRecentPages(): Promise<{
   pages: RecentPage[];
@@ -237,28 +229,6 @@ async function listRollupPages(
     ];
   });
 }
-
-export type RichSpan = {
-  text: string;
-  bold?: boolean;
-  italic?: boolean;
-  code?: boolean;
-  strike?: boolean;
-  href?: string;
-};
-
-export type SimpleBlock = {
-  id: string;
-  type: string;
-  rich: RichSpan[];
-  checked?: boolean;
-  language?: string;
-  icon?: string;
-  iconUrl?: string;
-  children?: SimpleBlock[];
-};
-
-export type PageContent = { blocks: SimpleBlock[]; warning?: string };
 
 type RawRichText = {
   plain_text?: string;

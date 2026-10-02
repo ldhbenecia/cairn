@@ -6,17 +6,12 @@ import { findInPath, searchPathEnv } from './claude-path';
 import { mt } from './i18n';
 import { journalFolder } from './journal-reader';
 import { readSettings } from './settings';
+import type { BackupStatus } from '../shared/ipc-types';
+export type { BackupStatus } from '../shared/ipc-types';
 
 const execFileAsync = promisify(execFile);
 
 export type BackupErrorCode = 'pull-failed' | 'identity-missing' | 'commit-failed' | 'push-failed';
-
-export type BackupStatus = {
-  state: 'disabled' | 'no-git' | 'no-repo' | 'idle' | 'syncing';
-  hasRemote: boolean;
-  lastBackupAt: number | null;
-  error: BackupErrorCode | null;
-};
 
 export type BackupDeps = {
   exec: (args: string[], dir: string, timeoutMs: number) => Promise<{ stdout: string }>;

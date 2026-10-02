@@ -5,8 +5,8 @@ export type CoreMode = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type CoreRunOptions = {
   backfillDays?: number;
   force?: boolean;
-  date?: string;
-  skipNotion?: boolean;
+  date?: string; // "YYYY-MM-DD" — 미지정 시 엔진이 로컬 today 사용 (롤업 기간 anchor 등)
+  skipNotion?: boolean; // 노션만 제외 — journal·통계 유지
 };
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
@@ -53,7 +53,7 @@ export type PeriodDocRange = { since: string; until: string };
 export type PeriodDocResult =
   | { status: 'ok'; fileName: string; content: string }
   | { status: 'empty' }
-  | { status: 'fail'; hint: CoreResult['failureHint'] };
+  | { status: 'fail'; hint: FailureHint };
 
 export type ExportStatus = {
   folder: string | null;
@@ -83,6 +83,7 @@ export type RecentPage = {
   sinks?: WorklogSink[]; // 구버전 로컬 캐시에는 없음
 };
 
+// 경고는 코드로만 — renderer 가 i18n 으로 매핑해 한국어가 EN 사용자에게 안 샘
 export type RecentWarning =
   | { code: 'no-workspaces' }
   | { code: 'token-missing'; workspace: string; tokenEnv: string }
@@ -144,6 +145,7 @@ export type RunLine = {
 
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
+// 'default' 는 Claude 로그인 기본 모델
 export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
 
 export type CloudUser = { name: string; email: string; image: string | null };
@@ -154,6 +156,7 @@ export type NotionPage = { id: string; title: string };
 export type NotionDb = { databaseId: string; dataSourceId: string; title: string };
 export type GithubProbe = { ok: boolean; login?: string; error?: string };
 export type LocalRepoProbe = { ok: boolean; reason?: 'not-git' | 'no-email' };
+// invalid(401/403)만 사용자 행동 필요 — missing 은 토큰 미설정, unreachable 은 네트워크·타임아웃
 export type AccountHealth = 'ok' | 'invalid' | 'missing' | 'unreachable';
 export type ConnectionAccounts = {
   github: { label: string; login?: string; health: AccountHealth }[];

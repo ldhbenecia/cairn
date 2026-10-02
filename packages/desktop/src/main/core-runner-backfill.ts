@@ -1,21 +1,12 @@
 import { broadcast } from './broadcast';
 import type { CoreMode } from './core-runner';
 import type { ParentEvent } from './core-runner-extract';
+import type { DateStep, DateCounts, RunProgress } from '../shared/ipc-types';
+export type { DateStep, DateCounts, RunProgress } from '../shared/ipc-types';
 
 // 백필 배치 진행 — fork-IPC 구조화 이벤트가 단일 소스
 // 갱신은 전부 멱등(max·length 가드·키 맵)이라 이벤트 중복·순서 뒤섞임에 안전
-export type DateStep = 'collect' | 'summarize' | 'publish';
-export type DateCounts = { pr: number; commit: number };
-export type RunProgress = {
-  total: number;
-  done: number;
-  active: number;
-  dates: string[];
-  doneDates: string[];
-  failedDates: string[];
-  stepByDate: Record<string, DateStep>;
-  countsByDate: Record<string, DateCounts>;
-};
+
 let runProgress: RunProgress | null = null;
 let bfTotal = 0;
 let bfDone = 0;

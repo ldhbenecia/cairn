@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { claudePathReady } from './claude-path';
 import { appendSideLog, CORE_ENTRY, coreChildEnv } from './core-runner';
-import { createExtractor, type FailureHint } from './core-runner-extract';
+import { createExtractor } from './core-runner-extract';
 import { journalFolder } from './journal-reader';
 import {
   isValidRange,
@@ -17,11 +17,8 @@ import {
 } from './period-doc-events';
 import { readSettings } from './settings';
 import { CAIRN_ROOT } from './setup';
-
-export type PeriodDocResult =
-  | { status: 'ok'; fileName: string; content: string }
-  | { status: 'empty' }
-  | { status: 'fail'; hint: FailureHint };
+import type { PeriodDocResult } from '../shared/ipc-types';
+export type { PeriodDocResult } from '../shared/ipc-types';
 
 // 1년치 입력이면 요약 1회가 수 분 걸림
 const TIMEOUT_MS = 5 * 60_000;

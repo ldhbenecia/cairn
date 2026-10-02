@@ -9,12 +9,12 @@ import { createServer, type Server } from 'node:http';
 import { dirname, join } from 'node:path';
 import { CAIRN_ROOT } from './setup';
 import { errorMessage } from './error-message';
+import type { CloudUser, CloudAuthState } from '../shared/ipc-types';
+export type { CloudUser, CloudAuthState } from '../shared/ipc-types';
 
 export const WEB_BASE = process.env.CAIRN_WEB_URL ?? 'https://cairnlog.cloud';
 const AUTH_PATH = join(CAIRN_ROOT, 'auth.json');
 
-export type CloudUser = { name: string; email: string; image: string | null };
-export type CloudAuthState = { signedIn: boolean; user: CloudUser | null };
 type Stored = { token: string; user: CloudUser };
 
 // bearer 토큰 at-rest 암호화 — packaged 는 키체인 키로 암호문 저장, 실패·레거시는 평문 폴백

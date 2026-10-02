@@ -5,63 +5,18 @@ import { join } from 'node:path';
 import { writeFileAtomic } from './atomic-write';
 import { mergeSettings } from '../shared/merge-settings';
 import { normalizeSettings } from './settings-normalize';
-
-export type Theme = 'dark' | 'light' | 'system';
-export type Language = 'ko' | 'en';
-// 'default' 는 Claude 로그인 기본 모델
-export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
-
-export type AutoPublish = {
-  daily: boolean;
-  weekly: boolean;
-  monthly: boolean;
-  yearly: boolean;
-  time: string;
-  backfillDays: number;
-  confirmBeforeRun: boolean;
-};
-
-export type ExportConfig = {
-  folder: string | null;
-  autoSync: boolean;
-};
-
-export type GraphLabels = 'auto' | 'always' | 'hover';
-
-export type GraphConfig = {
-  enabled: boolean;
-  nodeScale: number;
-  spread: number;
-  gravity: number;
-  labels: GraphLabels;
-  showRollups: boolean;
-};
-
-export type BackupConfig = {
-  enabled: boolean;
-};
-
-export type Settings = {
-  theme: Theme;
-  accent: string;
-  liquidGlass: boolean;
-  language: Language;
-  notifications: boolean;
-  launchAtLogin: boolean;
-  telemetry: boolean;
-  installId: string;
-  autoPublish: AutoPublish;
-  prompts: {
-    daily: string | null;
-    weekly: string | null;
-    monthly: string | null;
-    yearly: string | null;
-  };
-  summaryModel: SummaryModel;
-  export: ExportConfig;
-  graph: GraphConfig;
-  backup: BackupConfig;
-};
+import type { Language, AutoPublish, Settings } from '../shared/ipc-types';
+export type {
+  Theme,
+  Language,
+  SummaryModel,
+  AutoPublish,
+  ExportConfig,
+  GraphLabels,
+  GraphConfig,
+  BackupConfig,
+  Settings,
+} from '../shared/ipc-types';
 
 const DEFAULTS: Settings = {
   theme: 'system',

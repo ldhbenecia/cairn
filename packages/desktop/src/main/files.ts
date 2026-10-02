@@ -1,11 +1,7 @@
 import { readFile, stat } from 'node:fs/promises';
 import { CONFIG_PATH } from './setup';
-
-export type ConfigResult = {
-  raw: string | null;
-  parsed: unknown;
-  path: string;
-};
+import type { ConfigResult } from '../shared/ipc-types';
+export type { ConfigResult } from '../shared/ipc-types';
 
 // mtime 기반 캐시 — 스캔·백필 중 config 를 페이지당 수백 번 다시 읽고 파싱하지 않게
 // mtime 이 바뀌면 다음 호출에서 재파싱해 설정 변경은 그대로 반영

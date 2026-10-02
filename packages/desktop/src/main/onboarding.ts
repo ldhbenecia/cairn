@@ -10,19 +10,29 @@ import { claudePathReady, findInPath, searchPathEnv } from './claude-path';
 import { CONFIG_PATH } from './setup';
 import { secretEnv, writeSecretEnvMerged } from './secret-store';
 import { keepIfEmpty, upsertByLabel } from './onboarding-merge';
+import type {
+  NotionProbe,
+  NotionPage,
+  NotionDb,
+  GithubProbe,
+  DbRef,
+  LocalRepoProbe,
+  AccountHealth,
+  ConnectionAccounts,
+} from '../shared/ipc-types';
+export type {
+  NotionProbe,
+  NotionPage,
+  NotionDb,
+  GithubProbe,
+  DbRef,
+  LocalRepoProbe,
+  AccountHealth,
+  ConnectionAccounts,
+} from '../shared/ipc-types';
 
 const execFileAsync = promisify(execFile);
 
-export type NotionProbe = {
-  ok: boolean;
-  persons: { id: string; name: string }[];
-  error?: string;
-};
-export type NotionPage = { id: string; title: string };
-export type NotionDb = { databaseId: string; dataSourceId: string; title: string };
-export type GithubProbe = { ok: boolean; login?: string; error?: string };
-
-export type DbRef = { databaseId: string; dataSourceId: string };
 export type OnboardingPayload = {
   notion: {
     label: string;
@@ -38,8 +48,6 @@ export type OnboardingPayload = {
 };
 
 const isStr = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
-
-export type LocalRepoProbe = { ok: boolean; reason?: 'not-git' | 'no-email' };
 
 export async function probeLocalRepo(path: string): Promise<LocalRepoProbe> {
   // .git 은 dir·file(worktree) 둘 다 가능 — existsSync 로 커버
@@ -301,14 +309,6 @@ export async function probeGithub(token: string): Promise<GithubProbe> {
     return { ok: false, error: errorMessage(err) };
   }
 }
-
-// invalid(401/403)만 사용자 행동 필요 — missing 은 토큰 미설정, unreachable 은 네트워크·타임아웃
-export type AccountHealth = 'ok' | 'invalid' | 'missing' | 'unreachable';
-
-export type ConnectionAccounts = {
-  github: { label: string; login?: string; health: AccountHealth }[];
-  notion: { label: string; workspace?: string; health: AccountHealth }[];
-};
 
 const PROBE_TIMEOUT_MS = 6000;
 

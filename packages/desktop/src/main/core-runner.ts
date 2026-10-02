@@ -18,7 +18,6 @@ import {
   getBackfillPagesByDate,
   getRunProgress,
   resetBackfillTracking,
-  type RunProgress,
 } from './core-runner-backfill';
 import { broadcast } from './broadcast';
 import { errorMessage } from './error-message';
@@ -39,41 +38,14 @@ import {
   createExtractor,
   deriveFailureHint,
   parseParentEvent,
-  type FailureHint,
-  type PublishKind,
   type RunStep,
 } from './core-runner-extract';
+import type { CoreMode, CoreRunOptions, CoreResult, RunSnapshot } from '../shared/ipc-types';
+export type { CoreMode, CoreRunOptions, CoreResult, RunSnapshot } from '../shared/ipc-types';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 
-export type CoreMode = 'daily' | 'weekly' | 'monthly' | 'yearly';
-
-export type CoreRunOptions = {
-  backfillDays?: number;
-  force?: boolean;
-  date?: string; // "YYYY-MM-DD" — 미지정 시 엔진이 로컬 today 사용 (롤업 기간 anchor 등)
-  skipNotion?: boolean; // 노션만 제외 — journal·통계 유지
-};
-
 export type { FailureHint, PublishKind, RunStep } from './core-runner-extract';
-
-export type CoreResult = {
-  ok: boolean;
-  exitCode: number | null;
-  notionUrl: string | null;
-  publishKind: PublishKind;
-  publishPageId: string | null;
-  journalFile: string | null;
-  noActivity: boolean;
-  cancelled: boolean;
-  summaryFailed: boolean;
-  failureHint: FailureHint;
-  journalWriteFailed: boolean;
-  collectPartial: string[];
-  prCount: number;
-  commitCount: number;
-  stderrTail: string;
-};
 
 export const CORE_ENTRY = app.isPackaged
   ? resolve(process.resourcesPath, 'core/bundle/index.js')
@@ -242,15 +214,6 @@ function broadcastBusy(): void {
 export function busyState(): { busy: boolean; mode: CoreMode | null } {
   return { busy: running !== null, mode: runningMode };
 }
-
-export type RunSnapshot = {
-  busy: boolean;
-  mode: CoreMode | null;
-  step: RunStep;
-  startedAt: number;
-  progress: RunProgress | null;
-  lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null;
-};
 
 export function runSnapshot(): RunSnapshot {
   return {
