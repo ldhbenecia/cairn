@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// secret-store 가 electron(app.isPackaged)·keychain 을 import — 스펙에선 opts 주입만 쓰므로 모킹
+// secret-store 가 electron·keychain 을 import — 스펙은 opts 주입만 써서 모킹
 vi.mock('electron', () => ({ app: { isPackaged: false } }));
 vi.mock('./keychain-key', () => ({ getOrCreateSecretKey: (): null => null }));
 

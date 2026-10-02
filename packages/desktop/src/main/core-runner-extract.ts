@@ -1,6 +1,5 @@
-// core 자식 프로세스 실행 결과 계약 — fork-IPC 구조화 이벤트가 단일 소스 (ADR 0033 3단계,
-// 로그 스크래핑 제거). stdout 은 failureHint(자유 에러 텍스트 분류)만 본다 — 이벤트로 옮기기엔
-// 에러 원문이 다양해 텍스트 패턴 분류가 남은 마지막 용도. electron 무의존이라 단위 테스트 가능
+// core 자식 프로세스 실행 결과 계약 — 결과·진행은 fork-IPC 구조화 이벤트가 단일 소스
+// stdout 은 에러 원문이 다양한 failureHint 분류에만 사용
 
 export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
 
@@ -16,8 +15,7 @@ export type FailureHint =
   | 'collect'
   | null;
 
-// 실패 원인 힌트 — raw 로그는 UI 비노출 정책이라 대표 패턴만 내부 분류해 친화 문구 키로 전달.
-// 어떤 패턴에도 안 걸리면 null
+// raw 로그는 UI 비노출 정책이라 대표 패턴만 친화 문구 키로 분류, 안 걸리면 null
 export function deriveFailureHint(text: string): FailureHint {
   if (/OAuth token.*(expired|revoked)|Please run \/login|authentication_error/i.test(text))
     return 'claude-auth';
@@ -31,8 +29,8 @@ export function deriveFailureHint(text: string): FailureHint {
   return null;
 }
 
-// 구체 원인이 일반 증상을 이긴다 — 예: "fetch failed"(network) 경고 뒤 "Bad credentials"(auth) 가
-// 와도 auth 로 분류. 같은 순위면 첫 매치 유지
+// 구체 원인이 일반 증상을 이김 — "fetch failed"(network) 뒤 "Bad credentials"(auth) 면 auth
+// 같은 순위면 첫 매치 유지
 const HINT_PRIORITY: Record<Exclude<FailureHint, null>, number> = {
   'claude-auth': 7,
   auth: 6,
@@ -52,14 +50,13 @@ export interface RunExtractor {
   noActivity: boolean;
   summaryFailed: boolean;
   failureHint: FailureHint;
-  // 로컬 journal(1차 기록) 쓰기 실패 — 노션 발행이 성공해도 로컬 기록이 통째로 빠질 수 있어
-  // 결과가 ok 라도 사용자에게 경고해야 한다 (예: macOS TCC 로 Documents 접근 거부 → EPERM)
+  // 로컬 journal(1차 기록) 쓰기 실패 — 노션 발행이 성공해도 경고 필요 (예: macOS TCC 의 Documents EPERM)
   journalWriteFailed: boolean;
-  // 부분 수집 실패(계정/레포 일부만) — 성공 발행이어도 그 소스 활동이 빠졌음을 경고
+  // 부분 수집 실패(계정·레포 일부) — 성공 발행이어도 그 소스 활동이 빠졌음을 경고
   collectPartialLabels: string[];
 }
 
-// core fork-IPC 이벤트 (ADR 0033) — 송신 타입: core/src/common/parent-events.ts
+// 송신 타입: core/src/common/parent-events.ts
 export type ParentEvent =
   | { type: 'date-step'; date: string; step: 'collect' | 'summarize' | 'publish' }
   | {
@@ -206,8 +203,7 @@ export function createExtractor(): RunExtractor {
     journalWriteFailed: false,
     collectPartialLabels: [],
   };
-  // 결과 필드(url·kind·pageId·journal·noActivity·summaryFailed)는 applyParentEvent 가 채운다 —
-  // stdout 은 failureHint 분류만. HINT_PRIORITY 로 더 구체적인 원인이 나오면 갱신
+  // 결과 필드는 applyParentEvent 가 채움 — stdout 은 failureHint 분류만, 더 구체적인 원인이 나오면 갱신
   state.feed = (line: string): void => {
     const hint = deriveFailureHint(line);
     if (!hint) return;

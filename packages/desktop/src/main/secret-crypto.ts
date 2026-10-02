@@ -1,7 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
-// 시크릿 at-rest 암호화 코덱 (ADR 0037) — AES-256-GCM, 키는 macOS 키체인 보관(keychain-key).
-// electron 무의존 순수 모듈이라 단위 테스트 가능. 어떤 실패든 null(호출측 평문 폴백 — fail-open)
+// 시크릿 at-rest 암호화 코덱(AES-256-GCM, 키는 macOS 키체인) — 어떤 실패든 null 로 호출측이 평문 폴백
 
 type EncryptedPayload = { v: 1; alg: 'aes-256-gcm'; iv: string; tag: string; data: string };
 

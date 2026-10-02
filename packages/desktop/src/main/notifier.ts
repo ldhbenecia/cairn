@@ -5,7 +5,7 @@ import { readSettings } from './settings';
 
 const modeLabel = (mode: CoreMode): string => mt(`mode.${mode}`);
 
-// 참조를 안 잡으면 GC 가 Notification 을 수거해 click 리스너가 죽는다(Electron) — click/close 시 해제
+// 참조를 안 잡으면 GC 가 Notification 을 수거해 click 리스너가 죽음 — click·close 시 해제
 const activeNotifications = new Set<Notification>();
 
 function focusModeInApp(mode: CoreMode): void {
@@ -18,7 +18,7 @@ function focusModeInApp(mode: CoreMode): void {
 }
 
 function notify(title: string, body: string, mode: CoreMode): void {
-  // 앱이 포커스 상태면 macOS 가 배너를 억제하므로, dock 바운스로 완료를 확실히 알린다
+  // 앱이 포커스 상태면 macOS 가 배너를 억제 — dock 바운스로 완료 알림
   app.dock?.bounce('informational');
   if (!Notification.isSupported()) return;
   const noti = new Notification({ title, body });
@@ -36,7 +36,7 @@ export function sendResultNotification(mode: CoreMode, result: CoreResult): void
   const label = modeLabel(mode);
 
   if (!result.ok) {
-    // 가장 흔한 실패 원인은 사용자가 행동할 수 있는 문구로 — 분류 불가여도 raw exit code 비노출
+    // 흔한 실패 원인은 사용자가 행동할 수 있는 문구로 — 분류 불가여도 raw exit code 비노출
     const body = result.failureHint
       ? mt(`notify.fail.${result.failureHint}`)
       : mt('notify.fail.unknown');
@@ -48,7 +48,7 @@ export function sendResultNotification(mode: CoreMode, result: CoreResult): void
     return;
   }
   if (result.publishKind === 'no-target') {
-    // 노션 미연동이어도 로컬 일지가 저장됐으면 성공 — "발행 대상 없음" 오보 방지
+    // 노션 미연동이어도 로컬 일지가 저장됐으면 성공 — '발행 대상 없음' 오보 방지
     if (result.journalFile) {
       notify(`${label} ${mt('notify.localDoneSuffix')}`, mt('notify.localDoneBody'), mode);
     } else {
@@ -94,7 +94,7 @@ export function notifyWithAction(
   return true;
 }
 
-// 시작 시 토큰 건강 체크에서 인증 실패(invalid)를 발견하면 — 발행이 실패하기 전에 미리 알림
+// 시작 시 토큰 건강 체크의 인증 실패(invalid) — 발행이 실패하기 전에 미리 알림
 export function notifyConnectionIssue(services: string[], onClick: () => void): void {
   if (!readSettings().notifications || services.length === 0) return;
   notifyWithAction(
@@ -104,7 +104,7 @@ export function notifyConnectionIssue(services: string[], onClick: () => void): 
   );
 }
 
-// 클라우드 세션 만료 — sync 가 조용히 멈추는 상태라 명시 알림. 클릭 시 재로그인 시작
+// 클라우드 세션 만료는 sync 가 조용히 멈추는 상태라 명시 알림 — 클릭 시 재로그인
 export function notifyCloudExpired(onClick: () => void): void {
   if (!readSettings().notifications) return;
   notifyWithAction(mt('notify.cloudExpiredTitle'), mt('notify.cloudExpiredBody'), onClick);
@@ -113,13 +113,12 @@ export function notifyCloudExpired(onClick: () => void): void {
 // notifications 토글과 무관하게 항상 표시 — 억제하면 confirmBeforeRun 사용자의 발행이 영영 안 됨
 let confirmActive = false;
 let confirmResetTimer: NodeJS.Timeout | null = null;
-// 알림이 click/close 이벤트 없이 사라지는 경우(알림센터 이동·표시 억제)가 실제로 있어,
-// 리셋 없인 confirmActive 가 영구 true — 이후 모든 스케줄 체크가 '배너 표시 중'으로
-// 오판해 자동 발행이 앱 재시작 전까지 전면 중단되던 문제. 타임아웃 후 재프롬프트 허용
+// 알림이 click·close 없이 사라지는 경우(알림센터 이동·표시 억제)가 있어 리셋이 없으면
+// confirmActive 가 영구 true 로 남아 자동 발행이 전면 중단됨 — 타임아웃 후 재프롬프트 허용
 const CONFIRM_RESET_MS = 10 * 60_000;
 
-// 인앱 확인 배너(auto-publish)에서 수락/보류해도 알림 쪽 confirmActive 를 함께 풀어야
-// 다음 스케줄 체크가 '배너 표시 중'으로 오판하지 않는다
+// 인앱 확인 배너에서 수락·보류해도 알림 쪽 confirmActive 를 함께 풀어야
+// 다음 스케줄 체크가 '배너 표시 중'으로 오판하지 않음
 export function clearConfirm(): void {
   confirmActive = false;
   if (confirmResetTimer) {
@@ -156,9 +155,8 @@ export function notifyAutoConfirm(modes: CoreMode[], onConfirm: () => void): boo
   return shown;
 }
 
-// 명시적 요청이므로 설정 토글과 무관하게 항상 표시 시도 (권한 프롬프트 유도 포함)
-// 알려진 제약: dev 에선 번들 ID 없는 Electron 헬퍼라 macOS 가 알림을 억제해 안 뜸 —
-// 패키지(.app + Info.plist bundle id)에선 정상. 버그 아님, 패키지 빌드로 확인할 것
+// 명시적 요청이라 설정 토글과 무관하게 항상 표시 시도 (권한 프롬프트 유도 포함)
+// dev 는 번들 ID 없는 Electron 헬퍼라 macOS 가 억제해 안 뜸 — 패키지 빌드에서 확인
 export function sendTestNotification(): { supported: boolean } {
   if (!Notification.isSupported()) return { supported: false };
   new Notification({ title: mt('notify.testTitle'), body: mt('notify.testBody') }).show();

@@ -7,9 +7,8 @@ export type ConfigResult = {
   path: string;
 };
 
-// mtime 기반 캐시 — journalFolder()·notion fetch 등이 스캔·백필 중 config 를 페이지당 수십·수백 번
-// 다시 읽고 JSON.parse 하던 것을 제거. 파일이 바뀌면(mtime 변경) 다음 호출에서 재파싱하므로
-// 발행/설정 변경은 그대로 반영된다
+// mtime 기반 캐시 — 스캔·백필 중 config 를 페이지당 수백 번 다시 읽고 파싱하지 않게
+// mtime 이 바뀌면 다음 호출에서 재파싱해 설정 변경은 그대로 반영
 let cache: { mtimeMs: number; result: ConfigResult } | null = null;
 
 export async function readConfig(): Promise<ConfigResult> {

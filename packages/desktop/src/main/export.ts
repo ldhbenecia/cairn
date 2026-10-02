@@ -58,8 +58,7 @@ export type ExportStatus = {
   lastSyncAt: number | null;
 };
 
-// 연동 탭 표시용 — .obsidian 존재로 vault 감지, YYYY-MM-DD*.md 만 집계(다른 노트 미포함).
-// 대형 vault 에서 메인 프로세스가 얼지 않게 비동기 fs 사용 (#242 리뷰)
+// .obsidian 존재로 vault 감지, YYYY-MM-DD*.md 만 집계 — 대형 vault 에서 메인이 얼지 않게 비동기 fs
 export async function exportStatus(): Promise<ExportStatus> {
   const folder = readSettings().export.folder;
   if (!folder) return { folder: null, isVault: false, fileCount: 0, lastSyncAt: null };
@@ -82,7 +81,7 @@ export async function pickExportFolder(): Promise<string | null> {
   return r.canceled ? null : (r.filePaths[0] ?? null);
 }
 
-// 저장 실패가 렌더러에서 무시되어 '메뉴 닫힘 + 무반응'이 되던 문제 — 실패는 네이티브로 표면화
+// 저장 실패가 렌더러에서 무시되면 '메뉴 닫힘 + 무반응' — 네이티브로 표면화
 function saveFailed(e: unknown): SaveResult {
   const error = e instanceof Error ? e.message : String(e);
   dialog.showErrorBox(mt('export.saveFailTitle'), error);
@@ -116,7 +115,7 @@ const PNG_MAX_BYTES = 20 * 1024 * 1024;
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 export async function savePng(defaultName: string, dataUrl: string): Promise<SaveResult> {
-  // IPC 경계 검증 — renderer 입력을 신뢰하지 않는다
+  // IPC 경계 — renderer 입력 신뢰 안 함
   if (typeof defaultName !== 'string' || defaultName.length > 120 || /[/\\]/.test(defaultName)) {
     return { saved: false, error: 'invalid filename' };
   }

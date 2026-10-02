@@ -49,8 +49,7 @@ function searchDirs(): string[] {
   return cachedDirs;
 }
 
-// 로그인 셸 PATH 캡처(최대 5초, .zshrc 느리면 그만큼)를 앱 시작 시 비동기로 예열 —
-// 첫 발행/probe 의 동기 경로가 메인 프로세스(UI)를 블록하지 않게
+// 로그인 셸 PATH 캡처(최대 5초)를 앱 시작 시 비동기로 예열 — 첫 발행·probe 의 동기 경로가 UI 를 막지 않게
 export async function warmClaudePath(): Promise<void> {
   if (cachedDirs) return;
   const shell = process.env.SHELL || '/bin/zsh';
@@ -66,7 +65,7 @@ export async function warmClaudePath(): Promise<void> {
   resolveClaudePath();
 }
 
-// 확장만 쓰는 사용자는 PATH 에 claude 가 없으므로 IDE 확장 디렉토리를 직접 뒤진다
+// 확장만 쓰는 사용자는 PATH 에 claude 가 없어 IDE 확장 디렉토리를 직접 탐색
 function ideExtensionClaude(): string | null {
   const exe = process.platform === 'win32' ? 'claude.exe' : 'claude';
   const roots = ['.vscode/extensions', '.vscode-insiders/extensions', '.cursor/extensions'].map(
@@ -115,7 +114,7 @@ export function claudeEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
-// GUI 앱은 PATH 가 제한적이라 로그인 셸 PATH + 공통 경로에서 바이너리를 찾는다(gh 등 재사용용)
+// GUI 앱은 PATH 가 제한적이라 로그인 셸 PATH + 공통 경로에서 탐색 (gh 등 재사용)
 export function findInPath(exe: string): string | null {
   for (const d of searchDirs()) {
     const p = join(d, exe);
@@ -124,7 +123,7 @@ export function findInPath(exe: string): string | null {
   return null;
 }
 
-// gh 등 실행 시 GUI 의 빈약한 PATH 대신 확장된 PATH 를 쓰도록
+// gh 등 실행 시 GUI 의 빈약한 PATH 대신 확장된 PATH 사용
 export function searchPathEnv(): string {
   return searchDirs().join(delimiter);
 }

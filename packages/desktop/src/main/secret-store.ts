@@ -6,9 +6,8 @@ import { getOrCreateSecretKey } from './keychain-key';
 import { decryptSecretJson, encryptSecretJson } from './secret-crypto';
 import { CAIRN_ROOT, ENV_PATH, readEnvFile } from './setup';
 
-// 시크릿(.env 토큰들) at-rest 암호화 스토어 (ADR 0037) — packaged 에서만 활성.
-// dev 는 CAIRN_ROOT 가 레포 루트라 기존 평문 .env 워크플로우를 그대로 유지한다.
-// 키가 없거나 복호화가 실패하면 항상 평문 .env 로 폴백(fail-open — 잠금이 발행을 막지 않는다)
+// 시크릿(.env 토큰) at-rest 암호화 스토어 — packaged 에서만, dev 는 레포 루트 평문 .env 유지
+// 키가 없거나 복호화 실패면 평문 .env 로 폴백 (잠금이 발행을 막지 않음)
 
 const SECRETS_FILE = 'secrets.enc';
 
@@ -46,9 +45,8 @@ function readPlainEnv(opts?: SecretStoreOpts): Record<string, string> {
   return out;
 }
 
-// 암호화 후 메모리에서 복호 왕복 검증 — 디스크에 쓰기 전에 되읽힘이 성립하는 것만 반환한다.
-// 같은 key/codec 으로 검증하므로, 통과하면 atomic write 된 파일도 반드시 되읽힌다(무결성 게이트).
-// null 이면 호출측이 평문 .env 를 건드리지 않아 토큰 유실을 막는다(fail-open)
+// 디스크에 쓰기 전 같은 key·codec 으로 메모리 복호 왕복 검증 — 통과한 것만 반환해 되읽힘 보장
+// null 이면 호출측이 평문 .env 를 건드리지 않아 토큰 유실 방지
 function encryptVerified(key: Buffer, obj: Record<string, string>): string | null {
   try {
     const text = encryptSecretJson(key, obj);
@@ -70,7 +68,7 @@ function readEncrypted(key: Buffer, opts?: SecretStoreOpts): Record<string, stri
   }
 }
 
-// 토큰 env 맵 — 암호화 스토어 우선, 폴백은 평문 .env
+// 암호화 스토어 우선, 폴백은 평문 .env
 export function secretEnv(opts?: SecretStoreOpts): Record<string, string> {
   const key = resolveKey(opts);
   if (key) {
@@ -80,7 +78,7 @@ export function secretEnv(opts?: SecretStoreOpts): Record<string, string> {
   return readPlainEnv(opts);
 }
 
-// 기존 .env 의 주석/순서를 유지한 채 키만 교체·추가 (평문 폴백 경로 — onboarding 에서 이동)
+// 기존 .env 의 주석·순서를 유지한 채 키만 교체·추가 (평문 폴백 경로)
 function writeEnvPlainMerged(patch: Record<string, string>, opts?: SecretStoreOpts): void {
   const path = envPath(opts);
   let lines: string[];
@@ -107,7 +105,7 @@ function writeEnvPlainMerged(patch: Record<string, string>, opts?: SecretStoreOp
   writeFileAtomic(path, out.join('\n').replace(/\n+$/, '') + '\n', 0o600); // 토큰 포함 — owner-only
 }
 
-// 토큰 저장 — 암호화 활성이면 enc 병합 저장 후 평문 .env 제거, 아니면 기존 평문 병합
+// 암호화 활성이면 enc 병합 저장 후 평문 .env 제거, 아니면 평문 병합
 export function writeSecretEnvMerged(patch: Record<string, string>, opts?: SecretStoreOpts): void {
   const key = resolveKey(opts);
   if (!key) {
@@ -116,7 +114,7 @@ export function writeSecretEnvMerged(patch: Record<string, string>, opts?: Secre
   }
   const merged = { ...secretEnv(opts), ...patch };
   const enc = encryptVerified(key, merged);
-  // 검증 실패(키 손상 등) — 평문 .env 로 저장. read 는 깨진 enc 를 무시하고 .env 로 폴백한다
+  // 검증 실패(키 손상 등)면 평문 .env 로 저장 — read 는 깨진 enc 를 무시하고 .env 로 폴백
   if (!enc) {
     writeEnvPlainMerged(patch, opts);
     return;
@@ -125,17 +123,15 @@ export function writeSecretEnvMerged(patch: Record<string, string>, opts?: Secre
   rmSync(envPath(opts), { force: true }); // enc 되읽힘 검증됨 — 평문 제거 안전
 }
 
-// 시작 시 1회 — 평문 .env 가 남아 있으면 암호화 스토어로 이관하고 평문을 지운다.
-// 복호화 검증(round-trip)까지 성공했을 때만 평문을 삭제한다
+// 시작 시 1회 — 평문 .env 를 암호화 스토어로 이관, 복호 왕복 검증 성공 시에만 평문 삭제
 export function migrateSecretsAtStartup(opts?: SecretStoreOpts): 'migrated' | 'skipped' {
   const key = resolveKey(opts);
   if (!key) return 'skipped';
   const plain = readPlainEnv(opts);
   if (Object.keys(plain).length === 0) return 'skipped';
-  // 기존 enc 가 있으면 병합 — 평문(.env)이 마지막 수동 편집일 수 있어 평문 우선
+  // 기존 enc 와 병합 — 평문(.env)이 마지막 수동 편집일 수 있어 평문 우선
   const merged = { ...(readEncrypted(key, opts) ?? {}), ...plain };
-  // 메모리 검증 후에만 디스크 반영 — 실패 시 기존 enc·.env 둘 다 손대지 않는다
-  // (옛 코드는 검증 전에 secrets.enc 를 덮어써 실패 시 기존 암호화 시크릿까지 유실됐다)
+  // 메모리 검증 후에만 디스크 반영 — 실패 시 기존 enc·.env 둘 다 그대로 둬 암호화 시크릿 유실 방지
   const enc = encryptVerified(key, merged);
   if (!enc) return 'skipped';
   writeFileAtomic(secretsPath(opts), enc, 0o600);
@@ -143,7 +139,7 @@ export function migrateSecretsAtStartup(opts?: SecretStoreOpts): 'migrated' | 's
   return 'migrated';
 }
 
-// auth.json 등 다른 시크릿 파일이 같은 키·코덱을 재사용하기 위한 헬퍼 — 키 없으면 null(평문 유지)
+// auth.json 등 다른 시크릿 파일이 같은 키·코덱 재사용 — 키 없으면 null(평문 유지)
 export function encryptForStore(obj: unknown, opts?: SecretStoreOpts): string | null {
   const key = resolveKey(opts);
   return key ? encryptSecretJson(key, obj) : null;

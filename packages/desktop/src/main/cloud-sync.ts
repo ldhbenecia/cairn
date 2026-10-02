@@ -6,7 +6,7 @@ import { writeFileAtomic } from './atomic-write';
 import { cloudToken, WEB_BASE } from './cloud-auth';
 import { withFileLock } from './file-lock';
 
-// core WorklogStatsService 와 같은 파일·포맷(`${category}:${date}` → 집계 수치). ADR 0027/0029
+// core WorklogStatsService 와 같은 파일·포맷 (`${category}:${date}` → 집계 수치)
 const STATS_PATH = join(homedir(), '.cairn', 'worklog-stats.json');
 const CATEGORIES = new Set(['daily', 'weekly', 'monthly']);
 const BATCH = 1000;
@@ -35,7 +35,7 @@ function writeLocal(f: StatsFile): void {
 }
 
 // updatedAt 없으면 worklog 날짜를 보수적 기준으로(같은 날 충돌 first-wins)
-// 날짜는 로컬 경계 기준이라 로컬 자정으로 파싱(UTC 단정 금지 — 타임존 규칙)
+// 날짜는 로컬 경계라 로컬 자정으로 파싱 — UTC 단정 금지
 function tsOf(s: Stat, date: string): number {
   if (s.updatedAt) return Date.parse(s.updatedAt);
   const [y, m, d] = date.split('-').map(Number);
@@ -61,8 +61,7 @@ export async function syncStats(): Promise<void> {
     const stats = body?.stats;
     if (!Array.isArray(stats)) return;
 
-    // 서버가 이미 가진 것과 대조해 '로컬이 더 최신인' 행만 push — 매 sync 마다 전체를
-    // 올리던 것을 delta 로. 서버 LWW 라 전체 push 도 무해하지만 대역폭·처리 낭비였음
+    // 서버가 가진 것과 대조해 로컬이 더 최신인 행만 push — 서버 LWW 라 전체 push 도 무해하지만 대역폭 낭비
     const remoteTs = new Map<string, number>();
     for (const r of stats) {
       if (r && CATEGORIES.has(r.category) && DATE_RE.test(r.date)) {
@@ -70,12 +69,12 @@ export async function syncStats(): Promise<void> {
       }
     }
 
-    // 머지+쓰기만 락 안에서(짧게, 동기) — 네트워크는 락 밖. core 의 동시 write 와 직렬화
+    // 머지+쓰기만 락 안에서 짧게, 네트워크는 락 밖 — core 의 동시 write 와 직렬화
     let changed = false;
     const rows = withFileLock(STATS_PATH, () => {
       const local = readLocal();
       for (const r of stats) {
-        // 우리 API 가 검증해 저장한 데이터지만, 로컬 파일 오염 방지로 한 번 더 가드
+        // 서버가 검증해 저장한 데이터지만 로컬 파일 오염 방지로 한 번 더 가드
         if (!r || !CATEGORIES.has(r.category) || !DATE_RE.test(r.date)) continue;
         const key = `${r.category}:${r.date}`;
         const cur = local[key];
@@ -109,7 +108,7 @@ export async function syncStats(): Promise<void> {
       }
     }
 
-    // 서버에 없거나 로컬이 더 최신인 행만 — 나머지는 서버가 이미 최신(LWW)이라 보낼 필요 없음
+    // 서버에 없거나 로컬이 더 최신인 행만 — 나머지는 서버가 이미 최신(LWW)
     const toPush = rows.filter(
       (r) => (Date.parse(r.updatedAt) || 0) > (remoteTs.get(`${r.category}:${r.date}`) ?? -1),
     );

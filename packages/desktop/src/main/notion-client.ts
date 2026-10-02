@@ -10,7 +10,7 @@ let envLoaded = false;
 function ensureEnvLoaded(): void {
   if (envLoaded) return;
   envLoaded = true;
-  // 암호화 스토어 우선(.env 폴백 포함) — 복호화된 토큰을 process.env 로만 올린다 (ADR 0037)
+  // 암호화 스토어 우선(.env 폴백 포함) — 복호화된 토큰은 process.env 로만 올림
   for (const [key, value] of Object.entries(secretEnv())) {
     if (!(key in process.env)) process.env[key] = value;
   }
@@ -31,8 +31,7 @@ export type RecentPage = {
   commit: number | null;
   hours: number[] | null;
   workspaceLabel: string;
-  // 병합부(listRecentMerged)에서 채움
-  sinks?: WorklogSink[];
+  sinks?: WorklogSink[]; // listRecentMerged 에서 채움
 };
 
 type NotionWorkspaceConfig = {
@@ -47,12 +46,12 @@ type ParsedConfig = {
 };
 
 const PAGE_SIZE = 100; // Notion 쿼리 1회 최대
-const MAX_QUERY_PAGES = 6; // 데이터소스당 최대 600건까지 페이징(백필로 일간이 100 초과 — 히트맵 53주 필요)
+const MAX_QUERY_PAGES = 6; // 데이터소스당 600건까지 — 히트맵 53주분 일간
 const MAX_RECENT_PAGES = 800;
 
 type NotionPageItem = { id: string; url?: string; properties: Record<string, unknown> };
 
-// 단일 쿼리는 100건 상한이라 cursor 로 끝까지(상한 내) 페이징. 일간이 100 넘으면 오래된 게 잘리던 문제 해결
+// 단일 쿼리는 100건 상한이라 cursor 로 상한 내 끝까지 페이징
 async function queryAllResults(
   notion: Client,
   params: { data_source_id: string; sorts: Array<{ property: string; direction: 'descending' }> },
@@ -105,7 +104,7 @@ function readDate(props: Record<string, unknown>, key: string): string | null {
   return p?.date?.start ?? null;
 }
 
-// 통계 진실 소스는 노션이 아닌 로컬 파일(core 가 발행 시 기록). key 는 `${category}:${date}`
+// 통계 진실 소스는 노션이 아닌 로컬 파일(core 가 발행 시 기록), key 는 `${category}:${date}`
 type WorklogStat = { pr: number; commit: number; hours?: number[] };
 const STATS_PATH = join(homedir(), '.cairn', 'worklog-stats.json');
 function readWorklogStats(): Record<string, WorklogStat> {
@@ -116,7 +115,7 @@ function readWorklogStats(): Record<string, WorklogStat> {
   }
 }
 
-// 경고는 코드로만 — 사용자 표시는 renderer 가 i18n 으로 매핑 (한국어 하드코딩이 EN 사용자에게 새지 않게)
+// 경고는 코드로만 — renderer 가 i18n 으로 매핑해 한국어가 EN 사용자에게 안 샘
 export type RecentWarning =
   | { code: 'no-workspaces' }
   | { code: 'token-missing'; workspace: string; tokenEnv: string }
@@ -350,8 +349,7 @@ async function fetchBlocks(notion: Client, blockId: string, depth: number): Prom
     cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
   } while (cursor);
 
-  // 자식 블록을 직렬 재귀로 기다리면 라운드트립이 합산돼 드로어 열기가 수 초 지연 —
-  // 제한 동시성으로 병렬 fetch (Notion rate limit 고려해 4)
+  // 자식 블록을 직렬 재귀로 기다리면 라운드트립이 합산돼 드로어가 수 초 지연 — Notion rate limit 고려해 동시성 4
   const CHILD_CONCURRENCY = 4;
   for (let i = 0; i < pendingChildren.length; i += CHILD_CONCURRENCY) {
     const batch = pendingChildren.slice(i, i + CHILD_CONCURRENCY);
@@ -386,8 +384,8 @@ export async function fetchPageContent(
   }
 }
 
-// 발행 워크스페이스 라벨을 모르는 경로(export 자동 sync)용 — 각 워크스페이스 토큰을 차례로 시도.
-// 기존에는 무조건 workspaces[0] 토큰이라 두 번째 워크스페이스 발행분이 조용히 skip 됐다.
+// 발행 워크스페이스 라벨을 모르는 경로(export 자동 sync)용 — 첫 워크스페이스만 쓰면 두 번째
+// 워크스페이스 발행분이 조용히 skip 돼 토큰을 차례로 시도
 export async function fetchPageContentAnyWorkspace(pageId: string): Promise<PageContent> {
   ensureEnvLoaded();
   const cfg = await readConfig();

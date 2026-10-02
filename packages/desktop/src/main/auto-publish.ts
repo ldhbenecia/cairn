@@ -16,15 +16,15 @@ import {
   type AutoPublishState,
 } from './auto-publish-state';
 
-// 발화 시각은 사용자 로컬 TZ(rules/timezone.md)
+// 발화 시각은 사용자 로컬 TZ 기준
 
 let dailyTimer: ReturnType<typeof setTimeout> | null = null;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
 const RETRY_DELAY_MS = 5 * 60_000;
 
-// 예약 시각에 다른 실행이 점유 중이면 그날 발행이 통째로 누락되던 문제 — 잠시 뒤 재시도.
-// runAutoPublish 가 시각 게이트·dueRuns 를 재평가하므로 중복 발행 없음.
+// 예약 시각에 다른 실행이 점유 중이면 그날 발행이 누락되므로 잠시 뒤 재시도
+// runAutoPublish 가 시각 게이트·dueRuns 를 재평가해 중복 발행 없음
 function scheduleRetry(): void {
   if (retryTimer) return;
   retryTimer = setTimeout(() => {
@@ -37,7 +37,7 @@ const MAX_FAILURE_RETRIES_PER_DAY = 2;
 let failureRetries = 0;
 let failureRetriesDay = '';
 
-// 일시 실패(Claude 세션 만료·네트워크 등)는 재시도로 살아나는 경우가 많음 — 반복 실패 무한루프는 하루 2회 캡
+// 일시 실패(세션 만료·네트워크 등)는 재시도로 살아나는 경우가 많음 — 반복 실패는 하루 2회 캡
 function scheduleFailureRetry(): void {
   const today = localTodayIso(new Date());
   if (failureRetriesDay !== today) {
@@ -61,8 +61,8 @@ type DueRun = {
   anchor?: string;
 };
 
-// 직전 완료 기간을 anchor 로. 마지막 발행 anchor 와 다르면(=미발행) 실행 → 발화 시각에 앱이 꺼져
-// 있어 놓친 주/월도 다음 실행에서 catch-up. 엔진이 중복은 skip 하므로 재시도 안전.
+// 직전 완료 기간이 anchor — 마지막 발행 anchor 와 다르면 실행해 앱이 꺼져 놓친 주·월도 catch-up
+// 엔진이 중복은 skip 해 재시도 안전
 function dueRuns(cfg: AutoPublish, state: AutoPublishState): DueRun[] {
   const now = new Date();
   const runs: DueRun[] = [];
@@ -106,8 +106,8 @@ async function runAutoPublish(): Promise<void> {
   if (runs.length === 0) return;
 
   if (cfg.confirmBeforeRun) {
-    // macOS 는 앱이 프론트일 때 표시된 알림 배너의 click 을 전달하지 않는다(electron#51885) —
-    // 알림 클릭이 유일한 트리거면 발행이 영영 안 될 수 있어 인앱 확인 배너를 병행 경로로 둔다
+    // macOS 는 앱이 프론트일 때 알림 배너 click 을 전달하지 않음 — 알림 클릭만 트리거면
+    // 발행이 영영 안 될 수 있어 인앱 확인 배너를 병행
     const execute = (): void => {
       pendingConfirm = null;
       broadcastAutoConfirm(null);
@@ -156,15 +156,15 @@ async function executeRuns(runs: DueRun[]): Promise<void> {
     scheduleRetry();
     return;
   }
-  // catch-up 은 오래된 순 — 같은 모드의 앞 기간이 실패하면 뒤 기간을 건너뛴다.
-  // 안 그러면 뒤 기간 성공이 anchor 를 갭 너머로 전진시켜 실패한 중간 기간이 영구 누락된다.
+  // catch-up 은 오래된 순 — 같은 모드의 앞 기간이 실패하면 뒤 기간을 건너뜀
+  // 뒤 기간 성공이 anchor 를 갭 너머로 전진시키면 실패한 중간 기간이 영구 누락됨
   const failedModes = new Set<CoreMode>();
   for (const { mode, options, rollupField, anchor } of runs) {
     if (failedModes.has(mode)) continue;
     notifyAutoStart(mode);
     try {
       const result = await runCore(mode, options, 'scheduled');
-      // runCore 는 실패 시 throw 가 아니라 ok:false 를 반환 → 성공일 때만 anchor 기록(실패면 다음 실행에서 재시도)
+      // runCore 는 실패 시 throw 대신 ok:false — 성공일 때만 anchor 기록해 실패는 다음 실행에서 재시도
       if (result.ok && rollupField && anchor) {
         writeAutoPublishState({ ...readAutoPublishState(), [rollupField]: anchor });
       } else if (!result.ok && !result.cancelled) {
@@ -172,7 +172,7 @@ async function executeRuns(runs: DueRun[]): Promise<void> {
         scheduleFailureRetry();
       }
     } catch {
-      // busy 레이스(루프 도중 수동 실행 시작) — anchor 미기록 상태라 재시도에서 다시 due
+      // busy 레이스(루프 도중 수동 실행 시작) — anchor 미기록이라 재시도에서 다시 due
       failedModes.add(mode);
       scheduleRetry();
     }

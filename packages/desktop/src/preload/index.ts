@@ -53,7 +53,7 @@ export type Settings = {
   backup: BackupConfig;
 };
 
-// 무플래시: 첫 페인트 전 동기로 설정을 받는다 (sandbox preload 라 fs 불가 → sendSync)
+// 첫 페인트 전 동기로 설정 수신 (무플래시) — sandbox preload 라 fs 불가해 sendSync
 const boot = ipcRenderer.sendSync('cairn:bootstrap-sync') as {
   settings: Settings;
   version: string;

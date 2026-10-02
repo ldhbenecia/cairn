@@ -59,7 +59,7 @@ export function createJournalBackup(deps: BackupDeps): {
   async function isRepoRoot(dir: string): Promise<boolean> {
     try {
       const top = (await git(dir, ['rev-parse', '--show-toplevel'])).stdout.trim();
-      // journal 폴더가 repo 루트일 때만 — 상위 repo(홈 등) 오커밋 방지 (ADR 0034)
+      // journal 폴더가 repo 루트일 때만 — 상위 repo(홈 등) 오커밋 방지
       return resolve(top) === resolve(dir);
     } catch {
       return false;
@@ -93,7 +93,7 @@ export function createJournalBackup(deps: BackupDeps): {
         await git(dir, ['pull', '--ff-only'], 60_000);
         pullNotified = false;
       } catch {
-        // 발산/충돌 — 자동 머지 없이 중단, 해소는 사용자 몫 (ADR 0034)
+        // 발산·충돌은 자동 머지 없이 중단, 해소는 사용자 몫
         status = { ...status, state: 'idle', error: 'pull-failed' };
         if (!pullNotified) {
           pullNotified = true;
@@ -200,8 +200,8 @@ export function createJournalBackup(deps: BackupDeps): {
 function realExec(args: string[], dir: string, timeoutMs: number): Promise<{ stdout: string }> {
   const gitBin = findInPath('git');
   if (!gitBin) return Promise.reject(new Error('git not found'));
-  // 전체 process.env 를 물려주면 journal 폴더의 git hook/credential helper 가 모든 토큰을 상속한다 —
-  // git 동작에 필요한 최소 env 만
+  // 전체 process.env 를 물려주면 journal 폴더의 git hook·credential helper 가 모든 토큰을 상속
+  // — git 동작에 필요한 최소 env 만
   return execFileAsync(gitBin, ['-C', dir, ...args], {
     encoding: 'utf8',
     timeout: timeoutMs,

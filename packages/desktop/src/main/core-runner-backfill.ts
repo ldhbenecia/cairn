@@ -2,8 +2,8 @@ import { broadcast } from './broadcast';
 import type { CoreMode } from './core-runner';
 import type { ParentEvent } from './core-runner-extract';
 
-// 백필 배치 진행 — fork-IPC 구조화 이벤트가 단일 소스 (ADR 0033 3단계, 로그 스크래핑 제거).
-// 갱신은 전부 멱등(max·length 가드·키 맵)이라 이벤트 중복·순서 뒤섞임에 안전하다
+// 백필 배치 진행 — fork-IPC 구조화 이벤트가 단일 소스
+// 갱신은 전부 멱등(max·length 가드·키 맵)이라 이벤트 중복·순서 뒤섞임에 안전
 export type DateStep = 'collect' | 'summarize' | 'publish';
 export type DateCounts = { pr: number; commit: number };
 export type RunProgress = {
@@ -72,7 +72,6 @@ function publishProgress(mode: CoreMode): void {
   broadcast('cairn:run-progress', { mode, ...runProgress });
 }
 
-// 구조화 이벤트 (ADR 0033) — 배치 진행의 단일 소스
 export function applyBackfillEvent(event: ParentEvent, mode: CoreMode): void {
   switch (event.type) {
     case 'backfill-start':

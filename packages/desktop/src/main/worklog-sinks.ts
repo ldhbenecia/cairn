@@ -2,7 +2,7 @@ import type { RecentCategory } from './notion-client';
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})/;
 
-// core rollup/period-range.ts 의 isoWeekLabel 과 동일 규칙 (ISO-8601 주차)
+// core rollup/period-range.ts 의 isoWeekLabel 과 같은 규칙 (ISO-8601 주차)
 export function isoWeekLabel(date: string): string | null {
   const m = DATE_RE.exec(date);
   if (!m) return null;
@@ -34,7 +34,7 @@ export function journalFileNameFor(category: RecentCategory, date: string): stri
   return `${date.slice(0, 7)}.md`;
 }
 
-// obsidian export(export.ts)는 발행 실행일 기준 YYYY-MM-DD[-period].md — 기간 라벨로 정규화해 대조
+// obsidian export 는 발행 실행일 기준 YYYY-MM-DD[-period].md — 기간 라벨로 정규화해 대조
 export function buildExportIndex(names: readonly string[]): Set<string> {
   const index = new Set<string>();
   for (const name of names) {

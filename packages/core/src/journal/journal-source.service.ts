@@ -16,7 +16,7 @@ export interface JournalDailyEntry {
 }
 
 export interface JournalMonthlyEntry {
-  rangeStart: string;
+  rangeStart: string; // 해당 월 1일 (YYYY-MM-01)
   fileName: string;
   blocks: ExtractedBlock[];
 }

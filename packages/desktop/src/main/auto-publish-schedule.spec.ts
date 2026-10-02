@@ -11,7 +11,7 @@ import {
   weekAnchorsToPublish,
 } from './auto-publish-schedule';
 
-// Date 는 로컬 컴포넌트로 생성 — 머신 TZ 와 무관하게 동일 결과
+// Date 를 로컬 컴포넌트로 생성 — 머신 TZ 와 무관하게 같은 결과
 
 describe('isScheduledTimeReached', () => {
   it('예약 시각 전이면 false', () => {

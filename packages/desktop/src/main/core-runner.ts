@@ -102,13 +102,13 @@ function stripAnsi(s: string): string {
   return s.replace(ANSI_REGEX, '');
 }
 
-// run 로그 파일 append 를 라인마다 동기 appendFileSync 로 하면 발행 중 메인 프로세스
-// 이벤트 루프가 블로킹됨(백필 수천 라인). run 당 WriteStream 하나를 열어 비동기 버퍼 write 로.
+// 라인마다 동기 appendFileSync 면 백필 수천 라인에서 메인 이벤트 루프가 블로킹됨
+// — run 당 WriteStream 하나로 비동기 버퍼 write
 let runLogStream: WriteStream | null = null;
 
 const LOG_RETENTION_DAYS = 30;
 
-// 날짜별 로그가 무한 누적되던 문제 — 실행 시작마다 30일 지난 파일 정리 (best-effort)
+// 실행 시작마다 30일 지난 날짜별 로그 정리
 function pruneOldRunLogs(): void {
   try {
     const cutoff = Date.now() - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -119,7 +119,7 @@ function pruneOldRunLogs(): void {
       if (new Date(y!, mo! - 1, d).getTime() < cutoff) unlinkSync(join(LOGS_DIR, name));
     }
   } catch {
-    // 정리는 best-effort
+    // best-effort
   }
 }
 
@@ -134,7 +134,7 @@ function openRunLog(): void {
   try {
     mkdirSync(LOGS_DIR, { recursive: true, mode: 0o700 });
     pruneOldRunLogs();
-    // 로그엔 절대경로·커밋 제목 등이 그대로 담긴다 — 시크릿 파일들(0600)과 같은 수준으로 잠금
+    // 로그엔 절대경로·커밋 제목 등이 그대로 담김 — 시크릿 파일들(0600)과 같은 수준으로 잠금
     const stream = createWriteStream(runLogPath(), {
       flags: 'a',
       mode: 0o600,
@@ -163,7 +163,7 @@ export function appendSideLog(tag: string, level: 'info' | 'err' | 'meta', line:
       { mode: 0o600 },
     );
   } catch {
-    // 로깅은 best-effort
+    // best-effort
   }
 }
 
@@ -213,12 +213,11 @@ export function cancelRun(): boolean {
 
 export function killRunning(): void {
   if (!running) return;
-  // cancelRequested 를 세워야 exit 핸들러가 이 강제 종료를 '실패'로 오인해 spurious 실패 알림 +
-  // telemetry fail 을 내지 않는다 (앱 종료 시 진행 중 run 정리 경로)
+  // cancelRequested 를 세워야 exit 핸들러가 이 강제 종료를 실패로 오인해 실패 알림·telemetry fail 을 안 냄
   cancelRequested = true;
   running.kill('SIGKILL');
 }
-// 리로드/재부착 대비 — 진행 중 run 의 시작 시각·단계, 직전 완료 결과를 메인이 보관
+// 리로드·재부착 대비 — 진행 중 run 의 시작 시각·단계와 직전 완료 결과를 메인이 보관
 let runStartedAt = 0;
 let runStep: RunStep = 'boot';
 let lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null = null;
@@ -265,8 +264,7 @@ export async function probeClaude(): Promise<{ ok: boolean }> {
     const child = fork(CORE_ENTRY, ['--probe-claude'], {
       cwd: CAIRN_ROOT,
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-      // probe 는 Claude 상태만 확인 — GitHub·Notion 토큰은 불필요하므로 secretEnv 주입 안 함
-      // (최소 권한 — 발행 fork 에서만 전체 토큰 전달)
+      // probe 는 Claude 상태만 확인 — GitHub·Notion 토큰 미전달 (최소 권한)
       env: {
         ...process.env,
         CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
@@ -298,10 +296,10 @@ export async function runCore(
   options: CoreRunOptions = {},
   trigger: PublishTrigger = 'manual',
 ): Promise<CoreResult> {
-  // 코드화된 에러 — 렌더러가 i18n 으로 매핑 (영어 사용자에게 한국어 새는 것 방지)
+  // 코드화된 에러 — 렌더러가 i18n 으로 매핑 (영어 사용자에게 한국어 노출 방지)
   if (running) throw new Error(`busy:${runningMode ?? mode}`);
 
-  // 전체 윈도우로 브로드캐스트 — 발행 도중 리로드해도 새 webContents 가 진행을 이어받게
+  // 전체 윈도우로 브로드캐스트 — 발행 중 리로드해도 새 webContents 가 진행을 이어받음
   const emit = (level: 'info' | 'err' | 'meta', line: string): void => {
     const clean = stripAnsi(line);
     appendRunLog(mode, level, clean);
@@ -337,7 +335,7 @@ export async function runCore(
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     env: {
       ...process.env,
-      // 암호화 스토어의 토큰을 자식 env 로 — .env 가 이관·삭제된 뒤에도 core 가 동작 (ADR 0037)
+      // 암호화 스토어의 토큰을 자식 env 로 — .env 이관·삭제 뒤에도 core 동작
       ...secretEnv(),
       NODE_ENV: app.isPackaged ? 'production' : (process.env.NODE_ENV ?? 'development'),
       CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
@@ -351,9 +349,8 @@ export async function runCore(
   broadcastBusy();
   emit('meta', `[fork] pid=${child.pid ?? '?'}`);
 
-  // 전체 stdout 을 메모리에 쌓고(stdoutAll) 종료 시 4중 정규식 스캔하던 방식은 장기 백필에서
-  // 수 MB 누적 + 종료 블로킹을 유발. 완결된 라인마다 증분 추출해 마지막 값만 유지(메모리 O(1)).
-  // tail 용 라인 버퍼도 최근 STDERR_TAIL_LINES 만 링으로 보존.
+  // 전체 stdout 을 쌓아 종료 시 스캔하면 장기 백필에서 수 MB 누적·종료 블로킹 —
+  // 완결된 라인마다 증분 추출, tail 버퍼는 최근 STDERR_TAIL_LINES 만 링으로 보존
   const stderrLines: string[] = [];
   const stdoutLines: string[] = [];
   let stdoutCarry = '';
@@ -364,8 +361,8 @@ export async function runCore(
     if (buf.length > STDERR_TAIL_LINES) buf.shift();
   };
 
-  // 청크 경계에서 멀티바이트(한글 로그 '요약 생성 실패' 등)가 잘려 깨지지 않도록 StringDecoder.
-  // buf.toString('utf8') 은 경계에 걸린 문자를 U+FFFD 로 만들어 정규식 매칭까지 실패시킨다
+  // 청크 경계에서 멀티바이트(한글)가 잘리면 toString 이 U+FFFD 로 만들어 정규식 매칭까지 실패
+  // — StringDecoder 로 경계 보존
   const outDecoder = new StringDecoder('utf8');
   const errDecoder = new StringDecoder('utf8');
 
@@ -389,7 +386,7 @@ export async function runCore(
     }
   });
 
-  // 구조화 이벤트 (ADR 0033 3단계) — 결과·배치 진행의 단일 소스 (stdout 은 failureHint·step 표시만)
+  // 구조화 이벤트가 결과·배치 진행의 단일 소스 (stdout 은 failureHint·step 표시만)
   child.on('message', (raw) => {
     const event = parseParentEvent(raw);
     if (!event) return;
@@ -399,7 +396,7 @@ export async function runCore(
   });
 
   return new Promise<CoreResult>((resolvePromise) => {
-    // 'error' 후에도 'close' 가 또 올 수 있음(Node) — 완료 처리(알림·텔레메트리·run-done)는 1회만
+    // 'error' 후에도 'close' 가 또 올 수 있음 — 완료 처리(알림·텔레메트리·run-done)는 1회만
     let settled = false;
     child.on('close', (exitCode) => {
       if (settled) return;
@@ -408,7 +405,7 @@ export async function runCore(
       runningMode = null;
       broadcastBusy();
       let exportPending = false;
-      // stdout 이 \n 없이 끝나면 마지막 조각이 carry 에 남음 — 종료 시 마지막 추출 반영
+      // stdout 이 \n 없이 끝나면 마지막 조각이 carry 에 남아 종료 시 반영
       if (stdoutCarry.length > 0) ext.feed(stdoutCarry);
       const tailSource = stderrLines.length > 0 ? stderrLines : stdoutLines;
       const tail = tailSource.slice(-STDERR_TAIL_LINES).join('\n');
@@ -421,7 +418,7 @@ export async function runCore(
       cancelRequested = false;
       emit('meta', `[exit] code=${exitCode ?? 'null'}${cancelled ? ' (cancelled)' : ''}`);
       if (exitCode === 0) emitStep('done');
-      // totals·발행 날짜는 reset 전에 스냅샷 — reset 을 먼저 하면 항상 0/null 이 된다
+      // totals·발행 날짜는 reset 전에 스냅샷 — reset 먼저면 항상 0/null
       const countsByDate = getBackfillCountsByDate();
       const totals = Object.values(countsByDate).reduce(
         (a, c) => ({ pr: a.pr + c.pr, commit: a.commit + c.commit }),
@@ -431,7 +428,7 @@ export async function runCore(
       const publishedPages = getBackfillPagesByDate();
       const finalProgress = getRunProgress();
       resetBackfillTracking();
-      // 배치 부분 요약 실패의 전체 오표시 방지 — 전 날짜 실패 시에만 유지
+      // 배치 일부 날짜의 요약 실패를 전체 실패로 표시하지 않음 — 전 날짜 실패일 때만 유지
       const batchTotal = finalProgress?.total ?? 0;
       const summaryFailed =
         ext.summaryFailed &&
@@ -462,12 +459,12 @@ export async function runCore(
           backfillDays: options.backfillDays,
         });
         if (!cancelled) sendResultNotification(mode, result);
-        // 발행 직후 stats 를 클라우드로 — 6시간 주기만으로는 다른 기기 칩 반영이 늦다
+        // 발행 직후 stats 를 클라우드로 — 6시간 주기만으로는 다른 기기 칩 반영이 늦음
         if (!cancelled && result.ok) void syncStats();
         if (!cancelled && result.ok && !finalNoActivity) {
           const pad = (n: number): string => String(n).padStart(2, '0');
           const d = new Date();
-          // 백필 catch-up 으로 오늘이 아닌 날이 발행됐을 수 있음 — 실제 발행된 날짜를 우선
+          // 백필 catch-up 으로 오늘이 아닌 날이 발행됐을 수 있어 실제 발행 날짜 우선
           const fallbackDate =
             options.date ??
             lastPublishedDate ??
@@ -480,9 +477,8 @@ export async function runCore(
             countsByDate,
             pagesByDate: publishedPages,
           });
-          // 60일 백필이면 targets 가 60건 — 무제한 동시 실행은 페이지마다 Notion fetch 라
-          // 레이트리밋·버스트 유발. 동시성 4 로 제한(fire-and-forget 유지, run 완료는 안 막음).
-          // 로그 스트림은 export 실패 라인까지 파일에 남도록 export 완료 후 close
+          // 60일 백필이면 targets 60건 — 페이지마다 Notion fetch 라 동시성 4 로 제한해 레이트리밋 회피
+          // 로그 스트림은 export 실패 라인까지 남도록 export 완료 후 close
           void runExportSync(targets, emit).finally(closeRunLog);
           exportPending = true;
           scheduleJournalBackup();
@@ -519,7 +515,7 @@ export async function runCore(
         commitCount: 0,
         stderrTail: err.message,
       };
-      // spawn 실패(ENOENT 등)도 완료 알림을 띄운다 — close 가 안 오는 경로라 누락됐었음
+      // spawn 실패(ENOENT 등)는 close 가 안 오는 경로라 여기서 완료 알림
       trackPublish(mode, 'fail', {
         trigger,
         summaryFailed: false,
@@ -533,7 +529,7 @@ export async function runCore(
   });
 }
 
-// 동시성 제한 export sync — targets 를 POOL 개씩만 병렬로. run 을 막지 않게 fire-and-forget.
+// targets 를 POOL 개씩만 병렬로, run 을 막지 않게 fire-and-forget
 async function runExportSync(
   targets: ExportTarget[],
   emit: (level: 'err', line: string) => void,

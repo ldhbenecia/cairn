@@ -7,7 +7,7 @@ import { journalFolder } from './journal-reader';
 import type { RecentCategory } from './notion-client';
 import { journalFileNameFor } from './worklog-sinks';
 
-// 저장 포맷 소유: core/src/journal/journal-snapshot.ts (드리프트 주의)
+// 저장 포맷은 core/src/journal/journal-snapshot.ts 와 같이 바꿔야 함
 const SNAPSHOT_ROOT = join(homedir(), '.cairn', 'snapshots');
 const KEEP_PER_FILE = 10;
 const STAMP_RE = /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/;
@@ -78,7 +78,7 @@ export async function restoreJournalSnapshot(
   try {
     const snapshot = readFileSync(join(snapshotDir(fileName), `${stamp}.md`), 'utf8');
     const journalPath = join(await journalFolder(), fileName);
-    // 복원도 되돌릴 수 있게 — 현재본을 먼저 스냅샷
+    // 복원도 되돌릴 수 있게 현재본을 먼저 스냅샷
     if (existsSync(journalPath)) {
       const current = readFileSync(journalPath, 'utf8');
       if (current !== snapshot) {

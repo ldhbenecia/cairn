@@ -19,14 +19,12 @@ import { buildExportIndex, exportIndexKey, journalFileNameFor } from './worklog-
 export const JOURNAL_PAGE_PREFIX = 'journal:';
 export const JOURNAL_WORKSPACE_LABEL = 'local';
 
-// FILE_PATTERNS·stripFrontmatter 는 journal-files.ts(순수 모듈)로 분리 — 검색 스펙과 공유
-
 export async function journalFolder(): Promise<string> {
   const cfg = await readConfig();
   const parsed = cfg.parsed as { journal?: { folder?: string } } | null;
   const configured = parsed?.journal?.folder;
   if (!configured) return join(homedir(), 'Documents', 'Cairn Journal');
-  // resolve() 는 '~' 를 확장하지 않는다 — cwd 아래 '~/...' 로 새는 것 방지
+  // resolve() 는 '~' 를 확장하지 않음 — cwd 아래 '~/...' 로 새는 것 방지
   const expanded = configured.startsWith('~/') ? join(homedir(), configured.slice(2)) : configured;
   return resolve(expanded);
 }
@@ -48,12 +46,10 @@ export async function listJournalPages(): Promise<JournalPage[]> {
   const pages = await Promise.all(
     targets.map(async ({ name, category }) => {
       try {
-        // 목록은 frontmatter 만 쓰므로 파일 head(4KB)만 읽는다 — 본문까지 읽으면
-        // journal 이 수백 개일 때 목록 조회마다 불필요한 전문 I/O
+        // 목록은 frontmatter 만 써서 파일 head(4KB)만 읽음 — journal 이 수백 개일 때 전문 I/O 회피
         const path = join(folder, name);
         let text = await readFileHead(path, 4096);
-        // 외부 에디터(Obsidian 등)가 frontmatter 를 4KB 이상으로 키우면 종료 마커가 head 밖으로
-        // 밀려 메타가 통째 유실됨 — 그 경우만 전문을 다시 읽어 정확성 보장 (드문 경로)
+        // 외부 에디터가 frontmatter 를 4KB 넘게 키우면 종료 마커가 head 밖이라 메타 유실 — 그때만 전문 재독
         if (text.startsWith('---\n') && text.indexOf('\n---\n', 4) === -1) {
           text = await readFile(path, 'utf8');
         }
@@ -68,8 +64,8 @@ export async function listJournalPages(): Promise<JournalPage[]> {
     .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
 }
 
-// 목록은 journal(로컬)가 1차 — 노션에 이미 연동된 항목은 노션 쪽(상태·URL 보유)을 우선하고,
-// 로컬 전용 항목(미연동·100건 cap 밖)만 journal 에서 추가한다
+// 목록은 journal 이 1차 — 노션에 연동된 항목은 노션(상태·URL 보유) 우선,
+// 로컬 전용 항목(미연동·100건 cap 밖)만 journal 에서 추가
 export async function listRecentMerged(): Promise<{
   pages: RecentPage[];
   warnings: RecentWarning[];
@@ -82,8 +78,8 @@ export async function listRecentMerged(): Promise<{
   const notionIds = new Set(notion.pages.map((p) => p.pageId));
   const journalNames = new Set(journal.map((j) => j.fileName));
   const journalRefs = new Set(journal.flatMap((j) => (j.notionRef ? [j.notionRef] : [])));
-  // notionRef 미기록(구버전 journal 등)이어도 같은 category+date 노션 페이지가 있으면 중복 행 방지
-  // 로컬 journal 은 날짜당 1파일이라 워크스페이스 무관 date+category 로 판단해도 안전
+  // notionRef 없는 구버전 journal 이어도 같은 category+date 노션 페이지가 있으면 중복 행 방지
+  // 로컬 journal 은 날짜당 1파일이라 워크스페이스 무관 판단이 안전
   const notionCatDates = new Set(
     notion.pages.flatMap((p) => (p.date === null ? [] : [`${p.category}|${p.date}`])),
   );
@@ -115,7 +111,7 @@ export async function listRecentMerged(): Promise<{
       );
     }),
   ].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
-  // journal 에 일지가 있으면 노션 미연동은 정상 상태 — 경고 배너를 띄우지 않는다
+  // journal 에 일지가 있으면 노션 미연동은 정상 상태 — 경고 배너 안 띄움
   const warnings =
     journal.length > 0
       ? notion.warnings.filter((w) => w.code !== 'no-workspaces')
@@ -147,9 +143,8 @@ export async function readJournalPageContent(pageId: string): Promise<PageConten
   }
 }
 
-// 일지 본문 검색 — journal 폴더의 패턴 일치 md 전문을 읽어 순수 매칭(journal-search)에 넘긴다.
-// 검색은 사용자 발화형(디바운스 뒤 호출)이라 목록의 head-only 최적화와 달리 전문을 읽어도 되고,
-// frontmatter 는 제외해 날짜·notion 메타에 오매칭하지 않는다. 완전 로컬 — 외부 송신 없음
+// journal 폴더의 패턴 일치 md 전문을 읽어 순수 매칭에 넘김 — 디바운스 뒤 호출이라 전문 읽기 허용
+// frontmatter 는 제외해 날짜·notion 메타 오매칭 방지, 외부 송신 없음
 export async function searchJournalContents(query: string): Promise<JournalSearchHit[]> {
   if (query.trim().length < 2) return [];
   const folder = await journalFolder();
@@ -178,8 +173,7 @@ export async function searchJournalContents(query: string): Promise<JournalSearc
   );
 }
 
-// 파일 앞 N 바이트만 읽는다 — frontmatter(작은 고정 필드) 파싱용. 경계에서 멀티바이트가
-// 잘려도 frontmatter 종료(\n---\n)는 head 안에 있어 파싱에 영향 없음
+// frontmatter 파싱용 앞 N 바이트 — 경계에서 멀티바이트가 잘려도 종료 마커(\n---\n)는 head 안
 async function readFileHead(path: string, bytes: number): Promise<string> {
   const fh = await open(path, 'r');
   try {
@@ -223,7 +217,7 @@ function toJournalPage(fileName: string, category: RecentCategory, raw: string):
   };
 }
 
-// journal md 는 자체 생성물이라 구조가 한정적 — 헤딩·불릿·문단만 블록으로 변환
+// journal md 는 자체 생성물이라 헤딩·불릿·문단만 블록으로 변환
 function markdownToBlocks(body: string): SimpleBlock[] {
   const blocks: SimpleBlock[] = [];
   let i = 0;

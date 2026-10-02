@@ -36,8 +36,8 @@ export default defineConfig({
     plugins: [react(), tailwindcss()],
     build: {
       outDir: 'out/renderer',
-      // Electron 42 = Chromium 134+. 타겟을 명시하지 않으면 minifier 가 보수적으로
-      // 표준 backdrop-filter 를 떨어뜨리고 -webkit- 만 남겨 packaged blur 가 깨진다.
+      // 타겟을 명시하지 않으면 minifier 가 표준 backdrop-filter 를 떨어뜨리고 -webkit- 만 남겨
+      // packaged blur 가 깨짐 (Electron 42 = Chromium 134+)
       cssTarget: 'chrome134',
       rollupOptions: {
         input: {

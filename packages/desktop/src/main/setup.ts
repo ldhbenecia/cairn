@@ -43,8 +43,8 @@ type ConfigShape = {
   localGitRepos?: string[];
 };
 
-// 로컬 우선(ADR 0031): 노션 없이도 활동 소스(로컬 Git 또는 GitHub) 하나면 셋업 완료.
-// env 는 주입 가능 — 호출측(index)이 secretEnv(암호화 스토어 포함)를 넘긴다 (순환 import 회피)
+// 노션 없이도 활동 소스(로컬 Git 또는 GitHub) 하나면 셋업 완료
+// env 는 호출측(index)이 secretEnv 를 주입 — 순환 import 회피
 export function isSetupComplete(env: Record<string, string> = readEnvFile()): boolean {
   let config: ConfigShape;
   try {

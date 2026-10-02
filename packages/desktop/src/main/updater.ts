@@ -20,8 +20,7 @@ export function initUpdater(): void {
     // 6시간 주기 재체크마다 같은 버전을 반복 알림하지 않음
     if (info.version === notifiedVersion) return;
     notifiedVersion = info.version;
-    // notifyWithAction 이 알림 참조를 보관 — 직접 new Notification 하면 GC 가 수거해
-    // click 리스너가 죽어 다운로드 페이지가 안 열리던 버그
+    // notifyWithAction 이 알림 참조를 보관 — 직접 new Notification 하면 GC 가 수거해 click 리스너가 죽음
     notifyWithAction(
       mt('updater.title'),
       mt('updater.body', { version: info.version }),
@@ -29,7 +28,7 @@ export function initUpdater(): void {
     );
   });
 
-  // 미서명 빌드라 자동설치 불가 — 업데이트 에러는 사용자가 대응할 수 없어 조용히 무시
+  // 미서명 빌드라 자동설치 불가 — 사용자가 대응할 수 없는 업데이트 에러는 무시
   autoUpdater.on('error', () => {});
 
   void autoUpdater.checkForUpdates();

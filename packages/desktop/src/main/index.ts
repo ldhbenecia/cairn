@@ -76,8 +76,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let allowQuit = false;
 
-// 전역 크래시 가드 — 핸들러가 없으면 uncaught 예외 한 번에 메인 프로세스가 무통보로 죽는다
-// (loopback 서버 error 리스너 부재로 실제 발생 직전까지 갔던 클래스). 로그 + 계속 실행.
+// 전역 크래시 가드 — 핸들러가 없으면 uncaught 예외 한 번에 메인 프로세스가 무통보로 죽음, 로그 후 계속
 process.on('uncaughtException', (err) => {
   console.error('[main] uncaughtException', err);
 });
@@ -85,9 +84,8 @@ process.on('unhandledRejection', (reason) => {
   console.error('[main] unhandledRejection', reason);
 });
 
-// 미서명 앱이라 safeStorage 가 OS 키체인을 건드리면 암호 프롬프트가 매번 뜬다 → mock keychain 사용
-// 시크릿 암호화(ADR 0037)는 safeStorage 가 아니라 자체 키체인 키(keychain-key.ts)를 쓰므로 무관.
-// password-store=basic 은 Linux 전용
+// 미서명 앱이라 safeStorage 가 OS 키체인을 건드리면 매번 암호 프롬프트 → mock keychain
+// 시크릿 암호화는 자체 키체인 키(keychain-key.ts)라 무관, password-store=basic 은 Linux 전용
 app.commandLine.appendSwitch('use-mock-keychain');
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('password-store', 'basic');
@@ -123,9 +121,8 @@ function createWindow(startHidden: boolean): BrowserWindow {
     },
   });
 
-  // 보안: 메인 윈도우는 로컬 번들만 렌더 — 원격 URL 은 물론 임의 로컬 file:// 도 막는다.
-  // 번들 index.html 정확 일치만 허용(그 페이지에 preload 브릿지가 주입되므로 다른 file:// 로
-  // 새는 벡터 차단). 새 창 요청은 외부 브라우저로만 (https 한정)
+  // 메인 윈도우는 번들 index.html 정확 일치만 렌더 — preload 브릿지가 주입되는 페이지라 원격 URL·
+  // 임의 file:// 로 새는 벡터 차단, 새 창 요청은 외부 브라우저로만 (https 한정)
   const bundleUrl = pathToFileURL(join(__dirname, '../renderer/index.html')).href;
   win.webContents.on('will-navigate', (e, url) => {
     const dev = process.env.ELECTRON_RENDERER_URL;
@@ -152,7 +149,7 @@ function createWindow(startHidden: boolean): BrowserWindow {
     win.hide();
   });
 
-  // 창을 다시 열면 Dock 아이콘 복귀 — Cmd+Q 로 트레이 전용 진입 시 빠졌던 Dock 을 되살림 (macOS 전용)
+  // 창을 다시 열면 Dock 아이콘 복귀 — Cmd+Q 로 트레이 전용 진입 시 빠진 Dock 복원 (macOS)
   if (app.isPackaged && process.platform === 'darwin') {
     win.on('show', () => void app.dock?.show());
   }
@@ -166,9 +163,8 @@ function createWindow(startHidden: boolean): BrowserWindow {
   return win;
 }
 
-// dev 바이너리(Electron.app)를 로그인 항목으로 등록하지 않도록 패키지 한정 — macOS·Windows 만 지원
-// openAsHidden/args: 로그인 자동 실행 시 백그라운드(트레이)로 뜨게. setLoginItemSettings 는
-// OS 권한/레지스트리 문제로 throw 할 수 있어 try-catch — 실패해도 앱 시작은 막지 않음
+// dev 바이너리(Electron.app)가 로그인 항목에 등록되지 않게 패키지 한정 — macOS·Windows 만 지원
+// setLoginItemSettings 는 OS 권한·레지스트리 문제로 throw 할 수 있어 실패해도 앱 시작은 계속
 function applyLoginItem(enabled: boolean): void {
   if (!app.isPackaged) return;
   if (process.platform !== 'darwin' && process.platform !== 'win32') return;
@@ -193,7 +189,7 @@ function launchedAtLogin(): boolean {
 }
 
 void app.whenReady().then(() => {
-  // 시크릿 이관 (ADR 0037) — 평문 .env 가 있으면 암호화 스토어로 (packaged 한정, fail-open)
+  // 평문 .env 가 있으면 암호화 스토어로 이관 (packaged 한정, fail-open)
   try {
     if (migrateSecretsAtStartup() === 'migrated')
       console.log('[secrets] migrated to encrypted store');
@@ -202,7 +198,7 @@ void app.whenReady().then(() => {
   }
   // 로그인 셸 PATH 캡처를 미리 비동기로 — 첫 발행/probe 의 UI 프리즈 방지
   void warmClaudePath();
-  // 시작 시 토큰 건강 체크 — 인증 실패(invalid)면 발행이 깨지기 전에 미리 알림. 창 로드와 경합 방지 지연
+  // 시작 시 토큰 건강 체크 — 발행이 깨지기 전에 인증 실패 알림, 창 로드와 경합 방지로 지연
   setTimeout(() => {
     void Promise.all([probeConnectionAccounts(), validateCloudSession()])
       .then(([acc, cloud]) => {
@@ -218,19 +214,18 @@ void app.whenReady().then(() => {
           win.focus();
           win.webContents.send('cairn:open-connections');
         });
-        // 클라우드 세션 만료는 sync 가 조용히 죽는 상태 — 클릭하면 재로그인 플로우 바로 시작
+        // 클라우드 세션 만료는 sync 가 조용히 죽는 상태 — 클릭 시 재로그인 플로우 시작
         if (cloud === 'expired') notifyCloudExpired(() => startCloudSignIn());
       })
       .catch((err: unknown) => console.error('[health-check] failed', err));
   }, 8000);
-  // 주기 sync — 상주 앱이 재시작 없이 오래 떠 있어도 stats 가 기기 간 최신으로 유지되고,
-  // 서버 세션도 사용 시 연장(updateAge)되어 재로그인 없이 지속된다
+  // 주기 sync — 상주 앱이 오래 떠 있어도 stats 를 기기 간 최신으로, 서버 세션도 사용 시 연장(updateAge)
   setInterval(() => void syncStats(), 6 * 60 * 60 * 1000);
   if (!app.isPackaged && process.platform === 'darwin') {
     try {
       app.dock?.setIcon(join(__dirname, '../../resources/icon.png'));
     } catch {
-      // dev 편의 기능
+      // dev 전용 아이콘 — 실패 무시
     }
   }
 
@@ -246,7 +241,7 @@ void app.whenReady().then(() => {
   );
   ipcMain.handle('cairn:export:pick-folder', () => pickExportFolder());
   ipcMain.handle('cairn:export:status', () => exportStatus());
-  // 폴더 경로는 renderer 인자가 아니라 설정에서 읽는다 (임의 경로 열기 방지)
+  // 폴더 경로는 renderer 인자가 아닌 설정에서 읽음 — 임의 경로 열기 방지
   ipcMain.handle('cairn:export:reveal', () => {
     const folder = readSettings().export.folder;
     return folder ? shell.openPath(folder) : Promise.resolve('');
@@ -265,8 +260,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:open-external', (_e, url: string) => {
     try {
       const p = new URL(url).protocol;
-      // obsidian: 은 연동 탭의 journal 딥링크, x-apple.systempreferences: 는
-      // '알림 설정 열기' 버튼(OS 소유 프로토콜) — 이게 빠져 버튼이 무동작이었다
+      // obsidian: 은 연동 탭의 journal 딥링크, x-apple.systempreferences: 는 '알림 설정 열기' 버튼용
       if (
         p === 'https:' ||
         p === 'http:' ||
@@ -322,8 +316,8 @@ void app.whenReady().then(() => {
     };
   });
   ipcMain.handle('cairn:settings:set', (_e, patch: Partial<Settings>) => {
-    // IPC 경계 — renderer 는 신뢰 불가. 부작용 있는 필드는 타입 강제(truthy 문자열 등으로
-    // OS 로그인 항목·임의 경로 열기/쓰기가 켜지는 것 방지)
+    // renderer 는 신뢰 불가 — 부작용 있는 필드는 타입 강제 (truthy 문자열로 OS 로그인 항목·
+    // 임의 경로 열기/쓰기가 켜지는 것 방지)
     if (patch.backup) patch.backup = { enabled: patch.backup.enabled === true };
     if (patch.launchAtLogin !== undefined) patch.launchAtLogin = patch.launchAtLogin === true;
     if (patch.export) {
@@ -413,8 +407,7 @@ void app.whenReady().then(() => {
     win.focus();
   });
 
-  // 시스템 종료/재시작은 Cmd+Q(트레이 상주)와 달리 진짜 종료 — before-quit 의
-  // preventDefault 가 macOS 종료 절차를 중단시키던 문제 방지
+  // 시스템 종료/재시작은 진짜 종료 — before-quit 의 preventDefault 가 macOS 종료 절차를 중단시키지 않게
   powerMonitor.on('shutdown', () => {
     allowQuit = true;
     app.quit();
@@ -425,7 +418,7 @@ app.on('before-quit', (e) => {
   if (!allowQuit && app.isPackaged) {
     e.preventDefault();
     BrowserWindow.getAllWindows().forEach((w) => w.hide());
-    // Cmd+Q 는 완전 종료가 아니라 트레이 전용(메뉴바 상주) — 이때만 Dock 아이콘 제거
+    // Cmd+Q 는 완전 종료가 아닌 트레이 전용(메뉴바 상주) — 이때만 Dock 아이콘 제거
     if (process.platform === 'darwin') app.dock?.hide();
     return;
   }

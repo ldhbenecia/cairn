@@ -9,9 +9,8 @@ function sleepSync(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
-// 같은 파일을 여러 프로세스(desktop main + forked core)가 read-modify-write 할 때 직렬화한다.
-// `${target}.lock` 을 O_EXCL 로 잡아 임계구역을 보호. 보유 프로세스가 크래시하면 stale(mtime)
-// 로 회수. 경합이 지속돼 못 잡으면 MAX_WAIT 후 그냥 진행 — best-effort(교착 방지).
+// 여러 프로세스(desktop main + forked core)의 같은 파일 read-modify-write 직렬화
+// `${target}.lock` 을 O_EXCL 로 잡고 크래시한 보유자는 stale(mtime)로 회수, MAX_WAIT 후엔 교착 방지로 그냥 진행
 export function withFileLock<T>(targetPath: string, fn: () => T): T {
   const lockPath = `${targetPath}.lock`;
   const deadline = Date.now() + MAX_WAIT_MS;

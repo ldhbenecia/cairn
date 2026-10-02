@@ -42,7 +42,7 @@ const isStr = (v: unknown): v is string => typeof v === 'string' && v.length > 0
 export type LocalRepoProbe = { ok: boolean; reason?: 'not-git' | 'no-email' };
 
 export async function probeLocalRepo(path: string): Promise<LocalRepoProbe> {
-  // .git 은 dir·file(worktree) 둘 다 — existsSync 커버
+  // .git 은 dir·file(worktree) 둘 다 가능 — existsSync 로 커버
   if (!isStr(path) || !existsSync(join(path, '.git'))) return { ok: false, reason: 'not-git' };
   try {
     const { stdout } = await execFileAsync('git', ['-C', path, 'config', 'user.email'], {
@@ -50,7 +50,7 @@ export async function probeLocalRepo(path: string): Promise<LocalRepoProbe> {
     });
     return stdout.trim() ? { ok: true } : { ok: false, reason: 'no-email' };
   } catch (err) {
-    // exit 1 = user.email 미설정 — ENOENT·타임아웃은 판정 보류
+    // exit 1 = user.email 미설정, ENOENT·타임아웃은 판정 보류
     if ((err as { code?: unknown }).code === 1) return { ok: false, reason: 'no-email' };
     return { ok: true };
   }
@@ -66,7 +66,7 @@ const isDbRef = (v: unknown): v is DbRef =>
 
 export type NotionWorkspacePayload = OnboardingPayload['notion'][number];
 
-// 렌더러 IPC 입력은 신뢰 불가 — env/config 에 그대로 쓰기 전에 shape 검증.
+// 렌더러 IPC 입력은 신뢰 불가 — env·config 에 쓰기 전에 shape 검증
 export function parseNotionWorkspacePayload(
   w: unknown,
 ): { ok: true; entry: NotionWorkspacePayload } | { ok: false; error: string } {
@@ -113,7 +113,7 @@ export function parseOnboardingPayload(
     if (typeof g !== 'object' || g === null || !isStr(gg.label) || hasCtl(gg.label)) {
       return { ok: false, error: 'invalid-github' };
     }
-    // gh CLI 가져오기 항목은 renderer 가 토큰 대신 login 만 보낸다 — main 캐시에서 해석
+    // gh CLI 가져오기 항목은 renderer 가 토큰 대신 login 만 보냄 — main 캐시에서 해석
     if (isStr(gg.ghLogin)) {
       const token = ghCliTokens.get(gg.ghLogin);
       if (!token) return { ok: false, error: 'gh-token-missing' };
@@ -178,8 +178,8 @@ export async function searchNotionPages(token: string, query?: string): Promise<
   const pages: NotionPage[] = [];
   for (const item of res.results) {
     if (!('properties' in item)) continue;
-    // 통합에 공유된 페이지 전체 노출 — workspace 직속만 거르면 하위 페이지('Areas > Worklog' 등)에
-    // 공유한 흔한 구성에서 결과가 항상 비어 연동을 완료할 수 없었다
+    // 통합에 공유된 페이지 전체 노출 — workspace 직속만 거르면 하위 페이지에 공유한 흔한 구성에서
+    // 결과가 항상 비어 연동 불가
     const props = (item as { properties: Record<string, unknown> }).properties;
     let title = '(제목 없음)';
     for (const v of Object.values(props)) {
@@ -226,12 +226,12 @@ export type GhCliAccounts = {
   error?: string;
 };
 
-// async execFile 로 메인 스레드 블로킹 회피. gh 에 로그인된 모든 계정의 토큰을 가져온다.
+// gh 에 로그인된 모든 계정의 토큰 — async execFile 로 메인 스레드 블로킹 회피
 export async function githubAccountsFromGhCli(): Promise<GhCliAccounts> {
   const exe = process.platform === 'win32' ? 'gh.exe' : 'gh';
   const gh = findInPath(exe);
   if (!gh) return { ok: false, error: 'gh-not-found' };
-  // gh keychain 접근에 필요한 최소 env 만 — 전체 상속 시 모든 토큰이 자식으로 흘러간다
+  // gh keychain 접근에 필요한 최소 env 만 — 전체 상속하면 모든 토큰이 자식으로 흘러감
   const env = {
     PATH: searchPathEnv(),
     HOME: process.env.HOME ?? '',
@@ -269,7 +269,7 @@ export async function githubAccountsFromGhCli(): Promise<GhCliAccounts> {
   return { ok: true, accounts };
 }
 
-// gh CLI 토큰은 renderer 로 내보내지 않는다 (ADR 0003 정신) — login 만 넘기고 토큰은 여기 캐시
+// gh CLI 토큰은 renderer 로 내보내지 않음 — login 만 넘기고 토큰은 여기 캐시
 const ghCliTokens = new Map<string, string>();
 
 export type GhCliLogins = { ok: boolean; logins?: string[]; error?: string };
@@ -301,7 +301,7 @@ export async function probeGithub(token: string): Promise<GithubProbe> {
   }
 }
 
-// invalid(401/403)만 사용자 행동 필요 — missing 은 토큰 미설정, unreachable 은 네트워크/타임아웃
+// invalid(401/403)만 사용자 행동 필요 — missing 은 토큰 미설정, unreachable 은 네트워크·타임아웃
 export type AccountHealth = 'ok' | 'invalid' | 'missing' | 'unreachable';
 
 export type ConnectionAccounts = {
@@ -311,7 +311,7 @@ export type ConnectionAccounts = {
 
 const PROBE_TIMEOUT_MS = 6000;
 
-// 단일 느린 네트워크 호출이 연결 탭 응답 전체를 붙잡지 않도록 — 타임아웃 시 fallback 반환
+// 느린 네트워크 호출 하나가 연결 탭 응답 전체를 붙잡지 않게 — 타임아웃 시 fallback
 function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<T>((resolve) => {
@@ -347,7 +347,7 @@ type ConnConfig = {
   notionWorkspaces?: { label: string; tokenEnv?: string }[];
 };
 
-// 연결 탭용: config + .env 토큰으로 각 계정 식별자만 조회. 토큰은 renderer 로 내보내지 않는다.
+// 연결 탭용 — config + 토큰으로 계정 식별자만 조회, 토큰은 renderer 로 안 보냄
 export async function probeConnectionAccounts(): Promise<ConnectionAccounts> {
   let config: ConnConfig;
   try {
@@ -356,7 +356,7 @@ export async function probeConnectionAccounts(): Promise<ConnectionAccounts> {
     config = {};
   }
   const envMap = secretEnv();
-  // GitHub·Notion probe 를 동시에 — 순차 대기하면 연결 탭 최악 지연이 2배
+  // GitHub·Notion probe 동시 실행 — 순차면 연결 탭 최악 지연이 2배
   const [github, notion] = await Promise.all([
     Promise.all(
       (config.githubAccounts ?? []).map(
@@ -435,7 +435,7 @@ function buildNotionWorkspace(
   return ws;
 }
 
-// Preferences 연동 탭에서 노션 워크스페이스 1개 추가 — 같은 라벨이면 교체(재연결)
+// 같은 라벨이면 교체(재연결)
 export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; error?: string } {
   try {
     return withFileLock(CONFIG_PATH, () => {
@@ -463,8 +463,8 @@ export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; er
   }
 }
 
-// Preferences 연결 탭 — 온보딩 전체를 재실행하지 않고 gh CLI 토큰만 다시 가져와 갱신.
-// 온보딩과 같은 매핑(label=login)으로 같은 라벨은 제자리 교체, gh 에 없는 계정(수동 PAT)은 보존
+// 온보딩 재실행 없이 gh CLI 토큰만 다시 가져와 갱신 — 온보딩과 같은 매핑(label=login)으로
+// 같은 라벨은 제자리 교체, gh 에 없는 계정(수동 PAT)은 보존
 export async function refreshGithubFromGhCli(): Promise<{
   ok: boolean;
   count?: number;
@@ -503,7 +503,7 @@ export async function refreshGithubFromGhCli(): Promise<{
   }
 }
 
-// Preferences 연결 탭 — 로컬 Git 수집 토글. 등록된 localGitRepos 경로는 보존하고 수집 여부만 저장.
+// 등록된 localGitRepos 경로는 보존하고 수집 여부만 저장
 export function setLocalGitEnabled(enabled: boolean): { ok: boolean; error?: string } {
   try {
     return withFileLock(CONFIG_PATH, () => {
@@ -526,8 +526,8 @@ export function setLocalGitEnabled(enabled: boolean): { ok: boolean; error?: str
 
 export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; error?: string } {
   try {
-    // 재실행 시 자동 생성된 DB id 보존을 위해 기존 config 를 먼저 읽음.
-    // core(worklog-config) 가 첫 발행 후 같은 파일에 DB id 를 자동저장하므로 동일 락으로 직렬화.
+    // 기존 config 를 먼저 읽어 자동 생성된 DB id 보존 — core 가 첫 발행 후 같은 파일에 DB id 를
+    // 자동 저장하므로 같은 락으로 직렬화
     return withFileLock(CONFIG_PATH, () => {
       let existing: Record<string, unknown>;
       try {
@@ -541,14 +541,14 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
         : [];
 
       const env: Record<string, string> = {};
-      // 온보딩은 더 이상 노션을 다루지 않음 — 빈 배열이면 Preferences 에서 연결한 기존 워크스페이스 보존
+      // 온보딩은 노션을 다루지 않음 — 빈 배열이면 Preferences 에서 연결한 기존 워크스페이스 보존
       const notionWorkspaces = payload.notion.length
         ? payload.notion.map((w) => buildNotionWorkspace(w, prevWorkspaces, env))
         : prevWorkspaces;
       const prevGithub = Array.isArray(existing.githubAccounts)
         ? (existing.githubAccounts as { label: string; tokenEnv: string }[])
         : [];
-      // 재입력한 계정만 반영, 빈 payload 는 기존 보존 — 토큰은 재발급 부담이 큰 값이라 무경고 삭제 방지
+      // 재입력한 계정만 반영, 빈 payload 는 기존 보존 — 재발급 부담이 큰 토큰의 무경고 삭제 방지
       const githubAccounts = keepIfEmpty(
         payload.github.map((g) => {
           const tokenEnv = envKey('GITHUB_TOKEN', g.label);

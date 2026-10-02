@@ -88,7 +88,7 @@ describe('applyBackfillEvent — 배치 진행 단일 소스 (ADR 0033 3단계)'
     ev({ type: 'day-done', date: '2026-07-25', pr: 2, commit: 5, pageId: null });
     expect(getRunProgress()).toBeNull();
     expect(broadcastMock).not.toHaveBeenCalled();
-    // CoreResult 의 prCount/commitCount·발행 날짜는 단일 실행에서도 이 집계를 쓴다
+    // CoreResult 의 prCount/commitCount·발행 날짜는 단일 실행에서도 이 집계 사용
     expect(getBackfillCountsByDate()).toEqual({ '2026-07-25': { pr: 2, commit: 5 } });
     expect(getBackfillLastPublishedDate()).toBe('2026-07-25');
   });

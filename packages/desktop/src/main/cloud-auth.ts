@@ -16,8 +16,8 @@ export type CloudUser = { name: string; email: string; image: string | null };
 export type CloudAuthState = { signedIn: boolean; user: CloudUser | null };
 type Stored = { token: string; user: CloudUser };
 
-// bearer 토큰 at-rest 암호화 (ADR 0037) — packaged 는 키체인 키로 암호문 저장, 실패/레거시는
-// 평문 폴백. 레거시 평문을 읽으면 다음 기회에 암호문으로 재저장(기회적 마이그레이션)
+// bearer 토큰 at-rest 암호화 — packaged 는 키체인 키로 암호문 저장, 실패·레거시는 평문 폴백
+// 레거시 평문을 읽으면 다음 기회에 암호문으로 재저장
 function writeStored(stored: Stored): void {
   mkdirSync(dirname(AUTH_PATH), { recursive: true });
   const enc = encryptForStore(stored);
@@ -64,7 +64,7 @@ function broadcastAuth(): void {
   }
 }
 
-// 웹 페이지가 fetch 로 토큰을 넘길 수 있게(주소창에 토큰 미노출) — 대상은 우리 도메인만
+// 웹 페이지가 fetch 로 토큰을 넘기는 대상(주소창에 토큰 미노출) — cairn 웹 도메인만
 const WEB_ORIGIN = new URL(WEB_BASE).origin;
 const CORS_HEADERS = {
   'access-control-allow-origin': WEB_ORIGIN,
@@ -87,11 +87,11 @@ function stopServer(): void {
 
 export function startCloudSignIn(): void {
   stopServer();
-  // login CSRF 방어 — 악성 페이지가 window.open 으로 임의 포트에 토큰을 흘려보내는
-  // 드라이브바이를 차단. 우리가 연 플로우의 state 를 에코한 콜백만 수용한다
+  // login CSRF 방어 — 악성 페이지가 window.open 으로 임의 포트에 토큰을 흘려보내는 드라이브바이 차단
+  // 이 플로우의 state 를 에코한 콜백만 수용
   const expectedState = randomBytes(16).toString('hex');
   const current = createServer((req, res) => {
-    // Chrome PNA(public→local) preflight — 허용해야 fetch 경로가 열린다
+    // Chrome PNA(public→local) preflight — 허용해야 fetch 경로가 열림
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
         ...CORS_HEADERS,
@@ -102,7 +102,7 @@ export function startCloudSignIn(): void {
       res.end();
       return;
     }
-    // 폴백은 폼 POST(body) — 토큰이 URL/히스토리에 실리지 않는다. GET 쿼리는 fetch 경로용
+    // 폴백은 폼 POST(body) — 토큰이 URL·히스토리에 안 실림, GET 쿼리는 fetch 경로용
     if (req.method === 'POST') {
       let body = '';
       req.setEncoding('utf8');
@@ -129,7 +129,7 @@ export function startCloudSignIn(): void {
     req: import('node:http').IncomingMessage,
     res: import('node:http').ServerResponse,
   ): void => {
-    // favicon 등 토큰 없는 부가 요청은 무시 — 세션 닫지 않음
+    // favicon 등 토큰 없는 부가 요청은 무시 — 세션 유지
     if (!ott) {
       res.writeHead(204);
       res.end();
@@ -141,8 +141,8 @@ export function startCloudSignIn(): void {
       res.end();
       return;
     }
-    // fetch 경로(Sec-Fetch-Mode: cors)는 JSON, 페이지 이동 폴백은 웹 완료 화면으로 302 —
-    // 어느 쪽이든 토큰 붙은 로컬 URL 이 주소창에 머물지 않는다
+    // fetch 경로(Sec-Fetch-Mode: cors)는 JSON, 페이지 이동 폴백은 웹 완료 화면으로 302
+    // — 어느 쪽이든 토큰 붙은 로컬 URL 이 주소창에 안 남음
     if (req.headers['sec-fetch-mode'] === 'cors') {
       res.writeHead(200, { ...CORS_HEADERS, 'content-type': 'application/json' });
       res.end('{"ok":true}');
@@ -159,7 +159,7 @@ export function startCloudSignIn(): void {
     if (server === current) server = null;
   };
   server = current;
-  // 리스너 없으면 listen/소켓 에러가 uncaught 로 메인 프로세스를 죽인다
+  // 리스너가 없으면 listen·소켓 에러가 uncaught 로 메인 프로세스를 죽임
   current.on('error', (err) => {
     if (server === current) stopServer();
     signInFailed(`loopback server: ${err.message}`);
@@ -167,7 +167,7 @@ export function startCloudSignIn(): void {
   current.listen(0, '127.0.0.1', () => {
     const addr = current.address();
     const port = addr && typeof addr === 'object' ? addr.port : 0;
-    // 기본 브라우저가 없으면 여기서 조용히 끝나 '로그인 눌러도 아무 일 없음'이 되던 경로
+    // 기본 브라우저가 없으면 조용히 끝나 '로그인 눌러도 아무 일 없음'이 됨
     shell
       .openExternal(`${WEB_BASE}/desktop-login?port=${port}&state=${expectedState}`)
       .catch((err: unknown) => {
@@ -175,7 +175,7 @@ export function startCloudSignIn(): void {
         signInFailed(`openExternal: ${err instanceof Error ? err.message : String(err)}`);
       });
   });
-  // 브라우저 로그인 플로우를 포기하면 포트가 무기한 점유되지 않도록 5분 후 정리
+  // 브라우저 로그인을 포기해도 포트가 무기한 점유되지 않도록 5분 후 정리
   authTimeout = setTimeout(
     () => {
       if (server === current) stopServer();
@@ -184,8 +184,8 @@ export function startCloudSignIn(): void {
   );
 }
 
-// 브라우저 쪽은 '로그인 완료'를 띄우는데 앱은 영영 로컬 상태로 남던 조용한 실패 —
-// 각 단계 실패를 로그 + 네이티브 다이얼로그로 표면화한다 (알림 클릭은 프론트 배너에서 미전달)
+// 브라우저는 '로그인 완료'인데 앱만 로컬 상태로 남는 조용한 실패를 막도록 단계별 실패를
+// 로그 + 네이티브 다이얼로그로 표면화 (프론트 배너에선 알림 클릭이 미전달)
 function signInFailed(reason: string): void {
   console.error(`[cloud-auth] sign-in failed: ${reason}`);
   dialog.showErrorBox(mt('cloud.signInFailTitle'), mt('cloud.signInFailBody'));
@@ -229,8 +229,7 @@ async function completeSignIn(ott: string): Promise<void> {
 
 export type CloudSessionHealth = 'ok' | 'expired' | 'unreachable' | 'signed-out';
 
-// 저장 파일 존재만으로 '로그인됨'을 그리던 것과 달리 서버 세션 실검증 — 만료(401/세션 null)면
-// syncStats 가 조용히 죽는 상태라 사용자에게 알려야 한다
+// 저장 파일 존재가 아닌 서버 세션 실검증 — 만료(401·세션 null)면 syncStats 가 조용히 죽어 알려야 함
 export async function validateCloudSession(): Promise<CloudSessionHealth> {
   const token = cloudToken();
   if (!token) return 'signed-out';
@@ -257,7 +256,7 @@ export async function cloudSignOut(): Promise<void> {
         headers: { Authorization: `Bearer ${token}` },
       });
     } catch {
-      // 서버 실패해도 로컬 토큰은 지운다
+      // 서버 실패해도 로컬 토큰은 삭제
     }
   }
   rmSync(AUTH_PATH, { force: true });

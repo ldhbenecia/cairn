@@ -1,8 +1,7 @@
 import type { RecentCategory } from './notion-client';
 
-// 일지 본문 검색 — 순수 매칭/스니펫 로직. I/O(파일 읽기)는 journal-reader.searchJournalContents 가
-// 담당하고 여기는 입력 데이터만 받는다(타입 import 뿐이라 단위 테스트 가능).
-// 목록 검색(제목=날짜)이 못 잡던 본문·[레포] 프리픽스를 substring 토큰 AND 로 매칭한다
+// 일지 본문 검색의 순수 매칭·스니펫 로직 (I/O 는 journal-reader 담당)
+// 목록 검색(제목=날짜)이 못 잡는 본문·[레포] 프리픽스를 substring 토큰 AND 로 매칭
 
 export type JournalSearchFile = {
   fileName: string;
@@ -17,9 +16,9 @@ export type JournalSearchHit = {
   matchCount: number;
 };
 
-// 결과 상한 — 초과분은 잘라 UI 가 감당할 크기로 (쿼리를 더 좁히면 됨)
+// 결과 상한 — 초과분은 UI 가 감당할 크기로 자름
 const MAX_HITS = 50;
-// 스니펫 컨텍스트 — 매치 지점 앞뒤로 보여줄 문자 수
+// 매치 지점 앞뒤로 보여줄 문자 수
 const SNIPPET_RADIUS = 44;
 
 function countOccurrences(haystack: string, needle: string): number {
@@ -53,7 +52,7 @@ export function searchJournals(
   query: string,
 ): JournalSearchHit[] {
   const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  // 1글자 쿼리는 잡음이 큼 — 토큰 전체 길이 2 미만이면 검색하지 않는다
+  // 1글자 쿼리는 잡음이 커서 토큰 전체 길이 2 미만이면 검색 안 함
   if (tokens.length === 0 || tokens.join('').length < 2) return [];
 
   const hits: JournalSearchHit[] = [];
