@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { CoreMode, RecentListResult, RecentPage } from '../cairn-api';
+import type { CoreMode, RecentListResult, RecentPage } from '../../../shared/ipc-types';
 import { useSettings } from '../settings-context';
 import type { MainView } from './sidebar';
 

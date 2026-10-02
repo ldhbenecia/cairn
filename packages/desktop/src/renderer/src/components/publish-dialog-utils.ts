@@ -1,4 +1,4 @@
-import type { DateStep, RunLine } from '../cairn-api';
+import type { DateStep, RunLine } from '../../../shared/ipc-types';
 import type { I18nKey } from '../i18n';
 
 export type T = (key: I18nKey) => string;

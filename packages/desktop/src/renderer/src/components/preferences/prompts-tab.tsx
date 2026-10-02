@@ -1,6 +1,6 @@
 import { Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { SummaryModel } from '../../cairn-api';
+import type { SummaryModel } from '../../../../shared/ipc-types';
 import type { I18nKey } from '../../i18n';
 import { useSettings } from '../../settings-context';
 import { Section } from './field';

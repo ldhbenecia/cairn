@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { PageContent, RecentPage } from './cairn-api';
+import type { PageContent, RecentPage } from '../../shared/ipc-types';
 import { useSettings } from './settings-context';
 
 // 일지 본문 로드 — 조회 실패 시 무한 로딩 대신 warning 경로로 오류 문구 표시

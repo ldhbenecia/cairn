@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { CloudAuthState } from './cairn-api';
+import type { CloudAuthState } from '../../shared/ipc-types';
 
 export function useCloudAuth(): CloudAuthState {
   const [state, setState] = useState<CloudAuthState>({ signedIn: false, user: null });

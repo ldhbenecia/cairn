@@ -9,7 +9,7 @@ import {
   Loader2,
   type LucideIcon,
 } from 'lucide-react';
-import type { RecentPage } from '../cairn-api';
+import type { RecentPage } from '../../../shared/ipc-types';
 import { pageSinks, sinkLabel } from '../lib/sinks';
 import { useSettings } from '../settings-context';
 import { NotionMark, ObsidianMark } from './brand-icons';

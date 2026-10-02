@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, Check, Minus, TriangleAlert, X } from 'lucide-react';
-import type { CoreMode, CoreResult } from '../cairn-api';
+import type { CoreMode, CoreResult } from '../../../shared/ipc-types';
 import { useSettings } from '../settings-context';
 import { classifyRunOutcome } from '../../../shared/run-outcome';
 

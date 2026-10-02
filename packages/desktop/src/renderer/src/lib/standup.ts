@@ -1,4 +1,4 @@
-import type { RecentPage, SimpleBlock } from '../cairn-api';
+import type { RecentPage, SimpleBlock } from '../../../shared/ipc-types';
 import { sectionBullets } from '../../../shared/section-bullets';
 
 export type StandupLabels = {

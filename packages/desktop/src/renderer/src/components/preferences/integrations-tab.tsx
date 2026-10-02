@@ -8,7 +8,11 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { BackupStatus, ExportStatus, NotionWorkspacePayload } from '../../cairn-api';
+import type {
+  BackupStatus,
+  ExportStatus,
+  NotionWorkspacePayload,
+} from '../../../../shared/ipc-types';
 import { useSettings } from '../../settings-context';
 import { ICloudMark, NotionMark, ObsidianMark } from '../brand-icons';
 import { NotionCard, type NotionEntry } from '../onboarding-cards';

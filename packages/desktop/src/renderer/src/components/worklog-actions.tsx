@@ -8,7 +8,7 @@ import {
   History,
   MoreHorizontal,
 } from 'lucide-react';
-import type { PageContent, RecentPage, SimpleBlock } from '../cairn-api';
+import type { PageContent, RecentPage, SimpleBlock } from '../../../shared/ipc-types';
 import { sectionBullets } from '../../../shared/section-bullets';
 import { pageSinks } from '../lib/sinks';
 import { blocksToMarkdown } from '../../../shared/markdown';

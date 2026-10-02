@@ -1,4 +1,4 @@
-import type { RecentPage, WorklogSink } from '../cairn-api';
+import type { RecentPage, WorklogSink } from '../../../shared/ipc-types';
 
 // 구버전 로컬 캐시에는 sinks 가 없음 — 출처 라벨로 유추
 export function pageSinks(page: RecentPage): WorklogSink[] {

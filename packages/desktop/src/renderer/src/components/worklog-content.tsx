@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
-import type { RichSpan, SimpleBlock } from '../cairn-api';
+import type { RichSpan, SimpleBlock } from '../../../shared/ipc-types';
 
 // 드로어·전체 화면 상세가 공유하는 일지 본문 렌더러 — 블록 문법 변경은 여기 한 곳에서
 

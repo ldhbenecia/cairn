@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react';
-import type { Language, Theme } from '../../cairn-api';
+import type { Language, Theme } from '../../../../shared/ipc-types';
 import { ACCENTS, useSettings } from '../../settings-context';
 import { Field, Section, Segmented } from './field';
 

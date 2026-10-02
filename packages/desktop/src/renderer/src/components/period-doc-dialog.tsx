@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Check, Copy, FileText, FolderOpen, Loader2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { PeriodDocResult } from '../cairn-api';
+import type { PeriodDocResult } from '../../../shared/ipc-types';
 import {
   parsePeriodDoc,
   presetRange,

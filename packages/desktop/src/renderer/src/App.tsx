@@ -15,7 +15,7 @@ import type {
   RecentPage,
   RunProgress,
   RunStep,
-} from './cairn-api';
+} from '../../shared/ipc-types';
 import { AnimatePresence } from 'framer-motion';
 import { invalidateReportsScan, prefetchReportsScan } from './lib/reports-scan';
 import { resetRunLines } from './lib/run-line-store';

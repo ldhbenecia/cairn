@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Check, Download, Loader2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { RecentListResult, RecentPage } from '../cairn-api';
+import type { RecentListResult, RecentPage } from '../../../shared/ipc-types';
 import { pool } from '../../../shared/pool';
 import { sectionBullets } from '../../../shared/section-bullets';
 import { LANE_COLORS } from '../lib/reports';

@@ -1,4 +1,4 @@
-import type { RecentPage } from '../cairn-api';
+import type { RecentPage } from '../../../shared/ipc-types';
 
 export type WrappedStats = {
   year: string;

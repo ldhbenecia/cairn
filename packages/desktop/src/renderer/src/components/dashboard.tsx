@@ -10,7 +10,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
-import type { RecentListResult, RecentPage } from '../cairn-api';
+import type { RecentListResult, RecentPage } from '../../../shared/ipc-types';
 import type { I18nKey } from '../i18n';
 import { recallEntries, type RecallEntry, type RecallKey } from '../lib/recall';
 import { useSettings } from '../settings-context';

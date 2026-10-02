@@ -21,7 +21,7 @@ import type {
   RecentPage,
   RecentWarning,
   WorklogSink,
-} from '../cairn-api';
+} from '../../../shared/ipc-types';
 import type { I18nKey } from '../i18n';
 import { pageSinks, sinkLabel } from '../lib/sinks';
 import { useSettings } from '../settings-context';

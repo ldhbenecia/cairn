@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import type { CoreResult, RunProgress } from '../cairn-api';
+import type { CoreResult, RunProgress } from '../../../shared/ipc-types';
 import type { SinkOutcome } from '../lib/publish-sinks';
 import { NotionMark, ObsidianMark } from './brand-icons';
 import type { T } from './publish-dialog-utils';

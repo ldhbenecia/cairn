@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Check, Loader2, Lock, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RunSession } from '../App';
-import type { CoreMode, CoreRunOptions, SummaryModel } from '../cairn-api';
+import type { CoreMode, CoreRunOptions, SummaryModel } from '../../../shared/ipc-types';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';

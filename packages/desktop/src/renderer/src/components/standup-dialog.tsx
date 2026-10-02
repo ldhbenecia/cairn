@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Check, Copy, Loader2, MessageSquareText, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { RecentListResult } from '../cairn-api';
+import type { RecentListResult } from '../../../shared/ipc-types';
 import { buildStandupText, pickStandupSource } from '../lib/standup';
 import { useSettings } from '../settings-context';
 import { todayLocal } from '../lib/reports';

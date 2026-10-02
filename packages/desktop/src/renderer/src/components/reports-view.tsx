@@ -1,7 +1,7 @@
 import { AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check, Copy, FileDown, FileText, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { RecentListResult } from '../cairn-api';
+import type { RecentListResult } from '../../../shared/ipc-types';
 import {
   addDays,
   buildLanes,

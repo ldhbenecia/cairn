@@ -1,4 +1,23 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type {
+  BackupStatus,
+  Settings,
+  CoreMode,
+  CoreRunOptions,
+  RunStep,
+  BusyState,
+  RunProgress,
+  RunSnapshot,
+  SaveResult,
+  PeriodDocRange,
+  PeriodDocResult,
+  ExportStatus,
+  ConfigResult,
+  CloudAuthState,
+  RecentListResult,
+  CoreResult,
+  RunLine,
+} from '../shared/ipc-types';
 
 function subscribe<T>(channel: string): (cb: (payload: T) => void) => () => void {
   return (cb) => {
@@ -16,174 +35,11 @@ function subscribeSignal(channel: string): (cb: () => void) => () => void {
   };
 }
 
-export type Theme = 'dark' | 'light' | 'system';
-export type Language = 'ko' | 'en';
-export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
-export type AutoPublish = {
-  daily: boolean;
-  weekly: boolean;
-  monthly: boolean;
-  yearly: boolean;
-  time: string;
-  backfillDays: number;
-  confirmBeforeRun: boolean;
-};
-export type ExportConfig = { folder: string | null; autoSync: boolean };
-export type GraphLabels = 'auto' | 'always' | 'hover';
-export type GraphConfig = {
-  enabled: boolean;
-  nodeScale: number;
-  spread: number;
-  gravity: number;
-  labels: GraphLabels;
-  showRollups: boolean;
-};
-export type BackupConfig = { enabled: boolean };
-export type BackupStatus = {
-  state: 'disabled' | 'no-git' | 'no-repo' | 'idle' | 'syncing';
-  hasRemote: boolean;
-  lastBackupAt: number | null;
-  error: 'pull-failed' | 'identity-missing' | 'commit-failed' | 'push-failed' | null;
-};
-export type Settings = {
-  theme: Theme;
-  accent: string;
-  liquidGlass: boolean;
-  language: Language;
-  notifications: boolean;
-  launchAtLogin: boolean;
-  telemetry: boolean;
-  installId: string;
-  autoPublish: AutoPublish;
-  prompts: {
-    daily: string | null;
-    weekly: string | null;
-    monthly: string | null;
-    yearly: string | null;
-  };
-  summaryModel: SummaryModel;
-  export: ExportConfig;
-  graph: GraphConfig;
-  backup: BackupConfig;
-};
-
 // 첫 페인트 전 동기로 설정 수신 (무플래시) — sandbox preload 라 fs 불가해 sendSync
 const boot = ipcRenderer.sendSync('cairn:bootstrap-sync') as {
   settings: Settings;
   version: string;
   setupComplete: boolean;
-};
-
-export type CoreMode = 'daily' | 'weekly' | 'monthly' | 'yearly';
-
-export type CoreRunOptions = {
-  backfillDays?: number;
-  force?: boolean;
-  date?: string;
-  skipNotion?: boolean;
-};
-
-export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
-
-export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
-
-export type BusyState = { busy: boolean; mode: CoreMode | null };
-
-export type DateStep = 'collect' | 'summarize' | 'publish';
-export type DateCounts = { pr: number; commit: number };
-export type RunProgress = {
-  total: number;
-  done: number;
-  active: number;
-  dates: string[];
-  doneDates: string[];
-  failedDates: string[];
-  stepByDate: Record<string, DateStep>;
-  countsByDate: Record<string, DateCounts>;
-};
-
-export type RunSnapshot = {
-  busy: boolean;
-  mode: CoreMode | null;
-  step: RunStep;
-  startedAt: number;
-  progress: RunProgress | null;
-  lastResult: { mode: CoreMode; result: CoreResult; endedAt: number } | null;
-};
-
-export type SaveResult = { saved: boolean; path?: string; error?: string };
-
-export type PeriodDocRange = { since: string; until: string };
-export type PeriodDocResult =
-  | { status: 'ok'; fileName: string; content: string }
-  | { status: 'empty' }
-  | { status: 'fail'; hint: CoreResult['failureHint'] };
-export type ExportStatus = {
-  folder: string | null;
-  isVault: boolean;
-  fileCount: number;
-  lastSyncAt: number | null;
-};
-
-export type ConfigResult = { raw: string | null; parsed: unknown; path: string };
-
-export type WorklogSink = 'journal' | 'notion' | 'obsidian';
-
-export type RecentPage = {
-  pageId: string;
-  url: string;
-  title: string;
-  date: string | null;
-  status: string | null;
-  category: 'daily' | 'weekly' | 'monthly' | 'yearly';
-  pr: number | null;
-  commit: number | null;
-  hours: number[] | null;
-  workspaceLabel: string;
-  sinks?: WorklogSink[];
-};
-
-export type CloudUser = { name: string; email: string; image: string | null };
-export type CloudAuthState = { signedIn: boolean; user: CloudUser | null };
-
-export type RecentWarning =
-  | { code: 'no-workspaces' }
-  | { code: 'token-missing'; workspace: string; tokenEnv: string }
-  | { code: 'no-data-source'; workspace: string }
-  | { code: 'fetch-failed'; workspace: string; kind: 'worklog' | 'rollup'; detail: string };
-
-export type RecentListResult = { pages: RecentPage[]; warnings: RecentWarning[] };
-
-export type CoreResult = {
-  ok: boolean;
-  exitCode: number | null;
-  notionUrl: string | null;
-  publishKind: PublishKind;
-  publishPageId: string | null;
-  journalFile: string | null;
-  noActivity: boolean;
-  cancelled: boolean;
-  summaryFailed: boolean;
-  failureHint:
-    | 'auth'
-    | 'claude-auth'
-    | 'quota'
-    | 'summarize'
-    | 'network'
-    | 'notion'
-    | 'collect'
-    | null;
-  journalWriteFailed: boolean;
-  collectPartial: string[];
-  prCount: number;
-  commitCount: number;
-  stderrTail: string;
-};
-
-export type RunLine = {
-  mode: CoreMode;
-  level: 'info' | 'err' | 'meta';
-  line: string;
 };
 
 contextBridge.exposeInMainWorld('cairn', {

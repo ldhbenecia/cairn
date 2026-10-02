@@ -1,6 +1,11 @@
 import { Loader2, Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { GraphConfig, GraphLabels, RecentListResult, RecentPage } from '../cairn-api';
+import type {
+  GraphConfig,
+  GraphLabels,
+  RecentListResult,
+  RecentPage,
+} from '../../../shared/ipc-types';
 import { ACCENTS, useSettings } from '../settings-context';
 import type { I18nKey } from '../i18n';
 import { Toggle } from './toggle';

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { History, Loader2, RotateCcw, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { JournalSnapshotMeta, RecentPage } from '../cairn-api';
+import type { JournalSnapshotMeta, RecentPage } from '../../../shared/ipc-types';
 import { diffLines, type DiffLine } from '../lib/diff';
 import { useSettings } from '../settings-context';
 
