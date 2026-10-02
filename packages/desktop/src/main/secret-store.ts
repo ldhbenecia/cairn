@@ -78,6 +78,13 @@ export function secretEnv(opts?: SecretStoreOpts): Record<string, string> {
   return readPlainEnv(opts);
 }
 
+// 메인은 복호화한 토큰을 process.env 에 올림 — 토큰이 필요 없는 fork 에는 시크릿 키를 뺀 env 를 넘김
+export function envWithoutSecrets(opts?: SecretStoreOpts): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  for (const key of Object.keys(secretEnv(opts))) delete env[key];
+  return env;
+}
+
 // 기존 .env 의 주석·순서를 유지한 채 키만 교체·추가 (평문 폴백 경로)
 function writeEnvPlainMerged(patch: Record<string, string>, opts?: SecretStoreOpts): void {
   const path = envPath(opts);

@@ -29,7 +29,7 @@ import { sendResultNotification } from './notifier';
 import { syncStats } from './cloud-sync';
 import { scheduleJournalBackup } from './journal-git-backup';
 import { readSettings, type Settings } from './settings';
-import { secretEnv } from './secret-store';
+import { envWithoutSecrets, secretEnv } from './secret-store';
 import { CAIRN_ROOT } from './setup';
 import { trackPublish, type PublishTrigger } from './telemetry';
 import {
@@ -266,7 +266,7 @@ export async function probeClaude(): Promise<{ ok: boolean }> {
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
       // probe 는 Claude 상태만 확인 — GitHub·Notion 토큰 미전달 (최소 권한)
       env: {
-        ...process.env,
+        ...envWithoutSecrets(),
         CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
         ...claudeEnv(),
         ...summaryModelEnv(readSettings().summaryModel),

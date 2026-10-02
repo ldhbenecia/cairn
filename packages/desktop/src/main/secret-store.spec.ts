@@ -9,7 +9,12 @@ vi.mock('electron', () => ({ app: { isPackaged: false } }));
 vi.mock('./keychain-key', () => ({ getOrCreateSecretKey: (): null => null }));
 
 import { decryptSecretJson, encryptSecretJson, isEncryptedPayload } from './secret-crypto';
-import { migrateSecretsAtStartup, secretEnv, writeSecretEnvMerged } from './secret-store';
+import {
+  envWithoutSecrets,
+  migrateSecretsAtStartup,
+  secretEnv,
+  writeSecretEnvMerged,
+} from './secret-store';
 
 const KEY = randomBytes(32);
 
@@ -92,5 +97,25 @@ describe('secret-store — 읽기/쓰기/이관 (opts 주입)', () => {
     expect(migrateSecretsAtStartup({ root, key: badKey })).toBe('skipped');
     expect(readFileSync(join(root, '.env'), 'utf8')).toContain('GH=plain'); // .env 보존
     expect(secretEnv({ root, key: KEY })).toEqual({ KEEP: 'enc-only' }); // 기존 enc 보존
+  });
+});
+
+describe('envWithoutSecrets — 토큰이 필요 없는 fork 용 env', () => {
+  let root: string;
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'cairn-secrets-'));
+  });
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+    delete process.env.GITHUB_TOKEN_WORK;
+  });
+
+  it('메인 process.env 에 올라간 시크릿 키만 제거하고 나머지는 유지', () => {
+    const opts = { root, key: KEY };
+    writeSecretEnvMerged({ GITHUB_TOKEN_WORK: 'ghp_secret' }, opts);
+    process.env.GITHUB_TOKEN_WORK = 'ghp_secret';
+    const env = envWithoutSecrets(opts);
+    expect(env.GITHUB_TOKEN_WORK).toBeUndefined();
+    expect(env.PATH).toBe(process.env.PATH);
   });
 });

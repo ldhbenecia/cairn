@@ -15,6 +15,7 @@ import {
   periodDocFileName,
   type PeriodDocRange,
 } from './period-doc-events';
+import { envWithoutSecrets } from './secret-store';
 import { readSettings } from './settings';
 import { CAIRN_ROOT } from './setup';
 
@@ -71,7 +72,7 @@ function run(range: PeriodDocRange): Promise<PeriodDocResult> {
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
       // 일지·통계만 읽음 — GitHub·Notion 토큰은 전달 안 함
       env: {
-        ...process.env,
+        ...envWithoutSecrets(),
         NODE_ENV: app.isPackaged ? 'production' : (process.env.NODE_ENV ?? 'development'),
         CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
         ...claudeEnv(),
