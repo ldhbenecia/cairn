@@ -3,6 +3,7 @@ import type { CoreMode, CoreResult } from './core-runner';
 import { mt } from './i18n';
 import { readSettings } from './settings';
 import { showWindow } from './show-window';
+import { classifyRunOutcome } from '../shared/run-outcome';
 
 const modeLabel = (mode: CoreMode): string => mt(`mode.${mode}`);
 
@@ -34,36 +35,33 @@ export function sendResultNotification(mode: CoreMode, result: CoreResult): void
   if (!readSettings().notifications) return;
   const label = modeLabel(mode);
 
-  if (!result.ok) {
-    // 흔한 실패 원인은 사용자가 행동할 수 있는 문구로 — 분류 불가여도 raw exit code 비노출
-    const body = result.failureHint
-      ? mt(`notify.fail.${result.failureHint}`)
-      : mt('notify.fail.unknown');
-    notify(`${label} ${mt('notify.failSuffix')}`, body, mode);
-    return;
-  }
-  if (result.summaryFailed) {
-    notify(`${label} ${mt('notify.summaryFailedSuffix')}`, mt('notify.summaryFailedBody'), mode);
-    return;
-  }
-  if (result.publishKind === 'no-target') {
-    // 노션 미연동이어도 로컬 일지가 저장됐으면 성공 — '발행 대상 없음' 오보 방지
-    if (result.journalFile) {
+  switch (classifyRunOutcome(result)) {
+    case 'fail':
+      // 흔한 실패 원인은 사용자가 행동할 수 있는 문구로 — 분류 불가여도 raw exit code 비노출
+      notify(
+        `${label} ${mt('notify.failSuffix')}`,
+        result.failureHint ? mt(`notify.fail.${result.failureHint}`) : mt('notify.fail.unknown'),
+        mode,
+      );
+      return;
+    case 'summaryFailed':
+      notify(`${label} ${mt('notify.summaryFailedSuffix')}`, mt('notify.summaryFailedBody'), mode);
+      return;
+    case 'localDone':
       notify(`${label} ${mt('notify.localDoneSuffix')}`, mt('notify.localDoneBody'), mode);
-    } else {
+      return;
+    case 'noTarget':
       notify(label, mt('notify.noTarget'), mode);
-    }
-    return;
+      return;
+    case 'noActivity':
+      notify(label, mt('notify.noActivity'), mode);
+      return;
+    case 'skipped':
+      notify(label, mt('notify.skipped'), mode);
+      return;
+    case 'done':
+      notify(`${label} ${mt('notify.doneSuffix')}`, mt('notify.doneBody'), mode);
   }
-  if (result.noActivity) {
-    notify(label, mt('notify.noActivity'), mode);
-    return;
-  }
-  if (result.publishKind === 'skipped') {
-    notify(label, mt('notify.skipped'), mode);
-    return;
-  }
-  notify(`${label} ${mt('notify.doneSuffix')}`, mt('notify.doneBody'), mode);
 }
 
 export function notifyAutoStart(mode: CoreMode): void {
