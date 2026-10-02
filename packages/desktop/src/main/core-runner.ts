@@ -41,6 +41,7 @@ import {
   type RunStep,
 } from './core-runner-extract';
 import type { CoreMode, CoreRunOptions, CoreResult, RunSnapshot } from '../shared/ipc-types';
+import { CORE_MODES } from './run-request';
 export type { CoreMode, CoreRunOptions, CoreResult, RunSnapshot } from '../shared/ipc-types';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
@@ -151,11 +152,9 @@ function stepRank(step: RunStep): number {
   return STEP_ORDER.indexOf(step);
 }
 
-const PROMPT_MODES = ['daily', 'weekly', 'monthly', 'yearly'] as const;
-
 function promptEnv(prompts: Settings['prompts']): Record<string, string> {
   const env: Record<string, string> = {};
-  for (const m of PROMPT_MODES) {
+  for (const m of CORE_MODES) {
     const prompt = prompts[m];
     if (prompt?.trim()) env[`CAIRN_PROMPT_${m.toUpperCase()}`] = prompt;
   }
