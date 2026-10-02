@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { Check, Copy, Loader2, MessageSquareText, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult } from '../../../shared/ipc-types';
@@ -7,6 +6,7 @@ import { useSettings } from '../settings-context';
 import { todayLocal } from '../lib/reports';
 import { useCopied } from '../use-copied';
 import { useEscape } from '../use-escape';
+import { OverlayDialog } from './overlay-dialog';
 
 export function StandupDialog({
   recent,
@@ -67,83 +67,65 @@ export function StandupDialog({
   }
 
   return (
-    <motion.div
-      onPointerDown={onClose}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 [-webkit-app-region:no-drag]"
-    >
-      <motion.div
-        onPointerDown={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, scale: 0.97, y: -8 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.98, y: -4 }}
-        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="glass-panel w-[560px] max-w-[92vw] overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50"
-      >
-        <div className="flex items-start gap-3 border-b border-hairline px-6 py-4">
-          <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-2 text-[14px] font-semibold text-ink">
-              <MessageSquareText size={15} strokeWidth={2} className="text-ink-tertiary" />
-              {t('standup.title')}
+    <OverlayDialog onClose={onClose} className="w-[560px]">
+      <div className="flex items-start gap-3 border-b border-hairline px-6 py-4">
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-2 text-[14px] font-semibold text-ink">
+            <MessageSquareText size={15} strokeWidth={2} className="text-ink-tertiary" />
+            {t('standup.title')}
+          </p>
+          {source?.date && (
+            <p className="mt-0.5 font-mono text-[11.5px] text-ink-tertiary">
+              {t('standup.basedOn').replace('{date}', source.date)}
             </p>
-            {source?.date && (
-              <p className="mt-0.5 font-mono text-[11.5px] text-ink-tertiary">
-                {t('standup.basedOn').replace('{date}', source.date)}
-              </p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            title={t('drawer.close')}
-            className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
-          >
-            <X size={15} strokeWidth={2} />
-          </button>
-        </div>
-
-        <div className="px-6 py-4">
-          {!source ? (
-            <p className="py-10 text-center text-[13px] text-ink-tertiary">{t('standup.empty')}</p>
-          ) : failed ? (
-            <p className="py-10 text-center text-[13px] text-ink-tertiary">{t('standup.failed')}</p>
-          ) : text === null ? (
-            <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-ink-tertiary">
-              <Loader2 size={14} strokeWidth={2} className="animate-spin" />
-              {t('standup.loading')}
-            </div>
-          ) : (
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              spellCheck={false}
-              className="h-[260px] w-full resize-none rounded-md border border-hairline bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed text-ink outline-none focus:border-accent/50"
-            />
           )}
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          title={t('drawer.close')}
+          className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+        >
+          <X size={15} strokeWidth={2} />
+        </button>
+      </div>
 
-        {text !== null && (
-          <div className="flex justify-end border-t border-hairline px-6 py-3.5">
-            <button
-              type="button"
-              onClick={copy}
-              className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] transition-colors ${
-                copied
-                  ? 'border-success/40 bg-success/10 text-success'
-                  : 'border-hairline bg-surface-2 text-ink hover:bg-surface-3'
-              }`}
-            >
-              {copied ? <Check size={14} strokeWidth={2.5} /> : <Copy size={14} strokeWidth={2} />}
-              {copied ? t('standup.copied') : t('standup.copy')}
-            </button>
+      <div className="px-6 py-4">
+        {!source ? (
+          <p className="py-10 text-center text-[13px] text-ink-tertiary">{t('standup.empty')}</p>
+        ) : failed ? (
+          <p className="py-10 text-center text-[13px] text-ink-tertiary">{t('standup.failed')}</p>
+        ) : text === null ? (
+          <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-ink-tertiary">
+            <Loader2 size={14} strokeWidth={2} className="animate-spin" />
+            {t('standup.loading')}
           </div>
+        ) : (
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            spellCheck={false}
+            className="h-[260px] w-full resize-none rounded-md border border-hairline bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed text-ink outline-none focus:border-accent/50"
+          />
         )}
-      </motion.div>
-    </motion.div>
+      </div>
+
+      {text !== null && (
+        <div className="flex justify-end border-t border-hairline px-6 py-3.5">
+          <button
+            type="button"
+            onClick={copy}
+            className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] transition-colors ${
+              copied
+                ? 'border-success/40 bg-success/10 text-success'
+                : 'border-hairline bg-surface-2 text-ink hover:bg-surface-3'
+            }`}
+          >
+            {copied ? <Check size={14} strokeWidth={2.5} /> : <Copy size={14} strokeWidth={2} />}
+            {copied ? t('standup.copied') : t('standup.copy')}
+          </button>
+        </div>
+      )}
+    </OverlayDialog>
   );
 }
