@@ -1,9 +1,8 @@
 import { Check, Download, Loader2, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { RecentListResult, RecentPage } from '../../../shared/ipc-types';
-import { pool } from '../../../shared/pool';
-import { sectionBullets } from '../../../shared/section-bullets';
+import { useEffect, useMemo, useState } from 'react';
+import type { RecentListResult } from '../../../shared/ipc-types';
 import { LANE_COLORS } from '../lib/reports';
+import { assembleCached, dailyTargets, offScanProgress, startScan } from '../lib/reports-scan';
 import { availableYears, computeWrapped, topProjects, type WrappedStats } from '../lib/wrapped';
 import { useSettings } from '../settings-context';
 import { useEscape } from '../use-escape';
@@ -26,7 +25,6 @@ export function WrappedDialog({
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [scan, setScan] = useState<{ done: number; total: number } | null>(null);
   const [save, setSave] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const projectCache = useRef(new Map<string, Project[]>());
 
   const stats = useMemo(() => (year ? computeWrapped(pages, year) : null), [pages, year]);
 
@@ -34,41 +32,35 @@ export function WrappedDialog({
 
   useEffect(() => {
     if (!year) return;
-    const targets = pages.filter((p) => p.category === 'daily' && p.date?.startsWith(`${year}-`));
-    // 캐시 키에 일지 수 포함 — recent 갱신으로 그 해 일지가 늘면 재스캔
-    const cacheKey = `${year}:${targets.length}`;
-    const cached = projectCache.current.get(cacheKey);
-    if (cached) {
-      setProjects(cached);
+    const since = `${year}-01-01`;
+    const until = `${year}-12-31`;
+    const targets = dailyTargets(pages, since, until);
+    // 프로젝트 뷰와 같은 페이지 캐시 — 이미 읽은 해는 즉시, 아니면 미캐시 페이지만 읽음
+    const cached = assembleCached(targets);
+    if (cached.missing === 0) {
+      setProjects(topProjects(cached.rows.flatMap((r) => r.bullets)));
+      setScan(null);
       return;
     }
     let alive = true;
+    const onProgress = (done: number, total: number): void => {
+      if (alive) setScan({ done, total });
+    };
     setProjects(null);
     setScan({ done: 0, total: targets.length });
-    void (async () => {
-      const perPage = await pool(
-        targets,
-        6,
-        async (p: RecentPage) => {
-          try {
-            const c = await window.cairn.pageContent(p.pageId, p.workspaceLabel);
-            return sectionBullets(c.blocks, 'done');
-          } catch {
-            return [];
-          }
-        },
-        (done, total) => {
-          if (alive) setScan({ done, total });
-        },
-      );
-      if (!alive) return;
-      const top = topProjects(perPage.flat());
-      projectCache.current.set(cacheKey, top);
-      setProjects(top);
-      setScan(null);
-    })();
+    startScan(since, until, targets, onProgress)
+      .then((rows) => {
+        if (alive) setProjects(topProjects(rows.flatMap((r) => r.bullets)));
+      })
+      .catch(() => {
+        if (alive) setProjects([]);
+      })
+      .finally(() => {
+        if (alive) setScan(null);
+      });
     return () => {
       alive = false;
+      offScanProgress(since, until, onProgress);
     };
   }, [year, pages]);
 
