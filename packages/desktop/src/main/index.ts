@@ -24,9 +24,8 @@ import {
   probeClaude,
   runCore,
   runSnapshot,
-  type CoreMode,
-  type CoreRunOptions,
 } from './core-runner';
+import { parseRunRequest } from './run-request';
 import { cloudAuthState, cloudSignOut, startCloudSignIn, validateCloudSession } from './cloud-auth';
 import { syncStats } from './cloud-sync';
 import { readConfig } from './files';
@@ -231,8 +230,8 @@ void app.whenReady().then(() => {
     }
   }
 
-  ipcMain.handle('cairn:run', (_e, mode: CoreMode, options?: CoreRunOptions) =>
-    runCore(mode, options ?? {}),
+  ipcMain.handle('cairn:run', (_e, mode: unknown, options: unknown) =>
+    runCore(...parseRunRequest(mode, options)),
   );
   ipcMain.handle('cairn:run-cancel', () => cancelRun());
   ipcMain.handle('cairn:busy-state', () => busyState());
