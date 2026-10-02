@@ -6,6 +6,7 @@ import { buildStandupText, pickStandupSource } from '../lib/standup';
 import { useSettings } from '../settings-context';
 import { todayLocal } from '../lib/reports';
 import { useCopied } from '../use-copied';
+import { useEscape } from '../use-escape';
 
 export function StandupDialog({
   recent,
@@ -31,17 +32,8 @@ export function StandupDialog({
     };
   }, []);
 
-  // 자체 오버레이(Radix 아님)라 ESC 닫기를 직접 처리 — 다른 다이얼로그와 동작 통일
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== 'Escape') return;
-      // IME 조합 취소 ESC 제외
-      if (e.isComposing || e.keyCode === 229) return;
-      onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  // 자체 오버레이(Radix 아님)라 ESC 닫기를 직접 처리
+  useEscape(onClose);
 
   useEffect(() => {
     if (!source || builtFor.current === source.pageId) return;

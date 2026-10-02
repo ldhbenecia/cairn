@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { JournalSnapshotMeta, RecentPage } from '../../../shared/ipc-types';
 import { diffLines, type DiffLine } from '../lib/diff';
 import { useSettings } from '../settings-context';
+import { useEscape } from '../use-escape';
 
 export function SnapshotDialog({
   page,
@@ -22,16 +23,8 @@ export function SnapshotDialog({
   const [restoreErr, setRestoreErr] = useState(false);
   const date = page.date ?? '';
 
-  useEffect(() => {
-    // ESC 는 다이얼로그가 소비(capture + stopPropagation) — 상위 드로어까지 함께 닫히지 않게
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      onClose();
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [onClose]);
+  // ESC 는 다이얼로그가 소비(capture + 전파 차단) — 상위 드로어까지 함께 닫히지 않게
+  useEscape(onClose, { capture: true, stop: true });
 
   useEffect(() => {
     let alive = true;

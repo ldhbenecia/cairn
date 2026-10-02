@@ -7,6 +7,7 @@ import { sectionBullets } from '../../../shared/section-bullets';
 import { LANE_COLORS } from '../lib/reports';
 import { availableYears, computeWrapped, topProjects, type WrappedStats } from '../lib/wrapped';
 import { useSettings } from '../settings-context';
+import { useEscape } from '../use-escape';
 
 type Project = { name: string; count: number };
 
@@ -29,13 +30,7 @@ export function WrappedDialog({
 
   const stats = useMemo(() => (year ? computeWrapped(pages, year) : null), [pages, year]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  useEscape(onClose);
 
   useEffect(() => {
     if (!year) return;

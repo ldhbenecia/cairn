@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import {
   ArrowLeft,
   CalendarDays,
@@ -16,6 +15,7 @@ import { NotionMark, ObsidianMark } from './brand-icons';
 import { JournalBlocks } from './worklog-content';
 import { WorklogActions } from './worklog-actions';
 import { usePageContent } from '../use-page-content';
+import { useEscape } from '../use-escape';
 
 // 일지 전체 화면 상세 — 메인 영역을 통째로 차지 (중앙 본문 + 우측 meta 열)
 
@@ -23,16 +23,8 @@ export function WorklogDetailView({ page, onBack }: { page: RecentPage; onBack: 
   const { t } = useSettings();
   const { content, reload } = usePageContent(page);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== 'Escape') return;
-      // 스냅샷 등 오버레이가 떠 있으면 그쪽 ESC 가 우선 (worklog-list 와 같은 DOM 감지)
-      if (document.querySelector('[role="dialog"]')) return;
-      onBack();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onBack]);
+  // 스냅샷 등 오버레이가 떠 있으면 그쪽 ESC 가 우선
+  useEscape(onBack, { skipWhenDialogOpen: true });
 
   const sinks = pageSinks(page);
 

@@ -6,6 +6,7 @@ import { useSettings } from '../settings-context';
 import { JournalBlocks } from './worklog-content';
 import { WorklogActions } from './worklog-actions';
 import { usePageContent } from '../use-page-content';
+import { useEscape } from '../use-escape';
 
 type Props = { page: RecentPage; onClose: () => void; onExpand: () => void };
 
@@ -23,13 +24,7 @@ export function WorklogDrawer({ page, onClose, onExpand }: Props) {
     setShown(true);
   }, []);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') requestClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  useEscape(requestClose);
 
   useEffect(() => {
     localStorage.setItem('cairn:drawerWidth', String(width));

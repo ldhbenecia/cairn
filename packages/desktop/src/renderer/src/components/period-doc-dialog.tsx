@@ -14,6 +14,7 @@ import { todayLocal } from '../lib/reports';
 import { useSettings } from '../settings-context';
 import { DatePicker } from './date-picker';
 import { useCopied } from '../use-copied';
+import { useEscape } from '../use-escape';
 
 const PRESETS: PeriodPreset[] = ['1m', '3m', '6m', 'ytd', '1y'];
 const DEFAULT_PRESET: PeriodPreset = '3m';
@@ -46,15 +47,8 @@ export function PeriodDocDialog({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
-  // 자체 오버레이(Radix 아님)라 ESC 닫기를 직접 처리, IME 조합 취소 ESC 는 제외
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== 'Escape' || e.isComposing || e.keyCode === 229) return;
-      onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  // 자체 오버레이(Radix 아님)라 ESC 닫기를 직접 처리
+  useEscape(onClose);
 
   useEffect(() => {
     if (problem) return;

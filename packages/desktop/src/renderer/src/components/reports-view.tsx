@@ -29,6 +29,7 @@ import {
 import { useSettings } from '../settings-context';
 import { PeriodDocDialog } from './period-doc-dialog';
 import { useCopied } from '../use-copied';
+import { useEscape } from '../use-escape';
 
 const laneKey = (repo: string | null): string => repo ?? '__none';
 
@@ -242,16 +243,10 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [docOpen, setDocOpen] = useState(false);
 
-  useEffect(() => {
-    if (selectedRepo === null) return;
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== 'Escape') return;
-      if (document.querySelector('[role="dialog"]')) return;
-      setSelectedRepo(null);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [selectedRepo]);
+  useEscape(() => setSelectedRepo(null), {
+    enabled: selectedRepo !== null,
+    skipWhenDialogOpen: true,
+  });
 
   const laneLabel = (repo: string | null): string => repo ?? t('reports.noRepo');
   const scanning = scan !== null;

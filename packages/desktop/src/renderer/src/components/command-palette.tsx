@@ -15,6 +15,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CoreMode, RecentListResult, RecentPage } from '../../../shared/ipc-types';
 import { useSettings } from '../settings-context';
 import type { MainView } from './sidebar';
+import { useEscape } from '../use-escape';
 
 type Cmd = { id: string; label: string; hint?: string; icon: React.ReactNode; run: () => void };
 
@@ -50,20 +51,7 @@ export function CommandPalette({
   }, []);
 
   // 아래 radix Dialog(환경설정)가 같은 ESC·클릭으로 함께 닫히지 않게 window 캡처 단계에서 가로채 팔레트만 닫음
-  useEffect(() => {
-    const onKeyCapture = (e: KeyboardEvent): void => {
-      if (e.key !== 'Escape') return;
-      // IME 조합 취소 ESC 는 팔레트 닫기 아님
-      if (e.isComposing || e.keyCode === 229) return;
-      e.preventDefault();
-      e.stopPropagation();
-      onClose();
-    };
-    window.addEventListener('keydown', onKeyCapture, { capture: true });
-    return () => {
-      window.removeEventListener('keydown', onKeyCapture, { capture: true });
-    };
-  }, [onClose]);
+  useEscape(onClose, { capture: true, stop: true, prevent: true });
 
   const commands: Cmd[] = useMemo(() => {
     const plus = <Plus size={12} strokeWidth={2} />;

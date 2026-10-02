@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSettings } from '../settings-context';
 import type { I18nKey } from '../i18n';
+import { useEscape } from '../use-escape';
 
 const pad2 = (n: number): string => String(n).padStart(2, '0');
 const toIso = (y: number, m: number, d: number): string => `${y}-${pad2(m + 1)}-${pad2(d)}`;
@@ -73,19 +74,12 @@ export function DatePicker({ value, max, disabled, onChange }: Props) {
       const tgt = e.target as Node;
       if (!triggerRef.current?.contains(tgt) && !popRef.current?.contains(tgt)) close();
     };
-    // capture 단계에서 stopPropagation — Radix Dialog 의 ESC 닫기보다 먼저 팝오버만 닫음
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      close();
-    };
     document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey, true);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey, true);
-    };
+    return () => document.removeEventListener('mousedown', onDown);
   }, [open, closing]);
+
+  // capture 단계에서 전파 차단 — Radix Dialog 의 ESC 닫기보다 먼저 팝오버만 닫음
+  useEscape(close, { enabled: open && !closing, target: 'document', capture: true, stop: true });
 
   // 트리거에 붙여 배치, 아래 공간이 없으면 위로 — 예상치(POP_H) 대신 열린 뒤 실측 높이로 재배치해야
   // day·month 뷰 높이 차이·모달 안 트리거에서도 안 어긋남
