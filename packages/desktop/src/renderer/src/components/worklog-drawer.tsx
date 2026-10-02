@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, Maximize2, X } from 'lucide-react';
-import type { PageContent, RecentPage } from '../cairn-api';
+import type { RecentPage } from '../cairn-api';
 import { pageSinks, sinkLabel } from '../lib/sinks';
 import { useSettings } from '../settings-context';
 import { JournalBlocks } from './worklog-content';
 import { WorklogActions } from './worklog-actions';
+import { usePageContent } from '../use-page-content';
 
 type Props = { page: RecentPage; onClose: () => void; onExpand: () => void };
 
@@ -12,8 +13,7 @@ export function WorklogDrawer({ page, onClose, onExpand }: Props) {
   const { t } = useSettings();
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [content, setContent] = useState<PageContent | null>(null);
-  const [reloadTick, setReloadTick] = useState(0);
+  const { content, reload } = usePageContent(page);
   const [width, setWidth] = useState<number>(() => {
     const s = Number(localStorage.getItem('cairn:drawerWidth'));
     return s >= 360 && s <= 900 ? s : 460;
@@ -34,23 +34,6 @@ export function WorklogDrawer({ page, onClose, onExpand }: Props) {
   useEffect(() => {
     localStorage.setItem('cairn:drawerWidth', String(width));
   }, [width]);
-
-  useEffect(() => {
-    let alive = true;
-    setContent(null);
-    // 조회 실패 시 무한 로딩 방지 — warning 경로로 오류 문구 표시 (t 는 언어 변경 시에만 재생성)
-    void window.cairn.pageContent(page.pageId, page.workspaceLabel).then(
-      (c) => {
-        if (alive) setContent(c);
-      },
-      () => {
-        if (alive) setContent({ blocks: [], warning: t('drawer.loadError') });
-      },
-    );
-    return () => {
-      alive = false;
-    };
-  }, [page.pageId, page.workspaceLabel, reloadTick, t]);
 
   const resizeCleanup = useRef<(() => void) | null>(null);
   useEffect(() => () => resizeCleanup.current?.(), []);
@@ -131,11 +114,7 @@ export function WorklogDrawer({ page, onClose, onExpand }: Props) {
           >
             <Maximize2 size={14} strokeWidth={2} />
           </button>
-          <WorklogActions
-            page={page}
-            content={content}
-            onContentRestored={() => setReloadTick((n) => n + 1)}
-          />
+          <WorklogActions page={page} content={content} onContentRestored={reload} />
           <button
             type="button"
             onClick={requestClose}

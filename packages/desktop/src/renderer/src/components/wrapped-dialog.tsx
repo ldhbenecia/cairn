@@ -20,17 +20,14 @@ export function WrappedDialog({
   const { t } = useSettings();
   const pages = useMemo(() => recent?.pages ?? [], [recent]);
   const years = useMemo(() => availableYears(pages), [pages]);
-  const [year, setYear] = useState<string | null>(years[0] ?? null);
+  const [picked, setYear] = useState<string | null>(years[0] ?? null);
+  const year = picked && years.includes(picked) ? picked : (years[0] ?? null);
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [scan, setScan] = useState<{ done: number; total: number } | null>(null);
   const [save, setSave] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const projectCache = useRef(new Map<string, Project[]>());
 
   const stats = useMemo(() => (year ? computeWrapped(pages, year) : null), [pages, year]);
-
-  useEffect(() => {
-    if ((!year || !years.includes(year)) && years[0]) setYear(years[0]);
-  }, [years, year]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {

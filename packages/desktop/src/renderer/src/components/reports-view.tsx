@@ -28,6 +28,7 @@ import {
 } from '../lib/reports-scan';
 import { useSettings } from '../settings-context';
 import { PeriodDocDialog } from './period-doc-dialog';
+import { useCopied } from '../use-copied';
 
 const laneKey = (repo: string | null): string => repo ?? '__none';
 
@@ -216,17 +217,14 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
     }
   };
 
-  const [copied, setCopied] = useState(false);
+  const [copied, copyText] = useCopied();
   const [saved, setSaved] = useState(false);
   const filename = `worklog-last-${REPORTS_RANGE_DAYS}d.md`;
 
   function copyMd() {
     void allRows().then((rows) => {
       if (!rows) return;
-      void navigator.clipboard.writeText(buildMarkdown(rows)).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      });
+      copyText(buildMarkdown(rows));
     });
   }
 

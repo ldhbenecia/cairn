@@ -11,6 +11,7 @@ import { Segmented } from './preferences/field';
 import { Progress } from './publish-dialog-progress';
 import { deriveSinkOutcomes } from '../lib/publish-sinks';
 import { CancelledCard, ErrorCard, Result } from './publish-dialog-result';
+import { todayLocal } from '../lib/reports';
 
 type Props = {
   sessions: Record<CoreMode, RunSession | null>;
@@ -52,12 +53,6 @@ const BACKFILL_OPTIONS = [0, 1, 3, 5, 7, 14, 30];
 const FREE_BACKFILL_MAX = 7;
 const ANON_BACKFILL_MAX = 1;
 
-const pad2 = (n: number): string => String(n).padStart(2, '0');
-const todayIso = (): string => {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-};
-
 const MODEL_NAME: Record<SummaryModel, string> = {
   default: '',
   sonnet: 'Sonnet',
@@ -77,7 +72,7 @@ export function PublishDialog({
   const { signedIn } = useCloudAuth();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<CoreMode>('daily');
-  const [date, setDate] = useState<string>(todayIso);
+  const [date, setDate] = useState<string>(todayLocal);
   const dateTouched = useRef(false);
   const [backfillDays, setBackfillDays] = useState(0);
   const [force, setForce] = useState(false);
@@ -86,7 +81,7 @@ export function PublishDialog({
   const [showProgress, setShowProgress] = useState(false);
   // 최근 실패 결과는 오픈 시 1회만 자동 회수 — 재오픈마다 다시 띄우지 않게
   const recalledEndedAt = useRef(0);
-  const isToday = date === todayIso();
+  const isToday = date === todayLocal();
 
   // 미로그인은 일간만 — 로그아웃으로 잠긴 모드가 남지 않게 일간으로 되돌림
   useEffect(() => {
@@ -183,7 +178,8 @@ export function PublishDialog({
             }
           }
           // 자정을 넘겨 열면 mount 시점의 어제 날짜가 남음 — 사용자가 직접 고른 날짜는 유지
-          if (!dateTouched.current) setDate((prev) => (prev === todayIso() ? prev : todayIso()));
+          if (!dateTouched.current)
+            setDate((prev) => (prev === todayLocal() ? prev : todayLocal()));
           if (!busy) setSkipNotion(false);
         }
       }}
@@ -301,7 +297,7 @@ export function PublishDialog({
                   </div>
                   <DatePicker
                     value={date}
-                    max={todayIso()}
+                    max={todayLocal()}
                     disabled={busy}
                     onChange={(iso) => {
                       dateTouched.current = true;

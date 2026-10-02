@@ -1,4 +1,4 @@
-import { addDays, todayLocal } from './reports';
+import { addDays, dayIndex, todayLocal } from './reports';
 
 export type PeriodPreset = '1m' | '3m' | '6m' | 'ytd' | '1y';
 export type PeriodRange = { since: string; until: string };
@@ -22,8 +22,7 @@ export type RangeProblem = 'reversed' | 'too-long' | null;
 
 export function rangeProblem({ since, until }: PeriodRange): RangeProblem {
   if (since > until) return 'reversed';
-  const span = (Date.parse(`${until}T00:00:00Z`) - Date.parse(`${since}T00:00:00Z`)) / 86_400_000;
-  return span >= PERIOD_MAX_DAYS ? 'too-long' : null;
+  return dayIndex(since, until) >= PERIOD_MAX_DAYS ? 'too-long' : null;
 }
 
 export type DocBlock = { kind: 'heading' | 'paragraph' | 'item'; text: string };

@@ -4,14 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import { buildStandupText, pickStandupSource } from '../lib/standup';
 import { useSettings } from '../settings-context';
-
-function todayLocal(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${dd}`;
-}
+import { todayLocal } from '../lib/reports';
+import { useCopied } from '../use-copied';
 
 export function StandupDialog({
   recent,
@@ -22,7 +16,7 @@ export function StandupDialog({
 }) {
   const { t } = useSettings();
   const [text, setText] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, copyText] = useCopied();
   const [failed, setFailed] = useState(false);
   // 페이지당 1회 생성 — recent 갱신 시 편집 덮임 방지
   const builtFor = useRef<string | null>(null);
@@ -77,10 +71,7 @@ export function StandupDialog({
 
   function copy() {
     if (!text) return;
-    void navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    copyText(text);
   }
 
   return (

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { writeFileAtomic } from './atomic-write';
+import { mergeSettings } from '../shared/merge-settings';
 
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
@@ -136,15 +137,7 @@ export function readSettings(): Settings {
 
 export function writeSettings(patch: Partial<Settings>): Settings {
   const prev = readSettings();
-  const next: Settings = {
-    ...prev,
-    ...patch,
-    autoPublish: { ...prev.autoPublish, ...(patch.autoPublish ?? {}) },
-    prompts: { ...prev.prompts, ...(patch.prompts ?? {}) },
-    export: { ...prev.export, ...(patch.export ?? {}) },
-    graph: { ...prev.graph, ...(patch.graph ?? {}) },
-    backup: { ...prev.backup, ...(patch.backup ?? {}) },
-  };
+  const next = mergeSettings(prev, patch);
   writeFileAtomic(SETTINGS_PATH, `${JSON.stringify(next, null, 2)}\n`);
   return next;
 }

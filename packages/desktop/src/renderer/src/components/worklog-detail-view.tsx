@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import {
   ArrowLeft,
   CalendarDays,
@@ -9,36 +9,19 @@ import {
   Loader2,
   type LucideIcon,
 } from 'lucide-react';
-import type { PageContent, RecentPage } from '../cairn-api';
+import type { RecentPage } from '../cairn-api';
 import { pageSinks, sinkLabel } from '../lib/sinks';
 import { useSettings } from '../settings-context';
 import { NotionMark, ObsidianMark } from './brand-icons';
 import { JournalBlocks } from './worklog-content';
 import { WorklogActions } from './worklog-actions';
+import { usePageContent } from '../use-page-content';
 
 // 일지 전체 화면 상세 — 메인 영역을 통째로 차지 (중앙 본문 + 우측 meta 열)
 
 export function WorklogDetailView({ page, onBack }: { page: RecentPage; onBack: () => void }) {
   const { t } = useSettings();
-  const [content, setContent] = useState<PageContent | null>(null);
-  const [reloadTick, setReloadTick] = useState(0);
-
-  useEffect(() => {
-    let alive = true;
-    setContent(null);
-    // 조회 실패 시 무한 로딩 방지 — warning 경로로 오류 문구 표시 (t 는 언어 변경 시에만 재생성)
-    void window.cairn.pageContent(page.pageId, page.workspaceLabel).then(
-      (c) => {
-        if (alive) setContent(c);
-      },
-      () => {
-        if (alive) setContent({ blocks: [], warning: t('drawer.loadError') });
-      },
-    );
-    return () => {
-      alive = false;
-    };
-  }, [page.pageId, page.workspaceLabel, reloadTick, t]);
+  const { content, reload } = usePageContent(page);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -71,11 +54,7 @@ export function WorklogDetailView({ page, onBack }: { page: RecentPage; onBack: 
             {page.date ?? '—'}
           </span>
           <div className="ml-auto [-webkit-app-region:no-drag]">
-            <WorklogActions
-              page={page}
-              content={content}
-              onContentRestored={() => setReloadTick((n) => n + 1)}
-            />
+            <WorklogActions page={page} content={content} onContentRestored={reload} />
           </div>
         </div>
       </header>

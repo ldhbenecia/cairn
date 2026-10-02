@@ -4,6 +4,7 @@ import type { GraphConfig, GraphLabels, RecentListResult, RecentPage } from '../
 import { ACCENTS, useSettings } from '../settings-context';
 import type { I18nKey } from '../i18n';
 import { Toggle } from './toggle';
+import { addDays } from '../lib/reports';
 
 type Kind = 'daily' | 'weekly' | 'monthly';
 
@@ -82,10 +83,8 @@ function buildPalette(accentId: string): Palette {
 function isoWeekEnd(date: string): string {
   const [y, m, d] = date.split('-').map(Number);
   if (!y || !m || d === undefined) return date;
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  const dow = dt.getUTCDay();
-  const sunday = new Date(Date.UTC(y, m - 1, d + (dow === 0 ? 0 : 7 - dow)));
-  return `${sunday.getUTCFullYear()}-${String(sunday.getUTCMonth() + 1).padStart(2, '0')}-${String(sunday.getUTCDate()).padStart(2, '0')}`;
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return addDays(date, (7 - dow) % 7);
 }
 
 function buildGraph(pages: RecentPage[], showRollups: boolean): Graph {

@@ -16,6 +16,7 @@ import { blocksToHtml } from '../../../shared/html';
 import { useSettings } from '../settings-context';
 import { CrossfadeIcon } from './crossfade-icon';
 import { SnapshotDialog } from './snapshot-dialog';
+import { useCopied } from '../use-copied';
 
 // 드로어·전체 화면 상세가 공유하는 내보내기·공유 메뉴 (스냅샷 다이얼로그 포함)
 
@@ -34,8 +35,8 @@ export function WorklogActions({
   onContentRestored: () => void;
 }) {
   const { t } = useSettings();
-  const [copied, setCopied] = useState(false);
-  const [mdCopied, setMdCopied] = useState(false);
+  const [copied, copyShareText] = useCopied();
+  const [mdCopied, copyMdText] = useCopied();
   const [snapOpen, setSnapOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuClosing, setMenuClosing] = useState(false);
@@ -82,18 +83,12 @@ export function WorklogActions({
 
   function copyShare() {
     if (!shareText) return;
-    void navigator.clipboard.writeText(shareText).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    copyShareText(shareText);
   }
 
   function copyMarkdown() {
     if (!markdown) return;
-    void navigator.clipboard.writeText(markdown).then(() => {
-      setMdCopied(true);
-      setTimeout(() => setMdCopied(false), 1500);
-    });
+    copyMdText(markdown);
   }
 
   function saveMarkdown() {

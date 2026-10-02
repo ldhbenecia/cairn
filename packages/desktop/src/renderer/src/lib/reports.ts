@@ -128,11 +128,15 @@ export function localDateDaysAgo(days: number): string {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - days);
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  return localIsoDate(d);
 }
 
 export function todayLocal(): string {
-  const d = new Date();
+  return localIsoDate(new Date());
+}
+
+// Date 의 로컬 날짜(YYYY-MM-DD) — 로컬 getter 기준, KST·UTC 단정 금지
+export function localIsoDate(d: Date): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 

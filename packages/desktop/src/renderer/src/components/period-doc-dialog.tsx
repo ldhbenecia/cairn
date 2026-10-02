@@ -13,6 +13,7 @@ import {
 import { todayLocal } from '../lib/reports';
 import { useSettings } from '../settings-context';
 import { DatePicker } from './date-picker';
+import { useCopied } from '../use-copied';
 
 const PRESETS: PeriodPreset[] = ['1m', '3m', '6m', 'ytd', '1y'];
 const DEFAULT_PRESET: PeriodPreset = '3m';
@@ -31,7 +32,7 @@ export function PeriodDocDialog({ onClose }: { onClose: () => void }) {
   const [preset, setPreset] = useState<PeriodPreset | null>(DEFAULT_PRESET);
   const [range, setRange] = useState<PeriodRange>(() => presetRange(DEFAULT_PRESET));
   const [view, setView] = useState<View>({ kind: 'loading' });
-  const [copied, setCopied] = useState(false);
+  const [copied, copyText] = useCopied();
   const mounted = useRef(true);
 
   const problem = rangeProblem(range);
@@ -97,10 +98,7 @@ export function PeriodDocDialog({ onClose }: { onClose: () => void }) {
 
   function copy() {
     if (!doc) return;
-    void navigator.clipboard.writeText(doc.body).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    copyText(doc.body);
   }
 
   return (

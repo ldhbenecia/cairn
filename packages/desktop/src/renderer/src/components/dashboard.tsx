@@ -14,6 +14,8 @@ import type { RecentListResult, RecentPage } from '../cairn-api';
 import type { I18nKey } from '../i18n';
 import { recallEntries, type RecallEntry, type RecallKey } from '../lib/recall';
 import { useSettings } from '../settings-context';
+import { localIsoDate } from '../lib/reports';
+import { longestStreak } from '../lib/wrapped';
 
 type T = (key: I18nKey) => string;
 
@@ -28,13 +30,6 @@ type Agg = {
   total: { pr: number; commit: number; activeDays: number };
   streak: { current: number; longest: number };
 };
-
-function isoDay(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${dd}`;
-}
 
 function aggregate(pages: RecentPage[]): Agg {
   const byDate = new Map<string, DayActivity>();
@@ -89,24 +84,13 @@ function computeStreak(byDate: Map<string, DayActivity>): { current: number; lon
   const active = new Set([...byDate.values()].filter((d) => d.total > 0).map((d) => d.date));
   if (active.size === 0) return { current: 0, longest: 0 };
 
-  let longest = 0;
-  let run = 0;
-  const sorted = [...active].sort();
-  let prev: Date | null = null;
-  for (const ds of sorted) {
-    const d = new Date(`${ds}T00:00:00`);
-    // DST 전환일은 로컬 자정 간격이 23·25h 라 Math.round 해야 1 이 됨
-    if (prev && Math.round((d.getTime() - prev.getTime()) / 86400000) === 1) run += 1;
-    else run = 1;
-    longest = Math.max(longest, run);
-    prev = d;
-  }
+  const longest = longestStreak([...active]);
 
   let current = 0;
   const cursor = new Date();
   cursor.setHours(0, 0, 0, 0);
-  if (!active.has(isoDay(cursor))) cursor.setDate(cursor.getDate() - 1);
-  while (active.has(isoDay(cursor))) {
+  if (!active.has(localIsoDate(cursor))) cursor.setDate(cursor.getDate() - 1);
+  while (active.has(localIsoDate(cursor))) {
     current += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
@@ -133,7 +117,7 @@ function cumulativeSeries(byDate: Map<string, DayActivity>): CumPoint[] | null {
   let start = new Date(today);
   start.setDate(start.getDate() - 119);
   if (first > start) start = first;
-  const startKey = isoDay(start);
+  const startKey = localIsoDate(start);
 
   let cum = 0;
   for (const d of byDate.values()) if (d.date < startKey) cum += d.total;
@@ -141,8 +125,8 @@ function cumulativeSeries(byDate: Map<string, DayActivity>): CumPoint[] | null {
   const series: CumPoint[] = [];
   const cur = new Date(start);
   while (cur <= today) {
-    cum += byDate.get(isoDay(cur))?.total ?? 0;
-    series.push({ date: isoDay(cur), value: cum });
+    cum += byDate.get(localIsoDate(cur))?.total ?? 0;
+    series.push({ date: localIsoDate(cur), value: cum });
     cur.setDate(cur.getDate() + 1);
   }
   return series;
@@ -169,8 +153,8 @@ function computeInsights(data: Agg): Insights {
 
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  const curKey = isoDay(now).slice(0, 7);
-  const prevKey = isoDay(new Date(now.getFullYear(), now.getMonth() - 1, 1)).slice(0, 7);
+  const curKey = localIsoDate(now).slice(0, 7);
+  const prevKey = localIsoDate(new Date(now.getFullYear(), now.getMonth() - 1, 1)).slice(0, 7);
   const monthTotal = (key: string): number => {
     const m = data.months.find((b) => b.month === key);
     return m ? m.pr + m.commit : 0;
@@ -187,7 +171,7 @@ function computeInsights(data: Agg): Insights {
     for (let i = 0; i < days; i++) {
       const d = new Date(from);
       d.setDate(d.getDate() + i);
-      sum += data.byDate.get(isoDay(d))?.total ?? 0;
+      sum += data.byDate.get(localIsoDate(d))?.total ?? 0;
     }
     return sum;
   };
@@ -654,7 +638,7 @@ function Heatmap({
     for (let w = 0; w < HEATMAP_WEEKS; w++) {
       const col: { date: string; total: number; future: boolean }[] = [];
       for (let dow = 0; dow < 7; dow++) {
-        const ds = isoDay(cur);
+        const ds = localIsoDate(cur);
         col.push({ date: ds, total: byDate.get(ds)?.total ?? 0, future: cur > today });
         cur.setDate(cur.getDate() + 1);
       }

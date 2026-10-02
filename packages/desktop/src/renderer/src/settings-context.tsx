@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Settings, Theme } from './cairn-api';
 import { translate, type I18nKey } from './i18n';
+import { mergeSettings } from '../../shared/merge-settings';
 
 // per-element 트랜지션의 잔상을 피하려고 View Transitions API 로 화면 전체를 한 번에 크로스페이드
 type ViewTransitionDoc = Document & { startViewTransition?: (cb: () => void) => unknown };
@@ -102,15 +103,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     let prevSnapshot: Settings | null = null;
     setSettings((prev) => {
       prevSnapshot = prev;
-      return {
-        ...prev,
-        ...patch,
-        autoPublish: { ...prev.autoPublish, ...(patch.autoPublish ?? {}) },
-        prompts: { ...prev.prompts, ...(patch.prompts ?? {}) },
-        export: { ...prev.export, ...(patch.export ?? {}) },
-        graph: { ...prev.graph, ...(patch.graph ?? {}) },
-        backup: { ...prev.backup, ...(patch.backup ?? {}) },
-      };
+      return mergeSettings(prev, patch);
     });
     // 낙관 반영 후 디스크 결과로 정합 — 쓰기 실패가 다음 실행에서야 무통보 롤백되지 않게
     window.cairn
