@@ -82,11 +82,10 @@ export class LocalGitCollectorService {
   ): Promise<LocalGitRepoActivity> {
     const repo = basename(repoPath);
 
-    if (!(await this.client.checkIsRepo(repoPath))) {
+    const { isRepo, email } = await this.repoCheck(repoPath);
+    if (!isRepo) {
       return { repo, commitCount: 0, commits: [], error: CairnError.gitRepoNotFound() };
     }
-
-    const email = await this.client.getUserEmail(repoPath);
     if (!email) {
       return { repo, commitCount: 0, commits: [], error: CairnError.gitEmailMissing() };
     }
@@ -104,6 +103,21 @@ export class LocalGitCollectorService {
     const commits = await withConcurrency(safe, 8, (c) => this.enrich(repoPath, c));
 
     return { repo, commitCount: commits.length, commits };
+  }
+
+  // 백필은 날짜마다 같은 레포를 다시 확인함 — 한 실행(프로세스) 동안 레포별 결과 재사용
+  private readonly repoChecks = new Map<string, Promise<{ isRepo: boolean; email: string }>>();
+
+  private repoCheck(repoPath: string): Promise<{ isRepo: boolean; email: string }> {
+    let check = this.repoChecks.get(repoPath);
+    if (!check) {
+      check = (async () => {
+        const isRepo = await this.client.checkIsRepo(repoPath);
+        return { isRepo, email: isRepo ? await this.client.getUserEmail(repoPath) : '' };
+      })();
+      this.repoChecks.set(repoPath, check);
+    }
+    return check;
   }
 
   private async enrich(repoPath: string, raw: RawLocalCommit): Promise<LocalGitCommitSummary> {
