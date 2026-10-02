@@ -2,6 +2,7 @@ import { BrowserWindow, Menu, nativeImage, Tray, type MenuItemConstructorOptions
 import { runCore, type CoreMode } from './core-runner';
 import { mt } from './i18n';
 import { TRAY_ICON_1X, TRAY_ICON_2X } from './tray-icon';
+import { showWindow } from './show-window';
 
 function buildTrayIcon(): Electron.NativeImage {
   const img = nativeImage.createFromDataURL(TRAY_ICON_1X);
@@ -74,10 +75,4 @@ function buildMenu(window: BrowserWindow, onQuit: () => void): Menu {
   ];
 
   return Menu.buildFromTemplate(items);
-}
-
-function showWindow(window: BrowserWindow): void {
-  if (window.isMinimized()) window.restore();
-  window.show();
-  window.focus();
 }

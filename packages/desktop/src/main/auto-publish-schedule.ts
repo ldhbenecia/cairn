@@ -26,13 +26,12 @@ export function lastCompletedWeekAnchor(now: Date): string {
   const d = new Date(now);
   const sinceMonday = (d.getDay() + 6) % 7; // Mon→0 … Sun→6
   d.setDate(d.getDate() - sinceMonday - 1);
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  return localTodayIso(d);
 }
 
 // 지난달 마지막 날 — monthly anchor, 한 달 내내 같은 값
 export function lastCompletedMonthAnchor(now: Date): string {
-  const d = new Date(now.getFullYear(), now.getMonth(), 0);
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  return localTodayIso(new Date(now.getFullYear(), now.getMonth(), 0));
 }
 
 // 작년 12/31 — yearly anchor, 한 해 내내 같은 값
@@ -48,9 +47,6 @@ export function localTodayIso(now: Date): string {
 // 초과분은 오래된 것부터 상한만큼 발행하고 나머지는 다음 실행에서 이어받음
 const MAX_CATCHUP = 12;
 
-const iso = (d: Date): string =>
-  `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-
 // last 이후 ~ 현재 완료 주까지 모든 주-끝(일요일) anchor 를 오래된 순으로
 // last 가 없으면(최초) 현재 것만 — 과거 전체를 백필하지 않음
 export function weekAnchorsToPublish(last: string | undefined, now: Date): string[] {
@@ -62,7 +58,7 @@ export function weekAnchorsToPublish(last: string | undefined, now: Date): strin
   const cursor = new Date(y, m - 1, d);
   while (out.length < MAX_CATCHUP) {
     cursor.setDate(cursor.getDate() + 7); // last 는 일요일 — 다음 일요일들
-    const a = iso(cursor);
+    const a = localTodayIso(cursor);
     if (a > current) break;
     out.push(a);
   }
@@ -99,7 +95,7 @@ export function monthAnchorsToPublish(last: string | undefined, now: Date): stri
       m0 = 0;
       yy += 1;
     }
-    const a = iso(new Date(yy, m0 + 1, 0)); // 그 달의 마지막 날
+    const a = localTodayIso(new Date(yy, m0 + 1, 0)); // 그 달의 마지막 날
     if (a > current) break;
     out.push(a);
   }

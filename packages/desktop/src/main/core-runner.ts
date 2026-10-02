@@ -22,7 +22,9 @@ import {
 } from './core-runner-backfill';
 import { broadcast } from './broadcast';
 import { errorMessage } from './error-message';
-import { claudeEnv } from './claude-path';
+import { claudeEnv, claudePathReady } from './claude-path';
+import { localTodayIso } from './auto-publish-schedule';
+import { pool } from '../shared/pool';
 import { syncWorklogToFolder } from './export';
 import { buildExportTargets, type ExportTarget } from './export-targets';
 import { sendResultNotification } from './notifier';
@@ -53,11 +55,7 @@ export type CoreRunOptions = {
   skipNotion?: boolean; // 노션만 제외 — journal·통계 유지
 };
 
-export type { PublishKind } from './core-runner-extract';
-
-export type { FailureHint } from './core-runner-extract';
-
-export type { RunStep } from './core-runner-extract';
+export type { FailureHint, PublishKind, RunStep } from './core-runner-extract';
 
 export type CoreResult = {
   ok: boolean;
@@ -124,9 +122,7 @@ function pruneOldRunLogs(): void {
 }
 
 function runLogPath(): string {
-  const now = new Date();
-  const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  return join(LOGS_DIR, `desktop-run.${day}.log`);
+  return join(LOGS_DIR, `desktop-run.${localTodayIso(new Date())}.log`);
 }
 
 function openRunLog(): void {
@@ -183,17 +179,30 @@ function stepRank(step: RunStep): number {
   return STEP_ORDER.indexOf(step);
 }
 
+const PROMPT_MODES = ['daily', 'weekly', 'monthly', 'yearly'] as const;
+
 function promptEnv(prompts: Settings['prompts']): Record<string, string> {
   const env: Record<string, string> = {};
-  if (prompts.daily?.trim()) env.CAIRN_PROMPT_DAILY = prompts.daily;
-  if (prompts.weekly?.trim()) env.CAIRN_PROMPT_WEEKLY = prompts.weekly;
-  if (prompts.monthly?.trim()) env.CAIRN_PROMPT_MONTHLY = prompts.monthly;
-  if (prompts.yearly?.trim()) env.CAIRN_PROMPT_YEARLY = prompts.yearly;
+  for (const m of PROMPT_MODES) {
+    const prompt = prompts[m];
+    if (prompt?.trim()) env[`CAIRN_PROMPT_${m.toUpperCase()}`] = prompt;
+  }
   return env;
 }
 
-export function summaryModelEnv(model: Settings['summaryModel']): Record<string, string> {
-  return model !== 'default' ? { CAIRN_SUMMARY_MODEL: model } : {};
+// 자식 core env 조립 — 토큰은 발행 run(secrets)에만, 메인 process.env 에 올라간 시크릿 키는 그 외 fork 에서 제거
+export function coreChildEnv(
+  settings: Settings,
+  opts: { secrets: boolean; prompts?: boolean },
+): NodeJS.ProcessEnv {
+  return {
+    ...(opts.secrets ? { ...process.env, ...secretEnv() } : envWithoutSecrets()),
+    NODE_ENV: app.isPackaged ? 'production' : (process.env.NODE_ENV ?? 'development'),
+    CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
+    ...claudeEnv(),
+    ...(opts.prompts ? promptEnv(settings.prompts) : {}),
+    ...(settings.summaryModel !== 'default' ? { CAIRN_SUMMARY_MODEL: settings.summaryModel } : {}),
+  };
 }
 
 let running: ChildProcess | null = null;
@@ -227,7 +236,7 @@ export function isRunning(): boolean {
 }
 
 function broadcastBusy(): void {
-  broadcast('cairn:busy', { busy: running !== null, mode: runningMode });
+  broadcast('cairn:busy', busyState());
 }
 
 export function busyState(): { busy: boolean; mode: CoreMode | null } {
@@ -260,17 +269,13 @@ function broadcastRunDone(mode: CoreMode, result: CoreResult): void {
 }
 
 export async function probeClaude(): Promise<{ ok: boolean }> {
+  await claudePathReady();
   return new Promise((resolvePromise) => {
     const child = fork(CORE_ENTRY, ['--probe-claude'], {
       cwd: CAIRN_ROOT,
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
       // probe 는 Claude 상태만 확인 — GitHub·Notion 토큰 미전달 (최소 권한)
-      env: {
-        ...envWithoutSecrets(),
-        CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
-        ...claudeEnv(),
-        ...summaryModelEnv(readSettings().summaryModel),
-      },
+      env: coreChildEnv(readSettings(), { secrets: false }),
     });
     let out = '';
     child.stdout?.on('data', (b: Buffer) => (out += b.toString('utf8')));
@@ -296,6 +301,8 @@ export async function runCore(
   options: CoreRunOptions = {},
   trigger: PublishTrigger = 'manual',
 ): Promise<CoreResult> {
+  // busy 확인 전에 await — 이후 fork·running 대입까지 동기라 동시 호출이 둘 다 통과하지 않음
+  await claudePathReady();
   // 코드화된 에러 — 렌더러가 i18n 으로 매핑 (영어 사용자에게 한국어 노출 방지)
   if (running) throw new Error(`busy:${runningMode ?? mode}`);
 
@@ -333,16 +340,8 @@ export async function runCore(
   const child = fork(CORE_ENTRY, args, {
     cwd: CAIRN_ROOT,
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-    env: {
-      ...process.env,
-      // 암호화 스토어의 토큰을 자식 env 로 — .env 이관·삭제 뒤에도 core 동작
-      ...secretEnv(),
-      NODE_ENV: app.isPackaged ? 'production' : (process.env.NODE_ENV ?? 'development'),
-      CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
-      ...claudeEnv(),
-      ...promptEnv(settings.prompts),
-      ...summaryModelEnv(settings.summaryModel),
-    },
+    // 암호화 스토어의 토큰을 자식 env 로 — .env 이관·삭제 뒤에도 core 동작
+    env: coreChildEnv(settings, { secrets: true, prompts: true }),
   });
   running = child;
   runningMode = mode;
@@ -462,13 +461,8 @@ export async function runCore(
         // 발행 직후 stats 를 클라우드로 — 6시간 주기만으로는 다른 기기 칩 반영이 늦음
         if (!cancelled && result.ok) void syncStats();
         if (!cancelled && result.ok && !finalNoActivity) {
-          const pad = (n: number): string => String(n).padStart(2, '0');
-          const d = new Date();
           // 백필 catch-up 으로 오늘이 아닌 날이 발행됐을 수 있어 실제 발행 날짜 우선
-          const fallbackDate =
-            options.date ??
-            lastPublishedDate ??
-            `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          const fallbackDate = options.date ?? lastPublishedDate ?? localTodayIso(new Date());
           const targets = buildExportTargets({
             mode,
             fallbackDate,
@@ -534,23 +528,17 @@ async function runExportSync(
   targets: ExportTarget[],
   emit: (level: 'err', line: string) => void,
 ): Promise<void> {
-  const POOL = 4;
-  let i = 0;
-  const worker = async (): Promise<void> => {
-    while (i < targets.length) {
-      const t = targets[i++]!;
-      try {
-        await syncWorklogToFolder({
-          category: t.category,
-          date: t.date,
-          fileBase: t.fileBase,
-          title: t.fileBase,
-          pageId: t.pageId,
-        });
-      } catch (err) {
-        emit('err', `[export] sync 실패: ${errorMessage(err)}`);
-      }
+  await pool(targets, 4, async (t) => {
+    try {
+      await syncWorklogToFolder({
+        category: t.category,
+        date: t.date,
+        fileBase: t.fileBase,
+        title: t.fileBase,
+        pageId: t.pageId,
+      });
+    } catch (err) {
+      emit('err', `[export] sync 실패: ${errorMessage(err)}`);
     }
-  };
-  await Promise.all(Array.from({ length: Math.min(POOL, targets.length) }, () => worker()));
+  });
 }

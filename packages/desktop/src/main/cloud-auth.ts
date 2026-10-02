@@ -8,6 +8,7 @@ import { decryptFromStore, encryptForStore } from './secret-store';
 import { createServer, type Server } from 'node:http';
 import { dirname, join } from 'node:path';
 import { CAIRN_ROOT } from './setup';
+import { errorMessage } from './error-message';
 
 export const WEB_BASE = process.env.CAIRN_WEB_URL ?? 'https://cairnlog.cloud';
 const AUTH_PATH = join(CAIRN_ROOT, 'auth.json');
@@ -172,7 +173,7 @@ export function startCloudSignIn(): void {
       .openExternal(`${WEB_BASE}/desktop-login?port=${port}&state=${expectedState}`)
       .catch((err: unknown) => {
         if (server === current) stopServer();
-        signInFailed(`openExternal: ${err instanceof Error ? err.message : String(err)}`);
+        signInFailed(`openExternal: ${errorMessage(err)}`);
       });
   });
   // 브라우저 로그인을 포기해도 포트가 무기한 점유되지 않도록 5분 후 정리
@@ -223,7 +224,7 @@ async function completeSignIn(ott: string): Promise<void> {
     win?.show();
     win?.focus();
   } catch (err) {
-    signInFailed(err instanceof Error ? err.message : String(err));
+    signInFailed(errorMessage(err));
   }
 }
 

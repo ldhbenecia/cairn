@@ -1,11 +1,11 @@
-import { app, shell } from 'electron';
+import { shell } from 'electron';
 import { fork } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
-import { claudeEnv } from './claude-path';
-import { appendSideLog, CORE_ENTRY, summaryModelEnv } from './core-runner';
+import { claudePathReady } from './claude-path';
+import { appendSideLog, CORE_ENTRY, coreChildEnv } from './core-runner';
 import { createExtractor, type FailureHint } from './core-runner-extract';
 import { journalFolder } from './journal-reader';
 import {
@@ -15,7 +15,6 @@ import {
   periodDocFileName,
   type PeriodDocRange,
 } from './period-doc-events';
-import { envWithoutSecrets } from './secret-store';
 import { readSettings } from './settings';
 import { CAIRN_ROOT } from './setup';
 
@@ -50,9 +49,11 @@ export async function revealPeriodDoc(range: unknown): Promise<void> {
 
 export function generatePeriodDoc(range: unknown): Promise<PeriodDocResult> {
   if (!isValidRange(range)) return Promise.resolve({ status: 'fail', hint: null });
-  inflight ??= run(range).finally(() => {
-    inflight = null;
-  });
+  inflight ??= claudePathReady()
+    .then(() => run(range))
+    .finally(() => {
+      inflight = null;
+    });
   return inflight;
 }
 
@@ -71,13 +72,7 @@ function run(range: PeriodDocRange): Promise<PeriodDocResult> {
       cwd: CAIRN_ROOT,
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
       // 일지·통계만 읽음 — GitHub·Notion 토큰은 전달 안 함
-      env: {
-        ...envWithoutSecrets(),
-        NODE_ENV: app.isPackaged ? 'production' : (process.env.NODE_ENV ?? 'development'),
-        CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
-        ...claudeEnv(),
-        ...summaryModelEnv(settings.summaryModel),
-      },
+      env: coreChildEnv(settings, { secrets: false }),
     });
 
     const ext = createExtractor();

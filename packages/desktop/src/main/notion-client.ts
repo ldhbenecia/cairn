@@ -1,8 +1,6 @@
 import { Client } from '@notionhq/client';
-import { readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
 import { errorMessage } from './error-message';
+import { readStatsFile } from './cloud-sync';
 import { readConfig } from './files';
 import { secretEnv } from './secret-store';
 
@@ -104,17 +102,6 @@ function readDate(props: Record<string, unknown>, key: string): string | null {
   return p?.date?.start ?? null;
 }
 
-// 통계 진실 소스는 노션이 아닌 로컬 파일(core 가 발행 시 기록), key 는 `${category}:${date}`
-type WorklogStat = { pr: number; commit: number; hours?: number[] };
-const STATS_PATH = join(homedir(), '.cairn', 'worklog-stats.json');
-function readWorklogStats(): Record<string, WorklogStat> {
-  try {
-    return JSON.parse(readFileSync(STATS_PATH, 'utf8')) as Record<string, WorklogStat>;
-  } catch {
-    return {};
-  }
-}
-
 // 경고는 코드로만 — renderer 가 i18n 으로 매핑해 한국어가 EN 사용자에게 안 샘
 export type RecentWarning =
   | { code: 'no-workspaces' }
@@ -208,7 +195,8 @@ async function listDailyPages(
     sorts: [{ property: 'Date', direction: 'descending' }],
   });
 
-  const stats = readWorklogStats();
+  // 통계 진실 소스는 노션이 아닌 로컬 파일(core 가 발행 시 기록), key 는 `${category}:${date}`
+  const stats = readStatsFile();
   return results.flatMap((item) => {
     if (typeof item !== 'object' || item === null || !('properties' in item)) return [];
     const { id, properties: props, url } = item as NotionPageItem;

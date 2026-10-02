@@ -2,6 +2,7 @@ import { app, BrowserWindow, Notification } from 'electron';
 import type { CoreMode, CoreResult } from './core-runner';
 import { mt } from './i18n';
 import { readSettings } from './settings';
+import { showWindow } from './show-window';
 
 const modeLabel = (mode: CoreMode): string => mt(`mode.${mode}`);
 
@@ -11,9 +12,7 @@ const activeNotifications = new Set<Notification>();
 function focusModeInApp(mode: CoreMode): void {
   const win = BrowserWindow.getAllWindows()[0];
   if (!win) return;
-  if (win.isMinimized()) win.restore();
-  win.show();
-  win.focus();
+  showWindow(win);
   win.webContents.send('cairn:focus-mode', mode);
 }
 

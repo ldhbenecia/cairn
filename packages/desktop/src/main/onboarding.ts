@@ -6,7 +6,7 @@ import { writeFileAtomic } from './atomic-write';
 import { withFileLock } from './file-lock';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
-import { findInPath, searchPathEnv } from './claude-path';
+import { claudePathReady, findInPath, searchPathEnv } from './claude-path';
 import { CONFIG_PATH } from './setup';
 import { secretEnv, writeSecretEnvMerged } from './secret-store';
 import { keepIfEmpty, upsertByLabel } from './onboarding-merge';
@@ -228,6 +228,7 @@ export type GhCliAccounts = {
 
 // gh 에 로그인된 모든 계정의 토큰 — async execFile 로 메인 스레드 블로킹 회피
 export async function githubAccountsFromGhCli(): Promise<GhCliAccounts> {
+  await claudePathReady();
   const exe = process.platform === 'win32' ? 'gh.exe' : 'gh';
   const gh = findInPath(exe);
   if (!gh) return { ok: false, error: 'gh-not-found' };

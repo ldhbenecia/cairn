@@ -7,13 +7,12 @@ import {
   initAutoPublish,
   reconfigureAutoPublish,
 } from './auto-publish';
-import { warmClaudePath } from './claude-path';
+import { claudePathReady } from './claude-path';
 import { exportStatus, pickExportFolder, saveMarkdown, savePdf, savePng } from './export';
 import { notifyCloudExpired, notifyConnectionIssue, sendTestNotification } from './notifier';
 import {
   busyState,
   cancelRun,
-  isRunning,
   killRunning,
   probeClaude,
   runCore,
@@ -69,6 +68,7 @@ import {
 import { reconfigureTray, setupTray } from './tray';
 import { initUpdater } from './updater';
 import { generatePeriodDoc, readPeriodDoc, revealPeriodDoc } from './period-doc';
+import { showWindow } from './show-window';
 
 declare const __WORKSPACE_VERSION__: string;
 
@@ -97,9 +97,7 @@ if (!app.requestSingleInstanceLock()) {
 app.on('second-instance', () => {
   const win = BrowserWindow.getAllWindows()[0];
   if (!win) return;
-  if (win.isMinimized()) win.restore();
-  win.show();
-  win.focus();
+  showWindow(win);
 });
 
 function createWindow(startHidden: boolean): BrowserWindow {
@@ -117,7 +115,6 @@ function createWindow(startHidden: boolean): BrowserWindow {
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
-      additionalArguments: app.isPackaged ? ['--cairn-packaged'] : [],
     },
   });
 
@@ -197,7 +194,7 @@ void app.whenReady().then(() => {
     console.error('[secrets] migration failed — keeping plaintext', err);
   }
   // 로그인 셸 PATH 캡처를 미리 비동기로 — 첫 발행/probe 의 UI 프리즈 방지
-  void warmClaudePath();
+  void claudePathReady();
   // 시작 시 토큰 건강 체크 — 발행이 깨지기 전에 인증 실패 알림, 창 로드와 경합 방지로 지연
   setTimeout(() => {
     void Promise.all([probeConnectionAccounts(), validateCloudSession()])
@@ -209,9 +206,7 @@ void app.whenReady().then(() => {
         notifyConnectionIssue(bad, () => {
           const win = BrowserWindow.getAllWindows()[0];
           if (!win) return;
-          if (win.isMinimized()) win.restore();
-          win.show();
-          win.focus();
+          showWindow(win);
           win.webContents.send('cairn:open-connections');
         });
         // 클라우드 세션 만료는 sync 가 조용히 죽는 상태 — 클릭 시 재로그인 플로우 시작
@@ -232,7 +227,6 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:run', (_e, mode: CoreMode, options?: CoreRunOptions) =>
     runCore(mode, options ?? {}),
   );
-  ipcMain.handle('cairn:running', () => isRunning());
   ipcMain.handle('cairn:run-cancel', () => cancelRun());
   ipcMain.handle('cairn:busy-state', () => busyState());
   ipcMain.handle('cairn:run-snapshot', () => runSnapshot());
@@ -396,15 +390,14 @@ void app.whenReady().then(() => {
   const initial = readSettings();
   applyLoginItem(initial.launchAtLogin);
   initAutoPublish();
-  initJournalBackup();
+  // 백업 초기화는 git 경로 탐색(동기 PATH)을 쓰므로 예열 후
+  void claudePathReady().then(() => initJournalBackup());
   initTelemetry();
   trackAppLaunched();
   initUpdater();
 
   app.on('activate', () => {
-    if (win.isMinimized()) win.restore();
-    win.show();
-    win.focus();
+    showWindow(win);
   });
 
   // 시스템 종료/재시작은 진짜 종료 — before-quit 의 preventDefault 가 macOS 종료 절차를 중단시키지 않게
