@@ -25,8 +25,7 @@ function init() {
         clientSecret: required('GOOGLE_CLIENT_SECRET'),
       },
     },
-    // 데스크톱 상주 앱의 bearer 세션 — 기본 7일이면 sync 호출이 뜸한 기기에서 조용히 만료된다.
-    // 90일 + 사용 시 매일 연장: 주기 sync 가 도는 한 세션이 끊기지 않는다
+    // 데스크톱 상주 앱의 bearer 세션 — 기본 7일이면 sync 가 뜸한 기기에서 조용히 만료돼 90일 + 사용 시 매일 연장
     session: {
       expiresIn: 60 * 60 * 24 * 90,
       updateAge: 60 * 60 * 24,
