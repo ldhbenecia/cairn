@@ -47,6 +47,36 @@ export function parseCliArgs(argv: readonly string[]): RunOptions {
   };
 }
 
+// 프로젝트 뷰 최대 범위(365일)에 맞춘 상한 — 입력이 요약 1회 호출에 들어가야 함
+const PERIOD_DOC_MAX_DAYS = 366;
+
+export function parsePeriodDocArgs(argv: readonly string[]): {
+  since: string;
+  until: string;
+  lang: WorklogLang;
+} {
+  const { values } = parseArgs({
+    args: argv.filter((a) => a !== '--period-doc'),
+    options: {
+      since: { type: 'string' },
+      until: { type: 'string' },
+      lang: { type: 'string', default: 'ko' },
+    },
+    strict: true,
+    allowPositionals: false,
+  });
+  const since = values.since ?? '';
+  const until = values.until ?? '';
+  assertIsoDate(since);
+  assertIsoDate(until);
+  const span = (Date.parse(`${until}T00:00:00Z`) - Date.parse(`${since}T00:00:00Z`)) / 86_400_000;
+  if (span < 0) throw new Error(`--since must be on or before --until (got: ${since} > ${until})`);
+  if (span >= PERIOD_DOC_MAX_DAYS) {
+    throw new Error(`period too long: ${span + 1} days (max ${PERIOD_DOC_MAX_DAYS})`);
+  }
+  return { since, until, lang: assertLang(values.lang) };
+}
+
 function defaultDateForMode(mode: RunMode): string {
   if (mode === 'weekly') return localIsoDateOffset(-7);
   if (mode === 'monthly') return localIsoDateOffset(-5);

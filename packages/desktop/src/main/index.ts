@@ -68,6 +68,7 @@ import {
 } from './telemetry';
 import { reconfigureTray, setupTray } from './tray';
 import { initUpdater } from './updater';
+import { generatePeriodDoc, readPeriodDoc, revealPeriodDoc } from './period-doc';
 
 declare const __WORKSPACE_VERSION__: string;
 
@@ -251,6 +252,10 @@ void app.whenReady().then(() => {
     return folder ? shell.openPath(folder) : Promise.resolve('');
   });
   ipcMain.handle('cairn:notify:test', () => sendTestNotification());
+  // 범위는 period-doc 에서 형식·길이 검증 후에만 경로로 사용
+  ipcMain.handle('cairn:period-doc:generate', (_e, range: unknown) => generatePeriodDoc(range));
+  ipcMain.handle('cairn:period-doc:read', (_e, range: unknown) => readPeriodDoc(range));
+  ipcMain.handle('cairn:period-doc:reveal', (_e, range: unknown) => revealPeriodDoc(range));
   ipcMain.handle('cairn:export:save-pdf', (_e, defaultName: string, html: string) =>
     savePdf(defaultName, html),
   );

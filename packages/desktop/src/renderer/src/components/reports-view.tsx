@@ -1,4 +1,5 @@
-import { ArrowLeft, Check, Copy, FileDown, Loader2 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Check, Copy, FileDown, FileText, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { RecentListResult } from '../cairn-api';
 import {
@@ -26,6 +27,7 @@ import {
   type PerDay,
 } from '../lib/reports-scan';
 import { useSettings } from '../settings-context';
+import { PeriodDocDialog } from './period-doc-dialog';
 
 const laneKey = (repo: string | null): string => repo ?? '__none';
 
@@ -246,6 +248,7 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
   }
 
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
+  const [docOpen, setDocOpen] = useState(false);
 
   useEffect(() => {
     if (selectedRepo === null) return;
@@ -275,6 +278,14 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
             {t('achv.worklogs')}
           </span>
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setDocOpen(true)}
+              className="mr-1 flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+            >
+              <FileText size={14} strokeWidth={2} />
+              {t('periodDoc.open')}
+            </button>
             <button
               type="button"
               onClick={copyMd}
@@ -462,6 +473,9 @@ export function ReportsView({ recent }: { recent: RecentListResult | null }) {
           ) : null}
         </div>
       </div>
+      <AnimatePresence>
+        {docOpen && <PeriodDocDialog key="period-doc" onClose={() => setDocOpen(false)} />}
+      </AnimatePresence>
     </section>
   );
 }

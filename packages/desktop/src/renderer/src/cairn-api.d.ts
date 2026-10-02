@@ -37,6 +37,12 @@ export type RunSnapshot = {
 
 export type SaveResult = { saved: boolean; path?: string; error?: string };
 
+export type PeriodDocRange = { since: string; until: string };
+export type PeriodDocResult =
+  | { status: 'ok'; fileName: string; content: string }
+  | { status: 'empty' }
+  | { status: 'fail'; hint: CoreResult['failureHint'] };
+
 export type ExportStatus = {
   folder: string | null;
   isVault: boolean;
@@ -261,6 +267,11 @@ declare global {
       onBusy: (cb: (s: BusyState) => void) => () => void;
       openExternal: (url: string) => Promise<void>;
       exportMarkdown: (defaultName: string, content: string) => Promise<SaveResult>;
+      periodDoc: {
+        generate: (range: PeriodDocRange) => Promise<PeriodDocResult>;
+        read: (range: PeriodDocRange) => Promise<string | null>;
+        reveal: (range: PeriodDocRange) => Promise<void>;
+      };
       pickExportFolder: () => Promise<string | null>;
       exportStatus: () => Promise<ExportStatus>;
       revealExportFolder: () => Promise<string>;

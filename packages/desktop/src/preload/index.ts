@@ -98,6 +98,12 @@ export type RunSnapshot = {
 };
 
 export type SaveResult = { saved: boolean; path?: string; error?: string };
+
+export type PeriodDocRange = { since: string; until: string };
+export type PeriodDocResult =
+  | { status: 'ok'; fileName: string; content: string }
+  | { status: 'empty' }
+  | { status: 'fail'; hint: CoreResult['failureHint'] };
 export type ExportStatus = {
   folder: string | null;
   isVault: boolean;
@@ -261,6 +267,14 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:open-external', url) as Promise<void>,
   exportMarkdown: (defaultName: string, content: string): Promise<SaveResult> =>
     ipcRenderer.invoke('cairn:export:save-markdown', defaultName, content) as Promise<SaveResult>,
+  periodDoc: {
+    generate: (range: PeriodDocRange): Promise<PeriodDocResult> =>
+      ipcRenderer.invoke('cairn:period-doc:generate', range) as Promise<PeriodDocResult>,
+    read: (range: PeriodDocRange): Promise<string | null> =>
+      ipcRenderer.invoke('cairn:period-doc:read', range) as Promise<string | null>,
+    reveal: (range: PeriodDocRange): Promise<void> =>
+      ipcRenderer.invoke('cairn:period-doc:reveal', range) as Promise<void>,
+  },
   pickExportFolder: (): Promise<string | null> =>
     ipcRenderer.invoke('cairn:export:pick-folder') as Promise<string | null>,
   exportStatus: (): Promise<ExportStatus> =>

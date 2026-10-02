@@ -84,7 +84,7 @@ This repo has detailed rules in `.claude/rules/` (full index + ADRs + live plans
 - **Local timezone, never KST** — [.claude/rules/timezone.md](.claude/rules/timezone.md): use local `Date` methods; no `setUTCHours`, no hardcoded `+9`. For any date logic, first ask "does this assume KST?". The user runs cairn from anywhere.
 - **Process discipline** — [.claude/rules/git-conventions.md](.claude/rules/git-conventions.md) + [.claude/rules/progress-update.md](.claude/rules/progress-update.md): PR body uses the template (요약/작업사항/체크리스트); version bump is patch by default, **one minor per perceivable feature bundle, not per PR** (ADR 0020); commit in logical incremental units (no "+"-bundled mega-commits); write thorough progress docs and an ADR for non-trivial decisions.
 - **NestJS conventions** — [.claude/rules/nestjs-conventions.md](.claude/rules/nestjs-conventions.md): no barrel `index.ts`, always concrete-path imports, official NestJS docs first.
-- **Minimal comments** — only genuinely-needed ones (eslint-disable, egress/timezone gotchas, non-obvious why). No metadata/narration comments in output files.
+- **Minimal comments** — [.claude/rules/code-comments.md](.claude/rules/code-comments.md): only what the code can't say (why, invariants, domain rules), 1-2 lines, 명사형 종결 without trailing period, no dev-history narration, no ADR/plan/issue numbers.
 
 > Internal docs (`docs/decisions/`, `docs/plans/`, `docs/progress/`, `.claude/cairn-context.md`) are **local-only (gitignored)** — present on the maintainer's machine, not in the public repo. The links above resolve locally.
 
