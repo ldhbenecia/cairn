@@ -141,6 +141,7 @@ export function buildSummarizerTools(): SummarizerToolsBundle {
   const server = createSdkMcpServer({
     name: 'cairn-summarizer',
     tools: [submitSummary],
+    alwaysLoad: true, // tools: [] 로 ToolSearch 가 꺼져 지연 로딩되면 제출 도구를 못 부름
   });
 
   return {

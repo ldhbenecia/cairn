@@ -7,6 +7,7 @@ import { AppModule } from './app.module.js';
 import { parseCliArgs, parsePeriodDocArgs } from './cairn/cli-args.js';
 import { OrchestratorService } from './cairn/orchestrator.service.js';
 import { accumulateAgentUsage } from './common/agent-usage.js';
+import { isolatedAgentOptions } from './common/agent-isolation.js';
 import { claudeExecutableOptions } from './common/claude-executable.js';
 import { CairnError } from './common/error.js';
 import { summaryModelOption } from './common/summary-model.js';
@@ -18,7 +19,12 @@ async function probeClaude(): Promise<void> {
   try {
     const q = query({
       prompt: 'Reply with the single word: ok',
-      options: { maxTurns: 1, ...summaryModelOption(), ...claudeExecutableOptions() },
+      options: {
+        maxTurns: 1,
+        ...summaryModelOption(),
+        ...claudeExecutableOptions(),
+        ...isolatedAgentOptions(),
+      },
     });
     const { resultSubtype } = await accumulateAgentUsage(q);
     if (resultSubtype === 'success') {

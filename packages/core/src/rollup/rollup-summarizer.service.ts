@@ -2,6 +2,7 @@ import { query } from '@anthropic-ai/claude-agent-sdk';
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { accumulateAgentUsage, type AgentUsage } from '../common/agent-usage.js';
+import { isolatedAgentOptions } from '../common/agent-isolation.js';
 import { claudeExecutableOptions } from '../common/claude-executable.js';
 import { customPromptFor, withCustomPrompt } from '../common/custom-prompt.js';
 import { CairnError } from '../common/error.js';
@@ -76,6 +77,7 @@ export class RollupSummarizerService {
           maxTurns: 3,
           ...summaryModelOption(),
           ...claudeExecutableOptions(),
+          ...isolatedAgentOptions(),
         },
       });
       agentUsage = await accumulateAgentUsage(q);

@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type { WorklogLang } from '../cairn/run-options.js';
 import { accumulateAgentUsage } from '../common/agent-usage.js';
+import { isolatedAgentOptions } from '../common/agent-isolation.js';
 import { claudeExecutableOptions } from '../common/claude-executable.js';
 import { CairnError } from '../common/error.js';
 import { emitParentEvent } from '../common/parent-events.js';
@@ -78,6 +79,7 @@ export class PeriodDocService {
           maxTurns: 3,
           ...summaryModelOption(),
           ...claudeExecutableOptions(),
+          ...isolatedAgentOptions(),
         },
       });
       ({ model } = await accumulateAgentUsage(q));
