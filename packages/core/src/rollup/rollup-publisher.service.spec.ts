@@ -56,7 +56,12 @@ describe('RollupPublisherService --force recreate', () => {
   it('creates the new page BEFORE archiving the old (no loss if create fails)', async () => {
     const { service, calls, createRollupPage, archivePage } = setup();
 
-    const res = await service.publish({ activity: makeActivity(), force: true, lang: 'ko' });
+    const res = await service.publish({
+      activity: makeActivity(),
+      summary: { paragraph: 'p', themes: [], highlights: [] },
+      force: true,
+      lang: 'ko',
+    });
 
     expect(calls).toEqual(['create', 'archive']);
     expect(createRollupPage).toHaveBeenCalledTimes(1);
@@ -71,7 +76,12 @@ describe('RollupPublisherService --force recreate', () => {
   it('still reports recreated when archiving the old page fails', async () => {
     const { service, calls } = setup({ archiveFails: true });
 
-    const res = await service.publish({ activity: makeActivity(), force: true, lang: 'ko' });
+    const res = await service.publish({
+      activity: makeActivity(),
+      summary: { paragraph: 'p', themes: [], highlights: [] },
+      force: true,
+      lang: 'ko',
+    });
 
     expect(calls).toEqual(['create', 'archive']);
     expect(res).toMatchObject({ kind: 'recreated', pageId: 'new-page' });
@@ -80,7 +90,12 @@ describe('RollupPublisherService --force recreate', () => {
   it('skips (no create/archive) when the page exists and force is false', async () => {
     const { service, createRollupPage, archivePage } = setup();
 
-    const res = await service.publish({ activity: makeActivity(), force: false, lang: 'ko' });
+    const res = await service.publish({
+      activity: makeActivity(),
+      summary: { paragraph: 'p', themes: [], highlights: [] },
+      force: false,
+      lang: 'ko',
+    });
 
     expect(createRollupPage).not.toHaveBeenCalled();
     expect(archivePage).not.toHaveBeenCalled();

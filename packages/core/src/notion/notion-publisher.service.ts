@@ -30,7 +30,7 @@ export interface PublishWorklogInput {
   force: boolean;
   github: GithubActivity | null;
   localGit: LocalGitActivity | null;
-  summary?: WorklogSummary | null;
+  summary: WorklogSummary;
   lang: WorklogLang;
 }
 
@@ -264,7 +264,7 @@ export class NotionPublisherService {
     // 발행 직전 조립 블록에 금지 패턴이 섞이면 위반 블록만 drop 하고 계속, 전부 drop 이면 fallback
     // 모델 입력은 이미 검사됐지만 마지막 방어선
     const children = enforceBlockEgress(
-      input.summary ? buildSummaryBlocks(input.summary, input) : buildFallbackBlocks(input),
+      buildSummaryBlocks(input.summary, input),
       () => buildFallbackBlocks(input),
       `notion.publish.${input.date}`,
       this.logger,
@@ -328,7 +328,7 @@ function buildSummaryBlocks(
 
   if (summary.shareBullets.length > 0) {
     blocks.push(heading2('Share'));
-    blocks.push(...summary.shareBullets.map((t) => bulletItem(t)));
+    blocks.push(...summary.shareBullets.map(bulletItem));
   }
 
   blocks.push(heading2('Done'));
@@ -336,17 +336,17 @@ function buildSummaryBlocks(
 
   if (summary.reviewedBullets.length > 0) {
     blocks.push(heading2('Reviewed'));
-    blocks.push(...summary.reviewedBullets.map((t) => bulletItem(t)));
+    blocks.push(...summary.reviewedBullets.map(bulletItem));
   }
 
   if (summary.inProgressBullets.length > 0) {
     blocks.push(heading2('In Progress'));
-    blocks.push(...summary.inProgressBullets.map((t) => bulletItem(t)));
+    blocks.push(...summary.inProgressBullets.map(bulletItem));
   }
 
   if (summary.notesBullets.length > 0) {
     blocks.push(heading2('Notes'));
-    blocks.push(...summary.notesBullets.map((t) => bulletItem(t)));
+    blocks.push(...summary.notesBullets.map(bulletItem));
   }
 
   if (isOperator() && summary.usage) {
@@ -430,7 +430,7 @@ export function buildDoneBlocks(
   // [cairn] 이 가짜 계정 heading 이 되고 프리픽스가 사라져 그대로 렌더
   if (accountLabels.length < 2) {
     if (bullets.length === 0) return [paragraph('—')];
-    return bullets.map((t) => bulletItem(t));
+    return bullets.map(bulletItem);
   }
 
   // multi-account: 선행 대괄호가 설정된 계정 라벨과 일치할 때만(대소문자 무시) 계정 heading 으로 그룹

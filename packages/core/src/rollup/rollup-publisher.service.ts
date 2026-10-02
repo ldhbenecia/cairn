@@ -19,7 +19,7 @@ const ROLLUP_DB_TITLE = 'Rollup (cairn)';
 export interface PublishRollupInput {
   activity: RollupActivity;
   force: boolean;
-  summary?: RollupSummary | null;
+  summary: RollupSummary;
   lang: WorklogLang;
 }
 
@@ -206,9 +206,7 @@ export class RollupPublisherService {
     const title = buildTitle(activity, lang);
     // 위반 블록만 drop 하고 발행 계속 — 전부 drop 이면 fallback
     const children = enforceBlockEgress(
-      summary
-        ? buildRollupBlocks(summary, activity, lang)
-        : buildRollupFallbackBlocks(activity, lang),
+      buildRollupBlocks(summary, activity, lang),
       () => buildRollupFallbackBlocks(activity, lang),
       `rollup.publish.${activity.period}.${activity.rangeStart}`,
       this.logger,

@@ -24,17 +24,6 @@ export function claudeCallout(text: string): unknown {
   };
 }
 
-export function callout(emoji: string, text: string): unknown {
-  return {
-    object: 'block',
-    type: 'callout',
-    callout: {
-      icon: { type: 'emoji', emoji },
-      rich_text: richText(text),
-    },
-  };
-}
-
 export function heading2(text: string): unknown {
   return {
     object: 'block',
@@ -88,5 +77,5 @@ export function codeBlock(language: string, content: string): unknown {
 
 export function bulletsOrEmpty(items: readonly string[]): unknown[] {
   if (items.length === 0) return [paragraph('—')];
-  return items.map((t) => bulletItem(t));
+  return items.map(bulletItem);
 }

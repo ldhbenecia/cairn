@@ -18,7 +18,7 @@ import {
   type PublishRollupResult,
 } from '../rollup/rollup-publisher.service.js';
 import { RollupSummarizerService } from '../rollup/rollup-summarizer.service.js';
-import { periodRange } from '../rollup/period-range.js';
+import { addDaysIso, periodRange } from '../rollup/period-range.js';
 import { DailySummarizerService } from '../summarizer/daily-summarizer.service.js';
 import { JournalSourceService } from '../journal/journal-source.service.js';
 import { JournalWriterService } from '../journal/journal-writer.service.js';
@@ -59,13 +59,11 @@ export class OrchestratorService {
     } catch (err) {
       const error = CairnError.from(err, 'config');
       this.logger.error({ options, error }, 'orchestrator.run failed');
-      const failTitle =
-        options.mode === 'daily' ? 'cairn 실패' : `cairn ${rollupKor(options.mode)} 실패`;
-      const failBody =
-        options.mode === 'daily'
-          ? `${options.date} 일지 생성 실패 — ${error.message.slice(0, 120)}`
-          : `${options.date} ${rollupKor(options.mode)} 생성 실패 — ${error.message.slice(0, 120)}`;
-      await this.notification.notify(failTitle, failBody);
+      const label = options.mode === 'daily' ? '일지' : rollupKor(options.mode);
+      await this.notification.notify(
+        options.mode === 'daily' ? 'cairn 실패' : `cairn ${label} 실패`,
+        `${options.date} ${label} 생성 실패 — ${error.message.slice(0, 120)}`,
+      );
       throw err;
     }
 
@@ -104,7 +102,7 @@ export class OrchestratorService {
       );
       // 이벤트 없이 끝나면 데스크톱이 '발행 완료'로 오보함 — 재발행이 없었을 때만 skipped 로 보고
       if (republishedCount === 0) {
-        emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
+        emitLocalSkip();
       }
       return;
     }
@@ -125,7 +123,6 @@ export class OrchestratorService {
       'daily: backfill — multiple missing dates detected',
     );
 
-    let backfillDone = 0;
     const completedDates: string[] = [];
     const failedDates: string[] = [];
     const backfillTotal = backfillDates.length;
@@ -156,14 +153,13 @@ export class OrchestratorService {
         result = { date, kind: 'failed' };
         failedDates.push(date);
       }
-      backfillDone += 1;
       completedDates.push(date);
       // doneDates: 완료 순서가 날짜 순서와 달라 UI 가 멤버십으로 판정하도록 누적
       // failedDates: done 에도 포함되는 실패 날짜를 UI 가 구분 표시하도록 별도 누적
       this.logger.info(
         {
           date,
-          done: backfillDone,
+          done: completedDates.length,
           total: backfillTotal,
           doneDates: completedDates.join(','),
           failedDates: failedDates.join(','),
@@ -172,7 +168,7 @@ export class OrchestratorService {
       );
       emitParentEvent({
         type: 'backfill-progress',
-        done: backfillDone,
+        done: completedDates.length,
         total: backfillTotal,
         doneDates: [...completedDates],
         failedDates: [...failedDates],
@@ -231,12 +227,7 @@ export class OrchestratorService {
           republished.push(date);
           this.logger.info({ date, publishResult: result }, 'daily: republished from journal');
           // 이벤트 없이 넘어가면 뒤의 '전체 기발행' 분기가 skipped 로 오보함
-          emitParentEvent({
-            type: 'publish-result',
-            kind: result.kind,
-            pageId: 'pageId' in result ? result.pageId : null,
-            url: 'url' in result ? result.url : null,
-          });
+          emitPublishResult(result);
         }
       } catch (err) {
         // Notion 장애 지속 등은 다음 예약 실행에서 같은 경로로 재시도되므로 런 계속
@@ -281,7 +272,7 @@ export class OrchestratorService {
             { date, publishResult: { kind: 'skipped', reason: 'already-published' } },
             'daily: notion precheck failed but journal exists — skip collect/summarize',
           );
-          emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
+          emitLocalSkip();
           if (!opts.silent) {
             await this.notification.notify(
               'cairn 일지',
@@ -296,18 +287,9 @@ export class OrchestratorService {
           { date, publishResult: pre },
           'daily: precheck short-circuit — skip collect/summarize',
         );
-        emitParentEvent({
-          type: 'publish-result',
-          kind: pre.kind,
-          pageId: 'pageId' in pre ? pre.pageId : null,
-          url: null,
-        });
+        emitPublishResult(pre);
         if (!opts.silent) {
-          await this.notify(date, pre, {
-            prCount: 0,
-            commitCount: 0,
-            summarizerOk: false,
-          });
+          await this.notify(date, pre, { prCount: 0, commitCount: 0 });
         }
         return pre.kind;
       }
@@ -318,7 +300,7 @@ export class OrchestratorService {
           { date, publishResult: { kind: 'skipped', reason: 'already-published' } },
           'daily: journal file exists — skip collect/summarize',
         );
-        emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
+        emitLocalSkip();
         if (!opts.silent) {
           await this.notification.notify(
             'cairn 일지',
@@ -432,21 +414,15 @@ export class OrchestratorService {
     // 커밋 시각 24칸 히스토그램(머신 로컬 TZ, shaKey 로 SHA 중복 제거) — journal frontmatter 와 로컬 통계가 공유
     const seen = new Set<string>();
     const stamps: string[] = [];
-    for (const repo of localGitActivity?.repos ?? []) {
-      for (const c of repo.commits) {
-        if (!seen.has(shaKey(c.shortSha))) {
-          seen.add(shaKey(c.shortSha));
-          stamps.push(c.authoredAt);
-        }
-      }
-    }
-    for (const pr of githubActivity?.prs ?? []) {
-      for (const c of pr.commitsOnDate) {
-        if (!seen.has(shaKey(c.shortSha))) {
-          seen.add(shaKey(c.shortSha));
-          stamps.push(c.authoredAt);
-        }
-      }
+    const commits = [
+      ...(localGitActivity?.repos ?? []).flatMap((r) => r.commits),
+      ...(githubActivity?.prs ?? []).flatMap((pr) => pr.commitsOnDate),
+    ];
+    for (const c of commits) {
+      const key = shaKey(c.shortSha);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      stamps.push(c.authoredAt);
     }
     const hours = hourHistogram(stamps);
 
@@ -484,12 +460,7 @@ export class OrchestratorService {
           lang: options.lang,
         });
     const publishMs = Date.now() - publishStart;
-    emitParentEvent({
-      type: 'publish-result',
-      kind: result.kind,
-      pageId: 'pageId' in result ? result.pageId : null,
-      url: 'url' in result ? result.url : null,
-    });
+    emitPublishResult(result);
     emitParentEvent({
       type: 'day-done',
       date,
@@ -528,12 +499,7 @@ export class OrchestratorService {
     );
 
     if (!opts.silent) {
-      await this.notify(date, result, {
-        prCount,
-        commitCount,
-        summarizerOk: !!summary,
-        journalWritten,
-      });
+      await this.notify(date, result, { prCount, commitCount, journalWritten });
     }
     return result.kind;
   }
@@ -574,20 +540,15 @@ export class OrchestratorService {
     counts: {
       prCount: number;
       commitCount: number;
-      summarizerOk: boolean;
       journalWritten?: boolean;
     },
   ): Promise<void> {
     const counts_label = `gh:${counts.prCount} / git:${counts.commitCount}`;
-    const summary_tag = counts.summarizerOk ? '' : ' [요약 실패]';
 
     if (result.kind === 'created') {
-      await this.notification.notify('cairn 일지', `${date} 발행 (${counts_label})${summary_tag}`);
+      await this.notification.notify('cairn 일지', `${date} 발행 (${counts_label})`);
     } else if (result.kind === 'recreated') {
-      await this.notification.notify(
-        'cairn 일지',
-        `${date} 재발행 (${counts_label})${summary_tag}`,
-      );
+      await this.notification.notify('cairn 일지', `${date} 재발행 (${counts_label})`);
     } else if (result.kind === 'skipped') {
       await this.notification.notify(
         'cairn 일지',
@@ -595,10 +556,7 @@ export class OrchestratorService {
       );
     } else if (result.kind === 'no-target') {
       if (counts.journalWritten) {
-        await this.notification.notify(
-          'cairn 일지',
-          `${date} 로컬 기록 완료 (${counts_label})${summary_tag}`,
-        );
+        await this.notification.notify('cairn 일지', `${date} 로컬 기록 완료 (${counts_label})`);
       } else {
         await this.notification.notify(
           'cairn 설정 필요',
@@ -623,13 +581,8 @@ export class OrchestratorService {
           { period, rangeStart: start, rangeEnd: end, publishResult: pre },
           'rollup: precheck short-circuit — skip collect/summarize',
         );
-        emitParentEvent({
-          type: 'publish-result',
-          kind: pre.kind,
-          pageId: 'pageId' in pre ? pre.pageId : null,
-          url: null,
-        });
-        await this.notifyRollup(period, start, end, pre, false);
+        emitPublishResult(pre);
+        await this.notifyRollup(period, start, end, pre);
         return;
       }
       // 노션 미연동이어도 journal 에 이미 있는 기간은 재요약 안 함 — 요약 비용 보호
@@ -645,7 +598,7 @@ export class OrchestratorService {
             },
             'rollup: journal file exists — skip collect/summarize',
           );
-          emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
+          emitLocalSkip();
           await this.notification.notify(
             `cairn ${rollupKor(period)}`,
             `${start} ~ ${end} skip — 로컬 정리 있음 (--force 로 재생성)`,
@@ -737,12 +690,7 @@ export class OrchestratorService {
           summary,
           lang: options.lang,
         });
-    emitParentEvent({
-      type: 'publish-result',
-      kind: result.kind,
-      pageId: 'pageId' in result ? result.pageId : null,
-      url: 'url' in result ? result.url : null,
-    });
+    emitPublishResult(result);
 
     if (journalWritten && (result.kind === 'created' || result.kind === 'recreated')) {
       try {
@@ -764,7 +712,7 @@ export class OrchestratorService {
       'rollup: publish done',
     );
 
-    await this.notifyRollup(period, activity.rangeStart, activity.rangeEnd, result, !!summary);
+    await this.notifyRollup(period, activity.rangeStart, activity.rangeEnd, result);
   }
 
   private async notifyRollup(
@@ -772,16 +720,14 @@ export class OrchestratorService {
     rangeStart: string,
     rangeEnd: string,
     result: PublishRollupResult,
-    summarizerOk: boolean,
   ): Promise<void> {
     const titleKor = `cairn ${rollupKor(period)}`;
     const range = `${rangeStart} ~ ${rangeEnd}`;
-    const summary_tag = summarizerOk ? '' : ' [요약 실패]';
 
     if (result.kind === 'created') {
-      await this.notification.notify(titleKor, `${range} 발행${summary_tag}`);
+      await this.notification.notify(titleKor, `${range} 발행`);
     } else if (result.kind === 'recreated') {
-      await this.notification.notify(titleKor, `${range} 재발행${summary_tag}`);
+      await this.notification.notify(titleKor, `${range} 재발행`);
     } else if (result.kind === 'skipped') {
       await this.notification.notify(
         titleKor,
@@ -807,18 +753,25 @@ function rollupKor(period: 'weekly' | 'monthly' | 'yearly'): string {
 }
 
 function generatePastDates(today: string, days: number): string[] {
-  const parts = today.split('-').map(Number);
-  const [y, m, d] = parts;
+  const [y, m, d] = today.split('-').map(Number);
   if (y === undefined || m === undefined || d === undefined) {
     throw new Error(`invalid today: ${today}`);
   }
   const out: string[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const dt = new Date(Date.UTC(y, m - 1, d - i));
-    const yy = dt.getUTCFullYear();
-    const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
-    const dd = String(dt.getUTCDate()).padStart(2, '0');
-    out.push(`${yy}-${mm}-${dd}`);
-  }
+  for (let i = days - 1; i >= 0; i--) out.push(addDaysIso(today, -i));
   return out;
+}
+
+function emitPublishResult(r: PublishWorklogResult | PublishRollupResult): void {
+  emitParentEvent({
+    type: 'publish-result',
+    kind: r.kind,
+    pageId: 'pageId' in r ? r.pageId : null,
+    url: 'url' in r ? r.url : null,
+  });
+}
+
+// 로컬 일지만 있어 노션 페이지를 모르는 skip
+function emitLocalSkip(): void {
+  emitParentEvent({ type: 'publish-result', kind: 'skipped', pageId: null, url: null });
 }
