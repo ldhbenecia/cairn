@@ -437,30 +437,49 @@ function buildNotionWorkspace(
 }
 
 // 같은 라벨이면 교체(재연결)
-export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; error?: string } {
+function readExistingConfig(): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as unknown;
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+// config read-modify-write — core 가 첫 발행 후 같은 파일에 DB id 를 자동 저장해 같은 락으로 직렬화
+// 시크릿은 config 보다 먼저 저장 (config 가 가리키는 tokenEnv 가 비지 않게)
+function updateConfig<R extends object>(
+  mutate: (existing: Record<string, unknown>) => {
+    config: Record<string, unknown>;
+    env?: Record<string, string>;
+    result?: R;
+  },
+): ({ ok: true } & Partial<R>) | { ok: false; error: string } {
   try {
     return withFileLock(CONFIG_PATH, () => {
-      let existing: Record<string, unknown>;
-      try {
-        const parsed = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as unknown;
-        existing = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
-      } catch {
-        existing = {};
-      }
-      const prevWorkspaces = Array.isArray(existing.notionWorkspaces)
-        ? (existing.notionWorkspaces as ExistingWs[])
-        : [];
-      const env: Record<string, string> = {};
-      const ws = buildNotionWorkspace(w, prevWorkspaces, env);
-      writeSecretEnvMerged(env);
-      const config = { ...existing, notionWorkspaces: upsertByLabel(prevWorkspaces, ws, w.label) };
+      const { config, env, result } = mutate(readExistingConfig());
+      if (env) writeSecretEnvMerged(env);
       mkdirSync(dirname(CONFIG_PATH), { recursive: true });
       writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
-      return { ok: true };
+      return { ok: true as const, ...result };
     });
   } catch (err) {
     return { ok: false, error: errorMessage(err) };
   }
+}
+
+const listOf = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+
+export function addNotionWorkspace(w: NotionWorkspacePayload): { ok: boolean; error?: string } {
+  return updateConfig((existing) => {
+    const prevWorkspaces = listOf<ExistingWs>(existing.notionWorkspaces);
+    const env: Record<string, string> = {};
+    const ws = buildNotionWorkspace(w, prevWorkspaces, env);
+    return {
+      config: { ...existing, notionWorkspaces: upsertByLabel(prevWorkspaces, ws, w.label) },
+      env,
+    };
+  });
 }
 
 // 온보딩 재실행 없이 gh CLI 토큰만 다시 가져와 갱신 — 온보딩과 같은 매핑(label=login)으로
@@ -473,108 +492,53 @@ export async function refreshGithubFromGhCli(): Promise<{
   const r = await githubAccountsFromGhCli();
   if (!r.ok || !r.accounts?.length) return { ok: false, error: r.error ?? 'gh-not-authed' };
   const ghAccounts = r.accounts;
-  try {
-    return withFileLock(CONFIG_PATH, () => {
-      let existing: Record<string, unknown>;
-      try {
-        const parsed = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as unknown;
-        existing = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
-      } catch {
-        existing = {};
-      }
-      let accounts = Array.isArray(existing.githubAccounts)
-        ? (existing.githubAccounts as { label: string; tokenEnv: string }[])
-        : [];
-      const env: Record<string, string> = {};
-      for (const a of ghAccounts) {
-        const tokenEnv = envKey('GITHUB_TOKEN', a.login);
-        env[tokenEnv] = a.token;
-        accounts = upsertByLabel(accounts, { label: a.login, tokenEnv }, a.login);
-      }
-      writeSecretEnvMerged(env);
-      const config = { ...existing, githubAccounts: accounts };
-      mkdirSync(dirname(CONFIG_PATH), { recursive: true });
-      writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
-      return { ok: true, count: ghAccounts.length };
-    });
-  } catch (err) {
-    return { ok: false, error: errorMessage(err) };
-  }
+  return updateConfig((existing) => {
+    let accounts = listOf<{ label: string; tokenEnv: string }>(existing.githubAccounts);
+    const env: Record<string, string> = {};
+    for (const a of ghAccounts) {
+      const tokenEnv = envKey('GITHUB_TOKEN', a.login);
+      env[tokenEnv] = a.token;
+      accounts = upsertByLabel(accounts, { label: a.login, tokenEnv }, a.login);
+    }
+    return {
+      config: { ...existing, githubAccounts: accounts },
+      env,
+      result: { count: ghAccounts.length },
+    };
+  });
 }
 
 // 등록된 localGitRepos 경로는 보존하고 수집 여부만 저장
 export function setLocalGitEnabled(enabled: boolean): { ok: boolean; error?: string } {
-  try {
-    return withFileLock(CONFIG_PATH, () => {
-      let existing: Record<string, unknown>;
-      try {
-        const parsed = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as unknown;
-        existing = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
-      } catch {
-        existing = {};
-      }
-      const config = { ...existing, localGitEnabled: enabled };
-      mkdirSync(dirname(CONFIG_PATH), { recursive: true });
-      writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
-      return { ok: true };
-    });
-  } catch (err) {
-    return { ok: false, error: errorMessage(err) };
-  }
+  return updateConfig((existing) => ({ config: { ...existing, localGitEnabled: enabled } }));
 }
 
 export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; error?: string } {
-  try {
-    // 기존 config 를 먼저 읽어 자동 생성된 DB id 보존 — core 가 첫 발행 후 같은 파일에 DB id 를
-    // 자동 저장하므로 같은 락으로 직렬화
-    return withFileLock(CONFIG_PATH, () => {
-      let existing: Record<string, unknown>;
-      try {
-        const parsed = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as unknown;
-        existing = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
-      } catch {
-        existing = {};
-      }
-      const prevWorkspaces = Array.isArray(existing.notionWorkspaces)
-        ? (existing.notionWorkspaces as ExistingWs[])
-        : [];
-
-      const env: Record<string, string> = {};
-      // 온보딩은 노션을 다루지 않음 — 빈 배열이면 Preferences 에서 연결한 기존 워크스페이스 보존
-      const notionWorkspaces = payload.notion.length
-        ? payload.notion.map((w) => buildNotionWorkspace(w, prevWorkspaces, env))
-        : prevWorkspaces;
-      const prevGithub = Array.isArray(existing.githubAccounts)
-        ? (existing.githubAccounts as { label: string; tokenEnv: string }[])
-        : [];
-      // 재입력한 계정만 반영, 빈 payload 는 기존 보존 — 재발급 부담이 큰 토큰의 무경고 삭제 방지
-      const githubAccounts = keepIfEmpty(
-        payload.github.map((g) => {
-          const tokenEnv = envKey('GITHUB_TOKEN', g.label);
-          env[tokenEnv] = g.token;
-          return { label: g.label, tokenEnv };
-        }),
-        prevGithub,
-      );
-      const prevRepos = Array.isArray(existing.localGitRepos)
-        ? (existing.localGitRepos as OnboardingPayload['localGitRepos'])
-        : [];
-      const localGitRepos = keepIfEmpty(payload.localGitRepos, prevRepos);
-      if (payload.anthropicApiKey?.trim()) env.ANTHROPIC_API_KEY = payload.anthropicApiKey.trim();
-
-      writeSecretEnvMerged(env);
-
-      const config = {
-        ...existing,
-        localGitRepos,
-        githubAccounts,
-        notionWorkspaces,
-      };
-      mkdirSync(dirname(CONFIG_PATH), { recursive: true });
-      writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
-      return { ok: true };
-    });
-  } catch (err) {
-    return { ok: false, error: errorMessage(err) };
-  }
+  // 기존 config 를 먼저 읽어 자동 생성된 DB id 보존
+  return updateConfig((existing) => {
+    const prevWorkspaces = listOf<ExistingWs>(existing.notionWorkspaces);
+    const env: Record<string, string> = {};
+    // 온보딩은 노션을 다루지 않음 — 빈 배열이면 Preferences 에서 연결한 기존 워크스페이스 보존
+    const notionWorkspaces = payload.notion.length
+      ? payload.notion.map((w) => buildNotionWorkspace(w, prevWorkspaces, env))
+      : prevWorkspaces;
+    // 재입력한 계정만 반영, 빈 payload 는 기존 보존 — 재발급 부담이 큰 토큰의 무경고 삭제 방지
+    const githubAccounts = keepIfEmpty(
+      payload.github.map((g) => {
+        const tokenEnv = envKey('GITHUB_TOKEN', g.label);
+        env[tokenEnv] = g.token;
+        return { label: g.label, tokenEnv };
+      }),
+      listOf<{ label: string; tokenEnv: string }>(existing.githubAccounts),
+    );
+    const localGitRepos = keepIfEmpty(
+      payload.localGitRepos,
+      listOf<OnboardingPayload['localGitRepos'][number]>(existing.localGitRepos),
+    );
+    if (payload.anthropicApiKey?.trim()) env.ANTHROPIC_API_KEY = payload.anthropicApiKey.trim();
+    return {
+      config: { ...existing, localGitRepos, githubAccounts, notionWorkspaces },
+      env,
+    };
+  });
 }
