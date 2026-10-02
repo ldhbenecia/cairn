@@ -2,7 +2,7 @@ import { CheckCircle2, ChevronRight, Circle, CircleDotDashed, XCircle } from 'lu
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import type { RunSession } from '../App';
-import type { CoreMode, DateStep, RunStep } from '../cairn-api';
+import type { CoreMode, DateStep, RunStep } from '../../../shared/ipc-types';
 import type { I18nKey } from '../i18n';
 import { useRunLines } from '../lib/run-line-store';
 import { useSettings } from '../settings-context';

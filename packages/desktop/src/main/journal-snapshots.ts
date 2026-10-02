@@ -6,13 +6,13 @@ import { writeFileAtomic } from './atomic-write';
 import { journalFolder } from './journal-reader';
 import type { RecentCategory } from './notion-client';
 import { journalFileNameFor } from './worklog-sinks';
+import type { JournalSnapshotMeta } from '../shared/ipc-types';
+export type { JournalSnapshotMeta } from '../shared/ipc-types';
 
 // 저장 포맷은 core/src/journal/journal-snapshot.ts 와 같이 바꿔야 함
 const SNAPSHOT_ROOT = join(homedir(), '.cairn', 'snapshots');
 const KEEP_PER_FILE = 10;
 const STAMP_RE = /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/;
-
-export type JournalSnapshotMeta = { stamp: string; at: string };
 
 export function stampToIso(stamp: string): string | null {
   const m = STAMP_RE.exec(stamp);

@@ -8,7 +8,7 @@ import {
   History,
   MoreHorizontal,
 } from 'lucide-react';
-import type { PageContent, RecentPage, SimpleBlock } from '../cairn-api';
+import type { PageContent, RecentPage, SimpleBlock } from '../../../shared/ipc-types';
 import { sectionBullets } from '../../../shared/section-bullets';
 import { pageSinks } from '../lib/sinks';
 import { blocksToMarkdown } from '../../../shared/markdown';
@@ -17,6 +17,7 @@ import { useSettings } from '../settings-context';
 import { CrossfadeIcon } from './crossfade-icon';
 import { SnapshotDialog } from './snapshot-dialog';
 import { useCopied } from '../use-copied';
+import { useEscape } from '../use-escape';
 
 // 드로어·전체 화면 상세가 공유하는 내보내기·공유 메뉴 (스냅샷 다이얼로그 포함)
 
@@ -66,20 +67,18 @@ export function WorklogActions({
   useEffect(() => {
     if (!menuOpen || menuClosing) return;
     const onDown = (): void => closeMenu();
-    // ESC 는 메뉴가 소비(capture + stopPropagation) — 상위 드로어/상세 뷰까지 닫히지 않게
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [menuOpen, menuClosing]);
+
+  // ESC 는 메뉴가 소비(capture + 전파 차단) — 상위 드로어·상세 뷰까지 닫히지 않게
+  useEscape(
+    () => {
       closeMenu();
       triggerRef.current?.focus();
-    };
-    document.addEventListener('mousedown', onDown);
-    window.addEventListener('keydown', onKey, true);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      window.removeEventListener('keydown', onKey, true);
-    };
-  }, [menuOpen, menuClosing]);
+    },
+    { enabled: menuOpen && !menuClosing, capture: true, stop: true },
+  );
 
   function copyShare() {
     if (!shareText) return;

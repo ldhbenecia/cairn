@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { RecentPage } from '../cairn-api';
+import type { RecentPage } from '../../../shared/ipc-types';
 import { recallDates, recallEntries } from './recall';
 
 const page = (date: string, category: RecentPage['category'] = 'daily'): RecentPage => ({

@@ -1,4 +1,4 @@
-import type { RecentPage } from '../cairn-api';
+import type { RecentPage } from '../../../shared/ipc-types';
 import { addDays, todayLocal } from './reports';
 
 // 오늘(로컬 날짜) 기준 1주·1달·1년 전 일간 일지 — 날짜 산술은 ISO 문자열 + UTC 캘린더라 로컬 TZ 무관

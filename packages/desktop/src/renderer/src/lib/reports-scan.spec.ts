@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RecentListResult, RecentPage } from '../cairn-api';
+import type { RecentListResult, RecentPage } from '../../../shared/ipc-types';
 import { daySpan, localDateDaysAgo, todayLocal } from './reports';
 import {
   assembleCached,

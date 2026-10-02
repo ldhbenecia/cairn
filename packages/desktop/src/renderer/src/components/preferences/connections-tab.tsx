@@ -1,6 +1,6 @@
 import { FolderGit2, Loader2, RotateCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import type { AccountHealth, ConnectionAccounts } from '../../cairn-api';
+import type { AccountHealth, ConnectionAccounts } from '../../../../shared/ipc-types';
 import { probeClaude, probeClaudeOnce, useClaudeStatus } from '../../lib/claude-status-store';
 import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';

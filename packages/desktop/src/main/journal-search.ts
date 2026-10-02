@@ -1,4 +1,6 @@
 import type { RecentCategory } from './notion-client';
+import type { JournalSearchHit } from '../shared/ipc-types';
+export type { JournalSearchHit } from '../shared/ipc-types';
 
 // 일지 본문 검색의 순수 매칭·스니펫 로직 (I/O 는 journal-reader 담당)
 // 목록 검색(제목=날짜)이 못 잡는 본문·[레포] 프리픽스를 substring 토큰 AND 로 매칭
@@ -7,13 +9,6 @@ export type JournalSearchFile = {
   fileName: string;
   category: RecentCategory;
   body: string;
-};
-
-export type JournalSearchHit = {
-  fileName: string;
-  category: RecentCategory;
-  snippet: string;
-  matchCount: number;
 };
 
 // 결과 상한 — 초과분은 UI 가 감당할 크기로 자름

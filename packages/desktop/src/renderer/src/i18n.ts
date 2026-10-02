@@ -1,4 +1,4 @@
-import type { Language } from './cairn-api';
+import type { Language } from '../../shared/ipc-types';
 
 const STRINGS = {
   ko: {

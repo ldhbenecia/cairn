@@ -15,9 +15,10 @@ import type {
   RecentPage,
   RunProgress,
   RunStep,
-} from './cairn-api';
+} from '../../shared/ipc-types';
 import { AnimatePresence } from 'framer-motion';
 import { invalidateReportsScan, prefetchReportsScan } from './lib/reports-scan';
+import { startColResize } from './lib/col-resize';
 import { resetRunLines } from './lib/run-line-store';
 import { AutoConfirmToast } from './components/auto-confirm-toast';
 import { RunToast, type RunToastData } from './components/run-toast';
@@ -57,6 +58,14 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
   monthly: null,
   yearly: null,
 };
+
+type Sessions = Record<CoreMode, RunSession | null>;
+
+// 세션이 없으면(리로드 직후 도착한 브로드캐스트 등) 진행 중 세션으로 시작해 패치
+function patchSession(prev: Sessions, mode: CoreMode, patch: Partial<RunSession>): Sessions {
+  const current = prev[mode] ?? { state: 'running', step: 'boot', startedAt: Date.now() };
+  return { ...prev, [mode]: { ...current, ...patch } };
+}
 
 const RECENT_CACHE_KEY = 'cairn:recentCache:v1';
 
@@ -147,22 +156,11 @@ export function App() {
     localStorage.setItem('cairn:sidebarWidth', String(sidebarWidth));
   }, [sidebarWidth]);
 
+  const sidebarRef = useRef<HTMLElement>(null);
   const startResize = useCallback((e: ReactMouseEvent) => {
     e.preventDefault();
-    const onMove = (ev: MouseEvent) => setSidebarWidth(Math.min(420, Math.max(200, ev.clientX)));
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      window.removeEventListener('blur', onUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    // 창 밖에서 버튼을 놓으면 mouseup 이 안 와 blur 로도 종료
-    window.addEventListener('blur', onUp);
+    if (!sidebarRef.current) return;
+    startColResize(sidebarRef.current, (x) => Math.min(420, Math.max(200, x)), setSidebarWidth);
   }, []);
 
   useEffect(() => {
@@ -189,31 +187,14 @@ export function App() {
 
   useEffect(() => {
     const off = window.cairn.onRunStep(({ mode, step }) => {
-      setSessions((prev) => {
-        const current = prev[mode] ?? {
-          state: 'running',
-          step: 'boot',
-          startedAt: Date.now(),
-        };
-        return { ...prev, [mode]: { ...current, step } };
-      });
+      setSessions((prev) => patchSession(prev, mode, { step }));
     });
     return off;
   }, []);
 
   useEffect(() => {
     const off = window.cairn.onRunProgress(({ mode, ...progress }) => {
-      setSessions((prev) => {
-        const current = prev[mode] ?? {
-          state: 'running' as const,
-          step: 'boot' as const,
-          startedAt: Date.now(),
-        };
-        return {
-          ...prev,
-          [mode]: { ...current, batch: true, progress },
-        };
-      });
+      setSessions((prev) => patchSession(prev, mode, { batch: true, progress }));
     });
     return off;
   }, []);
@@ -225,17 +206,9 @@ export function App() {
   useEffect(() => {
     let active = true;
     const off = window.cairn.onRunDone(({ mode, result }) => {
-      setSessions((prev) => {
-        const current = prev[mode] ?? {
-          state: 'running' as const,
-          step: 'done' as const,
-          startedAt: Date.now(),
-        };
-        return {
-          ...prev,
-          [mode]: { ...current, state: 'done', step: 'done', result, endedAt: Date.now() },
-        };
-      });
+      setSessions((prev) =>
+        patchSession(prev, mode, { state: 'done', step: 'done', result, endedAt: Date.now() }),
+      );
       setRunningMode((rm) => (rm === mode ? null : rm));
       if (!result.cancelled) {
         setToast({ mode, result, at: Date.now() });
@@ -398,17 +371,9 @@ export function App() {
       } catch (err) {
         const raw = err instanceof Error ? err.message : String(err);
         const message = /(^|:\s?(Error:\s?)?)busy:/.test(raw) ? t('publish.busyMsg') : raw;
-        setSessions((prev) => {
-          const current = prev[mode] ?? {
-            state: 'running',
-            step: 'boot',
-            startedAt: Date.now(),
-          };
-          return {
-            ...prev,
-            [mode]: { ...current, state: 'done', error: message, endedAt: Date.now() },
-          };
-        });
+        setSessions((prev) =>
+          patchSession(prev, mode, { state: 'done', error: message, endedAt: Date.now() }),
+        );
       } finally {
         setRunningMode(null);
       }
@@ -442,6 +407,7 @@ export function App() {
   return (
     <div className="flex h-screen w-screen bg-canvas text-ink">
       <Sidebar
+        ref={sidebarRef}
         width={sidebarWidth}
         view={view}
         filter={filter}

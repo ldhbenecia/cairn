@@ -1,6 +1,6 @@
 import { Check, Loader2, Search, Trash2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-import type { NotionDb, NotionPage } from '../cairn-api';
+import type { NotionDb, NotionPage } from '../../../shared/ipc-types';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 

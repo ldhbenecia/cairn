@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Check, Loader2, Lock, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RunSession } from '../App';
-import type { CoreMode, CoreRunOptions, SummaryModel } from '../cairn-api';
+import type { BusyState, CoreMode, CoreRunOptions, SummaryModel } from '../../../shared/ipc-types';
 import type { I18nKey } from '../i18n';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
@@ -107,17 +107,13 @@ export function PublishDialog({
   }, [open]);
 
   // runningMode 만으론 시작 시 자동 발행을 몰라 전역 busy·mode 를 따로 확인
-  const [externalBusy, setExternalBusy] = useState(false);
-  const [busyMode, setBusyMode] = useState<CoreMode | null>(null);
+  const [{ busy: externalBusy, mode: busyMode }, setExternal] = useState<BusyState>({
+    busy: false,
+    mode: null,
+  });
   useEffect(() => {
-    void window.cairn.busyState().then((s) => {
-      setExternalBusy(s.busy);
-      setBusyMode(s.mode);
-    });
-    return window.cairn.onBusy((s) => {
-      setExternalBusy(s.busy);
-      setBusyMode(s.mode);
-    });
+    void window.cairn.busyState().then(setExternal);
+    return window.cairn.onBusy(setExternal);
   }, []);
 
   // 외부(자동) 발행이 다른 mode 로 돌면 그 세션을 보여줘야 진행 화면이 'boot' 에 안 멈춤

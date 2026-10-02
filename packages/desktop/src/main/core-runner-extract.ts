@@ -1,19 +1,8 @@
 // core 자식 프로세스 실행 결과 계약 — 결과·진행은 fork-IPC 구조화 이벤트가 단일 소스
 // stdout 은 에러 원문이 다양한 failureHint 분류에만 사용
 
-export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | null;
-
-export type RunStep = 'boot' | 'collect' | 'summarize' | 'publish' | 'done';
-
-export type FailureHint =
-  | 'auth'
-  | 'claude-auth'
-  | 'quota'
-  | 'summarize'
-  | 'network'
-  | 'notion'
-  | 'collect'
-  | null;
+import type { PublishKind, RunStep, FailureHint } from '../shared/ipc-types';
+export type { PublishKind, RunStep, FailureHint } from '../shared/ipc-types';
 
 // raw 로그는 UI 비노출 정책이라 대표 패턴만 친화 문구 키로 분류, 안 걸리면 null
 export function deriveFailureHint(text: string): FailureHint {

@@ -2,35 +2,24 @@ import { Client } from '@notionhq/client';
 import { errorMessage } from './error-message';
 import { readStatsFile } from './cloud-sync';
 import { readConfig } from './files';
-import { secretEnv } from './secret-store';
-
-let envLoaded = false;
-function ensureEnvLoaded(): void {
-  if (envLoaded) return;
-  envLoaded = true;
-  // 암호화 스토어 우선(.env 폴백 포함) — 복호화된 토큰은 process.env 로만 올림
-  for (const [key, value] of Object.entries(secretEnv())) {
-    if (!(key in process.env)) process.env[key] = value;
-  }
-}
-
-export type RecentCategory = 'daily' | 'weekly' | 'monthly' | 'yearly';
-
-export type WorklogSink = 'journal' | 'notion' | 'obsidian';
-
-export type RecentPage = {
-  pageId: string;
-  url: string;
-  title: string;
-  date: string | null;
-  status: string | null;
-  category: RecentCategory;
-  pr: number | null;
-  commit: number | null;
-  hours: number[] | null;
-  workspaceLabel: string;
-  sinks?: WorklogSink[]; // listRecentMerged 에서 채움
-};
+import { secretValue } from './secret-store';
+import type {
+  RecentCategory,
+  RecentPage,
+  RecentWarning,
+  RichSpan,
+  SimpleBlock,
+  PageContent,
+} from '../shared/ipc-types';
+export type {
+  RecentCategory,
+  WorklogSink,
+  RecentPage,
+  RecentWarning,
+  RichSpan,
+  SimpleBlock,
+  PageContent,
+} from '../shared/ipc-types';
 
 type NotionWorkspaceConfig = {
   label: string;
@@ -102,18 +91,10 @@ function readDate(props: Record<string, unknown>, key: string): string | null {
   return p?.date?.start ?? null;
 }
 
-// 경고는 코드로만 — renderer 가 i18n 으로 매핑해 한국어가 EN 사용자에게 안 샘
-export type RecentWarning =
-  | { code: 'no-workspaces' }
-  | { code: 'token-missing'; workspace: string; tokenEnv: string }
-  | { code: 'no-data-source'; workspace: string }
-  | { code: 'fetch-failed'; workspace: string; kind: 'worklog' | 'rollup'; detail: string };
-
 export async function listRecentPages(): Promise<{
   pages: RecentPage[];
   warnings: RecentWarning[];
 }> {
-  ensureEnvLoaded();
   const cfg = await readConfig();
   const parsed = cfg.parsed as ParsedConfig | null;
   if (!parsed?.notionWorkspaces?.length) {
@@ -134,7 +115,7 @@ async function listWorkspacePages(
   const pages: RecentPage[] = [];
   const warnings: RecentWarning[] = [];
 
-  const token = process.env[ws.tokenEnv];
+  const token = secretValue(ws.tokenEnv);
   if (!token) {
     warnings.push({ code: 'token-missing', workspace: ws.label, tokenEnv: ws.tokenEnv });
     return { pages, warnings };
@@ -249,28 +230,6 @@ async function listRollupPages(
   });
 }
 
-export type RichSpan = {
-  text: string;
-  bold?: boolean;
-  italic?: boolean;
-  code?: boolean;
-  strike?: boolean;
-  href?: string;
-};
-
-export type SimpleBlock = {
-  id: string;
-  type: string;
-  rich: RichSpan[];
-  checked?: boolean;
-  language?: string;
-  icon?: string;
-  iconUrl?: string;
-  children?: SimpleBlock[];
-};
-
-export type PageContent = { blocks: SimpleBlock[]; warning?: string };
-
 type RawRichText = {
   plain_text?: string;
   href?: string | null;
@@ -355,13 +314,12 @@ export async function fetchPageContent(
   pageId: string,
   workspaceLabel: string,
 ): Promise<PageContent> {
-  ensureEnvLoaded();
   const cfg = await readConfig();
   const parsed = cfg.parsed as ParsedConfig | null;
   const ws =
     parsed?.notionWorkspaces?.find((w) => w.label === workspaceLabel) ??
     parsed?.notionWorkspaces?.[0];
-  const token = ws ? process.env[ws.tokenEnv] : undefined;
+  const token = ws ? secretValue(ws.tokenEnv) : undefined;
   if (!token) return { blocks: [], warning: 'token 없음' };
 
   try {
@@ -375,7 +333,6 @@ export async function fetchPageContent(
 // 발행 워크스페이스 라벨을 모르는 경로(export 자동 sync)용 — 첫 워크스페이스만 쓰면 두 번째
 // 워크스페이스 발행분이 조용히 skip 돼 토큰을 차례로 시도
 export async function fetchPageContentAnyWorkspace(pageId: string): Promise<PageContent> {
-  ensureEnvLoaded();
   const cfg = await readConfig();
   const parsed = cfg.parsed as ParsedConfig | null;
   const labels = (parsed?.notionWorkspaces ?? []).map((w) => w.label);

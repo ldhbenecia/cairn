@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { CoreMode, RunLine } from '../cairn-api';
+import type { CoreMode, RunLine } from '../../../shared/ipc-types';
 
 const TAIL_MAX = 200;
 

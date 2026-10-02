@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { RecentPage } from '../cairn-api';
+import type { RecentPage } from '../../../shared/ipc-types';
 import { availableYears, computeWrapped, longestStreak, topProjects } from './wrapped';
 
 const daily = (date: string, pr: number, commit: number): RecentPage => ({
@@ -51,6 +51,19 @@ describe('topProjects', () => {
     expect(top).toEqual([
       { name: 'cairn', count: 2 },
       { name: 'team-api', count: 1 },
+    ]);
+  });
+
+  it('프로젝트 뷰와 같은 파서 — 볼드·링크 브래킷, [계정] repo — 형태도 같은 레포', () => {
+    const top = topProjects([
+      '**[cairn]** 기간 정리 문서',
+      '[cairn](https://github.com/x/cairn) 도구 격리',
+      '[work] AdminServer #12 — 배너 연동',
+      '[cairn] Release notes: 정리',
+    ]);
+    expect(top).toEqual([
+      { name: 'cairn', count: 3 },
+      { name: 'AdminServer', count: 1 },
     ]);
   });
 });

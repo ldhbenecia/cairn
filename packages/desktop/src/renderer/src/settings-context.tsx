@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { Settings, Theme } from './cairn-api';
+import type { Settings, Theme } from '../../shared/ipc-types';
 import { translate, type I18nKey } from './i18n';
 import { mergeSettings } from '../../shared/merge-settings';
 

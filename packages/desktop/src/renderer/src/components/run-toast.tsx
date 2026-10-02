@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, Check, Minus, TriangleAlert, X } from 'lucide-react';
-import type { CoreMode, CoreResult } from '../cairn-api';
+import type { CoreMode, CoreResult } from '../../../shared/ipc-types';
 import { useSettings } from '../settings-context';
+import { classifyRunOutcome } from '../../../shared/run-outcome';
 
 export type RunToastData = { mode: CoreMode; result: CoreResult; at: number };
 
@@ -22,29 +23,20 @@ export function RunToast({
         {toast &&
           (() => {
             const { mode, result } = toast;
-            // '활동 없음·skip·대상 없음'을 초록 '발행 완료'로 오보하지 않게 결과 종류 구분
-            const kind =
-              !result.ok || result.summaryFailed
-                ? ('fail' as const)
-                : result.noActivity
-                  ? ('noActivity' as const)
-                  : result.publishKind === 'skipped'
-                    ? ('skipped' as const)
-                    : result.publishKind === 'no-target'
-                      ? result.journalFile
-                        ? ('localDone' as const)
-                        : ('noTarget' as const)
-                      : ('done' as const);
+            const outcome = classifyRunOutcome(result);
+            const kind = outcome === 'summaryFailed' ? ('fail' as const) : outcome;
             const ok = kind === 'done' || kind === 'localDone';
             const neutral = kind === 'noActivity' || kind === 'skipped' || kind === 'noTarget';
             const url = result.notionUrl;
             const hasCounts = ok && (result.prCount > 0 || result.commitCount > 0);
             const failHint =
-              kind === 'fail'
-                ? result.failureHint
-                  ? (`fail.${result.failureHint}` as const)
-                  : ('fail.unknown' as const)
-                : null;
+              outcome === 'summaryFailed'
+                ? ('fail.summarize' as const)
+                : kind === 'fail'
+                  ? result.failureHint
+                    ? (`fail.${result.failureHint}` as const)
+                    : ('fail.unknown' as const)
+                  : null;
             return (
               <motion.div
                 key={toast.at}

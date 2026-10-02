@@ -11,10 +11,11 @@ import {
   X,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import type { CoreResult, RunProgress } from '../cairn-api';
+import type { CoreResult, RunProgress } from '../../../shared/ipc-types';
 import type { SinkOutcome } from '../lib/publish-sinks';
 import { NotionMark, ObsidianMark } from './brand-icons';
 import type { T } from './publish-dialog-utils';
+import { classifyRunOutcome } from '../../../shared/run-outcome';
 
 function pageIdToUrl(pageId: string | null): string | null {
   if (!pageId || pageId.startsWith('journal:')) return null;
@@ -135,22 +136,18 @@ export function Result({
   onNewPublish?: () => void;
 }) {
   const url = result.notionUrl ?? pageIdToUrl(result.publishPageId);
-  // 노션 미연동이어도 로컬 일지가 기록됐으면 성공
-  const localOnly = result.publishKind === 'no-target' && !!result.journalFile;
-  const isSuccess =
-    result.ok &&
-    (result.publishKind !== 'no-target' || localOnly) &&
-    result.publishKind !== 'skipped' &&
-    !result.noActivity;
+  const outcome = classifyRunOutcome(result);
+  const localOnly = outcome === 'localDone';
+  const isSuccess = outcome === 'done' || localOnly;
   let body: React.ReactNode;
-  if (result.summaryFailed) {
+  if (outcome === 'summaryFailed') {
     body = (
       <p className="flex items-center gap-2 text-[15px] text-danger">
         <TriangleAlert size={18} strokeWidth={2.25} />
         {t('publish.result.summaryFailed')}
       </p>
     );
-  } else if (!result.ok) {
+  } else if (outcome === 'fail') {
     body = (
       <div className="flex flex-col items-center gap-1.5 text-center">
         <p className="text-danger">{t('publish.result.fail')}</p>
@@ -161,9 +158,9 @@ export function Result({
         </p>
       </div>
     );
-  } else if (result.publishKind === 'no-target' && !localOnly) {
+  } else if (outcome === 'noTarget') {
     body = <p className="text-notice">{t('publish.result.noTarget')}</p>;
-  } else if (result.noActivity) {
+  } else if (outcome === 'noActivity') {
     body = (
       <div className="flex flex-col items-center gap-2 pt-3 pb-1 text-center">
         <motion.span
@@ -180,7 +177,7 @@ export function Result({
         </p>
       </div>
     );
-  } else if (result.publishKind === 'skipped') {
+  } else if (outcome === 'skipped') {
     body = <p className="text-ink-muted">{t('publish.result.skipped')}</p>;
   } else {
     body = (

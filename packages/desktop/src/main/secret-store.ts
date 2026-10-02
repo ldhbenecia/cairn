@@ -78,7 +78,13 @@ export function secretEnv(opts?: SecretStoreOpts): Record<string, string> {
   return readPlainEnv(opts);
 }
 
-// 메인은 복호화한 토큰을 process.env 에 올림 — 토큰이 필요 없는 fork 에는 시크릿 키를 뺀 env 를 넘김
+// 토큰은 process.env 에 올리지 않고 필요할 때 여기서 읽음 — 전역 env 에 두면 모든 fork 가 상속함
+// 스토어 우선, 셸 env 는 폴백 (발행 run 이 core 에 넘기는 우선순위와 같음)
+export function secretValue(name: string, opts?: SecretStoreOpts): string | undefined {
+  return secretEnv(opts)[name] ?? process.env[name];
+}
+
+// 셸에서 export 된 같은 이름의 토큰도 토큰이 필요 없는 fork 에는 넘기지 않음
 export function envWithoutSecrets(opts?: SecretStoreOpts): NodeJS.ProcessEnv {
   const env = { ...process.env };
   for (const key of Object.keys(secretEnv(opts))) delete env[key];

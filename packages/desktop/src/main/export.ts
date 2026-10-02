@@ -9,12 +9,8 @@ import { journalFolder } from './journal-reader';
 import { fetchPageContentAnyWorkspace, type RecentCategory } from './notion-client';
 import { readSettings } from './settings';
 import { journalFileNameFor } from './worklog-sinks';
-
-export interface SaveResult {
-  saved: boolean;
-  path?: string;
-  error?: string;
-}
+import type { SaveResult, ExportStatus } from '../shared/ipc-types';
+export type { SaveResult, ExportStatus } from '../shared/ipc-types';
 
 // 1차 소스는 journal 복사 — 없으면 노션 fetch 폴백
 export async function syncWorklogToFolder(opts: {
@@ -50,13 +46,6 @@ export async function syncWorklogToFolder(opts: {
   });
   await writeFile(join(cfg.folder, `${opts.fileBase}.md`), md, 'utf8');
 }
-
-export type ExportStatus = {
-  folder: string | null;
-  isVault: boolean;
-  fileCount: number;
-  lastSyncAt: number | null;
-};
 
 // .obsidian 존재로 vault 감지, YYYY-MM-DD*.md 만 집계 — 대형 vault 에서 메인이 얼지 않게 비동기 fs
 export async function exportStatus(): Promise<ExportStatus> {

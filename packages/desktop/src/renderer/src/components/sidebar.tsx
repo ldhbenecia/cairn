@@ -12,7 +12,7 @@ import {
   Settings2,
   type LucideIcon,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type Ref } from 'react';
 import type { I18nKey } from '../i18n';
 import { keepClaudeStatusFresh, probeClaude, useClaudeStatus } from '../lib/claude-status-store';
 import { useSettings } from '../settings-context';
@@ -33,6 +33,7 @@ const FILTERS: { key: WorklogFilter; labelKey: I18nKey; icon: LucideIcon }[] = [
 ];
 
 type Props = {
+  ref?: Ref<HTMLElement>;
   width: number;
   view: MainView;
   filter: WorklogFilter;
@@ -47,6 +48,7 @@ type Props = {
 };
 
 export function Sidebar({
+  ref,
   width,
   view,
   filter,
@@ -62,7 +64,11 @@ export function Sidebar({
   const { t } = useSettings();
   const worklogActive = !preferencesActive && view === 'worklogs';
   return (
-    <nav style={{ width }} className="flex shrink-0 flex-col border-r border-hairline bg-surface-1">
+    <nav
+      ref={ref}
+      style={{ width }}
+      className="flex shrink-0 flex-col border-r border-hairline bg-surface-1"
+    >
       <div className="h-20 [-webkit-app-region:drag]" />
       <div className="flex items-center gap-1.5 px-3.5 [-webkit-app-region:drag]">
         <div className="min-w-0 flex-1">

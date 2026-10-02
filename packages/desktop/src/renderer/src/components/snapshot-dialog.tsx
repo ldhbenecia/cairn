@@ -1,9 +1,10 @@
-import { motion } from 'framer-motion';
 import { History, Loader2, RotateCcw, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { JournalSnapshotMeta, RecentPage } from '../cairn-api';
+import type { JournalSnapshotMeta, RecentPage } from '../../../shared/ipc-types';
 import { diffLines, type DiffLine } from '../lib/diff';
 import { useSettings } from '../settings-context';
+import { useEscape } from '../use-escape';
+import { OverlayDialog } from './overlay-dialog';
 
 export function SnapshotDialog({
   page,
@@ -22,16 +23,8 @@ export function SnapshotDialog({
   const [restoreErr, setRestoreErr] = useState(false);
   const date = page.date ?? '';
 
-  useEffect(() => {
-    // ESC 는 다이얼로그가 소비(capture + stopPropagation) — 상위 드로어까지 함께 닫히지 않게
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      onClose();
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [onClose]);
+  // ESC 는 다이얼로그가 소비(capture + 전파 차단) — 상위 드로어까지 함께 닫히지 않게
+  useEscape(onClose, { capture: true, stop: true });
 
   useEffect(() => {
     let alive = true;
@@ -104,121 +97,101 @@ export function SnapshotDialog({
     });
 
   return (
-    <motion.div
-      onPointerDown={onClose}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 [-webkit-app-region:no-drag]"
-    >
-      <motion.div
-        onPointerDown={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, scale: 0.97, y: -8 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.98, y: -4 }}
-        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="glass-panel flex max-h-[78vh] w-[640px] max-w-[92vw] flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-2xl shadow-black/50"
-      >
-        <div className="flex items-start gap-3 border-b border-hairline px-6 py-4">
-          <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-2 text-[14px] font-semibold text-ink">
-              <History size={15} strokeWidth={2} className="text-ink-tertiary" />
-              {t('snap.title')}
-            </p>
-            <p className="mt-0.5 truncate font-mono text-[11.5px] text-ink-tertiary">
-              {page.title}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            title={t('drawer.close')}
-            className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
-          >
-            <X size={15} strokeWidth={2} />
-          </button>
+    <OverlayDialog onClose={onClose} className="flex max-h-[78vh] w-[640px] flex-col">
+      <div className="flex items-start gap-3 border-b border-hairline px-6 py-4">
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-2 text-[14px] font-semibold text-ink">
+            <History size={15} strokeWidth={2} className="text-ink-tertiary" />
+            {t('snap.title')}
+          </p>
+          <p className="mt-0.5 truncate font-mono text-[11.5px] text-ink-tertiary">{page.title}</p>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          title={t('drawer.close')}
+          className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+        >
+          <X size={15} strokeWidth={2} />
+        </button>
+      </div>
 
-        {snaps === null ? (
-          <div className="flex items-center justify-center gap-2 py-14 text-[12px] text-ink-tertiary">
-            <Loader2 size={14} strokeWidth={2} className="animate-spin" />
-            {t('snap.loading')}
-          </div>
-        ) : snaps.length === 0 ? (
-          <p className="px-6 py-14 text-center text-[13px] text-ink-tertiary">{t('snap.empty')}</p>
-        ) : (
-          <>
-            <div className="flex flex-wrap gap-1.5 border-b border-hairline px-6 py-3">
-              {snaps.map((s) => (
-                <button
-                  key={s.stamp}
-                  type="button"
-                  onClick={() => setSelected(s.stamp)}
-                  className={[
-                    'rounded-md border px-2.5 py-1 font-mono text-[11.5px] transition-colors',
-                    selected === s.stamp
-                      ? 'border-hairline-strong bg-surface-3 text-ink'
-                      : 'border-hairline text-ink-muted hover:bg-surface-2 hover:text-ink',
-                  ].join(' ')}
-                >
-                  {fmt(s.at)}
-                </button>
-              ))}
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-3">
-              {diff === null ? (
-                <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-ink-tertiary">
-                  <Loader2 size={14} strokeWidth={2} className="animate-spin" />
-                  {t('snap.loading')}
-                </div>
-              ) : (
-                <pre className="font-mono text-[11.5px] leading-relaxed whitespace-pre-wrap">
-                  {diff.map((l, i) => (
-                    <div
-                      key={i}
-                      className={
-                        l.type === 'del'
-                          ? 'bg-danger/10 text-danger'
-                          : l.type === 'add'
-                            ? 'bg-success/10 text-success'
-                            : 'text-ink-muted'
-                      }
-                    >
-                      {l.type === 'del' ? '- ' : l.type === 'add' ? '+ ' : '  '}
-                      {l.text}
-                    </div>
-                  ))}
-                </pre>
-              )}
-            </div>
-            <div className="flex items-center justify-between border-t border-hairline px-6 py-3.5">
-              <span className="text-[11.5px] text-ink-tertiary">
-                {restoreErr ? (
-                  <span className="text-danger">{t('snap.restoreFail')}</span>
-                ) : (
-                  t('snap.legend')
-                )}
-              </span>
+      {snaps === null ? (
+        <div className="flex items-center justify-center gap-2 py-14 text-[12px] text-ink-tertiary">
+          <Loader2 size={14} strokeWidth={2} className="animate-spin" />
+          {t('snap.loading')}
+        </div>
+      ) : snaps.length === 0 ? (
+        <p className="px-6 py-14 text-center text-[13px] text-ink-tertiary">{t('snap.empty')}</p>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-1.5 border-b border-hairline px-6 py-3">
+            {snaps.map((s) => (
               <button
+                key={s.stamp}
                 type="button"
-                disabled={!selected || restoring}
-                onClick={() => void restore()}
-                className="flex items-center gap-1.5 rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink transition-colors hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={() => setSelected(s.stamp)}
+                className={[
+                  'rounded-md border px-2.5 py-1 font-mono text-[11.5px] transition-colors',
+                  selected === s.stamp
+                    ? 'border-hairline-strong bg-surface-3 text-ink'
+                    : 'border-hairline text-ink-muted hover:bg-surface-2 hover:text-ink',
+                ].join(' ')}
               >
-                {restoring ? (
-                  <Loader2 size={14} strokeWidth={2} className="animate-spin" />
-                ) : (
-                  <RotateCcw size={14} strokeWidth={2} />
-                )}
-                {t('snap.restore')}
+                {fmt(s.at)}
               </button>
-            </div>
-          </>
-        )}
-      </motion.div>
-    </motion.div>
+            ))}
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-3">
+            {diff === null ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-ink-tertiary">
+                <Loader2 size={14} strokeWidth={2} className="animate-spin" />
+                {t('snap.loading')}
+              </div>
+            ) : (
+              <pre className="font-mono text-[11.5px] leading-relaxed whitespace-pre-wrap">
+                {diff.map((l, i) => (
+                  <div
+                    key={i}
+                    className={
+                      l.type === 'del'
+                        ? 'bg-danger/10 text-danger'
+                        : l.type === 'add'
+                          ? 'bg-success/10 text-success'
+                          : 'text-ink-muted'
+                    }
+                  >
+                    {l.type === 'del' ? '- ' : l.type === 'add' ? '+ ' : '  '}
+                    {l.text}
+                  </div>
+                ))}
+              </pre>
+            )}
+          </div>
+          <div className="flex items-center justify-between border-t border-hairline px-6 py-3.5">
+            <span className="text-[11.5px] text-ink-tertiary">
+              {restoreErr ? (
+                <span className="text-danger">{t('snap.restoreFail')}</span>
+              ) : (
+                t('snap.legend')
+              )}
+            </span>
+            <button
+              type="button"
+              disabled={!selected || restoring}
+              onClick={() => void restore()}
+              className="flex items-center gap-1.5 rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-[13px] text-ink transition-colors hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {restoring ? (
+                <Loader2 size={14} strokeWidth={2} className="animate-spin" />
+              ) : (
+                <RotateCcw size={14} strokeWidth={2} />
+              )}
+              {t('snap.restore')}
+            </button>
+          </div>
+        </>
+      )}
+    </OverlayDialog>
   );
 }

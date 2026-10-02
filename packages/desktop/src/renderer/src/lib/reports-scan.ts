@@ -1,4 +1,4 @@
-import type { RecentListResult, RecentPage } from '../cairn-api';
+import type { RecentListResult, RecentPage } from '../../../shared/ipc-types';
 import { addDays, localDateDaysAgo, todayLocal } from './reports';
 import { pool } from '../../../shared/pool';
 

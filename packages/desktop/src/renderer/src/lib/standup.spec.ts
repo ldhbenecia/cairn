@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { RecentPage, SimpleBlock } from '../cairn-api';
+import type { RecentPage, SimpleBlock } from '../../../shared/ipc-types';
 import { buildStandupText, pickStandupSource } from './standup';
 
 const LABELS = { yesterday: '어제 한 일', today: '오늘 예정', blockers: '블로커', none: '없음' };

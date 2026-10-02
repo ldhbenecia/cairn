@@ -1,9 +1,8 @@
-// 저장 위치·파일명 포맷은 core/src/period-doc 과 같이 바꿔야 함
+import type { PeriodDocRange } from '../shared/ipc-types';
+export type { PeriodDocRange } from '../shared/ipc-types'; // 저장 위치·파일명 포맷은 core/src/period-doc 과 같이 바꿔야 함
 
 export const PERIOD_DOC_DIR = 'periods';
 export const PERIOD_DOC_MAX_DAYS = 366;
-
-export type PeriodDocRange = { since: string; until: string };
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const FILE_RE = /^\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.md$/;
