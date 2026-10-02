@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { CanvasRevealEffect } from '@/components/ui/canvas-reveal-effect';
 import { authClient } from '@/lib/auth-client';
 
-type Phase = 'loading' | 'signin' | 'bridging' | 'done' | 'error';
+type Phase = 'loading' | 'signin' | 'confirm' | 'bridging' | 'done' | 'error';
 
 function readPort(): string | null {
   if (typeof window === 'undefined') return null;
@@ -29,6 +29,8 @@ export default function DesktopLogin() {
   const state = useSyncExternalStore(subscribeNoop, readState, getNull);
   const [errored, setErrored] = useState(false);
   const [handedOff, setHandedOff] = useState(false);
+  // 토큰 전송은 클릭 뒤에만 — 로그인된 브라우저가 조작된 링크의 port 로 토큰을 자동으로 보내지 않게
+  const [confirmed, setConfirmed] = useState(false);
   const bridged = useRef(false);
 
   let phase: Phase = 'loading';
@@ -36,6 +38,7 @@ export default function DesktopLogin() {
   else if (isPending) phase = 'loading';
   else if (!session) phase = 'signin';
   else if (handedOff || !port) phase = 'done';
+  else if (!confirmed) phase = 'confirm';
   else phase = 'bridging';
 
   useEffect(() => {
@@ -138,6 +141,19 @@ export default function DesktopLogin() {
                 />
               </svg>
               Sign in with Google
+            </button>
+          </>
+        )}
+
+        {phase === 'confirm' && (
+          <>
+            <p className="text-[14px] text-white/60">Signed in as {session?.user.email}.</p>
+            <button
+              type="button"
+              onClick={() => setConfirmed(true)}
+              className="inline-flex h-11 items-center rounded-full bg-white px-6 text-[14px] font-medium text-black transition-opacity hover:opacity-90"
+            >
+              Continue to the cairn app
             </button>
           </>
         )}
