@@ -59,6 +59,14 @@ const EMPTY_SESSIONS: Record<CoreMode, RunSession | null> = {
   yearly: null,
 };
 
+type Sessions = Record<CoreMode, RunSession | null>;
+
+// 세션이 없으면(리로드 직후 도착한 브로드캐스트 등) 진행 중 세션으로 시작해 패치
+function patchSession(prev: Sessions, mode: CoreMode, patch: Partial<RunSession>): Sessions {
+  const current = prev[mode] ?? { state: 'running', step: 'boot', startedAt: Date.now() };
+  return { ...prev, [mode]: { ...current, ...patch } };
+}
+
 const RECENT_CACHE_KEY = 'cairn:recentCache:v1';
 
 function readRecentCache(): RecentListResult | null {
@@ -179,31 +187,14 @@ export function App() {
 
   useEffect(() => {
     const off = window.cairn.onRunStep(({ mode, step }) => {
-      setSessions((prev) => {
-        const current = prev[mode] ?? {
-          state: 'running',
-          step: 'boot',
-          startedAt: Date.now(),
-        };
-        return { ...prev, [mode]: { ...current, step } };
-      });
+      setSessions((prev) => patchSession(prev, mode, { step }));
     });
     return off;
   }, []);
 
   useEffect(() => {
     const off = window.cairn.onRunProgress(({ mode, ...progress }) => {
-      setSessions((prev) => {
-        const current = prev[mode] ?? {
-          state: 'running' as const,
-          step: 'boot' as const,
-          startedAt: Date.now(),
-        };
-        return {
-          ...prev,
-          [mode]: { ...current, batch: true, progress },
-        };
-      });
+      setSessions((prev) => patchSession(prev, mode, { batch: true, progress }));
     });
     return off;
   }, []);
@@ -215,17 +206,9 @@ export function App() {
   useEffect(() => {
     let active = true;
     const off = window.cairn.onRunDone(({ mode, result }) => {
-      setSessions((prev) => {
-        const current = prev[mode] ?? {
-          state: 'running' as const,
-          step: 'done' as const,
-          startedAt: Date.now(),
-        };
-        return {
-          ...prev,
-          [mode]: { ...current, state: 'done', step: 'done', result, endedAt: Date.now() },
-        };
-      });
+      setSessions((prev) =>
+        patchSession(prev, mode, { state: 'done', step: 'done', result, endedAt: Date.now() }),
+      );
       setRunningMode((rm) => (rm === mode ? null : rm));
       if (!result.cancelled) {
         setToast({ mode, result, at: Date.now() });
@@ -388,17 +371,9 @@ export function App() {
       } catch (err) {
         const raw = err instanceof Error ? err.message : String(err);
         const message = /(^|:\s?(Error:\s?)?)busy:/.test(raw) ? t('publish.busyMsg') : raw;
-        setSessions((prev) => {
-          const current = prev[mode] ?? {
-            state: 'running',
-            step: 'boot',
-            startedAt: Date.now(),
-          };
-          return {
-            ...prev,
-            [mode]: { ...current, state: 'done', error: message, endedAt: Date.now() },
-          };
-        });
+        setSessions((prev) =>
+          patchSession(prev, mode, { state: 'done', error: message, endedAt: Date.now() }),
+        );
       } finally {
         setRunningMode(null);
       }
