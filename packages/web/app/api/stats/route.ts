@@ -7,6 +7,9 @@ import { worklogStats } from '@/lib/schema';
 
 const CATEGORIES = new Set(['daily', 'weekly', 'monthly']);
 const MAX_COUNT = 100_000; // int4 overflow·과대값 차단 (도메인 상한)
+
+const isCount = (v: unknown): v is number =>
+  typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= MAX_COUNT;
 const HOURS_LEN = 24;
 const ISO_8601_OFFSET = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -40,17 +43,9 @@ function parseRows(input: unknown): StatRow[] | null {
     const o = r as Record<string, unknown>;
     if (typeof o.category !== 'string' || !CATEGORIES.has(o.category)) return null;
     if (typeof o.date !== 'string' || !isValidDate(o.date)) return null;
-    if (!Number.isInteger(o.pr) || (o.pr as number) < 0 || (o.pr as number) > MAX_COUNT)
-      return null;
-    if (
-      !Number.isInteger(o.commitCount) ||
-      (o.commitCount as number) < 0 ||
-      (o.commitCount as number) > MAX_COUNT
-    )
-      return null;
+    if (!isCount(o.pr) || !isCount(o.commitCount)) return null;
     if (!Array.isArray(o.hours) || o.hours.length > HOURS_LEN) return null;
-    if (o.hours.some((h) => !Number.isInteger(h) || (h as number) < 0 || (h as number) > MAX_COUNT))
-      return null;
+    if (!o.hours.every(isCount)) return null;
     if (typeof o.updatedAt !== 'string' || !ISO_8601_OFFSET.test(o.updatedAt)) return null;
     const updatedTs = Date.parse(o.updatedAt);
     if (Number.isNaN(updatedTs) || updatedTs > Date.now() + 86_400_000) return null;
