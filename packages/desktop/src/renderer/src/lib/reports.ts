@@ -38,7 +38,7 @@ function bracketRepo(src: string): string | null {
   return BARE_REPO_RE.exec(rest)?.[1] ?? first[1]!;
 }
 
-// '[label] [repo] …' 는 두 번째 브래킷이 레포 (wrapped.topProjects 와 같은 문법)
+// '[label] [repo] …' 는 두 번째 브래킷이 레포
 export function parseDoneBullet(
   date: string,
   bullet: string,

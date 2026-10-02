@@ -1,4 +1,5 @@
 import type { RecentPage } from '../../../shared/ipc-types';
+import { parseDoneItems } from './reports';
 
 export type WrappedStats = {
   year: string;
@@ -80,19 +81,14 @@ export function longestStreak(dates: readonly string[]): number {
   return best;
 }
 
-// 일지 Done bullet 의 '[repo]' 프리픽스 집계 — 계정 라벨 프리픽스('[work] [repo] …')는 두 번째 것 사용
+// 일지 Done bullet 의 레포 집계 — 프로젝트 뷰와 같은 파서라 볼드·링크·'[계정] repo —' 형태도 같은 레포로 셈
 export function topProjects(
   bullets: readonly string[],
   limit = 5,
 ): { name: string; count: number }[] {
   const counts = new Map<string, number>();
-  const RE = /^\[([^\]]+)\]\s*(?:\[([^\]]+)\]\s*)?/;
-  for (const b of bullets) {
-    const m = RE.exec(b);
-    if (!m) continue;
-    const name = m[2] ?? m[1];
-    if (!name) continue;
-    counts.set(name, (counts.get(name) ?? 0) + 1);
+  for (const { repo } of parseDoneItems([{ date: '', bullets }])) {
+    if (repo) counts.set(repo, (counts.get(repo) ?? 0) + 1);
   }
   return [...counts.entries()]
     .map(([name, count]) => ({ name, count }))

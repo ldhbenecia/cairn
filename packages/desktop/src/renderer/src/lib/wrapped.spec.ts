@@ -53,6 +53,19 @@ describe('topProjects', () => {
       { name: 'team-api', count: 1 },
     ]);
   });
+
+  it('프로젝트 뷰와 같은 파서 — 볼드·링크 브래킷, [계정] repo — 형태도 같은 레포', () => {
+    const top = topProjects([
+      '**[cairn]** 기간 정리 문서',
+      '[cairn](https://github.com/x/cairn) 도구 격리',
+      '[work] AdminServer #12 — 배너 연동',
+      '[cairn] Release notes: 정리',
+    ]);
+    expect(top).toEqual([
+      { name: 'cairn', count: 3 },
+      { name: 'AdminServer', count: 1 },
+    ]);
+  });
 });
 
 describe('availableYears', () => {
