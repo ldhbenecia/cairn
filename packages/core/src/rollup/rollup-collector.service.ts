@@ -19,7 +19,7 @@ import type { NotionWorkspaceConfig } from '../worklog-config/worklog-config.sch
 import { WorklogConfigService } from '../worklog-config/worklog-config.service.js';
 import { WorklogStatsService } from '../worklog-stats/worklog-stats.service.js';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
-import { periodRange } from './period-range.js';
+import { addDaysIso, periodRange } from './period-range.js';
 
 interface ParsedSummaryText {
   paragraph: string;
@@ -303,7 +303,7 @@ export class RollupCollectorService {
     period: RollupPeriod,
     rangeStart: string,
   ): RollupPreviousContext | undefined {
-    const { start, end } = periodRange(period, dayBefore(rangeStart));
+    const { start, end } = periodRange(period, addDaysIso(rangeStart, -1));
     const totals = this.statsBetween(start, end);
     let paragraph: string | null = null;
     const blocks = this.journalSource.readRollupBlocks(period, start);
@@ -391,13 +391,6 @@ export class RollupCollectorService {
     );
     return { period, rangeStart: start, rangeEnd: end, dailies, summaries, metrics, previous };
   }
-}
-
-// 문자열 달력 산술 — period-range 와 동일하게 UTC 로만 계산 (로컬 TZ 무관)
-function dayBefore(date: string): string {
-  const [y, m, d] = date.split('-').map(Number);
-  const prev = new Date(Date.UTC(y!, m! - 1, d! - 1));
-  return `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}-${String(prev.getUTCDate()).padStart(2, '0')}`;
 }
 
 function emptyActivity(period: RollupPeriod, start: string, end: string): RollupActivity {

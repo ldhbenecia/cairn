@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  addDaysIso,
   isoWeekLabel,
   isoWeekRange,
   monthLabel,
@@ -86,5 +87,14 @@ describe('yearRange / yearLabel', () => {
 
   it('yearLabel 은 YYYY', () => {
     expect(yearLabel('2026-01-01')).toBe('2026');
+  });
+});
+
+describe('addDaysIso', () => {
+  it('crosses month, year and leap-day boundaries', () => {
+    expect(addDaysIso('2026-01-31', 1)).toBe('2026-02-01');
+    expect(addDaysIso('2027-01-01', -1)).toBe('2026-12-31');
+    expect(addDaysIso('2024-02-28', 1)).toBe('2024-02-29');
+    expect(addDaysIso('2026-7-1', 0)).toBe('2026-07-01');
   });
 });

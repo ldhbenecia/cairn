@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type { ExtractedBlock } from '../notion/notion-api.types.js';
 import type { RollupPeriod } from '../contracts/rollup-activity.types.js';
 import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
+import { addDaysIso } from '../rollup/period-range.js';
 import { dailyFileName, rollupFileName } from './journal-markdown.js';
 import { blocksToWorklogSummary, parseJournalFile } from './journal-parse.js';
 import { JournalWriterService } from './journal-writer.service.js';
@@ -96,13 +97,9 @@ function datesInRange(start: string, end: string): string[] {
   const [ey, em, ed] = end.split('-').map(Number);
   if (!sy || !sm || sd === undefined || !ey || !em || ed === undefined) return [];
   const out: string[] = [];
-  const cur = new Date(Date.UTC(sy, sm - 1, sd));
-  const last = Date.UTC(ey, em - 1, ed);
-  while (cur.getTime() <= last && out.length <= 366) {
-    out.push(
-      `${cur.getUTCFullYear()}-${String(cur.getUTCMonth() + 1).padStart(2, '0')}-${String(cur.getUTCDate()).padStart(2, '0')}`,
-    );
-    cur.setUTCDate(cur.getUTCDate() + 1);
+  const last = addDaysIso(end, 0);
+  for (let cur = addDaysIso(start, 0); cur <= last && out.length <= 366; cur = addDaysIso(cur, 1)) {
+    out.push(cur);
   }
   return out;
 }

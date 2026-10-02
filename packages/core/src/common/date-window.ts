@@ -45,8 +45,9 @@ function trimMillis(d: Date): string {
   return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
-export function todayLocalIsoDate(): string {
+export function todayLocalIsoDate(dayOffset = 0): string {
   const now = new Date();
+  now.setDate(now.getDate() + dayOffset);
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');

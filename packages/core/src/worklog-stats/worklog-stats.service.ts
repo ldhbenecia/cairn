@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { withFileLock } from '../common/file-lock.js';
+import { writeFileAtomic } from '../common/atomic-write.js';
 
 export type WorklogStat = { pr: number; commit: number; hours?: number[]; updatedAt?: string };
 export type WorklogStatsFile = Record<string, WorklogStat>;
@@ -20,9 +21,7 @@ export class WorklogStatsService {
       withFileLock(STATS_PATH, () => {
         const all = this.readAll();
         all[`${category}:${date}`] = { ...stat, updatedAt: new Date().toISOString() };
-        const tmp = `${STATS_PATH}.${process.pid}.tmp`;
-        writeFileSync(tmp, JSON.stringify(all), 'utf8');
-        renameSync(tmp, STATS_PATH);
+        writeFileAtomic(STATS_PATH, JSON.stringify(all));
       });
     } catch {
       // 통계 기록 실패가 발행을 막지 않음

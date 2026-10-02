@@ -75,6 +75,12 @@ function parseLocalDate(localDate: string): { y: number; m: number; d: number } 
   return { y, m, d };
 }
 
+// 문자열 달력 산술 — 파싱값을 UTC 로만 계산해 로컬 TZ·DST 무관
+export function addDaysIso(date: string, days: number): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return formatYmd(new Date(Date.UTC(y!, m! - 1, d! + days)));
+}
+
 function formatYmd(date: Date): string {
   const y = date.getUTCFullYear();
   const m = String(date.getUTCMonth() + 1).padStart(2, '0');

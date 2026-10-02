@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { RollupPeriod } from '../contracts/rollup-activity.types.js';
@@ -14,6 +14,7 @@ import {
   type RollupJournalInput,
 } from './journal-markdown.js';
 import { saveSnapshotIfChanged } from './journal-snapshot.js';
+import { writeFileAtomic } from '../common/atomic-write.js';
 
 export interface JournalWriteResult {
   fileName: string;
@@ -79,9 +80,7 @@ export class JournalWriterService {
     } catch (err) {
       this.logger.warn({ fileName, err: String(err) }, 'journal snapshot failed');
     }
-    const tmp = `${path}.${process.pid}.tmp`;
-    writeFileSync(tmp, content, 'utf8');
-    renameSync(tmp, path);
+    writeFileAtomic(path, content);
     this.logger.info({ fileName }, 'journal write done');
     return { fileName, path };
   }

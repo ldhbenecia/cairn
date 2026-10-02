@@ -78,21 +78,11 @@ export function parsePeriodDocArgs(argv: readonly string[]): {
 }
 
 function defaultDateForMode(mode: RunMode): string {
-  if (mode === 'weekly') return localIsoDateOffset(-7);
-  if (mode === 'monthly') return localIsoDateOffset(-5);
+  if (mode === 'weekly') return todayLocalIsoDate(-7);
+  if (mode === 'monthly') return todayLocalIsoDate(-5);
   // 1월 초 실행이 전년도를 가리키도록
-  if (mode === 'yearly') return localIsoDateOffset(-10);
+  if (mode === 'yearly') return todayLocalIsoDate(-10);
   return todayLocalIsoDate();
-}
-
-// 로컬 타임존 기준 — KST·UTC 단정 금지
-function localIsoDateOffset(dayOffset: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + dayOffset);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${dd}`;
 }
 
 function assertLang(value: unknown): WorklogLang {

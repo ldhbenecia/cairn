@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { AppConfigService } from '../config/app-config.service.js';
 import { withFileLock } from '../common/file-lock.js';
@@ -10,6 +10,7 @@ import {
   type NotionWorkspaceConfig,
   type WorklogConfig,
 } from './worklog-config.schema.js';
+import { writeFileAtomic } from '../common/atomic-write.js';
 
 const DEFAULT_FILENAME = 'worklog.config.json';
 const EMPTY_CONFIG: WorklogConfig = {
@@ -139,9 +140,7 @@ export class WorklogConfigService {
   }
 
   private writePersist(path: string, next: WorklogConfig): void {
-    const tmp = `${path}.${process.pid}.tmp`;
-    writeFileSync(tmp, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
-    renameSync(tmp, path);
+    writeFileAtomic(path, `${JSON.stringify(next, null, 2)}\n`);
     this.cached = next;
   }
 
