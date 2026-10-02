@@ -7,6 +7,7 @@ import { JournalBlocks } from './worklog-content';
 import { WorklogActions } from './worklog-actions';
 import { usePageContent } from '../use-page-content';
 import { useEscape } from '../use-escape';
+import { startColResize } from '../lib/col-resize';
 
 type Props = { page: RecentPage; onClose: () => void; onExpand: () => void };
 
@@ -30,6 +31,7 @@ export function WorklogDrawer({ page, onClose, onExpand }: Props) {
     localStorage.setItem('cairn:drawerWidth', String(width));
   }, [width]);
 
+  const panelRef = useRef<HTMLDivElement>(null);
   const resizeCleanup = useRef<(() => void) | null>(null);
   useEffect(() => () => resizeCleanup.current?.(), []);
 
@@ -40,27 +42,13 @@ export function WorklogDrawer({ page, onClose, onExpand }: Props) {
 
   function startResize(e: React.MouseEvent) {
     e.preventDefault();
+    if (!panelRef.current) return;
     const max = Math.min(900, Math.round(window.innerWidth * 0.92));
-    const onMove = (ev: MouseEvent) =>
-      setWidth(Math.min(max, Math.max(360, window.innerWidth - ev.clientX)));
-    function cleanup() {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      window.removeEventListener('blur', onUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      resizeCleanup.current = null;
-    }
-    function onUp() {
-      cleanup();
-    }
-    resizeCleanup.current = cleanup; // 드래그 중 drawer 언마운트 시 리스너 정리(누수 방지)
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    // 창 밖에서 버튼을 놓으면 mouseup 이 안 옴 — blur 로도 종료
-    window.addEventListener('blur', onUp);
+    resizeCleanup.current = startColResize(
+      panelRef.current,
+      (x) => Math.min(max, Math.max(360, window.innerWidth - x)),
+      setWidth,
+    );
   }
 
   return (
@@ -80,6 +68,7 @@ export function WorklogDrawer({ page, onClose, onExpand }: Props) {
       <div className="absolute inset-x-0 top-0 h-10 [-webkit-app-region:drag]" />
 
       <div
+        ref={panelRef}
         style={{ width: `${width}px` }}
         className={[
           'floating-panel absolute top-0 right-0 flex h-full max-w-[92vw] flex-col border-l border-hairline bg-surface-1 shadow-2xl shadow-black/40',

@@ -18,6 +18,7 @@ import type {
 } from '../../shared/ipc-types';
 import { AnimatePresence } from 'framer-motion';
 import { invalidateReportsScan, prefetchReportsScan } from './lib/reports-scan';
+import { startColResize } from './lib/col-resize';
 import { resetRunLines } from './lib/run-line-store';
 import { AutoConfirmToast } from './components/auto-confirm-toast';
 import { RunToast, type RunToastData } from './components/run-toast';
@@ -147,22 +148,11 @@ export function App() {
     localStorage.setItem('cairn:sidebarWidth', String(sidebarWidth));
   }, [sidebarWidth]);
 
+  const sidebarRef = useRef<HTMLElement>(null);
   const startResize = useCallback((e: ReactMouseEvent) => {
     e.preventDefault();
-    const onMove = (ev: MouseEvent) => setSidebarWidth(Math.min(420, Math.max(200, ev.clientX)));
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      window.removeEventListener('blur', onUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    // 창 밖에서 버튼을 놓으면 mouseup 이 안 와 blur 로도 종료
-    window.addEventListener('blur', onUp);
+    if (!sidebarRef.current) return;
+    startColResize(sidebarRef.current, (x) => Math.min(420, Math.max(200, x)), setSidebarWidth);
   }, []);
 
   useEffect(() => {
@@ -442,6 +432,7 @@ export function App() {
   return (
     <div className="flex h-screen w-screen bg-canvas text-ink">
       <Sidebar
+        ref={sidebarRef}
         width={sidebarWidth}
         view={view}
         filter={filter}
