@@ -66,8 +66,9 @@ export function parseDoneBullet(
   return parseBareRepo(date, src, false, trusted) ?? { date, repo: null, text: src };
 }
 
-// 브래킷 라벨 뒤(bracketed)의 bare/콜론은 구조 신호가 강해 그대로 신뢰,
-// 맨몸 콜론/대시는 신뢰 집합에 매치될 때만 레포 (2-pass 2차)
+// 브래킷 라벨 뒤(bracketed)의 bare 대시('[계정] repo — …')는 구조 신호가 강해 그대로 신뢰.
+// 콜론은 브래킷 뒤여도 신뢰 집합 매치만 — '[cairn] Release notes: …' 의 작업 단위가 레포
+// 레인으로 새던 문제 (프롬프트 계약은 '[repo] 작업 단위 — 결과')
 function parseBareRepo(
   date: string,
   s: string,
@@ -82,7 +83,7 @@ function parseBareRepo(
   const colon = COLON_REPO_RE.exec(s);
   if (colon) {
     const name = colon[1]!;
-    const repo = bracketed ? name : matchTrusted(name, trusted);
+    const repo = matchTrusted(name, trusted);
     if (repo) return { date, repo, text: colon[2]! };
     // 'cairn desktop' 처럼 신뢰 레포명+공백+단어 는 해당 신뢰 레포('cairn')로 귀속
     const words = name.split(' ');

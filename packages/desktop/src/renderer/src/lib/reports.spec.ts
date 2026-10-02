@@ -218,6 +218,22 @@ describe('parseDoneItems — 2-pass', () => {
     ]);
     expect(items.map((i) => i.repo)).toEqual(['AdminServer', 'AdminServer']);
   });
+
+  it('[repo] 뒤 영문 작업 단위 콜론은 레포가 아니다 — 브래킷 레포로 귀속', () => {
+    const items = parseDoneItems([
+      {
+        date: '2026-08-16',
+        bullets: [
+          '[cairn] Release notes: exclude web scope commits from app changelog',
+          '[cairn] SDK update: claude-agent-sdk 0.3.207→0.3.233',
+          '[cairn] Model selection guide: Haiku/Sonnet/Opus descriptions rewritten',
+          '[ldhbenecia] cairn desktop: 캡처 제거',
+        ],
+      },
+    ]);
+    expect(items.map((i) => i.repo)).toEqual(['cairn', 'cairn', 'cairn', 'cairn']);
+    expect(items[0]!.text).toBe('Release notes: exclude web scope commits from app changelog');
+  });
 });
 
 describe('날짜 산술', () => {
