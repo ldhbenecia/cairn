@@ -32,6 +32,6 @@ export function emitParentEvent(event: ParentEvent): void {
   try {
     process.send({ cairn: 1, ...event });
   } catch {
-    /* best-effort — 스크래핑 폴백 */
+    /* best-effort */
   }
 }
