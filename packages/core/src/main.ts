@@ -4,12 +4,13 @@ import { query } from '@anthropic-ai/claude-agent-sdk';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
-import { parseCliArgs } from './cairn/cli-args.js';
+import { parseCliArgs, parsePeriodDocArgs } from './cairn/cli-args.js';
 import { OrchestratorService } from './cairn/orchestrator.service.js';
 import { accumulateAgentUsage } from './common/agent-usage.js';
 import { claudeExecutableOptions } from './common/claude-executable.js';
 import { CairnError } from './common/error.js';
 import { summaryModelOption } from './common/summary-model.js';
+import { PeriodDocService } from './period-doc/period-doc.service.js';
 
 // 요약과 같은 모델로 검사해야 probe 통과 = 발행 가능이 성립한다
 async function probeClaude(): Promise<void> {
@@ -37,7 +38,9 @@ async function bootstrap(): Promise<void> {
     await probeClaude();
     return;
   }
-  const options = parseCliArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  const periodDoc = argv.includes('--period-doc') ? parsePeriodDocArgs(argv) : null;
+  const options = periodDoc ? null : parseCliArgs(argv);
 
   const app = await NestFactory.createApplicationContext(AppModule, {
     bufferLogs: true,
@@ -46,8 +49,8 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 
   try {
-    const orchestrator = app.get(OrchestratorService);
-    await orchestrator.run(options);
+    if (periodDoc) await app.get(PeriodDocService).generate(periodDoc);
+    else await app.get(OrchestratorService).run(options!);
   } finally {
     await app.close();
   }

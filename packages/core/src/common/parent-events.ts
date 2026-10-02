@@ -23,7 +23,9 @@ export type ParentEvent =
       failedDates: string[];
     }
   | { type: 'day-done'; date: string; pr: number; commit: number; pageId: string | null }
-  | { type: 'collect-partial'; labels: string[] };
+  | { type: 'collect-partial'; labels: string[] }
+  | { type: 'period-doc-written'; fileName: string }
+  | { type: 'period-doc-empty' };
 
 export function emitParentEvent(event: ParentEvent): void {
   if (typeof process.send !== 'function') return;
