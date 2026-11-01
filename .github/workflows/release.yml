@@ -48,6 +48,15 @@ jobs:
           pnpm --filter @cairn/desktop exec electron-vite build
           pnpm --filter @cairn/desktop exec electron-builder --publish always --config.extraMetadata.version="$ROOT"
 
+      # releases/latest/download 로 받는 터미널 설치용 고정 이름 — 버전 붙은 zip 은 latest-mac.yml 이 참조하므로 그대로 둠
+      - name: Upload stable-named zip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ROOT="$(node -p "require('./package.json').version")"
+          cp "packages/desktop/dist/Cairn-${ROOT}-arm64-mac.zip" Cairn-arm64-mac.zip
+          gh release upload "${GITHUB_REF_NAME}" Cairn-arm64-mac.zip --clobber
+
       - name: Install git-cliff
         uses: taiki-e/install-action@v2
         with:
