@@ -8,6 +8,18 @@ export interface RawLocalCommit {
   authoredAt: string;
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const SLACK_MS = 30 * DAY_MS;
+// 미스 때 과거로 더 받아 둘 폭 — 백필 상한(30일)을 한 번에 덮음
+const PREFETCH_MS = 60 * DAY_MS;
+
+interface LogRow {
+  shortSha: string;
+  subject: string;
+  authoredAt: string;
+  committedAt: string | undefined;
+}
+
 @Injectable()
 export class LocalGitClient {
   async checkIsRepo(repoPath: string): Promise<boolean> {
@@ -29,6 +41,10 @@ export class LocalGitClient {
     }
   }
 
+  // 백필은 날짜마다 ±30일 git log 를 레포 수만큼 다시 실행 — 넓게 한 번 받아 두고 범위 안이면 메모리에서 필터
+  // 필터 규칙이 같아 결과는 날짜별 조회와 동일
+  private readonly logCache = new Map<string, { fromMs: number; toMs: number; rows: LogRow[] }>();
+
   async listCommits(
     repoPath: string,
     since: string,
@@ -42,33 +58,14 @@ export class LocalGitClient {
     if (Number.isNaN(sinceMs) || Number.isNaN(untilMs)) {
       throw new Error(`invalid commit window: since=${since}, until=${until}`);
     }
-    const slackMs = 30 * 24 * 60 * 60 * 1000;
-    const out = await this.git(repoPath).raw([
-      'log',
-      '--all',
-      `--since=${new Date(sinceMs - slackMs).toISOString()}`,
-      `--until=${new Date(untilMs + slackMs).toISOString()}`,
-      '--no-merges',
-      `--author=${author}`,
-      '--pretty=format:%h%x09%s%x09%aI%x09%cI',
-    ]);
+    const rows = await this.logRows(repoPath, author, sinceMs - SLACK_MS, untilMs + SLACK_MS);
     const inWindow = (iso: string | undefined): boolean => {
       if (!iso) return false;
       const t = Date.parse(iso);
       return t >= sinceMs && t <= untilMs;
     };
     return (
-      out
-        .split('\n')
-        .filter((line) => line.trim().length > 0)
-        .map((line) => {
-          const [shortSha, subject, authoredAt, committedAt] = line.split('\t');
-          // 빈 subject(--allow-empty-message)도 정상 커밋 — throw 하면 레포 전체가 그 날짜에서 탈락
-          if (!shortSha || !authoredAt) {
-            throw new Error(`unexpected git log line shape: ${line}`);
-          }
-          return { shortSha, subject: subject ?? '', authoredAt, committedAt };
-        })
+      rows
         // rebase/cherry-pick 은 author date 가 과거라 committer date 폴백, 귀속 시각도 윈도우에 든 쪽
         // (GitHub PR 커밋 경로와 같은 규칙)
         .filter((c) => inWindow(c.authoredAt) || inWindow(c.committedAt))
@@ -78,6 +75,40 @@ export class LocalGitClient {
           authoredAt: inWindow(authoredAt) ? authoredAt : (committedAt ?? authoredAt),
         }))
     );
+  }
+
+  private async logRows(
+    repoPath: string,
+    author: string,
+    needFrom: number,
+    needTo: number,
+  ): Promise<LogRow[]> {
+    const key = `${repoPath}\0${author}`;
+    const hit = this.logCache.get(key);
+    if (hit && hit.fromMs <= needFrom && hit.toMs >= needTo) return hit.rows;
+    const fromMs = needFrom - PREFETCH_MS;
+    const out = await this.git(repoPath).raw([
+      'log',
+      '--all',
+      `--since=${new Date(fromMs).toISOString()}`,
+      `--until=${new Date(needTo).toISOString()}`,
+      '--no-merges',
+      `--author=${author}`,
+      '--pretty=format:%h%x09%s%x09%aI%x09%cI',
+    ]);
+    const rows = out
+      .split('\n')
+      .filter((line) => line.trim().length > 0)
+      .map((line) => {
+        const [shortSha, subject, authoredAt, committedAt] = line.split('\t');
+        // 빈 subject(--allow-empty-message)도 정상 커밋 — throw 하면 레포 전체가 그 날짜에서 탈락
+        if (!shortSha || !authoredAt) {
+          throw new Error(`unexpected git log line shape: ${line}`);
+        }
+        return { shortSha, subject: subject ?? '', authoredAt, committedAt };
+      });
+    this.logCache.set(key, { fromMs, toMs: needTo, rows });
+    return rows;
   }
 
   // local·remote 를 git 스폰 한 번으로 조회
