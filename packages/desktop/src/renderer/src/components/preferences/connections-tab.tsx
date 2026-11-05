@@ -1,11 +1,14 @@
-import { FolderGit2, Loader2, RotateCw, SquareTerminal } from 'lucide-react';
+import { FolderGit2, Loader2, RotateCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { AccountHealth, ConnectionAccounts } from '../../../../shared/ipc-types';
 import { probeClaude, probeClaudeOnce, useClaudeStatus } from '../../lib/claude-status-store';
+import { useEngineLoggedIn } from '../../lib/engine-auth';
 import { PROVIDER_NAME } from '../../lib/summary-provider';
+import type { SummaryProvider } from '../../../../shared/ipc-types';
 import { useSettings } from '../../settings-context';
+import { EngineLoginButton, EngineLoginPanel, useEngineLogin } from '../engine-login';
 import { AccountStatusPill } from '../account-status-pill';
-import { ClaudeMark, GithubMark, NotionMark } from '../brand-icons';
+import { ClaudeMark, CodexMark, GithubMark, NotionMark } from '../brand-icons';
 import { AccordionItem } from '../accordion';
 import { Toggle } from '../toggle';
 import { Section } from './field';
@@ -165,19 +168,15 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
           </div>
         }
       />
-      <Row
-        icon={
-          settings.summaryProvider === 'codex' ? (
-            <SquareTerminal size={13} className="shrink-0 text-ink-muted" />
-          ) : (
-            <ClaudeMark size={13} />
-          )
-        }
-        label={PROVIDER_NAME[settings.summaryProvider]}
-        pending={claude === 'checking'}
-        ok={claude === 'ok'}
-        onRefresh={claude === 'checking' ? undefined : refreshClaude}
-      />
+      {(['claude', 'codex'] as const).map((p) => (
+        <EngineRow
+          key={p}
+          provider={p}
+          active={p === settings.summaryProvider}
+          status={claude}
+          onRecheck={refreshClaude}
+        />
+      ))}
       <Row
         icon={<FolderGit2 size={13} className="shrink-0 text-ink-muted" />}
         label={t('prefs.conn.localGit')}
@@ -213,6 +212,7 @@ function Row({
   ok,
   pending,
   onRefresh,
+  action,
   expanded,
   onToggle,
   footer,
@@ -223,6 +223,7 @@ function Row({
   ok?: boolean;
   pending?: boolean;
   onRefresh?: () => void;
+  action?: React.ReactNode;
   expanded?: boolean;
   onToggle?: () => void;
   footer?: React.ReactNode;
@@ -255,6 +256,7 @@ function Row({
       {icon}
       <span className="text-ink-muted">{label}</span>
       <span className="ml-auto truncate pl-3 text-[12px] text-ink-tertiary">{summary}</span>
+      {action}
       {onRefresh && (
         <button
           type="button"
@@ -300,5 +302,44 @@ function Row({
         {footer}
       </div>
     </AccordionItem>
+  );
+}
+
+// 사용 중 엔진은 실제 요약 probe, 나머지는 모델 호출 없이 로그인 여부만
+function EngineRow({
+  provider,
+  active,
+  status,
+  onRecheck,
+}: {
+  provider: SummaryProvider;
+  active: boolean;
+  status: 'checking' | 'ok' | 'fail';
+  onRecheck: () => void;
+}) {
+  const { t } = useSettings();
+  const { loggedIn, refresh } = useEngineLoggedIn(provider, !active);
+  const login = useEngineLogin(provider, active ? onRecheck : refresh);
+  const pending = active ? status === 'checking' : loggedIn === null;
+  const ok = active ? status === 'ok' : loggedIn === true;
+  const needsLogin = active ? status === 'fail' : loggedIn === false;
+  return (
+    <>
+      <Row
+        icon={provider === 'codex' ? <CodexMark size={13} /> : <ClaudeMark size={13} />}
+        label={
+          active ? `${PROVIDER_NAME[provider]} · ${t('engine.inUse')}` : PROVIDER_NAME[provider]
+        }
+        pending={pending}
+        ok={ok}
+        action={needsLogin ? <EngineLoginButton login={login} /> : undefined}
+        onRefresh={pending || needsLogin ? undefined : active ? onRecheck : refresh}
+      />
+      {login.state !== 'idle' && (
+        <div className="pb-2.5 pl-6 pr-2">
+          <EngineLoginPanel login={login} />
+        </div>
+      )}
+    </>
   );
 }
