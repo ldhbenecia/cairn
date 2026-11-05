@@ -161,7 +161,7 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:export:save-png', defaultName, dataUrl) as Promise<SaveResult>,
   repoStars: (): Promise<number | null> =>
     ipcRenderer.invoke('cairn:repo:stars') as Promise<number | null>,
-  onRunLine: subscribe<RunLine>('cairn:run-line'),
+  onRunLines: subscribe<RunLine[]>('cairn:run-lines'),
   onFocusMode: subscribe<CoreMode>('cairn:focus-mode'),
   onOpenConnections: subscribeSignal('cairn:open-connections'),
   autoConfirm: {

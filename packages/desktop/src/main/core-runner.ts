@@ -40,7 +40,13 @@ import {
   parseParentEvent,
   type RunStep,
 } from './core-runner-extract';
-import type { CoreMode, CoreRunOptions, CoreResult, RunSnapshot } from '../shared/ipc-types';
+import type {
+  CoreMode,
+  CoreRunOptions,
+  CoreResult,
+  RunLine,
+  RunSnapshot,
+} from '../shared/ipc-types';
 import { CORE_MODES } from './run-request';
 export type { CoreMode, CoreRunOptions, CoreResult, RunSnapshot } from '../shared/ipc-types';
 
@@ -220,7 +226,27 @@ export function runSnapshot(): RunSnapshot {
   };
 }
 
+// 라인마다 IPC + 렌더러 전체 재계산이면 백필 수천 줄에서 낭비 — 100ms 단위로 묶어 보냄
+const RUN_LINE_FLUSH_MS = 100;
+let pendingLines: RunLine[] = [];
+let lineFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+function flushRunLines(): void {
+  if (lineFlushTimer) clearTimeout(lineFlushTimer);
+  lineFlushTimer = null;
+  if (pendingLines.length === 0) return;
+  broadcast('cairn:run-lines', pendingLines);
+  pendingLines = [];
+}
+
+function queueRunLine(line: RunLine): void {
+  pendingLines.push(line);
+  lineFlushTimer ??= setTimeout(flushRunLines, RUN_LINE_FLUSH_MS);
+}
+
 function broadcastRunDone(mode: CoreMode, result: CoreResult): void {
+  // 완료 알림보다 마지막 라인이 먼저 도착하도록
+  flushRunLines();
   lastResult = { mode, result, endedAt: Date.now() };
   broadcast('cairn:run-done', { mode, result });
 }
@@ -264,10 +290,10 @@ export async function runCore(
   if (running) throw new Error(`busy:${runningMode ?? mode}`);
 
   // 전체 윈도우로 브로드캐스트 — 발행 중 리로드해도 새 webContents 가 진행을 이어받음
+  // stdout·stderr 는 data 핸들러에서 이미 stripAnsi — meta 라인은 main 이 만든 평문
   const emit = (level: 'info' | 'err' | 'meta', line: string): void => {
-    const clean = stripAnsi(line);
-    appendRunLog(mode, level, clean);
-    broadcast('cairn:run-line', { mode, level, line: clean });
+    appendRunLog(mode, level, line);
+    queueRunLine({ mode, level, line });
   };
 
   runStartedAt = Date.now();
