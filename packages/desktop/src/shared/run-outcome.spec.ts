@@ -13,7 +13,7 @@ const base = {
 describe('classifyRunOutcome', () => {
   it('prefers a specific failure cause over the generic summary failure', () => {
     expect(
-      classifyRunOutcome({ ...base, ok: false, summaryFailed: true, failureHint: 'claude-auth' }),
+      classifyRunOutcome({ ...base, ok: false, summaryFailed: true, failureHint: 'engine-auth' }),
     ).toBe('fail');
     expect(classifyRunOutcome({ ...base, ok: false, summaryFailed: true })).toBe('summaryFailed');
     expect(classifyRunOutcome({ ...base, ok: false })).toBe('fail');

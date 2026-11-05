@@ -402,7 +402,7 @@ export class OrchestratorService {
       this.logger.warn({ date }, 'daily: summary generation failed — aborting publish');
       emitParentEvent({ type: 'summary-failed', date });
       throw CairnError.from(
-        new Error('요약 생성 실패 — Claude 세션/쿼터를 확인한 뒤 다시 발행하세요'),
+        new Error('요약 생성 실패 — 요약 엔진 로그인·쿼터를 확인한 뒤 다시 발행하세요'),
         'summarizer',
       );
     }
@@ -658,7 +658,7 @@ export class OrchestratorService {
       );
       emitParentEvent({ type: 'summary-failed', date: activity.rangeStart });
       throw CairnError.from(
-        new Error('롤업 요약 생성 실패 — Claude 세션/쿼터를 확인한 뒤 다시 발행하세요'),
+        new Error('롤업 요약 생성 실패 — 요약 엔진 로그인·쿼터를 확인한 뒤 다시 발행하세요'),
         'summarizer',
       );
     }

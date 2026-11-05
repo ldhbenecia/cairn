@@ -25,7 +25,9 @@ export type ParentEvent =
   | { type: 'day-done'; date: string; pr: number; commit: number; pageId: string | null }
   | { type: 'collect-partial'; labels: string[] }
   | { type: 'period-doc-written'; fileName: string }
-  | { type: 'period-doc-empty' };
+  | { type: 'period-doc-empty' }
+  // 실패 원인 — 데스크톱이 (source, code) 로 안내 문구를 고름
+  | { type: 'failure'; source: string; code: string };
 
 export function emitParentEvent(event: ParentEvent): void {
   if (typeof process.send !== 'function') return;

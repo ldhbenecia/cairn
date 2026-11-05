@@ -2,8 +2,13 @@ import { app, BrowserWindow, Notification } from 'electron';
 import type { CoreMode, CoreResult } from './core-runner';
 import { mt } from './i18n';
 import { readSettings } from './settings';
+import { PROVIDER_NAME } from '../shared/summary-provider';
 import { showWindow } from './show-window';
 import { classifyRunOutcome } from '../shared/run-outcome';
+
+const engineVars = (): Record<string, string> => ({
+  engine: PROVIDER_NAME[readSettings().summaryProvider],
+});
 
 const modeLabel = (mode: CoreMode): string => mt(`mode.${mode}`);
 
@@ -40,12 +45,18 @@ export function sendResultNotification(mode: CoreMode, result: CoreResult): void
       // 흔한 실패 원인은 사용자가 행동할 수 있는 문구로 — 분류 불가여도 raw exit code 비노출
       notify(
         `${label} ${mt('notify.failSuffix')}`,
-        result.failureHint ? mt(`notify.fail.${result.failureHint}`) : mt('notify.fail.unknown'),
+        result.failureHint
+          ? mt(`notify.fail.${result.failureHint}`, engineVars())
+          : mt('notify.fail.unknown'),
         mode,
       );
       return;
     case 'summaryFailed':
-      notify(`${label} ${mt('notify.summaryFailedSuffix')}`, mt('notify.summaryFailedBody'), mode);
+      notify(
+        `${label} ${mt('notify.summaryFailedSuffix')}`,
+        mt('notify.summaryFailedBody', engineVars()),
+        mode,
+      );
       return;
     case 'localDone':
       notify(`${label} ${mt('notify.localDoneSuffix')}`, mt('notify.localDoneBody'), mode);

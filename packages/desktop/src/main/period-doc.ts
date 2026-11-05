@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { claudePathReady } from './claude-path';
 import { appendSideLog, CORE_ENTRY, coreChildEnv } from './core-runner';
-import { createExtractor } from './core-runner-extract';
+import { applyParentEvent, createExtractor, parseParentEvent } from './core-runner-extract';
 import { journalFolder } from './journal-reader';
 import {
   isValidRange,
@@ -93,6 +93,8 @@ function run(range: PeriodDocRange): Promise<PeriodDocResult> {
     pipe(child.stderr, 'err');
 
     child.on('message', (raw) => {
+      const failure = parseParentEvent(raw);
+      if (failure?.type === 'failure') applyParentEvent(ext, failure);
       const ev = parsePeriodDocEvent(raw);
       if (ev?.type === 'written') written = ev.fileName;
       if (ev?.type === 'empty') empty = true;

@@ -23,7 +23,7 @@ import {
   useClaudeStatus,
 } from '../lib/claude-status-store';
 import { useEngineLoggedIn } from '../lib/engine-auth';
-import { PROVIDER_NAME } from '../lib/summary-provider';
+import { PROVIDER_NAME } from '../../../shared/summary-provider';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
 import { AccountStatusPill } from './account-status-pill';

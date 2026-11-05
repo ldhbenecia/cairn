@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { z } from 'zod';
 import type { AgentUsage } from './agent-usage.js';
+import { engineError } from './engine-error.js';
 import { CairnError } from './error.js';
 import type { SubmitAgentRun, SubmitTask } from './submit-agent.js';
 import { codexModel } from './summary-provider.js';
@@ -176,11 +177,7 @@ export async function runCodexSubmitAgent<S extends z.ZodObject>(
       );
     }
     if (seen.failure || code !== 0) {
-      throw new CairnError(
-        'summarizer',
-        'unknown',
-        `codex: ${seen.failure ?? (stderr.trim() || `exit ${code}`)}`,
-      );
+      throw engineError(new Error(`codex: ${seen.failure ?? (stderr.trim() || `exit ${code}`)}`));
     }
     const usage = usageFrom(seen.completed);
     if (seen.lastMessage === null) return { usage, submission: null, lateError: null };

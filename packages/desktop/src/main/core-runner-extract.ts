@@ -4,10 +4,8 @@
 import type { PublishKind, RunStep, FailureHint } from '../shared/ipc-types';
 export type { PublishKind, RunStep, FailureHint } from '../shared/ipc-types';
 
-// raw 로그는 UI 비노출 정책이라 대표 패턴만 친화 문구 키로 분류, 안 걸리면 null
+// 구조화 failure 이벤트가 없는 경우(네트워크 오류 등)의 대비책 — raw 로그는 UI 비노출이라 대표 패턴만 문구 키로
 export function deriveFailureHint(text: string): FailureHint {
-  if (/OAuth token.*(expired|revoked)|Please run \/login|authentication_error/i.test(text))
-    return 'claude-auth';
   if (/auth_failed|Bad credentials|Missing required secret|"status"\s*:\s*401/i.test(text))
     return 'auth';
   if (/rate_limited|session limit|quota|"status"\s*:\s*429/i.test(text)) return 'quota';
@@ -21,7 +19,7 @@ export function deriveFailureHint(text: string): FailureHint {
 // 구체 원인이 일반 증상을 이김 — "fetch failed"(network) 뒤 "Bad credentials"(auth) 면 auth
 // 같은 순위면 첫 매치 유지
 const HINT_PRIORITY: Record<Exclude<FailureHint, null>, number> = {
-  'claude-auth': 7,
+  'engine-auth': 7,
   auth: 6,
   quota: 5,
   summarize: 4,
@@ -29,6 +27,24 @@ const HINT_PRIORITY: Record<Exclude<FailureHint, null>, number> = {
   collect: 2,
   network: 1,
 };
+
+// core 가 에러를 만든 곳에서 분류한 (source, code) → 안내 문구 키 — 엔진·문구가 바뀌어도 여기만
+export function hintFromFailure(source: string, code: string): FailureHint {
+  if (code === 'auth_failed') return source === 'summarizer' ? 'engine-auth' : 'auth';
+  if (code === 'rate_limited') return 'quota';
+  if (code === 'network') return 'network';
+  if (source === 'summarizer') return 'summarize';
+  if (source === 'notion') return 'notion';
+  if (source === 'github' || source === 'local-git') return 'collect';
+  return null;
+}
+
+function raiseHint(state: { failureHint: FailureHint }, hint: FailureHint): void {
+  if (!hint) return;
+  if (!state.failureHint || HINT_PRIORITY[hint] > HINT_PRIORITY[state.failureHint]) {
+    state.failureHint = hint;
+  }
+}
 
 export interface RunExtractor {
   feed: (line: string) => void;
@@ -58,6 +74,7 @@ export type ParentEvent =
   | { type: 'journal-write-failed' }
   | { type: 'no-activity'; date: string }
   | { type: 'summary-failed'; date: string }
+  | { type: 'failure'; source: string; code: string }
   | { type: 'backfill-start'; total: number; dates: string[] }
   | { type: 'backfill-date-start'; date: string }
   | {
@@ -108,6 +125,10 @@ export function parseParentEvent(raw: unknown): ParentEvent | null {
       return typeof m.date === 'string' ? { type: 'no-activity', date: m.date } : null;
     case 'summary-failed':
       return typeof m.date === 'string' ? { type: 'summary-failed', date: m.date } : null;
+    case 'failure':
+      return typeof m.source === 'string' && typeof m.code === 'string'
+        ? { type: 'failure', source: m.source, code: m.code }
+        : null;
     case 'backfill-start': {
       const dates = dateList(m.dates);
       return isCount(m.total) && dates ? { type: 'backfill-start', total: m.total, dates } : null;
@@ -167,6 +188,9 @@ export function applyParentEvent(state: RunExtractor, event: ParentEvent): RunSt
     case 'summary-failed':
       state.summaryFailed = true;
       return null;
+    case 'failure':
+      raiseHint(state, hintFromFailure(event.source, event.code));
+      return null;
     case 'collect-partial':
       state.collectPartialLabels = [...new Set([...state.collectPartialLabels, ...event.labels])];
       return null;
@@ -193,12 +217,6 @@ export function createExtractor(): RunExtractor {
     collectPartialLabels: [],
   };
   // 결과 필드는 applyParentEvent 가 채움 — stdout 은 failureHint 분류만, 더 구체적인 원인이 나오면 갱신
-  state.feed = (line: string): void => {
-    const hint = deriveFailureHint(line);
-    if (!hint) return;
-    if (!state.failureHint || HINT_PRIORITY[hint] > HINT_PRIORITY[state.failureHint]) {
-      state.failureHint = hint;
-    }
-  };
+  state.feed = (line: string): void => raiseHint(state, deriveFailureHint(line));
   return state;
 }
