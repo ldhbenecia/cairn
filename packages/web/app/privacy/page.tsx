@@ -74,9 +74,9 @@ export default function PrivacyPage() {
 
       <LegalSection heading="Third-party services you connect">
         <p>
-          cairn talks directly to Notion, GitHub, and Anthropic (Claude) using tokens you provide.
-          That data flows according to your own configuration and those services&apos; policies —
-          not through us.
+          cairn talks directly to Notion, GitHub, and the summary engine you choose — Anthropic
+          (Claude) or OpenAI (Codex) — using tokens and logins you provide. That data flows
+          according to your own configuration and those services&apos; policies — not through us.
         </p>
       </LegalSection>
 

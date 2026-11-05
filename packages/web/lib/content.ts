@@ -14,7 +14,11 @@ export const content = {
       productItems: [
         { href: '#how', label: 'How it works', desc: 'Collect → Summarize → Publish' },
         { href: '#highlights', label: 'What you get', desc: 'Everything cairn does, at a glance' },
-        { href: '/setup/notion', label: 'Setup guide', desc: 'Connect GitHub, Claude, and Notion' },
+        {
+          href: '/setup/notion',
+          label: 'Setup guide',
+          desc: 'Connect GitHub, Claude or Codex, and Notion',
+        },
       ],
     },
     pricing: {
@@ -22,7 +26,7 @@ export const content = {
       title: 'Free to stack. Pro when you need more.',
       lead: 'The core loop — collect, summarize, journal — is free and open source. Pro unlocks the power features, once.',
       footnote:
-        'Pro is a one-time purchase with a license key — no subscription. You bring your own Claude account and tokens on every plan; cairn never meters your model usage.',
+        'Pro is a one-time purchase with a license key — no subscription. You bring your own Claude or ChatGPT (Codex) login and tokens on every plan; cairn never meters your model usage.',
       back: 'Back to home',
       free: {
         name: 'Free',
@@ -30,7 +34,7 @@ export const content = {
         note: 'forever',
         features: [
           'GitHub (1 account) + local git collection',
-          'Claude summaries, any model',
+          'Claude or Codex summaries, any model',
           'Local Markdown journal',
           'Notion publishing (1 workspace)',
           'Daily · weekly · monthly rollups',
@@ -67,7 +71,7 @@ export const content = {
       badge: 'Open source · free · runs on your machine',
       h1a: 'Your daily work,',
       h1b: 'stacked into a worklog.',
-      lead: 'cairn collects your GitHub PRs and commits, summarizes them with Claude, and writes a daily worklog to a local Markdown journal. Publish to Notion when you want — everything runs on your machine.',
+      lead: 'cairn collects your GitHub PRs and commits, summarizes them with Claude or Codex, and writes a daily worklog to a local Markdown journal. Publish to Notion when you want — everything runs on your machine.',
       download: 'Download for macOS',
       source: 'View source',
       sub: 'Apple Silicon · AGPL-3.0',
@@ -86,7 +90,7 @@ export const content = {
         },
         {
           t: 'Summarize',
-          d: 'Claude turns raw activity into a clean, quantified summary — what shipped, the outcome, the numbers. Runs on your own Claude login, no extra cost.',
+          d: 'Claude or Codex turns raw activity into a clean, quantified summary — what shipped, the outcome, the numbers. Runs on your own login, no extra cost.',
         },
         {
           t: 'Publish',
@@ -109,11 +113,11 @@ export const content = {
         },
         {
           title: 'Summarize',
-          meta: 'Claude Agent SDK',
+          meta: 'Claude · Codex',
           status: 'AI',
           description:
-            'Claude writes the worklog in your language — Korean or English — with the model you choose.',
-          tags: ['Claude', 'KO/EN'],
+            'Claude or Codex writes the worklog in your language — Korean or English — with the engine and model you choose.',
+          tags: ['Claude', 'Codex', 'KO/EN'],
         },
         {
           title: 'Publish',
@@ -198,8 +202,8 @@ export const content = {
           a: 'Your authored and assigned GitHub PRs and commits for the day, across multiple accounts and repos. Local Git collection is an optional source (off by default) for repos not on GitHub. Collection runs on your machine with your own tokens — there is no server in between.',
         },
         {
-          q: 'Do I need a Claude subscription?',
-          a: 'Summaries run on your own Claude account: install Claude Code and sign in (Pro/Max) and cairn inherits that auth, or paste an Anthropic API key. Either works.',
+          q: 'Which AI subscription do I need?',
+          a: 'Either Claude or ChatGPT. Summaries run on the CLI you are signed in to: Claude Code with a Pro/Max plan (or an Anthropic API key), or the Codex CLI with a ChatGPT plan. Pick the engine in Preferences; cairn inherits that login.',
         },
         {
           q: 'Do I need Notion?',
@@ -241,7 +245,11 @@ export const content = {
       productItems: [
         { href: '#how', label: '작동 방식', desc: '수집 → 요약 → 발행' },
         { href: '#highlights', label: '주요 기능', desc: 'cairn 이 해주는 일 한눈에' },
-        { href: '/ko/setup/notion', label: '설정 가이드', desc: 'GitHub·Claude·Notion 연결' },
+        {
+          href: '/ko/setup/notion',
+          label: '설정 가이드',
+          desc: 'GitHub·Claude 또는 Codex·Notion 연결',
+        },
       ],
     },
     pricing: {
@@ -249,7 +257,7 @@ export const content = {
       title: '핵심은 무료, 더 필요할 때만 Pro.',
       lead: '수집 → 요약 → 일지 코어 루프는 무료 오픈소스입니다. Pro 는 파워 기능을 한 번의 결제로 엽니다.',
       footnote:
-        'Pro 는 라이선스 키 방식의 일회성 구매입니다 — 구독 아님. 모든 플랜에서 Claude 계정·토큰은 본인 것을 쓰고, cairn 은 모델 사용량에 과금하지 않습니다.',
+        'Pro 는 라이선스 키 방식의 일회성 구매입니다 — 구독 아님. 모든 플랜에서 Claude 또는 ChatGPT(Codex) 로그인·토큰은 본인 것을 쓰고, cairn 은 모델 사용량에 과금하지 않습니다.',
       back: '홈으로',
       free: {
         name: 'Free',
@@ -257,7 +265,7 @@ export const content = {
         note: '영원히',
         features: [
           'GitHub 1계정 + 로컬 git 수집',
-          'Claude 요약 — 모델 자유 선택',
+          'Claude 또는 Codex 요약 — 모델 자유 선택',
           '로컬 마크다운 일지',
           '노션 발행 (1워크스페이스)',
           '일간 · 주간 · 월간 롤업',
@@ -294,7 +302,7 @@ export const content = {
       badge: '오픈소스 · 무료 · 내 컴퓨터에서 실행',
       h1a: 'Your daily work,',
       h1b: 'stacked into a worklog.',
-      lead: 'GitHub PR·커밋을 모아 Claude 로 요약하고, 매일 로컬 마크다운 일지로 기록합니다. 원할 때 Notion 으로 발행 — 전부 내 컴퓨터에서 돌아갑니다.',
+      lead: 'GitHub PR·커밋을 모아 Claude 또는 Codex 로 요약하고, 매일 로컬 마크다운 일지로 기록합니다. 원할 때 Notion 으로 발행 — 전부 내 컴퓨터에서 돌아갑니다.',
       download: 'macOS 다운로드',
       source: '소스 보기',
       sub: 'Apple Silicon · AGPL-3.0',
@@ -313,7 +321,7 @@ export const content = {
         },
         {
           t: '요약',
-          d: 'Claude 가 원자료를 깔끔한 수치화 요약으로 — 무엇을 했고, 결과가 무엇이고, 수치가 얼마인지. 내 Claude 로그인으로 동작하며 추가 과금이 없습니다.',
+          d: 'Claude 또는 Codex 가 원자료를 깔끔한 수치화 요약으로 — 무엇을 했고, 결과가 무엇이고, 수치가 얼마인지. 내 로그인으로 동작하며 추가 과금이 없습니다.',
         },
         {
           t: '발행',
@@ -336,10 +344,11 @@ export const content = {
         },
         {
           title: '요약',
-          meta: 'Claude Agent SDK',
+          meta: 'Claude · Codex',
           status: 'AI',
-          description: 'Claude 가 원하는 언어(한/영)와 선택한 모델로 일지를 작성합니다.',
-          tags: ['Claude', 'KO/EN'],
+          description:
+            'Claude 또는 Codex 가 원하는 언어(한/영)와 선택한 엔진·모델로 일지를 작성합니다.',
+          tags: ['Claude', 'Codex', 'KO/EN'],
         },
         {
           title: '발행',
@@ -409,8 +418,8 @@ export const content = {
           a: '그날 내가 작성·할당된 GitHub PR 과 커밋을 여러 계정·레포에 걸쳐 모읍니다. 로컬 Git 수집은 GitHub 에 없는 레포용 선택 소스입니다(기본 꺼짐). 수집은 본인 토큰으로 내 기기에서 실행됩니다 — 중간에 서버가 없습니다.',
         },
         {
-          q: 'Claude 구독이 필요한가요?',
-          a: '요약은 본인의 Claude 계정으로 동작합니다: Claude Code 를 설치·로그인해 두면(Pro/Max) cairn 이 그 인증을 인계받고, 또는 Anthropic API 키를 붙여넣어도 됩니다. 둘 다 됩니다.',
+          q: '어떤 AI 구독이 필요한가요?',
+          a: 'Claude 또는 ChatGPT 중 하나면 됩니다. 요약은 로그인해 둔 CLI 로 동작합니다: Pro/Max 로 로그인한 Claude Code(또는 Anthropic API 키), 또는 ChatGPT 요금제로 로그인한 Codex CLI. 설정에서 엔진을 고르면 cairn 이 그 로그인을 인계받습니다.',
         },
         {
           q: '노션 없이도 쓸 수 있나요?',
