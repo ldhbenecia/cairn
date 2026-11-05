@@ -4,7 +4,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { writeFileAtomic } from './atomic-write';
 import { cloudToken, WEB_BASE } from './cloud-auth';
-import { withFileLock } from './file-lock';
+import { withFileLockAsync } from './file-lock';
 
 // core WorklogStatsService 와 같은 파일·포맷 (`${category}:${date}` → 집계 수치)
 export const STATS_PATH = join(homedir(), '.cairn', 'worklog-stats.json');
@@ -71,7 +71,7 @@ export async function syncStats(): Promise<void> {
 
     // 머지+쓰기만 락 안에서 짧게, 네트워크는 락 밖 — core 의 동시 write 와 직렬화
     let changed = false;
-    const rows = withFileLock(STATS_PATH, () => {
+    const rows = await withFileLockAsync(STATS_PATH, () => {
       const local = readStatsFile();
       for (const r of stats) {
         // 서버가 검증해 저장한 데이터지만 로컬 파일 오염 방지로 한 번 더 가드

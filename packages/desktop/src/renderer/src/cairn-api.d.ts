@@ -99,7 +99,7 @@ declare global {
       exportPdf: (defaultName: string, html: string) => Promise<SaveResult>;
       exportPng: (defaultName: string, dataUrl: string) => Promise<SaveResult>;
       repoStars: () => Promise<number | null>;
-      onRunLine: (cb: (l: RunLine) => void) => () => void;
+      onRunLines: (cb: (lines: RunLine[]) => void) => () => void;
       onFocusMode: (cb: (mode: CoreMode) => void) => () => void;
       onOpenConnections: (cb: () => void) => () => void;
       autoConfirm: {

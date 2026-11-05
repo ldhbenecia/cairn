@@ -9,9 +9,12 @@ const listeners = new Set<() => void>();
 
 const emit = (): void => listeners.forEach((fn) => fn());
 
-window.cairn.onRunLine((l) => {
-  const buf = buffers[l.mode];
-  buffers[l.mode] = buf.length >= TAIL_MAX ? [...buf.slice(1), l] : [...buf, l];
+// main 이 100ms 단위로 묶어 보냄 — 묶음당 한 번만 복사·통지
+window.cairn.onRunLines((lines) => {
+  for (const mode of new Set(lines.map((l) => l.mode))) {
+    const merged = [...buffers[mode], ...lines.filter((l) => l.mode === mode)];
+    buffers[mode] = merged.length > TAIL_MAX ? merged.slice(-TAIL_MAX) : merged;
+  }
   emit();
 });
 
