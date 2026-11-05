@@ -1,8 +1,8 @@
-import { existsSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { withFileLock } from './file-lock';
+import { withFileLock, withFileLockAsync } from './file-lock';
 
 const tmp = (): string => mkdtempSync(join(tmpdir(), 'cairn-lock-'));
 
@@ -41,5 +41,24 @@ describe('withFileLock', () => {
       }),
     ).toThrow('boom');
     expect(existsSync(`${target}.lock`)).toBe(false);
+  });
+});
+
+describe('withFileLockAsync', () => {
+  it('다른 보유자가 락을 쥔 동안 이벤트 루프를 막지 않고, 풀리면 진입', async () => {
+    const dir = tmp();
+    const target = join(dir, 'z.json');
+    const lock = `${target}.lock`;
+    writeFileSync(lock, '');
+    let ticks = 0;
+    const ticker = setInterval(() => (ticks += 1), 10);
+    setTimeout(() => rmSync(lock), 150);
+    try {
+      await expect(withFileLockAsync(target, () => 'entered')).resolves.toBe('entered');
+    } finally {
+      clearInterval(ticker);
+    }
+    expect(ticks).toBeGreaterThan(5);
+    expect(existsSync(lock)).toBe(false);
   });
 });

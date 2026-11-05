@@ -31,28 +31,24 @@ function reclaimStale(lockPath: string): void {
   }
 }
 
-// 여러 프로세스(desktop main + forked core)의 같은 파일 read-modify-write 직렬화
-// `${target}.lock` 을 O_EXCL 로 잡고 크래시한 보유자는 stale(mtime)로 회수, MAX_WAIT 초과 시 throw
-export function withFileLock<T>(targetPath: string, fn: () => T): T {
-  const lockPath = `${targetPath}.lock`;
-  const deadline = Date.now() + MAX_WAIT_MS;
-  let fd: number | null = null;
-  while (Date.now() < deadline) {
+// 락 획득 한 번 시도 — fd, 즉시 재시도('retry'), 대기 후 재시도(null)
+function tryAcquire(lockPath: string): number | 'retry' | null {
+  try {
+    return openSync(lockPath, 'wx');
+  } catch {
     try {
-      fd = openSync(lockPath, 'wx');
-      break;
-    } catch {
-      try {
-        if (Date.now() - statSync(lockPath).mtimeMs > STALE_MS) {
-          reclaimStale(lockPath);
-          continue;
-        }
-      } catch {
-        continue; // 락이 그새 풀림 — 즉시 재시도
+      if (Date.now() - statSync(lockPath).mtimeMs > STALE_MS) {
+        reclaimStale(lockPath);
+        return 'retry';
       }
-      sleepSync(RETRY_MS);
+    } catch {
+      return 'retry'; // 락이 그새 풀림
     }
+    return null;
   }
+}
+
+function runLocked<T>(targetPath: string, lockPath: string, fd: number | null, fn: () => T): T {
   if (fd === null) {
     throw new Error(`withFileLock: lock not acquired for ${targetPath} within ${MAX_WAIT_MS}ms`);
   }
@@ -62,4 +58,37 @@ export function withFileLock<T>(targetPath: string, fn: () => T): T {
     closeSync(fd);
     rmSync(lockPath, { force: true });
   }
+}
+
+// 여러 프로세스(desktop main + forked core)의 같은 파일 read-modify-write 직렬화
+// `${target}.lock` 을 O_EXCL 로 잡고 크래시한 보유자는 stale(mtime)로 회수, MAX_WAIT 초과 시 throw
+export function withFileLock<T>(targetPath: string, fn: () => T): T {
+  const lockPath = `${targetPath}.lock`;
+  const deadline = Date.now() + MAX_WAIT_MS;
+  let fd: number | null = null;
+  while (Date.now() < deadline) {
+    const r = tryAcquire(lockPath);
+    if (typeof r === 'number') {
+      fd = r;
+      break;
+    }
+    if (r === null) sleepSync(RETRY_MS);
+  }
+  return runLocked(targetPath, lockPath, fd, fn);
+}
+
+// 대기를 이벤트 루프에 양보하는 버전 — 동기 버전은 core 가 락을 잡고 있으면 main(UI)을 최대 MAX_WAIT 멈춤
+export async function withFileLockAsync<T>(targetPath: string, fn: () => T): Promise<T> {
+  const lockPath = `${targetPath}.lock`;
+  const deadline = Date.now() + MAX_WAIT_MS;
+  let fd: number | null = null;
+  while (Date.now() < deadline) {
+    const r = tryAcquire(lockPath);
+    if (typeof r === 'number') {
+      fd = r;
+      break;
+    }
+    if (r === null) await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
+  }
+  return runLocked(targetPath, lockPath, fd, fn);
 }
