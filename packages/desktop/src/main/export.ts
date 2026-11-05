@@ -4,6 +4,7 @@ import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { blocksToMarkdown } from '../shared/markdown';
+import { errorMessage } from './error-message';
 import { mt } from './i18n';
 import { journalFolder } from './journal-reader';
 import { fetchPageContentAnyWorkspace, type RecentCategory } from './notion-client';
@@ -85,7 +86,7 @@ export function isAllowedExportFolder(folder: unknown, current: string | null): 
 
 // 저장 실패가 렌더러에서 무시되면 '메뉴 닫힘 + 무반응' — 네이티브로 표면화
 function saveFailed(e: unknown): SaveResult {
-  const error = e instanceof Error ? e.message : String(e);
+  const error = errorMessage(e);
   dialog.showErrorBox(mt('export.saveFailTitle'), error);
   return { saved: false, error };
 }

@@ -12,8 +12,6 @@ export type { BackupStatus } from '../shared/ipc-types';
 
 const execFileAsync = promisify(execFile);
 
-export type BackupErrorCode = 'pull-failed' | 'identity-missing' | 'commit-failed' | 'push-failed';
-
 export type BackupDeps = {
   exec: (args: string[], dir: string, timeoutMs: number) => Promise<{ stdout: string }>;
   hasGit: () => boolean;

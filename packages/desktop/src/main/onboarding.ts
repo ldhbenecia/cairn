@@ -1,10 +1,10 @@
 import { Client } from '@notionhq/client';
 import { execFile } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { errorMessage } from './error-message';
 import { writeFileAtomic } from './atomic-write';
 import { withFileLock } from './file-lock';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { claudePathReady, findInPath, searchPathEnv } from './claude-path';
 import { CONFIG_PATH } from './setup';
@@ -350,12 +350,7 @@ type ConnConfig = {
 
 // 연결 탭용 — config + 토큰으로 계정 식별자만 조회, 토큰은 renderer 로 안 보냄
 export async function probeConnectionAccounts(): Promise<ConnectionAccounts> {
-  let config: ConnConfig;
-  try {
-    config = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as ConnConfig;
-  } catch {
-    config = {};
-  }
+  const config = readExistingConfig() as ConnConfig;
   const envMap = secretEnv();
   // GitHub·Notion probe 동시 실행 — 순차면 연결 탭 최악 지연이 2배
   const [github, notion] = await Promise.all([
@@ -459,7 +454,6 @@ function updateConfig<R extends object>(
     return withFileLock(CONFIG_PATH, () => {
       const { config, env, result } = mutate(readExistingConfig());
       if (env) writeSecretEnvMerged(env);
-      mkdirSync(dirname(CONFIG_PATH), { recursive: true });
       writeFileAtomic(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
       return { ok: true as const, ...result };
     });

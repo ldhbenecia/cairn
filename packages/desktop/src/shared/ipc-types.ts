@@ -199,11 +199,13 @@ export type GraphConfig = {
   showRollups: boolean;
 };
 export type BackupConfig = { enabled: boolean };
+export type BackupErrorCode = 'pull-failed' | 'identity-missing' | 'commit-failed' | 'push-failed';
+
 export type BackupStatus = {
   state: 'disabled' | 'no-git' | 'no-repo' | 'idle' | 'syncing';
   hasRemote: boolean;
   lastBackupAt: number | null;
-  error: 'pull-failed' | 'identity-missing' | 'commit-failed' | 'push-failed' | null;
+  error: BackupErrorCode | null;
 };
 export type Settings = {
   theme: Theme;

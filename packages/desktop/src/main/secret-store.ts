@@ -1,6 +1,6 @@
 import { app } from 'electron';
-import { mkdirSync, readFileSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { readFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 import { writeFileAtomic } from './atomic-write';
 import { getOrCreateSecretKey } from './keychain-key';
 import { decryptSecretJson, encryptSecretJson } from './secret-crypto';
@@ -114,7 +114,6 @@ function writeEnvPlainMerged(patch: Record<string, string>, opts?: SecretStoreOp
     return line;
   });
   for (const [k, v] of Object.entries(remaining)) out.push(`${k}=${v}`);
-  mkdirSync(dirname(path), { recursive: true });
   writeFileAtomic(path, out.join('\n').replace(/\n+$/, '') + '\n', 0o600); // 토큰 포함 — owner-only
 }
 

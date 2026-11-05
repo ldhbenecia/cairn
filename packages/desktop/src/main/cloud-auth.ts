@@ -1,12 +1,12 @@
 import { BrowserWindow, dialog, shell } from 'electron';
 import { mt } from './i18n';
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { readFileSync, rmSync } from 'node:fs';
 import { writeFileAtomic } from './atomic-write';
 import { isEncryptedPayload } from './secret-crypto';
 import { decryptFromStore, encryptForStore } from './secret-store';
 import { createServer, type Server } from 'node:http';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { CAIRN_ROOT } from './setup';
 import { errorMessage } from './error-message';
 import type { CloudUser, CloudAuthState } from '../shared/ipc-types';
@@ -20,7 +20,6 @@ type Stored = { token: string; user: CloudUser };
 // bearer 토큰 at-rest 암호화 — packaged 는 키체인 키로 암호문 저장, 실패·레거시는 평문 폴백
 // 레거시 평문을 읽으면 다음 기회에 암호문으로 재저장
 function writeStored(stored: Stored): void {
-  mkdirSync(dirname(AUTH_PATH), { recursive: true });
   const enc = encryptForStore(stored);
   writeFileAtomic(AUTH_PATH, enc ?? `${JSON.stringify(stored, null, 2)}\n`, 0o600);
 }
