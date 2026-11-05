@@ -617,3 +617,35 @@ textarea {
 [data-theme='light'] .text-sky-400 {
   color: #0284c7;
 }
+
+/* 동작 줄이기 — 진입·장식은 1ms 로 최종 상태 안착, 진행 표시(스피너·불확정 바)는 유지
+   animation: none 은 line-draw 가 dashoffset 1 에 머물러 선이 사라지므로 X */
+@media (prefers-reduced-motion: reduce) {
+  .panel-enter,
+  .popover-in,
+  .popover-out,
+  .dialog-overlay,
+  .dialog-content,
+  .drawer-in,
+  .drawer-out,
+  .hint-fade,
+  .dash-rise,
+  .bar-v,
+  .bar-h,
+  .lane-reveal,
+  .fade-in,
+  .line-draw,
+  .area-fade,
+  .batch-count,
+  .cairn-breathe,
+  .batch-pulse,
+  .bar-flow {
+    animation-duration: 1ms !important;
+    animation-delay: 0s !important;
+  }
+  .cairn-breathe,
+  .batch-pulse,
+  .bar-flow {
+    animation-iteration-count: 1 !important;
+  }
+}
