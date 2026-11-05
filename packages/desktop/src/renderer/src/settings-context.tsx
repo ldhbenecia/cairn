@@ -82,6 +82,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(window.cairn.initialSettings);
 
   useEffect(() => {
+    document.documentElement.lang = settings.language;
+  }, [settings.language]);
+
+  useEffect(() => {
     applyAccent(settings.accent);
   }, [settings.accent]);
 
