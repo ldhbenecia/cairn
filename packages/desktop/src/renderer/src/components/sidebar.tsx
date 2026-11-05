@@ -14,12 +14,8 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState, type Ref } from 'react';
 import type { I18nKey } from '../i18n';
-import {
-  keepClaudeStatusFresh,
-  PROVIDER_NAME,
-  probeClaude,
-  useClaudeStatus,
-} from '../lib/claude-status-store';
+import { keepClaudeStatusFresh, probeClaude, useClaudeStatus } from '../lib/claude-status-store';
+import { PROVIDER_NAME } from '../lib/summary-provider';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
 import { AccountStatusPill } from './account-status-pill';

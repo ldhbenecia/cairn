@@ -1,3 +1,4 @@
+import { isCodexModelSlug } from './codex-models';
 import type { Settings } from './settings';
 
 type Guard<T> = (v: unknown) => v is T;
@@ -59,6 +60,11 @@ export function normalizeSettings(raw: unknown, fb: Settings): Settings {
       r.summaryProvider,
       oneOf(['claude', 'codex'] as const),
       fb.summaryProvider,
+    ),
+    codexModel: pick(
+      r.codexModel,
+      (v): v is string | null => v === null || isCodexModelSlug(v),
+      fb.codexModel,
     ),
     summaryModel: pick(
       r.summaryModel,

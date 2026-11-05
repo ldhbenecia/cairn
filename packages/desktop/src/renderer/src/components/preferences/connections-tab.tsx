@@ -1,12 +1,8 @@
 import { FolderGit2, Loader2, RotateCw, SquareTerminal } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { AccountHealth, ConnectionAccounts } from '../../../../shared/ipc-types';
-import {
-  PROVIDER_NAME,
-  probeClaude,
-  probeClaudeOnce,
-  useClaudeStatus,
-} from '../../lib/claude-status-store';
+import { probeClaude, probeClaudeOnce, useClaudeStatus } from '../../lib/claude-status-store';
+import { PROVIDER_NAME } from '../../lib/summary-provider';
 import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';
 import { ClaudeMark, GithubMark, NotionMark } from '../brand-icons';

@@ -164,7 +164,11 @@ function promptEnv(prompts: Settings['prompts']): Record<string, string> {
 function summarizerEnv(settings: Settings): Record<string, string> {
   if (settings.summaryProvider === 'codex') {
     const codex = findInPath('codex');
-    return { CAIRN_SUMMARY_PROVIDER: 'codex', ...(codex ? { CAIRN_CODEX_PATH: codex } : {}) };
+    return {
+      CAIRN_SUMMARY_PROVIDER: 'codex',
+      ...(codex ? { CAIRN_CODEX_PATH: codex } : {}),
+      ...(settings.codexModel ? { CAIRN_CODEX_MODEL: settings.codexModel } : {}),
+    };
   }
   return settings.summaryModel !== 'default' ? { CAIRN_SUMMARY_MODEL: settings.summaryModel } : {};
 }

@@ -148,6 +148,7 @@ export type Language = 'ko' | 'en';
 // 'default' 는 Claude 로그인 기본 모델
 export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
 export type SummaryProvider = 'claude' | 'codex';
+export type CodexModel = { slug: string; name: string };
 
 export type CloudUser = { name: string; email: string; image: string | null };
 export type CloudAuthState = { signedIn: boolean; user: CloudUser | null };
@@ -221,6 +222,7 @@ export type Settings = {
     yearly: string | null;
   };
   summaryProvider: SummaryProvider;
+  codexModel: string | null; // null 이면 계정 기본 모델
   summaryModel: SummaryModel;
   export: ExportConfig;
   graph: GraphConfig;

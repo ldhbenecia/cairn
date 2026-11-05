@@ -1,8 +1,8 @@
 import { Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { SummaryModel, SummaryProvider } from '../../../../shared/ipc-types';
+import type { CodexModel, SummaryModel, SummaryProvider } from '../../../../shared/ipc-types';
 import type { I18nKey } from '../../i18n';
-import { PROVIDER_NAME } from '../../lib/claude-status-store';
+import { PROVIDER_NAME } from '../../lib/summary-provider';
 import { useSettings } from '../../settings-context';
 import { Section } from './field';
 
@@ -51,6 +51,18 @@ export function PromptsTab() {
   };
 
   const provider = settings.summaryProvider;
+  const [codexModels, setCodexModels] = useState<CodexModel[]>([]);
+  useEffect(() => {
+    if (provider !== 'codex') return;
+    let alive = true;
+    void window.cairn.connections
+      .codexModels()
+      .then((m) => alive && setCodexModels(m))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [provider]);
 
   return (
     <div className="flex flex-col gap-9">
@@ -76,6 +88,31 @@ export function PromptsTab() {
           </p>
         </div>
       </Section>
+
+      {provider === 'codex' && (
+        <Section label={t('prefs.prompts.codexModel')}>
+          <div className="pt-3">
+            <p className="text-[12px] leading-relaxed text-ink-tertiary">
+              {t('prefs.prompts.codexModelDesc')}
+            </p>
+            <div className="mt-3 grid grid-cols-3 gap-1.5">
+              <OptionButton
+                selected={settings.codexModel === null}
+                onClick={() => update({ codexModel: null })}
+                name={t('prefs.prompts.model.default')}
+              />
+              {codexModels.map((m) => (
+                <OptionButton
+                  key={m.slug}
+                  selected={settings.codexModel === m.slug}
+                  onClick={() => update({ codexModel: m.slug })}
+                  name={m.name}
+                />
+              ))}
+            </div>
+          </div>
+        </Section>
+      )}
 
       {provider === 'claude' && (
         <Section label={t('prefs.prompts.model')}>

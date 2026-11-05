@@ -9,7 +9,7 @@ import { useCloudAuth } from '../use-cloud-auth';
 import { DatePicker } from './date-picker';
 import { Segmented } from './preferences/field';
 import { Progress } from './publish-dialog-progress';
-import { PROVIDER_NAME } from '../lib/claude-status-store';
+import { PROVIDER_NAME } from '../lib/summary-provider';
 import { deriveSinkOutcomes } from '../lib/publish-sinks';
 import { CancelledCard, ErrorCard, Result } from './publish-dialog-result';
 import { todayLocal } from '../lib/reports';
@@ -240,7 +240,7 @@ export function PublishDialog({
                 }
                 modelLabel={
                   settings.summaryProvider === 'codex'
-                    ? PROVIDER_NAME.codex
+                    ? (settings.codexModel ?? PROVIDER_NAME.codex)
                     : MODEL_NAME[settings.summaryModel] || t('prefs.prompts.model.default')
                 }
                 t={t}
