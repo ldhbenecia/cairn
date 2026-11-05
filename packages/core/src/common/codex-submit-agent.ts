@@ -11,6 +11,8 @@ import { codexModel } from './summary-provider.js';
 
 // 메시지·추론 외 항목(명령 실행·파일 변경·MCP·웹 검색 등)이 보이면 격리가 뚫린 것
 const ALLOWED_ITEM_TYPES = new Set(['agent_message', 'reasoning', 'error']);
+// 정상 실행은 30초 안팎 — 네트워크 정체·새 대화형 프롬프트로 멈추면 발행 run 이 busy 로 남지 않게 끊음
+const CODEX_TIMEOUT_MS = 5 * 60_000;
 
 export function codexBinary(): string {
   return process.env.CAIRN_CODEX_PATH || 'codex';
@@ -120,6 +122,8 @@ export async function runCodexSubmitAgent<S extends z.ZodObject>(
     });
     // 프롬프트는 제출 도구 호출을 전제로 씀 — 도구가 없다는 사정을 모델이 결과 본문(Notes 등)에 적지 않도록 대체 경로를 명시
     const note = `There is no ${task.toolName} tool here. Return exactly what you would have submitted as your final message: one JSON object matching the output schema. Do not mention tools or this substitution anywhere in it.`;
+    // codex 가 stdin 을 읽기 전에 끝나면 EPIPE — 리스너가 없으면 uncaught 로 core 가 죽음, 실패는 close 에서 보고
+    child.stdin.on('error', () => {});
     child.stdin.end(`${task.systemPrompt}\n\n${note}\n\n${task.prompt}`);
 
     // 이벤트 콜백에서 채움 — 지역 let 이면 TS 가 null 로 좁혀 이후 분기를 never 로 봄
@@ -151,12 +155,18 @@ export async function runCodexSubmitAgent<S extends z.ZodObject>(
     let stderr = '';
     child.stderr.on('data', (b: Buffer) => (stderr = (stderr + b.toString('utf8')).slice(-2000)));
 
+    const timer = setTimeout(() => {
+      seen.failure = 'timed out';
+      child.kill('SIGKILL');
+    }, CODEX_TIMEOUT_MS);
     const code = await new Promise<number | null>((resolve, reject) => {
       child.on('error', reject);
       child.on('close', resolve);
-    }).catch((err: unknown) => {
-      throw CairnError.from(err, 'summarizer');
-    });
+    })
+      .catch((err: unknown) => {
+        throw CairnError.from(err, 'summarizer');
+      })
+      .finally(() => clearTimeout(timer));
 
     if (seen.violation) {
       throw new CairnError(
