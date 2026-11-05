@@ -1,4 +1,4 @@
-import { open, readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { readConfig } from './files';
@@ -31,29 +31,47 @@ export async function journalFolder(): Promise<string> {
 
 export type JournalPage = RecentPage & { fileName: string; notionRef: string | null };
 
-export async function listJournalPages(): Promise<JournalPage[]> {
+// 목록(포커스·run-done 마다)과 검색(입력 디바운스마다)이 매번 전 파일을 읽던 것 — stat 으로 바뀐 파일만 다시 읽음
+// 파일당 수 KB 라 수백 개여도 메모리 부담 작음
+const textCache = new Map<string, { mtimeMs: number; size: number; text: string }>();
+
+async function readJournalText(path: string): Promise<string> {
+  const st = await stat(path);
+  const hit = textCache.get(path);
+  if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.text;
+  const text = await readFile(path, 'utf8');
+  textCache.set(path, { mtimeMs: st.mtimeMs, size: st.size, text });
+  return text;
+}
+
+// 폴더의 journal 파일만 — 사라진 파일·다른 폴더의 캐시는 함께 정리
+async function journalTargets(): Promise<{
+  folder: string;
+  targets: { name: string; category: RecentCategory }[];
+} | null> {
+  const folder = await journalFolder();
   let names: string[];
   try {
-    names = await readdir(await journalFolder());
+    names = await readdir(folder);
   } catch {
-    return [];
+    return null;
   }
   const targets = names
-    .map((name) => ({ name, category: FILE_PATTERNS.find((p) => p.re.test(name))?.category }))
+    .map((name) => ({ name, category: journalFileCategory(name) }))
     .filter((t): t is { name: string; category: RecentCategory } => t.category !== undefined);
+  const live = new Set(targets.map((t) => join(folder, t.name)));
+  for (const key of textCache.keys()) if (!live.has(key)) textCache.delete(key);
+  return { folder, targets };
+}
 
-  const folder = await journalFolder();
+export async function listJournalPages(): Promise<JournalPage[]> {
+  const found = await journalTargets();
+  if (!found) return [];
+  const { folder, targets } = found;
   const pages = await Promise.all(
     targets.map(async ({ name, category }) => {
       try {
-        // 목록은 frontmatter 만 써서 파일 head(4KB)만 읽음 — journal 이 수백 개일 때 전문 I/O 회피
-        const path = join(folder, name);
-        let text = await readFileHead(path, 4096);
-        // 외부 에디터가 frontmatter 를 4KB 넘게 키우면 종료 마커가 head 밖이라 메타 유실 — 그때만 전문 재독
-        if (text.startsWith('---\n') && text.indexOf('\n---\n', 4) === -1) {
-          text = await readFile(path, 'utf8');
-        }
-        return toJournalPage(name, category, text);
+        return toJournalPage(name, category, await readJournalText(join(folder, name)));
       } catch {
         return null;
       }
@@ -147,20 +165,13 @@ export async function readJournalPageContent(pageId: string): Promise<PageConten
 // frontmatter 는 제외해 날짜·notion 메타 오매칭 방지, 외부 송신 없음
 export async function searchJournalContents(query: string): Promise<JournalSearchHit[]> {
   if (query.trim().length < 2) return [];
-  const folder = await journalFolder();
-  let names: string[];
-  try {
-    names = await readdir(folder);
-  } catch {
-    return [];
-  }
-  const targets = names
-    .map((name) => ({ name, category: journalFileCategory(name) }))
-    .filter((t): t is { name: string; category: RecentCategory } => t.category !== undefined);
+  const found = await journalTargets();
+  if (!found) return [];
+  const { folder, targets } = found;
   const files = await Promise.all(
     targets.map(async ({ name, category }) => {
       try {
-        const raw = await readFile(join(folder, name), 'utf8');
+        const raw = await readJournalText(join(folder, name));
         return { fileName: name, category, body: stripFrontmatter(raw).body };
       } catch {
         return null;
@@ -171,18 +182,6 @@ export async function searchJournalContents(query: string): Promise<JournalSearc
     files.filter((f): f is NonNullable<typeof f> => f !== null),
     query,
   );
-}
-
-// frontmatter 파싱용 앞 N 바이트 — 경계에서 멀티바이트가 잘려도 종료 마커(\n---\n)는 head 안
-async function readFileHead(path: string, bytes: number): Promise<string> {
-  const fh = await open(path, 'r');
-  try {
-    const buf = Buffer.alloc(bytes);
-    const { bytesRead } = await fh.read(buf, 0, bytes, 0);
-    return buf.subarray(0, bytesRead).toString('utf8');
-  } finally {
-    await fh.close();
-  }
 }
 
 function toJournalPage(fileName: string, category: RecentCategory, raw: string): JournalPage {
