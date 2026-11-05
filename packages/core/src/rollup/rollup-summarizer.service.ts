@@ -10,7 +10,7 @@ import type { WorklogLang } from '../cairn/run-options.js';
 import { rollupSystemPrompt } from './rollup-prompt.js';
 import {
   buildRollupActivityPayload,
-  buildRollupTools,
+  rollupSubmitSpec,
   dropForbiddenSummaries,
   type RollupSummarizerInput,
   type SubmitRollupInput,
@@ -24,7 +24,6 @@ export class RollupSummarizerService {
   ) {}
 
   async summarize(input: RollupSummarizerInput, lang: WorklogLang): Promise<RollupSummary | null> {
-    const { server, getSubmission } = buildRollupTools();
     const a = input.activity;
 
     // 데스크톱 단계 표시가 이 라인으로 collect → summarize 전환을 감지 (core-runner STEP_TRIGGERS)
@@ -53,14 +52,12 @@ export class RollupSummarizerService {
     let run: SubmitAgentRun<SubmitRollupInput>;
     try {
       run = await runSubmitAgent({
+        ...rollupSubmitSpec,
         prompt: userPrompt,
         systemPrompt: withCustomPrompt(
           rollupSystemPrompt(lang, a.period),
           customPromptFor(a.period),
         ),
-        server,
-        toolName: 'submit_rollup',
-        getSubmission,
       });
     } catch (error) {
       this.logger.warn({ period: a.period, error }, 'rollup summarizer threw — fallback');

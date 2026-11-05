@@ -1,7 +1,7 @@
-import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { computeDayTotals } from '../common/day-totals.js';
 import { sanitizeCairnError } from '../common/sanitize.js';
+import type { SubmitSpec } from '../common/submit-agent.js';
 import type {
   GithubActivity,
   GithubActivityCategory,
@@ -117,38 +117,15 @@ export function buildActivityPayload(input: SummarizerInput): ActivityPayload {
   };
 }
 
-export interface SummarizerToolsBundle {
-  server: ReturnType<typeof createSdkMcpServer>;
-  getSubmission: () => SubmitSummaryInput | null;
-}
-
 // 활동 데이터는 user 프롬프트에 인라인 — get_activity 도구 왕복(모델 턴 1회) 제거
 // payload 는 인라인 전에 같은 assertNoForbiddenPayload 를 통과
-export function buildSummarizerTools(): SummarizerToolsBundle {
-  let submission: SubmitSummaryInput | null = null;
-
-  const submitSummary = tool(
-    'submit_summary',
+export const summarySubmitSpec: SubmitSpec<typeof submitSummarySchema> = {
+  serverName: 'cairn-summarizer',
+  toolName: 'submit_summary',
+  toolDescription:
     'Submit the worklog summary and exit. Call exactly once after reading the activity data in the user message. All text fields must follow the requested output language.',
-    submitSummarySchema.shape,
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async (raw) => {
-      submission = submitSummarySchema.parse(raw);
-      return { content: [{ type: 'text', text: 'Summary submitted. Exiting.' }] };
-    },
-  );
-
-  const server = createSdkMcpServer({
-    name: 'cairn-summarizer',
-    tools: [submitSummary],
-    alwaysLoad: true, // tools: [] 로 ToolSearch 가 꺼져 지연 로딩되면 제출 도구를 못 부름
-  });
-
-  return {
-    server,
-    getSubmission: () => submission,
-  };
-}
+  schema: submitSummarySchema,
+};
 
 function computeDonePrs(input: SummarizerInput): DonePrItem[] {
   const out: DonePrItem[] = [];

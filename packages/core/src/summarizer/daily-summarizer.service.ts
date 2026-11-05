@@ -9,7 +9,7 @@ import type { WorklogLang } from '../cairn/run-options.js';
 import { dailySystemPrompt } from './daily-prompt.js';
 import {
   buildActivityPayload,
-  buildSummarizerTools,
+  summarySubmitSpec,
   type SubmitSummaryInput,
   type SummarizerInput,
 } from './summarizer-tools.js';
@@ -22,8 +22,6 @@ export class DailySummarizerService {
   ) {}
 
   async summarize(input: SummarizerInput, lang: WorklogLang): Promise<WorklogSummary | null> {
-    const { server, getSubmission } = buildSummarizerTools();
-
     // 데스크톱 단계 표시가 이 라인으로 collect → summarize 전환을 감지 (core-runner STEP_TRIGGERS)
     this.logger.info({ date: input.date }, 'summarizer start');
 
@@ -42,11 +40,9 @@ export class DailySummarizerService {
     let run: SubmitAgentRun<SubmitSummaryInput>;
     try {
       run = await runSubmitAgent({
+        ...summarySubmitSpec,
         prompt: userPrompt,
         systemPrompt: withCustomPrompt(dailySystemPrompt(lang), customPromptFor('daily')),
-        server,
-        toolName: 'submit_summary',
-        getSubmission,
       });
     } catch (error) {
       this.logger.warn({ date: input.date, error }, 'summarizer threw — fallback');
