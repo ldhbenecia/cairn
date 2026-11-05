@@ -1,6 +1,6 @@
-import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { assertNoForbiddenPayload, sanitizeCairnError } from '../common/sanitize.js';
+import type { SubmitSpec } from '../common/submit-agent.js';
 import type { RollupActivity, RollupDailySummaryText } from '../contracts/rollup-activity.types.js';
 
 export interface RollupSummarizerInput {
@@ -117,34 +117,11 @@ export function dropForbiddenSummaries(
   return safe;
 }
 
-export interface RollupToolsBundle {
-  server: ReturnType<typeof createSdkMcpServer>;
-  getSubmission: () => SubmitRollupInput | null;
-}
-
 // 활동 데이터는 user 프롬프트에 인라인 — get_rollup_activity 도구 왕복 제거
-export function buildRollupTools(): RollupToolsBundle {
-  let submission: SubmitRollupInput | null = null;
-
-  const submitRollup = tool(
-    'submit_rollup',
+export const rollupSubmitSpec: SubmitSpec<typeof submitRollupSchema> = {
+  serverName: 'cairn-rollup',
+  toolName: 'submit_rollup',
+  toolDescription:
     'Submit the rollup summary and exit. Call exactly once after reading the period activity data in the user message. paragraph + themes + highlights MUST use the output language set in the system prompt.',
-    submitRollupSchema.shape,
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async (raw) => {
-      submission = submitRollupSchema.parse(raw);
-      return { content: [{ type: 'text', text: 'Rollup submitted. Exiting.' }] };
-    },
-  );
-
-  const server = createSdkMcpServer({
-    name: 'cairn-rollup',
-    tools: [submitRollup],
-    alwaysLoad: true, // tools: [] 로 ToolSearch 가 꺼져 지연 로딩되면 제출 도구를 못 부름
-  });
-
-  return {
-    server,
-    getSubmission: () => submission,
-  };
-}
+  schema: submitRollupSchema,
+};

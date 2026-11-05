@@ -1,6 +1,6 @@
-import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
+import type { SubmitSpec } from '../common/submit-agent.js';
 import type { WorklogLang } from '../cairn/run-options.js';
 
 export const submitPeriodDocSchema = z.object({
@@ -128,27 +128,10 @@ function projectName(name: string): string {
   return oneLine(brackets.at(-1) ?? name);
 }
 
-export function buildPeriodDocTools(): {
-  server: ReturnType<typeof createSdkMcpServer>;
-  getSubmission: () => PeriodDocSubmission | null;
-} {
-  let submission: PeriodDocSubmission | null = null;
-  const submit = tool(
-    'submit_period_doc',
+export const periodDocSubmitSpec: SubmitSpec<typeof submitPeriodDocSchema> = {
+  serverName: 'cairn-period-doc',
+  toolName: 'submit_period_doc',
+  toolDescription:
     'Submit the period summary and exit. Call exactly once after reading the activity data in the user message. All text fields must follow the requested output language.',
-    submitPeriodDocSchema.shape,
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async (raw) => {
-      submission = submitPeriodDocSchema.parse(raw);
-      return { content: [{ type: 'text', text: 'Period summary submitted. Exiting.' }] };
-    },
-  );
-  return {
-    server: createSdkMcpServer({
-      name: 'cairn-period-doc',
-      tools: [submit],
-      alwaysLoad: true, // tools: [] 로 ToolSearch 가 꺼져 지연 로딩되면 제출 도구를 못 부름
-    }),
-    getSubmission: () => submission,
-  };
-}
+  schema: submitPeriodDocSchema,
+};

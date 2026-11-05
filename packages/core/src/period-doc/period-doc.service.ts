@@ -11,7 +11,7 @@ import { WorklogStatsService } from '../worklog-stats/worklog-stats.service.js';
 import { periodDocSystemPrompt } from './period-doc-prompt.js';
 import {
   buildPeriodDocPayload,
-  buildPeriodDocTools,
+  periodDocSubmitSpec,
   periodDocFileName,
   renderPeriodDocMarkdown,
   type PeriodDocMetrics,
@@ -59,13 +59,10 @@ export class PeriodDocService {
     }
 
     this.logger.info({ since, until, days: payload.days.length }, 'period-doc summarizer start');
-    const { server, getSubmission } = buildPeriodDocTools();
     const run = await runSubmitAgent({
+      ...periodDocSubmitSpec,
       prompt: ['<activity>', JSON.stringify(payload), '</activity>'].join('\n'),
       systemPrompt: periodDocSystemPrompt(lang),
-      server,
-      toolName: 'submit_period_doc',
-      getSubmission,
     });
     if (run.lateError) {
       this.logger.warn({ error: run.lateError }, 'period-doc threw after submission');
