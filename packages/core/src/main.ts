@@ -12,6 +12,7 @@ import { isolatedAgentOptions } from './common/agent-isolation.js';
 import { claudeExecutableOptions } from './common/claude-executable.js';
 import { runCodexSubmitAgent } from './common/codex-submit-agent.js';
 import { CairnError } from './common/error.js';
+import { emitParentEvent } from './common/parent-events.js';
 import { summaryModelOption } from './common/summary-model.js';
 import { summaryProvider } from './common/summary-provider.js';
 import { PeriodDocService } from './period-doc/period-doc.service.js';
@@ -82,6 +83,9 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch((err: unknown) => {
+  if (err instanceof CairnError) {
+    emitParentEvent({ type: 'failure', source: err.source, code: err.code });
+  }
   const msg = err instanceof Error ? (err.stack ?? err.message) : String(err);
   process.stderr.write(`cairn bootstrap failed: ${msg}\n`);
   process.exit(1);

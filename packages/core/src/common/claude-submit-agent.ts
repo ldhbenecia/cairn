@@ -3,7 +3,7 @@ import type { z } from 'zod';
 import { accumulateAgentUsage, type AgentUsage } from './agent-usage.js';
 import { isolatedAgentOptions } from './agent-isolation.js';
 import { claudeExecutableOptions } from './claude-executable.js';
-import { CairnError } from './error.js';
+import { engineError } from './engine-error.js';
 import { summaryModelOption } from './summary-model.js';
 import type { SubmitAgentRun, SubmitTask } from './submit-agent.js';
 
@@ -59,7 +59,7 @@ export async function runClaudeSubmitAgent<S extends z.ZodObject>(
     });
     return { usage: await accumulateAgentUsage(q), submission: getSubmission(), lateError: null };
   } catch (err) {
-    const error = CairnError.from(err, 'summarizer');
+    const error = engineError(err);
     // SDK 는 max-turns 등도 throw — submission 이 이미 도착했으면 유료 실행 결과를 버리지 않음
     const arrived = getSubmission();
     if (!arrived) throw error;

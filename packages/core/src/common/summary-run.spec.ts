@@ -7,6 +7,7 @@ const op = vi.hoisted(() => ({ isOperator: vi.fn(() => false) }));
 vi.mock('./operator.js', () => op);
 
 import type { PinoLogger } from 'nestjs-pino';
+import { CairnError } from './error.js';
 import { runSummaryAgent } from './summary-run.js';
 
 const info = vi.fn();
@@ -40,6 +41,27 @@ beforeEach(() => {
 });
 
 describe('runSummaryAgent', () => {
+  it('reports the failure cause before falling back', async () => {
+    const sent: unknown[] = [];
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- 원본 참조 저장 후 원복 (호출 안 함)
+    const original = process.send;
+    process.send = ((m: unknown) => (sent.push(m), true)) as never;
+    try {
+      sa.runSubmitAgent.mockRejectedValueOnce(
+        new CairnError('summarizer', 'auth_failed', 'expired'),
+      );
+      await expect(run()).resolves.toBeNull();
+      expect(sent).toContainEqual({
+        cairn: 1,
+        type: 'failure',
+        source: 'summarizer',
+        code: 'auth_failed',
+      });
+    } finally {
+      process.send = original;
+    }
+  });
+
   it('falls back to null when the agent throws or submits nothing', async () => {
     sa.runSubmitAgent.mockRejectedValueOnce(new Error('boom'));
     await expect(run()).resolves.toBeNull();

@@ -1,7 +1,9 @@
 import type { PinoLogger } from 'nestjs-pino';
 import type { z } from 'zod';
 import type { WorklogSummaryUsage } from '../contracts/worklog-summary.types.js';
+import { CairnError } from './error.js';
 import { isOperator } from './operator.js';
+import { emitParentEvent } from './parent-events.js';
 import { runSubmitAgent, type SubmitAgentRun, type SubmitTask } from './submit-agent.js';
 
 // 요약 실행 결과 정책 — 실패는 null(호출부가 폴백), 제출이 도착했으면 비정상 종료여도 유료 실행 결과 사용
@@ -18,7 +20,10 @@ export async function runSummaryAgent<S extends z.ZodObject>(
   let run: SubmitAgentRun<z.output<S>>;
   try {
     run = await runSubmitAgent(task);
-  } catch (error) {
+  } catch (err) {
+    const error = CairnError.from(err, 'summarizer');
+    // 호출부는 null 폴백 후 일반 '요약 실패'로 끝남 — 로그인 만료·쿼터 같은 원인은 여기서만 알 수 있음
+    emitParentEvent({ type: 'failure', source: error.source, code: error.code });
     logger.warn({ ...ctx, error }, `${label} threw — fallback`);
     return null;
   }
