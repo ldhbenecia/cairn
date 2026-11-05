@@ -14,9 +14,14 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useRef, useState, type Ref } from 'react';
-import type { SummaryProvider } from '../../../shared/ipc-types';
+import { SUMMARY_PROVIDERS, type SummaryProvider } from '../../../shared/ipc-types';
 import type { I18nKey } from '../i18n';
-import { keepClaudeStatusFresh, probeClaude, useClaudeStatus } from '../lib/claude-status-store';
+import {
+  keepClaudeStatusFresh,
+  probeClaude,
+  setActiveEngine,
+  useClaudeStatus,
+} from '../lib/claude-status-store';
 import { useEngineLoggedIn } from '../lib/engine-auth';
 import { PROVIDER_NAME } from '../lib/summary-provider';
 import { useSettings } from '../settings-context';
@@ -151,6 +156,8 @@ function ClaudeStatusRow() {
   const [closing, setClosing] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
+  // 확인 결과를 엔진별로 보관하는 store 에 사용 중 엔진을 알림 — 아래 확인 effect 보다 먼저 실행돼야 함
+  useEffect(() => setActiveEngine(provider), [provider]);
   useEffect(() => keepClaudeStatusFresh(CLAUDE_PROBE_INTERVAL_MS), []);
   // 어디서 로그인했든 사용 중 엔진일 때만 실호출 재확인 — 안 쓰는 엔진 로그인으로 사용량을 쓰지 않음
   useEffect(
@@ -160,7 +167,7 @@ function ClaudeStatusRow() {
       }),
     [provider],
   );
-  // provider 를 바꾸면 이전 provider 의 결과가 남지 않게 즉시 재확인
+  // 엔진을 바꾸면 새 엔진을 즉시 확인
   useEffect(() => {
     if (prevProvider.current === provider) return;
     prevProvider.current = provider;
@@ -204,7 +211,7 @@ function ClaudeStatusRow() {
         <div
           className={`floating-panel ${closing ? 'popover-out' : 'popover-in'} absolute bottom-full left-0 z-20 mb-1 w-64 max-w-[calc(100vw-32px)] rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40 [transform-origin:bottom]`}
         >
-          {(['claude', 'codex'] as const).map((p) => (
+          {SUMMARY_PROVIDERS.map((p) => (
             <EngineMenuRow key={p} provider={p} active={p === provider} />
           ))}
           <div className="my-1 h-px bg-hairline" />
