@@ -24,7 +24,6 @@ export class RollupSummarizerService {
   async summarize(input: RollupSummarizerInput, lang: WorklogLang): Promise<RollupSummary | null> {
     const a = input.activity;
 
-    // 데스크톱 단계 표시가 이 라인으로 collect → summarize 전환을 감지 (core-runner STEP_TRIGGERS)
     this.logger.info({ period: a.period }, 'rollup summarizer start');
 
     // 활동을 프롬프트에 인라인 — 사용자가 편집한 daily 의 위반 항목은 날짜 단위로 drop 해 전체 실패 방지

@@ -5,7 +5,6 @@ import { isOperator } from './operator.js';
 import { runSubmitAgent, type SubmitAgentRun, type SubmitTask } from './submit-agent.js';
 
 // 요약 실행 결과 정책 — 실패는 null(호출부가 폴백), 제출이 도착했으면 비정상 종료여도 유료 실행 결과 사용
-// label 이 들어간 'summarizer finished' 로그는 데스크톱 단계 표시가 매칭함
 export async function runSummaryAgent<S extends z.ZodObject>(
   task: SubmitTask<S>,
   log: {

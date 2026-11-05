@@ -21,7 +21,6 @@ export class DailySummarizerService {
   ) {}
 
   async summarize(input: SummarizerInput, lang: WorklogLang): Promise<WorklogSummary | null> {
-    // 데스크톱 단계 표시가 이 라인으로 collect → summarize 전환을 감지 (core-runner STEP_TRIGGERS)
     this.logger.info({ date: input.date }, 'summarizer start');
 
     // 활동을 프롬프트에 인라인해 get_activity 도구 왕복(모델 턴 1회) 제거

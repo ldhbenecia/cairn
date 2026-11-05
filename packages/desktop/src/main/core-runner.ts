@@ -58,16 +58,6 @@ const STDERR_TAIL_LINES = 20;
 const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
 
 const STEP_ORDER: RunStep[] = ['boot', 'collect', 'summarize', 'publish', 'done'];
-const STEP_TRIGGERS: { regex: RegExp; step: RunStep }[] = [
-  { regex: /Starting Nest application/, step: 'boot' },
-  { regex: /(github|notion|local-git|rollup) collect/i, step: 'collect' },
-  { regex: /summarizer (start|finished)|DailySummarizerService/i, step: 'summarize' },
-  {
-    regex: /notion publish start|worklog page (created|already exists)|publish done/i,
-    step: 'publish',
-  },
-  { regex: /orchestrator\.run done/, step: 'done' },
-];
 
 function stripAnsi(s: string): string {
   return s.replace(ANSI_REGEX, '');
@@ -139,13 +129,6 @@ export function appendSideLog(tag: string, level: 'info' | 'err' | 'meta', line:
 function appendRunLog(mode: CoreMode, level: 'info' | 'err' | 'meta', line: string): void {
   if (!runLogStream) return;
   runLogStream.write(`${new Date().toISOString()} [${mode}] [${level}] ${line}\n`);
-}
-
-function detectStep(line: string): RunStep | null {
-  for (const { regex, step } of STEP_TRIGGERS) {
-    if (regex.test(line)) return step;
-  }
-  return null;
 }
 
 function stepRank(step: RunStep): number {
@@ -347,8 +330,6 @@ export async function runCore(
       ext.feed(line);
       pushTail(stdoutLines, line);
       emit('info', line);
-      const step = detectStep(line);
-      if (step) emitStep(step);
     }
   });
   child.stderr?.on('data', (buf: Buffer) => {
@@ -359,7 +340,7 @@ export async function runCore(
     }
   });
 
-  // 구조화 이벤트가 결과·배치 진행의 단일 소스 (stdout 은 failureHint·step 표시만)
+  // 구조화 이벤트가 결과·진행 단계·배치 진행의 단일 소스 (stdout 은 failureHint 분류만)
   child.on('message', (raw) => {
     const event = parseParentEvent(raw);
     if (!event) return;

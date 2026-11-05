@@ -608,6 +608,12 @@ export class OrchestratorService {
       }
     }
 
+    // 데스크톱 진행 단계는 이 이벤트로만 판단 — 날짜는 기간 시작일 (백필 날짜 목록엔 없어 패널 줄은 안 생김)
+    emitParentEvent({
+      type: 'date-step',
+      date: periodRange(period, options.date).start,
+      step: 'collect',
+    });
     const activity = await this.rollupCollector.collect(period, options.date);
     const periodKor = rollupKor(period);
     const titleKor = `cairn ${periodKor}`;
@@ -642,6 +648,7 @@ export class OrchestratorService {
       return;
     }
 
+    emitParentEvent({ type: 'date-step', date: activity.rangeStart, step: 'summarize' });
     const summary = await this.rollupSummarizer.summarize({ activity }, options.lang);
 
     if (!summary) {
@@ -656,6 +663,7 @@ export class OrchestratorService {
       );
     }
 
+    emitParentEvent({ type: 'date-step', date: activity.rangeStart, step: 'publish' });
     // 롤업도 로컬 journal 이 1차 기록
     const rollupJournalInput = {
       period,
