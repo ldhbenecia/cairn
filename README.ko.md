@@ -4,16 +4,18 @@
 
 > 등산로의 돌탑처럼, 매일 작업 흔적 하나씩 쌓아 길을 남긴다.
 
-cairn 은 여러 레포·계정에 걸친 GitHub PR·커밋을 Claude 로 요약해 로컬 마크다운 일지로 기록하고, 주간·월간 롤업까지 자동으로 만들어 줍니다. Notion 같은 연동을 켜면 그쪽으로도 발행됩니다.
+cairn 은 여러 레포·계정에 걸친 GitHub PR·커밋을 AI(Claude 또는 Codex)로 요약해 로컬 마크다운 일지로 기록하고, 주간·월간 롤업까지 자동으로 만들어 줍니다. Notion 같은 연동을 켜면 그쪽으로도 발행됩니다.
 
-헤드리스 엔진 위에서 **Electron 데스크톱 앱**으로 동작합니다. 모든 것은 내 기기에 머무릅니다 — Claude Agent SDK 를 사용하고(Anthropic API 직접 호출 X), 소스 코드나 diff 를 외부로 절대 보내지 않습니다.
+헤드리스 엔진 위에서 **Electron 데스크톱 앱**으로 동작합니다. 모든 것은 내 기기에 머무릅니다 — 이미 로그인해 둔 CLI(Claude Agent SDK 또는 OpenAI Codex)로 요약하고, 소스 코드나 diff 를 외부로 절대 보내지 않습니다.
 
 ![cairn 대시보드](packages/web/public/statistic_ko.png)
 
 ## 핵심 기능
 
 - **수집** — 여러 레포·계정에 걸친 GitHub PR(작성 + 할당)·커밋. 로컬 Git 수집도 선택 옵션(기본 꺼짐 — GitHub 를 쓰지 않는 레포용)
-- **요약** — Claude(Agent SDK)가 내가 고른 언어(한국어 또는 영어)와 모델로 일지를 작성. PR body 를 근거로 무슨 작업인지 수치·기술 중심 불릿으로 정리
+- **요약** — 내가 고른 요약 엔진이 고른 언어(한국어 또는 영어)와 모델로 일지를 작성. PR body 를 근거로 무슨 작업인지 수치·기술 중심 불릿으로 정리
+  - **Claude**(Claude Code 로그인, Agent SDK) 또는 **Codex**(ChatGPT 로그인한 Codex CLI) — 설정에서 엔진·모델을 고르고, 로그인이 만료되면 앱 안에서 다시 로그인
+  - 엔진은 모든 도구를 끈 상태로 실행돼 cairn 이 넘긴 활동 텍스트만 봄
 - **기록** — 일간 일지 + 주간·월간 롤업을 로컬 마크다운 저널로 기록 (frontmatter + 위키링크)
 - **프로젝트 뷰** — 최근 1년 레포별 활동을 타임라인으로, 레포를 누르면 그 기간의 작업 내역
 - **연동** — 선택적으로 Notion 페이지 발행, 임의의 마크다운 폴더(예: Obsidian vault)로 미러, 일지 폴더의 Git 자동 백업
@@ -31,7 +33,9 @@ cairn 은 여러 레포·계정에 걸친 GitHub PR·커밋을 Claude 로 요약
 ## 요구 사항
 
 - macOS
-- Claude Pro/Max 구독 또는 Anthropic API 키 (Agent SDK 용)
+- 요약 엔진 하나:
+  - Claude — Pro/Max 구독으로 로그인한 Claude Code (또는 Anthropic API 키)
+  - Codex — ChatGPT 요금제로 로그인한 [Codex CLI](https://github.com/openai/codex)
 - GitHub fine-grained PAT (읽기 전용)
 
 선택: Notion 에도 발행하려면 Notion internal integration 토큰. GitHub 를 쓰지 않는 로컬 레포까지 수집하려면 연결 탭에서 로컬 Git 수집을 켤 수 있습니다(기본 꺼짐).
@@ -94,13 +98,13 @@ node packages/core/dist/main.js --mode=daily --date=$(date +%F) --dry-run
 
 pnpm 모노레포:
 
-- `packages/core` — 헤드리스 엔진 (수집기 → Claude 요약기 → Notion 발행기), CLI 로 실행 가능
+- `packages/core` — 헤드리스 엔진 (수집기 → Claude/Codex 요약기 → Notion 발행기), CLI 로 실행 가능
 - `packages/desktop` — Electron 앱 (설정 마법사, 수동/자동 발행, 인앱 로그 뷰어, 통계 대시보드, 환경설정)
 - `packages/web` — 홍보 사이트 (Next.js, Vercel 배포); 크로스기기 동기화 백엔드(인증 + 통계 API)도 호스팅
 
 ### 기술 스택
 
-- **엔진** (`packages/core`) — TypeScript · NestJS(standalone) · Octokit · Notion SDK · Claude Agent SDK
+- **엔진** (`packages/core`) — TypeScript · NestJS(standalone) · Octokit · Notion SDK · Claude Agent SDK · Codex CLI
 - **데스크톱** (`packages/desktop`) — Electron · React 19 · Tailwind CSS v4 · electron-vite · electron-updater
 - **웹** (`packages/web`) — Next.js · Tailwind CSS v4 · Better Auth + Drizzle ORM + Postgres (크로스기기 동기화)
 - **툴링** — pnpm workspaces · ESLint/Prettier · Husky + lint-staged · GitHub Actions
@@ -115,7 +119,7 @@ pnpm 모노레포:
 
 ## 프라이버시
 
-일지·코드·토큰은 내 기기에 머무릅니다. 일지는 디스크의 평문 마크다운 파일이고, 데이터는 내가 연결하기로 선택한 서비스(GitHub, Claude, Notion)로만 전송되며, 그 외 어디로도 보내지 않습니다.
+일지·코드·토큰은 내 기기에 머무릅니다. 일지는 디스크의 평문 마크다운 파일이고, 데이터는 내가 연결하기로 선택한 서비스(GitHub, 요약 엔진 Claude 또는 Codex, Notion)로만 전송되며, 그 외 어디로도 보내지 않습니다.
 
 cairn 은 사용자 수·활성 버전을 파악하기 위해 **익명 사용 텔레메트리**(PostHog)를 보냅니다. 기본 켜짐이며 **Preferences → About → 익명 사용 통계**에서 끌 수 있습니다.
 

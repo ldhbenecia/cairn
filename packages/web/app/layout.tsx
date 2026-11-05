@@ -15,7 +15,7 @@ const serif = Fraunces({
 
 const TITLE = 'Cairn — your daily dev work, stacked into a worklog';
 const DESC =
-  'cairn collects your GitHub PRs and commits, summarizes them with Claude, and writes a daily worklog to a local Markdown journal — publish to Notion and more with integrations.';
+  'cairn collects your GitHub PRs and commits, summarizes them with Claude or Codex, and writes a daily worklog to a local Markdown journal — publish to Notion and more with integrations.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -29,6 +29,7 @@ export const metadata: Metadata = {
     'local-first',
     'Notion',
     'Claude',
+    'Codex',
     'standup notes',
     'work journal',
     'work log automation',

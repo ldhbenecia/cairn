@@ -4,7 +4,7 @@ import { Landing } from '../../components/landing';
 
 const TITLE = 'Cairn — 매일의 개발 작업을, 쌓이는 개발 일지로';
 const DESC =
-  'cairn 은 GitHub PR·커밋을 모아 Claude 로 요약하고, 로컬 마크다운 일지로 매일 기록합니다 — Notion 등 연동 발행은 선택입니다.';
+  'cairn 은 GitHub PR·커밋을 모아 Claude 또는 Codex 로 요약하고, 로컬 마크다운 일지로 매일 기록합니다 — Notion 등 연동 발행은 선택입니다.';
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
