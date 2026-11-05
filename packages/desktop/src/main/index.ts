@@ -9,6 +9,13 @@ import {
 } from './auto-publish';
 import { claudePathReady } from './claude-path';
 import { codexModels } from './codex-models';
+import type { SummaryProvider } from '../shared/ipc-types';
+import {
+  cancelEngineLogin,
+  engineLoggedIn,
+  startEngineLogin,
+  submitEngineLoginCode,
+} from './engine-login';
 import {
   exportStatus,
   isAllowedExportFolder,
@@ -357,6 +364,18 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:connections:accounts', () => probeConnectionAccounts());
   ipcMain.handle('cairn:connections:refresh-github', () => refreshGithubFromGhCli());
   ipcMain.handle('cairn:connections:codex-models', () => codexModels());
+  const asProvider = (v: unknown): SummaryProvider | null =>
+    v === 'claude' || v === 'codex' ? v : null;
+  ipcMain.handle('cairn:engine:logged-in', (_e, p: unknown) => {
+    const provider = asProvider(p);
+    return provider ? engineLoggedIn(provider) : false;
+  });
+  ipcMain.handle('cairn:engine:login', (_e, p: unknown) => {
+    const provider = asProvider(p);
+    return provider ? startEngineLogin(provider) : { ok: false, error: 'failed' };
+  });
+  ipcMain.handle('cairn:engine:login-code', (_e, code: unknown) => submitEngineLoginCode(code));
+  ipcMain.handle('cairn:engine:login-cancel', () => cancelEngineLogin());
   ipcMain.handle('cairn:auto-confirm:accept', () => acceptAutoConfirm());
   ipcMain.handle('cairn:auto-confirm:dismiss', () => dismissAutoConfirm());
   ipcMain.handle('cairn:integrations:add-notion', (_e, raw: unknown) => {
