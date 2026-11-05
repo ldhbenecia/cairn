@@ -9,7 +9,7 @@ export function periodDocSystemPrompt(lang: WorklogLang): string {
     'Workflow: the user message contains the period data as JSON inside <activity> tags — per-day "done" bullets that were already summarized from the developer\'s PRs and commits. Read it, then call submit_period_doc exactly once.',
     '',
     `Output language MUST be ${langName}.`,
-    '- overview: 2-4 short sentences — which projects moved and the overall direction of the period. Open with metrics.journalCount worklogs, metrics.prCount PRs and metrics.commitCount commits verbatim.',
+    '- overview: 2-4 short sentences — which projects moved and the overall direction of the period. Open with metrics.journalCount worklogs, metrics.prCount PRs and metrics.commitCount commits — the counts exactly as given, phrased in the output language (never left in English for non-English output).',
     '- projects: one entry per project, ordered by how much work it had (most first).',
     '  - name: the bare project/repo name WITHOUT brackets, EXACTLY as it appears in the bullets\' "[<repo>]" bracket — verbatim, never renamed, translated, abbreviated, or re-cased. When a bullet has two brackets "[<label>] [<repo>]", the SECOND is the project; the first is an account label. Bullets with no bracket go to a single project named "' +
       (lang === 'en' ? 'Other' : '기타') +
