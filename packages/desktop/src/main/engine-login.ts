@@ -22,8 +22,9 @@ export async function engineLoggedIn(provider: SummaryProvider): Promise<boolean
   if (!bin) return false;
   const args = provider === 'claude' ? ['auth', 'status', '--json'] : ['login', 'status'];
   return new Promise((resolve) => {
-    execFile(bin, args, { env: loginEnv(), timeout: 15_000 }, (err, out) => {
-      if (provider === 'codex') return resolve(!err);
+    execFile(bin, args, { env: loginEnv(), timeout: 15_000 }, (err, out, errOut) => {
+      // codex 는 로그아웃 상태에서도 종료 코드만으로 구분된다는 보장이 없어 출력으로 판정
+      if (provider === 'codex') return resolve(!err && /^Logged in\b/m.test(`${out}\n${errOut}`));
       try {
         resolve((JSON.parse(out) as { loggedIn?: unknown }).loggedIn === true);
       } catch {
@@ -45,6 +46,8 @@ export async function startEngineLogin(
   if (!bin) return { ok: false, error: 'not-installed' };
   const args = provider === 'claude' ? ['auth', 'login', '--claudeai'] : ['login'];
   const child = spawn(bin, args, { env: loginEnv(), stdio: ['pipe', 'ignore', 'ignore'] });
+  // 사용자가 코드를 넣는 순간 CLI 가 끝나면 EPIPE — 리스너가 없으면 main 프로세스가 uncaught 로 죽음
+  child.stdin?.on('error', () => {});
   running = child;
   const timer = setTimeout(() => child.kill(), LOGIN_TIMEOUT_MS);
   return new Promise((resolve) => {
