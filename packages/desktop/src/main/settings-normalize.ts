@@ -55,6 +55,11 @@ export function normalizeSettings(raw: unknown, fb: Settings): Settings {
       monthly: pick(prompts.monthly, isStringOrNull, fb.prompts.monthly),
       yearly: pick(prompts.yearly, isStringOrNull, fb.prompts.yearly),
     },
+    summaryProvider: pick(
+      r.summaryProvider,
+      oneOf(['claude', 'codex'] as const),
+      fb.summaryProvider,
+    ),
     summaryModel: pick(
       r.summaryModel,
       oneOf(['default', 'sonnet', 'haiku', 'opus'] as const),
