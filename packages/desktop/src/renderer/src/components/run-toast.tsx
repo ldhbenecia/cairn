@@ -18,7 +18,11 @@ export function RunToast({
 }) {
   const { t } = useSettings();
   return (
-    <div className="pointer-events-none fixed right-5 bottom-5 z-[70] [-webkit-app-region:no-drag]">
+    <div
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none fixed right-5 bottom-5 z-[70] [-webkit-app-region:no-drag]"
+    >
       <AnimatePresence>
         {toast &&
           (() => {

@@ -17,8 +17,8 @@ and the component idioms), plus the **design decisions and rules** we hold to.
   afterthought. Both must feel intentional.
 - **Two-weight type, dense scale.** Only `medium` (500) and `semibold` (600) are ever used. Sizes are
   hand-tuned arbitrary pixels (including half-pixel steps), not the named Tailwind scale.
-- **Numbers are monospace.** Counts, dates, stats, timers use `font-mono` + `tabular-nums` so they
-  don't jitter.
+- **Numbers are monospace.** Counts, dates, timers use `font-mono` + `tabular-nums` so they
+  don't jitter. Large stat figures are the exception: sans `semibold` + `tabular-nums` (§5).
 - **Restraint in motion.** Fast, soft, expo-eased transitions. Nothing bounces or lingers.
 - **Depth is earned, not faked.** Dark uses lightness for elevation; light uses border + soft
   *navy* (never black) shadow. See §3.
@@ -170,9 +170,10 @@ Size scale — hand-tuned arbitrary px (no `text-sm/base/lg`):
 | 13.5 / 14 | Slightly-larger body / tab titles |
 | **15** | Workhorse title (panel/dialog/drawer headers, sidebar brand) |
 | 16 / 17 / 18 | Section / stat / step titles |
-| 20 / 24 / 26 / 28 | Display / hero (stats use `font-mono`) |
+| 20 / 24 / 26 / 28 | Display / hero (stat figures: sans `semibold` + `tabular-nums`) |
 
-- **Mono + tabular-nums** for all numeric/date content (dates, counts, timers, SHAs, paths, streaks).
+- **Mono + tabular-nums** for numeric/date content (dates, counts, timers, SHAs, paths, streaks).
+  Large dashboard/report stat figures stay sans `semibold` + `tabular-nums`.
 - **Tracking:** negative optical tightening on `semibold` headings, scaling with size
   (`-0.2px @15` → `-0.6px @28`); `uppercase tracking-wider` only for section eyebrows
   (`text-[11px] font-medium uppercase tracking-wider text-ink-tertiary`).
@@ -215,6 +216,10 @@ card `px-4 py-3.5`; dialog header `px-6 py-4`, body `px-6 py-5`. Icon-button tar
   they *close* smoothly, not just open.
 - **Reveal-on-scroll** (dashboard) via `IntersectionObserver` — sections fade/rise once on entry.
 - **Hover/active** use `transition-colors`; every interactive surface should have it (no snap).
+- **Reduced motion** (`prefers-reduced-motion: reduce`): entrance/decorative keyframes finish in 1ms
+  (final state, not `animation: none` — `.line-draw` would stay hidden); progress indicators
+  (`.animate-spin`, `.progress-indeterminate`) keep running. framer-motion uses
+  `<MotionConfig reducedMotion="user">` (transforms off, opacity only).
 
 ---
 
@@ -253,7 +258,8 @@ idioms. Genuinely shared components: `Toggle`, `Segmented`/`Field` (`field.tsx`)
 ### Overlays
 - **Dialog:** Radix + `.dialog-content.glass-panel`, overlay `.dialog-overlay`. Close via CSS keyframes.
 - **Popover/dropdown:** `.popover-in` / `.popover-out`, `rounded-lg border border-hairline bg-surface-1 p-1`, origin top-right.
-- **RunToast:** bottom-right `glass-panel` `w-80`, `z-[70]` (above dialogs at `z-50`).
+- **RunToast:** bottom-right `glass-panel` `w-80`, `z-[70]` (above dialogs at `z-50`). The always-mounted
+  wrapper carries `role="status" aria-live="polite"` (same for AutoConfirmToast) so updates are announced.
 - **Sidebar nav item:** active = `bg-surface-2` + a 3px left accent rail (`w-0.75`).
 
 ---
@@ -269,7 +275,8 @@ These are product decisions, not just conventions:
   worklog reader body) and `input, textarea` are selectable/copyable. Applied on `body` (not `#root`)
   so Radix/`createPortal` overlays inherit it.
 - **Cursor.** `default` everywhere (even buttons). Graph: `pointer` only when directly over a node,
-  `grab`/`grabbing` for panning.
+  `grab`/`grabbing` for panning. Exceptions — click targets with no button styling use `cursor-pointer`:
+  clickable heatmap cells, report lane bars, `<summary>` toggles, the graph zoom slider.
 - **Window drag.** macOS `titleBarStyle: 'hiddenInset'` — the renderer supplies the drag band. Each
   top-level view has a full-width `h-20 [-webkit-app-region:drag]` strip; interactive controls and the
   graph canvas are `no-drag`.
