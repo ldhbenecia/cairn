@@ -24,8 +24,8 @@ const STRINGS = {
     'account.local': '로컬',
     'account.offline': '오프라인',
     'claude.status.checking': '확인 중',
-    'claude.status.ok': 'Claude 연결됨',
-    'claude.status.fail': 'Claude 사용 불가',
+    'claude.status.ok': '연결됨',
+    'claude.status.fail': '사용 불가',
     'claude.status.failHint': '설정 > 연결에서 확인',
 
     'source.localDesc': '로컬 일지',
@@ -500,6 +500,12 @@ const STRINGS = {
     'prefs.prompts.custom': '커스텀 프롬프트',
     'prefs.prompts.proLock': 'Pro 기능 — 결제 준비 중',
     'prefs.prompts': '프롬프트',
+    'prefs.prompts.provider': '요약 엔진',
+    'prefs.prompts.providerDesc':
+      '활동을 일지로 요약할 AI 예요. 시스템에 설치·로그인된 CLI 를 그대로 사용하고, 구독 안에서 동작해 추가 과금이 없어요.',
+    'prefs.prompts.provider.claudeDesc': 'Claude Code 로그인(Pro/Max 등)을 사용해요.',
+    'prefs.prompts.provider.codexDesc':
+      'Codex CLI 의 ChatGPT 로그인을 사용해요. 요약 입력(PR 제목·커밋 제목 등)이 OpenAI 로 전송돼요.',
     'prefs.prompts.model': '요약 모델',
     'prefs.prompts.modelDesc':
       '요약에 쓸 Claude 모델이에요. 어떤 모델이든 발행 속도는 30초 안팎으로 비슷해서, 실제 차이는 문장 품질과 Claude 구독 사용량이에요. 추가 과금은 없어요(내 Claude 로그인 사용). 소요 시간은 발행 결과 화면에 표시돼요.',
@@ -570,7 +576,7 @@ const STRINGS = {
     'prefs.telemetry.desc':
       '제품 개선을 위한 익명 통계(앱 버전·발행 횟수 등)를 보냅니다. 일지 내용·코드·개인정보는 보내지 않아요.',
     'prefs.privacy':
-      '일지·코드·토큰은 이 기기에만 저장돼요. Notion · GitHub · Claude, 그리고 익명 사용 통계(끌 수 있음) 외에는 어디에도 전송하지 않습니다.',
+      '일지·코드·토큰은 이 기기에만 저장돼요. Notion · GitHub · 선택한 요약 엔진(Claude 또는 Codex), 그리고 익명 사용 통계(끌 수 있음) 외에는 어디에도 전송하지 않습니다.',
   },
   en: {
     'brand.worklog': 'Worklog',
@@ -595,8 +601,8 @@ const STRINGS = {
     'account.local': 'Local',
     'account.offline': 'Offline',
     'claude.status.checking': 'Checking…',
-    'claude.status.ok': 'Claude connected',
-    'claude.status.fail': 'Claude unavailable',
+    'claude.status.ok': 'connected',
+    'claude.status.fail': 'unavailable',
     'claude.status.failHint': 'Check Preferences > Connections',
 
     'source.localDesc': 'Local journal',
@@ -1079,6 +1085,12 @@ const STRINGS = {
     'prefs.prompts.custom': 'Custom prompts',
     'prefs.prompts.proLock': 'Pro feature — checkout coming soon',
     'prefs.prompts': 'Prompts',
+    'prefs.prompts.provider': 'Summary engine',
+    'prefs.prompts.providerDesc':
+      'The AI that turns your activity into a worklog. cairn uses the CLI installed and logged in on your system, within your subscription — no extra cost.',
+    'prefs.prompts.provider.claudeDesc': 'Uses your Claude Code login (Pro/Max, etc.).',
+    'prefs.prompts.provider.codexDesc':
+      'Uses the ChatGPT login of the Codex CLI. Summary input (PR titles, commit subjects, etc.) is sent to OpenAI.',
     'prefs.prompts.model': 'Summary model',
     'prefs.prompts.modelDesc':
       'The Claude model used for summaries. Every model publishes in about 30 seconds, so the real difference is prose quality vs. Claude subscription usage. No extra cost — it uses your own Claude login. Time per run is shown on the publish result.',
@@ -1152,7 +1164,7 @@ const STRINGS = {
     'prefs.telemetry.desc':
       'Send anonymous stats (app version, publish counts, etc.) to help improve cairn. No worklog content, code, or personal info is sent.',
     'prefs.privacy':
-      'Your worklogs, code, and tokens stay on this device. Nothing is sent anywhere except Notion · GitHub · Claude, and anonymous usage stats (which you can turn off).',
+      'Your worklogs, code, and tokens stay on this device. Nothing is sent anywhere except Notion · GitHub · your chosen summary engine (Claude or Codex), and anonymous usage stats (which you can turn off).',
   },
 } as const;
 

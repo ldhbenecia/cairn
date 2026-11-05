@@ -14,7 +14,12 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState, type Ref } from 'react';
 import type { I18nKey } from '../i18n';
-import { keepClaudeStatusFresh, probeClaude, useClaudeStatus } from '../lib/claude-status-store';
+import {
+  keepClaudeStatusFresh,
+  PROVIDER_NAME,
+  probeClaude,
+  useClaudeStatus,
+} from '../lib/claude-status-store';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
 import { AccountStatusPill } from './account-status-pill';
@@ -136,12 +141,20 @@ export function Sidebar({
 
 const CLAUDE_PROBE_INTERVAL_MS = 5 * 60_000;
 
-// Claude CLI 도달 여부 소형 상태 행 — 5분 간격(창 숨김 중 제외), 클릭 시 즉시 재확인
+// 요약 provider CLI 도달 여부 소형 상태 행 — 5분 간격(창 숨김 중 제외), 클릭 시 즉시 재확인
 function ClaudeStatusRow() {
-  const { t } = useSettings();
+  const { settings, t } = useSettings();
   const status = useClaudeStatus();
+  const provider = settings.summaryProvider;
+  const prevProvider = useRef(provider);
 
   useEffect(() => keepClaudeStatusFresh(CLAUDE_PROBE_INTERVAL_MS), []);
+  // provider 를 바꾸면 이전 provider 의 결과가 남지 않게 즉시 재확인
+  useEffect(() => {
+    if (prevProvider.current === provider) return;
+    prevProvider.current = provider;
+    void probeClaude();
+  }, [provider]);
 
   const dot = {
     checking: 'animate-pulse bg-ink-tertiary',
@@ -150,8 +163,8 @@ function ClaudeStatusRow() {
   }[status];
   const label = {
     checking: t('claude.status.checking'),
-    ok: t('claude.status.ok'),
-    fail: t('claude.status.fail'),
+    ok: `${PROVIDER_NAME[provider]} ${t('claude.status.ok')}`,
+    fail: `${PROVIDER_NAME[provider]} ${t('claude.status.fail')}`,
   }[status];
 
   return (

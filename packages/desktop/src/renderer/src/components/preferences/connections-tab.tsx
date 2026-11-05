@@ -1,7 +1,12 @@
-import { FolderGit2, Loader2, RotateCw } from 'lucide-react';
+import { FolderGit2, Loader2, RotateCw, SquareTerminal } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { AccountHealth, ConnectionAccounts } from '../../../../shared/ipc-types';
-import { probeClaude, probeClaudeOnce, useClaudeStatus } from '../../lib/claude-status-store';
+import {
+  PROVIDER_NAME,
+  probeClaude,
+  probeClaudeOnce,
+  useClaudeStatus,
+} from '../../lib/claude-status-store';
 import { useSettings } from '../../settings-context';
 import { AccountStatusPill } from '../account-status-pill';
 import { ClaudeMark, GithubMark, NotionMark } from '../brand-icons';
@@ -24,7 +29,7 @@ function basename(p: string): string {
 }
 
 export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
-  const { t } = useSettings();
+  const { settings, t } = useSettings();
   const [cfg, setCfg] = useState<ParsedConfig>({});
   const claude = useClaudeStatus();
   const [accounts, setAccounts] = useState<ConnectionAccounts | null>(null);
@@ -165,8 +170,14 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
         }
       />
       <Row
-        icon={<ClaudeMark size={13} />}
-        label="Claude"
+        icon={
+          settings.summaryProvider === 'codex' ? (
+            <SquareTerminal size={13} className="shrink-0 text-ink-muted" />
+          ) : (
+            <ClaudeMark size={13} />
+          )
+        }
+        label={PROVIDER_NAME[settings.summaryProvider]}
         pending={claude === 'checking'}
         ok={claude === 'ok'}
         onRefresh={claude === 'checking' ? undefined : refreshClaude}
