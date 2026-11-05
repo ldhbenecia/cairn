@@ -67,7 +67,10 @@ beforeEach(() => {
   cp.spawn.mockReset();
   process.env.GITHUB_TOKEN_TEST = 'ghp_secret';
 });
-afterEach(() => delete process.env.GITHUB_TOKEN_TEST);
+afterEach(() => {
+  delete process.env.GITHUB_TOKEN_TEST;
+  delete process.env.CAIRN_CODEX_MODEL;
+});
 
 describe('parseEnabledFeatures', () => {
   it('keeps every enabled feature that is not removed', () => {
@@ -96,6 +99,11 @@ describe('codexArgs', () => {
     expect(args.join(' ')).toContain('-C /tmp/w');
     expect(args.join(' ')).toContain('--sandbox read-only');
     expect(args.at(-1)).toBe('-');
+    expect(args).not.toContain('-m');
+  });
+
+  it('passes a chosen model', () => {
+    expect(codexArgs('/w', '/w/s.json', [], 'gpt-5.6-luna').join(' ')).toContain('-m gpt-5.6-luna');
   });
 });
 
@@ -107,6 +115,24 @@ describe('runCodexSubmitAgent', () => {
     expect(r.usage).toMatchObject({ inputTokens: 100, cacheReadTokens: 40, outputTokens: 20 });
     const args = cp.spawn.mock.calls[0]![1] as string[];
     expect(args.join(' ')).toContain('--disable apps --disable shell_tool --disable sleep_tool');
+  });
+
+  it('ignores a model value that is not a model id', async () => {
+    process.env.CAIRN_CODEX_MODEL = '--dangerously-bypass-approvals-and-sandbox';
+    cp.spawn.mockImplementation(() => fakeCodex([message('{"text":"ok"}'), done]));
+    await run();
+    expect(cp.spawn.mock.calls[0]![1]).not.toContain('-m');
+  });
+
+  it('tells the model there is no submit tool', async () => {
+    let stdin = '';
+    cp.spawn.mockImplementation(() => {
+      const child = fakeCodex([message('{"text":"ok"}'), done]);
+      child.stdin = new Writable({ write: (c: Buffer, _e, cb) => ((stdin += c.toString()), cb()) });
+      return child;
+    });
+    await run();
+    expect(stdin).toContain('There is no t tool here');
   });
 
   it('does not hand tokens to the codex process', async () => {

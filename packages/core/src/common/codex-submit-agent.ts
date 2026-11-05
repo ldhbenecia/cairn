@@ -7,6 +7,7 @@ import { z } from 'zod';
 import type { AgentUsage } from './agent-usage.js';
 import { CairnError } from './error.js';
 import type { SubmitAgentRun, SubmitTask } from './submit-agent.js';
+import { codexModel } from './summary-provider.js';
 
 // 메시지·추론 외 항목(명령 실행·파일 변경·MCP·웹 검색 등)이 보이면 격리가 뚫린 것
 const ALLOWED_ITEM_TYPES = new Set(['agent_message', 'reasoning', 'error']);
@@ -54,7 +55,12 @@ function codexEnv(): NodeJS.ProcessEnv {
   );
 }
 
-export function codexArgs(workDir: string, schemaPath: string, features: string[]): string[] {
+export function codexArgs(
+  workDir: string,
+  schemaPath: string,
+  features: string[],
+  model?: string,
+): string[] {
   return [
     'exec',
     '--json',
@@ -68,6 +74,7 @@ export function codexArgs(workDir: string, schemaPath: string, features: string[
     ...['-c', 'shell_environment_policy.inherit="none"'],
     ...['-c', 'model_reasoning_effort="low"'], // 요약은 추론 태스크가 아님
     ...['--output-schema', schemaPath],
+    ...(model ? ['-m', model] : []), // 미지정이면 계정 기본 — ChatGPT 계정은 목록 밖 모델을 거절
     ...features.flatMap((f) => ['--disable', f]),
     '-', // 프롬프트는 stdin — argv 로 넘기면 ps 에 노출
   ];
@@ -106,12 +113,14 @@ export async function runCodexSubmitAgent<S extends z.ZodObject>(
   try {
     const schemaPath = join(workDir, 'schema.json');
     writeFileSync(schemaPath, JSON.stringify(z.toJSONSchema(task.schema, { target: 'draft-7' })));
-    const child = spawn(codexBinary(), codexArgs(workDir, schemaPath, features), {
+    const child = spawn(codexBinary(), codexArgs(workDir, schemaPath, features, codexModel()), {
       cwd: workDir,
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
-    child.stdin.end(`${task.systemPrompt}\n\n${task.prompt}`);
+    // 프롬프트는 제출 도구 호출을 전제로 씀 — 도구가 없다는 사정을 모델이 결과 본문(Notes 등)에 적지 않도록 대체 경로를 명시
+    const note = `There is no ${task.toolName} tool here. Return exactly what you would have submitted as your final message: one JSON object matching the output schema. Do not mention tools or this substitution anywhere in it.`;
+    child.stdin.end(`${task.systemPrompt}\n\n${note}\n\n${task.prompt}`);
 
     // 이벤트 콜백에서 채움 — 지역 let 이면 TS 가 null 로 좁혀 이후 분기를 never 로 봄
     const seen: {
