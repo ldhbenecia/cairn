@@ -2,15 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { customPromptFor, withCustomPrompt } from '../common/custom-prompt.js';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
-import { activityBlock, runSubmitAgent, type SubmitAgentRun } from '../common/submit-agent.js';
-import { isOperator } from '../common/operator.js';
-import type { WorklogSummary, WorklogSummaryUsage } from '../contracts/worklog-summary.types.js';
+import { activityBlock } from '../common/submit-agent.js';
+import { runSummaryAgent } from '../common/summary-run.js';
+import type { WorklogSummary } from '../contracts/worklog-summary.types.js';
 import type { WorklogLang } from '../cairn/run-options.js';
 import { dailySystemPrompt } from './daily-prompt.js';
 import {
   buildActivityPayload,
   summarySubmitSpec,
-  type SubmitSummaryInput,
   type SummarizerInput,
 } from './summarizer-tools.js';
 
@@ -33,67 +32,13 @@ export class DailySummarizerService {
       '\n',
     );
 
-    let run: SubmitAgentRun<SubmitSummaryInput>;
-    try {
-      run = await runSubmitAgent({
+    return runSummaryAgent(
+      {
         ...summarySubmitSpec,
         prompt: userPrompt,
         systemPrompt: withCustomPrompt(dailySystemPrompt(lang), customPromptFor('daily')),
-      });
-    } catch (error) {
-      this.logger.warn({ date: input.date, error }, 'summarizer threw — fallback');
-      return null;
-    }
-    if (run.lateError) {
-      this.logger.warn(
-        { date: input.date, error: run.lateError },
-        'summarizer threw after submission — using submitted result',
-      );
-    }
-    const {
-      resultSubtype,
-      inputTokens,
-      outputTokens,
-      cacheReadTokens,
-      cacheCreationTokens,
-      costUsd,
-      model,
-    } = run.usage;
-
-    this.logger.info(
-      {
-        date: input.date,
-        resultSubtype,
-        inputTokens,
-        outputTokens,
-        cacheReadTokens,
-        cacheCreationTokens,
-        costUsd,
-        isOperator: isOperator(),
       },
-      'summarizer finished',
+      { logger: this.logger, label: 'summarizer', ctx: { date: input.date } },
     );
-
-    const { submission } = run;
-    if (!submission) {
-      this.logger.warn(
-        { date: input.date, resultSubtype },
-        'summarizer ended without submit_summary — fallback',
-      );
-      return null;
-    }
-    if (resultSubtype !== 'success') {
-      // submit_summary 는 이미 도착 — maxTurns 등 비정상 종료여도 유료 실행 결과 사용
-      this.logger.warn(
-        { date: input.date, resultSubtype },
-        'summarizer non-success but submission present — using it',
-      );
-    }
-
-    const usage: WorklogSummaryUsage | undefined = isOperator()
-      ? { inputTokens, outputTokens, costUsd, ...(model ? { model } : {}) }
-      : undefined;
-
-    return { ...submission, ...(usage ? { usage } : {}) };
   }
 }
