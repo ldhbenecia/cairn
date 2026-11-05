@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import type { CoreResult, RunProgress } from '../../../shared/ipc-types';
 import type { SinkOutcome } from '../lib/publish-sinks';
 import { NotionMark, ObsidianMark } from './brand-icons';
-import type { T } from './publish-dialog-utils';
+import { fmtElapsed, type T } from './publish-dialog-utils';
 import { classifyRunOutcome } from '../../../shared/run-outcome';
 
 function pageIdToUrl(pageId: string | null): string | null {
@@ -108,12 +108,6 @@ export function ErrorCard({
       </div>
     </div>
   );
-}
-
-function fmtElapsed(sec: number): string {
-  const mm = String(Math.floor(sec / 60)).padStart(2, '0');
-  const ss = String(sec % 60).padStart(2, '0');
-  return `${mm}:${ss}`;
 }
 
 export function Result({

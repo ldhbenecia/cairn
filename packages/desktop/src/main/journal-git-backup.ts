@@ -1,3 +1,4 @@
+import { localIsoDate, pad2 } from '../shared/local-date';
 import { execFile } from 'node:child_process';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -11,8 +12,6 @@ export type { BackupStatus } from '../shared/ipc-types';
 
 const execFileAsync = promisify(execFile);
 
-export type BackupErrorCode = 'pull-failed' | 'identity-missing' | 'commit-failed' | 'push-failed';
-
 export type BackupDeps = {
   exec: (args: string[], dir: string, timeoutMs: number) => Promise<{ stdout: string }>;
   hasGit: () => boolean;
@@ -24,8 +23,7 @@ export type BackupDeps = {
 };
 
 export function commitMessage(d: Date): string {
-  const pad = (n: number): string => String(n).padStart(2, '0');
-  return `cairn: journal backup ${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `cairn: journal backup ${localIsoDate(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
 export function createJournalBackup(deps: BackupDeps): {

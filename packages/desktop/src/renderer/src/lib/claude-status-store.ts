@@ -1,32 +1,48 @@
 import { useSyncExternalStore } from 'react';
+import type { SummaryProvider } from '../../../shared/ipc-types';
 
 export type ClaudeStatus = 'checking' | 'ok' | 'fail';
 
 // probe 는 코어 fork + 실제 쿼리(최대 ~1분)라 사이드바·연결 탭이 결과 하나를 공유하고 동시 요청은 합침
-let status: ClaudeStatus = 'checking';
+// 엔진별로 보관 — 확인 도중 엔진을 바꾸면 이전 엔진 결과가 새 엔진 이름으로 표시되던 경합 방지
+const results: Partial<Record<SummaryProvider, ClaudeStatus>> = {};
+const inflight: Partial<Record<SummaryProvider, Promise<void>>> = {};
+let active: SummaryProvider = 'claude';
 let probed = false;
-let inflight: Promise<void> | null = null;
+let busy = false;
 const listeners = new Set<() => void>();
 
-function set(next: ClaudeStatus): void {
-  status = next;
+function emit(): void {
   listeners.forEach((fn) => fn());
 }
 
+function set(provider: SummaryProvider, next: ClaudeStatus): void {
+  results[provider] = next;
+  emit();
+}
+
+export function setActiveEngine(provider: SummaryProvider): void {
+  if (active === provider) return;
+  active = provider;
+  emit();
+}
+
+// main 은 fork 시점 설정의 provider 로 확인 — 호출 시점의 사용 중 엔진에 결과를 기록
 export function probeClaude(): Promise<void> {
-  inflight ??= (async () => {
-    set('checking');
+  const provider = active;
+  inflight[provider] ??= (async () => {
+    set(provider, 'checking');
     try {
       const r = await window.cairn.onboarding.probeClaude();
-      set(r.ok ? 'ok' : 'fail');
+      set(provider, r.ok ? 'ok' : 'fail');
     } catch {
-      set('fail');
+      set(provider, 'fail');
     } finally {
       probed = true;
-      inflight = null;
+      delete inflight[provider];
     }
   })();
-  return inflight;
+  return inflight[provider];
 }
 
 export function probeClaudeOnce(): void {
@@ -37,6 +53,8 @@ export function probeClaudeOnce(): void {
 export function keepClaudeStatusFresh(intervalMs: number): () => void {
   let missed = false;
   const tick = (): void => {
+    // 발행 중엔 건너뜀 — 실패하면 run-done 에서 바로 재확인하고, 성공이면 엔진이 동작한다는 뜻
+    if (busy) return;
     if (document.hidden) {
       missed = true;
       return;
@@ -67,6 +85,9 @@ window.cairn.onRunDone(({ result }) => {
   }
 });
 
+window.cairn.onBusy((b) => (busy = b.busy));
+void window.cairn.busyState().then((b) => (busy = b.busy));
+
 function subscribe(fn: () => void): () => void {
   listeners.add(fn);
   return () => {
@@ -75,5 +96,5 @@ function subscribe(fn: () => void): () => void {
 }
 
 export function useClaudeStatus(): ClaudeStatus {
-  return useSyncExternalStore(subscribe, () => status);
+  return useSyncExternalStore(subscribe, () => results[active] ?? 'checking');
 }

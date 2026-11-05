@@ -29,6 +29,7 @@ import { NotionMark, ObsidianMark } from './brand-icons';
 import { Pagination } from './pagination';
 import { PublishDialog } from './publish-dialog';
 import type { WorklogFilter } from './sidebar';
+import { toggleIn } from '../lib/toggle-in';
 
 type GroupBy = 'none' | 'category' | 'status';
 type T = (key: I18nKey) => string;
@@ -198,12 +199,7 @@ export function WorklogList({
   }
 
   function toggleGroup(key: string) {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+    setCollapsed((prev) => toggleIn(prev, key));
   }
 
   return (

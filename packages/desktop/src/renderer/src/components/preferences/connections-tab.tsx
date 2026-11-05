@@ -4,7 +4,7 @@ import type { AccountHealth, ConnectionAccounts } from '../../../../shared/ipc-t
 import { probeClaude, probeClaudeOnce, useClaudeStatus } from '../../lib/claude-status-store';
 import { useEngineLoggedIn } from '../../lib/engine-auth';
 import { PROVIDER_NAME } from '../../lib/summary-provider';
-import type { SummaryProvider } from '../../../../shared/ipc-types';
+import { SUMMARY_PROVIDERS, type SummaryProvider } from '../../../../shared/ipc-types';
 import { useSettings } from '../../settings-context';
 import { EngineLoginButton, EngineLoginPanel, useEngineLogin } from '../engine-login';
 import { AccountStatusPill } from '../account-status-pill';
@@ -12,6 +12,7 @@ import { ClaudeMark, CodexMark, GithubMark, NotionMark } from '../brand-icons';
 import { AccordionItem } from '../accordion';
 import { Toggle } from '../toggle';
 import { Section } from './field';
+import { toggleIn } from '../../lib/toggle-in';
 
 type ParsedConfig = {
   notionWorkspaces?: { label: string }[];
@@ -82,13 +83,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
     void probeClaude();
   };
 
-  const toggle = (key: string): void =>
-    setOpen((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const toggle = (key: string): void => setOpen((prev) => toggleIn(prev, key));
 
   const notion = cfg.notionWorkspaces ?? [];
   const github = cfg.githubAccounts ?? [];
@@ -168,7 +163,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
           </div>
         }
       />
-      {(['claude', 'codex'] as const).map((p) => (
+      {SUMMARY_PROVIDERS.map((p) => (
         <EngineRow
           key={p}
           provider={p}

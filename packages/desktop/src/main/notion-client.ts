@@ -1,4 +1,5 @@
 import { Client } from '@notionhq/client';
+import { pool } from '../shared/pool';
 import { errorMessage } from './error-message';
 import { readStatsFile } from './cloud-sync';
 import { readConfig } from './files';
@@ -297,15 +298,10 @@ async function fetchBlocks(notion: Client, blockId: string, depth: number): Prom
   } while (cursor);
 
   // 자식 블록을 직렬 재귀로 기다리면 라운드트립이 합산돼 드로어가 수 초 지연 — Notion rate limit 고려해 동시성 4
-  const CHILD_CONCURRENCY = 4;
-  for (let i = 0; i < pendingChildren.length; i += CHILD_CONCURRENCY) {
-    const batch = pendingChildren.slice(i, i + CHILD_CONCURRENCY);
-    await Promise.all(
-      batch.map(async ({ sb, blockId }) => {
-        sb.children = await fetchBlocks(notion, blockId, depth + 1);
-      }),
-    );
-  }
+  // 고정 4개 묶음은 가장 느린 요청을 기다리며 슬롯이 놀아 pool 로 — 동시성 상한은 같음
+  await pool(pendingChildren, 4, async ({ sb, blockId }) => {
+    sb.children = await fetchBlocks(notion, blockId, depth + 1);
+  });
 
   return out;
 }

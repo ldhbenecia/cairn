@@ -26,10 +26,8 @@ const STRINGS = {
     'claude.status.checking': '확인 중',
     'claude.status.ok': '연결됨',
     'claude.status.fail': '사용 불가',
-    'claude.status.failHint': '설정 > 연결에서 확인',
     'engine.inUse': '사용 중',
     'engine.switch': '전환',
-    'engine.loggedOut': '로그인 필요',
     'engine.login': '로그인',
     'engine.login.waiting':
       '브라우저에서 로그인을 마치면 자동으로 연결돼요. 코드가 표시되면 아래에 붙여넣으세요',
@@ -619,10 +617,8 @@ const STRINGS = {
     'claude.status.checking': 'Checking…',
     'claude.status.ok': 'connected',
     'claude.status.fail': 'unavailable',
-    'claude.status.failHint': 'Check Preferences > Connections',
     'engine.inUse': 'In use',
     'engine.switch': 'Switch',
-    'engine.loggedOut': 'Not logged in',
     'engine.login': 'Log in',
     'engine.login.waiting':
       'Finish signing in in your browser and cairn connects automatically. If it shows a code, paste it below',

@@ -14,7 +14,7 @@ import type { RecentListResult, RecentPage } from '../../../shared/ipc-types';
 import type { I18nKey } from '../i18n';
 import { recallEntries, type RecallEntry, type RecallKey } from '../lib/recall';
 import { useSettings } from '../settings-context';
-import { localIsoDate } from '../lib/reports';
+import { localIsoDate } from '../../../shared/local-date';
 import { longestStreak } from '../lib/wrapped';
 
 type T = (key: I18nKey) => string;

@@ -1,3 +1,4 @@
+import { SUMMARY_PROVIDERS } from '../shared/ipc-types';
 import { isCodexModelSlug } from './codex-models';
 import type { Settings } from './settings';
 
@@ -56,11 +57,7 @@ export function normalizeSettings(raw: unknown, fb: Settings): Settings {
       monthly: pick(prompts.monthly, isStringOrNull, fb.prompts.monthly),
       yearly: pick(prompts.yearly, isStringOrNull, fb.prompts.yearly),
     },
-    summaryProvider: pick(
-      r.summaryProvider,
-      oneOf(['claude', 'codex'] as const),
-      fb.summaryProvider,
-    ),
+    summaryProvider: pick(r.summaryProvider, oneOf(SUMMARY_PROVIDERS), fb.summaryProvider),
     codexModel: pick(
       r.codexModel,
       (v): v is string | null => v === null || isCodexModelSlug(v),

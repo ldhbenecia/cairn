@@ -22,7 +22,7 @@ import {
 import { broadcast } from './broadcast';
 import { errorMessage } from './error-message';
 import { claudeEnv, claudePathReady, findInPath } from './claude-path';
-import { localTodayIso } from './auto-publish-schedule';
+import { localIsoDate } from '../shared/local-date';
 import { pool } from '../shared/pool';
 import { syncWorklogToFolder } from './export';
 import { buildExportTargets, type ExportTarget } from './export-targets';
@@ -58,16 +58,6 @@ const STDERR_TAIL_LINES = 20;
 const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
 
 const STEP_ORDER: RunStep[] = ['boot', 'collect', 'summarize', 'publish', 'done'];
-const STEP_TRIGGERS: { regex: RegExp; step: RunStep }[] = [
-  { regex: /Starting Nest application/, step: 'boot' },
-  { regex: /(github|notion|local-git|rollup) collect/i, step: 'collect' },
-  { regex: /summarizer (start|finished)|DailySummarizerService/i, step: 'summarize' },
-  {
-    regex: /notion publish start|worklog page (created|already exists)|publish done/i,
-    step: 'publish',
-  },
-  { regex: /orchestrator\.run done/, step: 'done' },
-];
 
 function stripAnsi(s: string): string {
   return s.replace(ANSI_REGEX, '');
@@ -95,7 +85,7 @@ function pruneOldRunLogs(): void {
 }
 
 function runLogPath(): string {
-  return join(LOGS_DIR, `desktop-run.${localTodayIso(new Date())}.log`);
+  return join(LOGS_DIR, `desktop-run.${localIsoDate(new Date())}.log`);
 }
 
 function openRunLog(): void {
@@ -139,13 +129,6 @@ export function appendSideLog(tag: string, level: 'info' | 'err' | 'meta', line:
 function appendRunLog(mode: CoreMode, level: 'info' | 'err' | 'meta', line: string): void {
   if (!runLogStream) return;
   runLogStream.write(`${new Date().toISOString()} [${mode}] [${level}] ${line}\n`);
-}
-
-function detectStep(line: string): RunStep | null {
-  for (const { regex, step } of STEP_TRIGGERS) {
-    if (regex.test(line)) return step;
-  }
-  return null;
 }
 
 function stepRank(step: RunStep): number {
@@ -347,8 +330,6 @@ export async function runCore(
       ext.feed(line);
       pushTail(stdoutLines, line);
       emit('info', line);
-      const step = detectStep(line);
-      if (step) emitStep(step);
     }
   });
   child.stderr?.on('data', (buf: Buffer) => {
@@ -359,7 +340,7 @@ export async function runCore(
     }
   });
 
-  // 구조화 이벤트가 결과·배치 진행의 단일 소스 (stdout 은 failureHint·step 표시만)
+  // 구조화 이벤트가 결과·진행 단계·배치 진행의 단일 소스 (stdout 은 failureHint 분류만)
   child.on('message', (raw) => {
     const event = parseParentEvent(raw);
     if (!event) return;
@@ -436,7 +417,7 @@ export async function runCore(
         if (!cancelled && result.ok) void syncStats();
         if (!cancelled && result.ok && !finalNoActivity) {
           // 백필 catch-up 으로 오늘이 아닌 날이 발행됐을 수 있어 실제 발행 날짜 우선
-          const fallbackDate = options.date ?? lastPublishedDate ?? localTodayIso(new Date());
+          const fallbackDate = options.date ?? lastPublishedDate ?? localIsoDate(new Date());
           const targets = buildExportTargets({
             mode,
             fallbackDate,

@@ -147,7 +147,8 @@ export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
 // 'default' 는 Claude 로그인 기본 모델
 export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
-export type SummaryProvider = 'claude' | 'codex';
+export const SUMMARY_PROVIDERS = ['claude', 'codex'] as const;
+export type SummaryProvider = (typeof SUMMARY_PROVIDERS)[number];
 export type CodexModel = { slug: string; name: string };
 
 export type CloudUser = { name: string; email: string; image: string | null };
@@ -199,11 +200,13 @@ export type GraphConfig = {
   showRollups: boolean;
 };
 export type BackupConfig = { enabled: boolean };
+export type BackupErrorCode = 'pull-failed' | 'identity-missing' | 'commit-failed' | 'push-failed';
+
 export type BackupStatus = {
   state: 'disabled' | 'no-git' | 'no-repo' | 'idle' | 'syncing';
   hasRemote: boolean;
   lastBackupAt: number | null;
-  error: 'pull-failed' | 'identity-missing' | 'commit-failed' | 'push-failed' | null;
+  error: BackupErrorCode | null;
 };
 export type Settings = {
   theme: Theme;

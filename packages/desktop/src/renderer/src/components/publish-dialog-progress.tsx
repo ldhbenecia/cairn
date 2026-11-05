@@ -11,11 +11,13 @@ import {
   buildPanelDates,
   collectHintKey,
   collectedCounts,
+  fmtElapsed,
   parseRollupDailies,
   type DStatus,
   type PanelDate,
   type T,
 } from './publish-dialog-utils';
+import { toggleIn } from '../lib/toggle-in';
 
 const STEPS: { key: RunStep; labelKey: I18nKey }[] = [
   { key: 'collect', labelKey: 'publish.step.collect' },
@@ -156,15 +158,13 @@ function OverallBar({
   done,
   total,
   pct,
-  mm,
-  ss,
+  clock,
   t,
 }: {
   done: number;
   total: number;
   pct: number;
-  mm: string;
-  ss: string;
+  clock: string;
   t: T;
 }) {
   return (
@@ -189,9 +189,7 @@ function OverallBar({
           transition={{ duration: 0.35, ease: 'easeOut' }}
         />
       </div>
-      <span className="shrink-0 font-mono text-[12.5px] text-ink-tertiary">
-        {mm}:{ss}
-      </span>
+      <span className="shrink-0 font-mono text-[12.5px] text-ink-tertiary">{clock}</span>
     </div>
   );
 }
@@ -467,21 +465,9 @@ export function Progress({
   const [cancelling, setCancelling] = useState(false);
   const [layout, setLayout] = useState<Layout>('tree');
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
-  const toggleDate = (d: string): void =>
-    setExpandedDates((prev) => {
-      const next = new Set(prev);
-      if (next.has(d)) next.delete(d);
-      else next.add(d);
-      return next;
-    });
+  const toggleDate = (d: string): void => setExpandedDates((prev) => toggleIn(prev, d));
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
-  const toggleStep = (key: string): void =>
-    setExpandedSteps((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const toggleStep = (key: string): void => setExpandedSteps((prev) => toggleIn(prev, key));
   const step = session?.step ?? 'boot';
   const currentRank = STEP_RANK[step];
   const running = session?.state === 'running';
@@ -496,8 +482,7 @@ export function Progress({
   const startedAt = session?.startedAt;
   const end = session?.endedAt ?? now;
   const elapsed = startedAt ? Math.max(0, Math.floor((end - startedAt) / 1000)) : 0;
-  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
-  const ss = String(elapsed % 60).padStart(2, '0');
+  const clock = fmtElapsed(elapsed);
   const lines = useRunLines(mode);
   const counts = useMemo(() => collectedCounts(lines), [lines]);
   const rollupDailies = useMemo(() => parseRollupDailies(lines), [lines]);
@@ -558,14 +543,7 @@ export function Progress({
               </span>
               <LayoutToggle layout={layout} setLayout={setLayout} t={t} />
             </div>
-            <OverallBar
-              done={backfill.done}
-              total={backfill.total}
-              pct={pct}
-              mm={mm}
-              ss={ss}
-              t={t}
-            />
+            <OverallBar done={backfill.done} total={backfill.total} pct={pct} clock={clock} t={t} />
             <ul className="-mx-1 flex max-h-[44vh] flex-col gap-0.5 overflow-y-auto pr-0.5 pl-1">
               {panelDates.map((d, i) =>
                 layout === 'tree' ? (
@@ -647,9 +625,7 @@ export function Progress({
                     </span>
                     <span className="ml-auto flex shrink-0 items-center gap-2">
                       {isActive && (
-                        <span className="font-mono text-[11px] text-ink-tertiary">
-                          {mm}:{ss}
-                        </span>
+                        <span className="font-mono text-[11px] text-ink-tertiary">{clock}</span>
                       )}
                       <StatusBadge status={status} t={t} />
                     </span>

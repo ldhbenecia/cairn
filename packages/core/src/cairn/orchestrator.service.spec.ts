@@ -298,6 +298,19 @@ describe('조기 리턴도 parent 이벤트를 보고한다 (무이벤트 exit 0
     }
   });
 
+  it('롤업도 진행 단계를 이벤트로 보고한다 (데스크톱이 로그 문구를 읽지 않음)', async () => {
+    const { sent, restore } = captureEvents();
+    try {
+      const { service } = makeRollup(emptyRollup());
+      await service.run({ ...dailyOptions, mode: 'weekly' });
+      expect(sent).toContainEqual(
+        expect.objectContaining({ cairn: 1, type: 'date-step', step: 'collect' }),
+      );
+    } finally {
+      restore();
+    }
+  });
+
   it('롤업 일지 0건 생략은 no-activity 를 보고한다', async () => {
     const { sent, restore } = captureEvents();
     try {
