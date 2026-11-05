@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { customPromptFor, withCustomPrompt } from '../common/custom-prompt.js';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
-import { runSubmitAgent, type SubmitAgentRun } from '../common/submit-agent.js';
+import { activityBlock, runSubmitAgent, type SubmitAgentRun } from '../common/submit-agent.js';
 import { isOperator } from '../common/operator.js';
 import type { WorklogSummary, WorklogSummaryUsage } from '../contracts/worklog-summary.types.js';
 import type { WorklogLang } from '../cairn/run-options.js';
@@ -29,13 +29,9 @@ export class DailySummarizerService {
     // 같은 payload 가 같은 검사를 통과하므로 외부 송신 내용은 불변
     const payload = buildActivityPayload(input);
     assertNoForbiddenPayload(payload, 'summarizer.activity');
-    const userPrompt = [
-      `Summarize my work for ${input.date}.`,
-      '',
-      '<activity>',
-      JSON.stringify(payload),
-      '</activity>',
-    ].join('\n');
+    const userPrompt = [`Summarize my work for ${input.date}.`, '', activityBlock(payload)].join(
+      '\n',
+    );
 
     let run: SubmitAgentRun<SubmitSummaryInput>;
     try {

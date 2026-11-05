@@ -21,7 +21,7 @@ import {
   submitEngineLoginCode,
 } from './engine-login';
 
-type Cb = (err: Error | null, out: string) => void;
+type Cb = (err: Error | null, out: string, errOut?: string) => void;
 
 function fakeLogin() {
   const child = new EventEmitter() as EventEmitter & {
@@ -48,10 +48,14 @@ describe('engineLoggedIn', () => {
     await expect(engineLoggedIn('claude')).resolves.toBe(false);
   });
 
-  it('uses the codex login status exit code', async () => {
-    cp.execFile.mockImplementation((_b, _a, _o, cb: Cb) => cb(null, ''));
+  it('reads codex login status output, not just the exit code', async () => {
+    cp.execFile.mockImplementation((_b, _a, _o, cb: Cb) => cb(null, 'Logged in using ChatGPT\n'));
     await expect(engineLoggedIn('codex')).resolves.toBe(true);
-    cp.execFile.mockImplementation((_b, _a, _o, cb: Cb) => cb(new Error('exit 1'), ''));
+    cp.execFile.mockImplementation((_b, _a, _o, cb: Cb) => cb(null, '', 'Logged in using ChatGPT'));
+    await expect(engineLoggedIn('codex')).resolves.toBe(true);
+    cp.execFile.mockImplementation((_b, _a, _o, cb: Cb) => cb(null, 'Not logged in\n'));
+    await expect(engineLoggedIn('codex')).resolves.toBe(false);
+    cp.execFile.mockImplementation((_b, _a, _o, cb: Cb) => cb(new Error('exit 1'), 'Logged in'));
     await expect(engineLoggedIn('codex')).resolves.toBe(false);
   });
 });

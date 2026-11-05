@@ -3,7 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type { WorklogLang } from '../cairn/run-options.js';
 import { CairnError } from '../common/error.js';
 import { emitParentEvent } from '../common/parent-events.js';
-import { runSubmitAgent } from '../common/submit-agent.js';
+import { activityBlock, runSubmitAgent } from '../common/submit-agent.js';
 import { JournalSourceService } from '../journal/journal-source.service.js';
 import { JournalWriterService } from '../journal/journal-writer.service.js';
 import { parseSummaryFromBlocks } from '../rollup/rollup-collector.service.js';
@@ -61,7 +61,7 @@ export class PeriodDocService {
     this.logger.info({ since, until, days: payload.days.length }, 'period-doc summarizer start');
     const run = await runSubmitAgent({
       ...periodDocSubmitSpec,
-      prompt: ['<activity>', JSON.stringify(payload), '</activity>'].join('\n'),
+      prompt: activityBlock(payload),
       systemPrompt: periodDocSystemPrompt(lang),
     });
     if (run.lateError) {

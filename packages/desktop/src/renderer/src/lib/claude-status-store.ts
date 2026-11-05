@@ -67,9 +67,6 @@ window.cairn.onRunDone(({ result }) => {
   }
 });
 
-// 사이드바·연결 탭 어느 쪽에서 로그인해도 사용 중 엔진 상태를 바로 다시 확인
-window.cairn.onEngineLoginDone(() => void probeClaude());
-
 function subscribe(fn: () => void): () => void {
   listeners.add(fn);
   return () => {

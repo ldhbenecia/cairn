@@ -25,8 +25,35 @@ export interface SubmitAgentRun<T> {
 }
 
 // submission 없이 실패하면 CairnError 로 throw
-export function runSubmitAgent<S extends z.ZodObject>(
+export async function runSubmitAgent<S extends z.ZodObject>(
   task: SubmitTask<S>,
 ): Promise<SubmitAgentRun<z.output<S>>> {
-  return summaryProvider() === 'codex' ? runCodexSubmitAgent(task) : runClaudeSubmitAgent(task);
+  const run =
+    summaryProvider() === 'codex'
+      ? await runCodexSubmitAgent(task)
+      : await runClaudeSubmitAgent(task);
+  return { ...run, submission: run.submission && neutralizeMarkdown(run.submission) };
+}
+
+// 활동 JSON 을 프롬프트에 인라인 — '<' 를 이스케이프해 PR 본문 속 '</activity>' 로 데이터 영역을 빠져나가지 못하게 함 (JSON 으로는 동일)
+export function activityBlock(payload: unknown): string {
+  return ['<activity>', JSON.stringify(payload).replace(/</g, '\\u003c'), '</activity>'].join('\n');
+}
+
+// 모델 출력은 일지 .md 로 저장돼 Obsidian·GitHub 에서 렌더됨 — 입력에 심은 지시로 이미지·링크 URL 에 활동을 실어 보내지 못하게
+// 링크는 텍스트만 남기고 이미지 표식·HTML 태그는 제거, '[repo]' 같은 대괄호는 유지
+export function neutralizeMarkdown<T>(value: T): T {
+  if (typeof value === 'string') {
+    return value
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/!\[/g, '[')
+      .replace(/<\/?[a-zA-Z][^>]*>/g, '') as T;
+  }
+  if (Array.isArray(value)) return value.map((v: unknown) => neutralizeMarkdown(v)) as T;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, neutralizeMarkdown(v)]),
+    ) as T;
+  }
+  return value;
 }

@@ -161,6 +161,17 @@ describe('runCodexSubmitAgent', () => {
     await expect(run()).rejects.toBeInstanceOf(CairnError);
   });
 
+  it('turns an early stdin pipe error into a reported failure, not a crash', async () => {
+    cp.spawn.mockImplementation(() => {
+      const child = fakeCodex([], 1);
+      setImmediate(() =>
+        child.stdin.emit('error', Object.assign(new Error('EPIPE'), { code: 'EPIPE' })),
+      );
+      return child;
+    });
+    await expect(run()).rejects.toBeInstanceOf(CairnError);
+  });
+
   it('surfaces a failed turn', async () => {
     cp.spawn.mockImplementation(() =>
       fakeCodex([{ type: 'turn.failed', error: { message: 'model not supported' } }], 1),

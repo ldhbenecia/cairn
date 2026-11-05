@@ -90,7 +90,16 @@ function saveFailed(e: unknown): SaveResult {
   return { saved: false, error };
 }
 
+const PDF_HTML_MAX_CHARS = 20 * 1024 * 1024;
+
 export async function savePdf(defaultName: string, html: string): Promise<SaveResult> {
+  // IPC 경계 — renderer 입력 신뢰 안 함 (savePng 와 같은 기준)
+  if (typeof defaultName !== 'string' || defaultName.length > 120 || /[/\\]/.test(defaultName)) {
+    return { saved: false, error: 'invalid filename' };
+  }
+  if (typeof html !== 'string' || html.length > PDF_HTML_MAX_CHARS) {
+    return { saved: false, error: 'invalid html' };
+  }
   const r = await dialog.showSaveDialog({
     defaultPath: join(homedir(), 'Documents', defaultName),
     filters: [{ name: 'PDF', extensions: ['pdf'] }],
