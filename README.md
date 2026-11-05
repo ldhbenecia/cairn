@@ -4,16 +4,18 @@
 
 > Like a trail cairn, stack one mark of work each day — and leave a path behind.
 
-cairn turns your GitHub PRs and commits across multiple repos and accounts into a Claude-summarized worklog, recorded as local Markdown with automatic weekly and monthly rollups. Connect integrations like Notion to publish it further.
+cairn turns your GitHub PRs and commits across multiple repos and accounts into an AI-summarized worklog (Claude or Codex), recorded as local Markdown with automatic weekly and monthly rollups. Connect integrations like Notion to publish it further.
 
-It runs as an **Electron desktop app** on top of a headless engine. Everything stays on your machine: it uses the Claude Agent SDK (no direct Anthropic API calls) and never sends source code or diffs to external services.
+It runs as an **Electron desktop app** on top of a headless engine. Everything stays on your machine: it summarizes through the CLI you're already signed in to — Claude (Agent SDK) or OpenAI Codex — and never sends source code or diffs to external services.
 
 ![cairn dashboard](packages/web/public/statistic_us.png)
 
 ## Highlights
 
 - **Aggregate** — GitHub PRs (authored + assigned) and commits across multiple repositories and accounts. Local Git collection is an optional source (off by default — for repos not on GitHub)
-- **Summarize** — Claude (Agent SDK) writes the worklog in your language (Korean or English), reading each PR body to capture what the work was, as concise number- and tech-oriented bullets
+- **Summarize** — your choice of engine writes the worklog in your language (Korean or English), reading each PR body to capture what the work was, as concise number- and tech-oriented bullets
+  - **Claude** (Claude Code login, Agent SDK) or **Codex** (Codex CLI with a ChatGPT login) — pick the engine and model in Preferences, and sign in again from the app when a login expires
+  - The engine runs with every tool disabled, so it only sees the activity text cairn hands it
 - **Record** — daily logs + automatic weekly/monthly rollups, written to a local Markdown journal (frontmatter + wiki links)
 - **Projects view** — a per-repo timeline of the last year; click a repo to see what you shipped in that window
 - **Integrations** — optionally publish each entry to Notion, mirror the journal into any Markdown folder (e.g. an Obsidian vault), or auto-back-up the journal folder with Git
@@ -31,7 +33,9 @@ Missed some past dates? Backfill collects, summarizes, and publishes them per da
 ## Requirements
 
 - macOS
-- Claude Pro/Max subscription or Anthropic API key (for the Agent SDK)
+- One summary engine:
+  - Claude — Claude Code signed in with a Pro/Max subscription (or an Anthropic API key)
+  - Codex — [Codex CLI](https://github.com/openai/codex) signed in with a ChatGPT plan
 - GitHub fine-grained PAT (read-only)
 
 Optional: a Notion internal integration token, if you want entries published to Notion as well. To also collect local repos that aren't on GitHub, enable local Git collection in the Connections tab (off by default).
@@ -94,13 +98,13 @@ Modes: `daily`, `weekly`, `monthly`. Manual setup of `.env` + `worklog.config.js
 
 pnpm monorepo:
 
-- `packages/core` — headless engine (collectors → Claude summarizer → Notion publisher), runnable as a CLI
+- `packages/core` — headless engine (collectors → Claude/Codex summarizer → Notion publisher), runnable as a CLI
 - `packages/desktop` — Electron app (setup wizard, manual/auto publishing, in-app log viewer, stats dashboard, preferences)
 - `packages/web` — marketing site (Next.js, deployed on Vercel); also hosts the optional cross-device sync backend (auth + stats API)
 
 ### Tech stack
 
-- **Engine** (`packages/core`) — TypeScript · NestJS (standalone) · Octokit · Notion SDK · Claude Agent SDK
+- **Engine** (`packages/core`) — TypeScript · NestJS (standalone) · Octokit · Notion SDK · Claude Agent SDK · Codex CLI
 - **Desktop** (`packages/desktop`) — Electron · React 19 · Tailwind CSS v4 · electron-vite · electron-updater
 - **Web** (`packages/web`) — Next.js · Tailwind CSS v4 · Better Auth + Drizzle ORM + Postgres (cross-device sync)
 - **Tooling** — pnpm workspaces · ESLint/Prettier · Husky + lint-staged · GitHub Actions
@@ -115,7 +119,7 @@ pnpm monorepo:
 
 ## Privacy
 
-Your worklogs, code, and tokens stay on your machine. Worklogs are plain Markdown files on disk; data is only sent to the services you choose to connect (GitHub, Claude, Notion) — never anywhere else.
+Your worklogs, code, and tokens stay on your machine. Worklogs are plain Markdown files on disk; data is only sent to the services you choose to connect (GitHub, your summary engine — Claude or Codex, Notion) — never anywhere else.
 
 cairn sends **anonymous usage telemetry** (PostHog) to understand how many people use it and which versions are active. It is enabled by default and can be turned off in **Preferences → About → Anonymous usage stats**.
 
