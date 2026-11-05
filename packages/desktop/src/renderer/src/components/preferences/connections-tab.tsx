@@ -12,6 +12,7 @@ import { ClaudeMark, CodexMark, GithubMark, NotionMark } from '../brand-icons';
 import { AccordionItem } from '../accordion';
 import { Toggle } from '../toggle';
 import { Section } from './field';
+import { toggleIn } from '../../lib/toggle-in';
 
 type ParsedConfig = {
   notionWorkspaces?: { label: string }[];
@@ -82,13 +83,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
     void probeClaude();
   };
 
-  const toggle = (key: string): void =>
-    setOpen((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const toggle = (key: string): void => setOpen((prev) => toggleIn(prev, key));
 
   const notion = cfg.notionWorkspaces ?? [];
   const github = cfg.githubAccounts ?? [];

@@ -99,3 +99,7 @@ export function buildPanelDates(
     return { date, dow: weekdayLabel(date, lang), status, sub, steps, counts: countsByDate[date] };
   });
 }
+
+export function fmtElapsed(sec: number): string {
+  return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+}
