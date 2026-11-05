@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { customPromptFor, withCustomPrompt } from '../common/custom-prompt.js';
 import { assertNoForbiddenPayload } from '../common/sanitize.js';
-import { runSubmitAgent, type SubmitAgentRun } from '../common/submit-agent.js';
+import { activityBlock, runSubmitAgent, type SubmitAgentRun } from '../common/submit-agent.js';
 import { isOperator } from '../common/operator.js';
 import type { RollupSummary } from '../contracts/rollup-summary.types.js';
 import type { WorklogSummaryUsage } from '../contracts/worklog-summary.types.js';
@@ -44,9 +44,7 @@ export class RollupSummarizerService {
     const userPrompt = [
       `Summarize my work for the ${a.period} period ${a.rangeStart} ~ ${a.rangeEnd}.`,
       '',
-      '<activity>',
-      JSON.stringify(payload),
-      '</activity>',
+      activityBlock(payload),
     ].join('\n');
 
     let run: SubmitAgentRun<SubmitRollupInput>;
