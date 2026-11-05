@@ -9,6 +9,7 @@ import { useCloudAuth } from '../use-cloud-auth';
 import { DatePicker } from './date-picker';
 import { Segmented } from './preferences/field';
 import { Progress } from './publish-dialog-progress';
+import { PROVIDER_NAME } from '../lib/summary-provider';
 import { deriveSinkOutcomes } from '../lib/publish-sinks';
 import { CancelledCard, ErrorCard, Result } from './publish-dialog-result';
 import { todayLocal } from '../lib/reports';
@@ -237,7 +238,11 @@ export function PublishDialog({
                     ? Math.max(0, Math.floor((session.endedAt - session.startedAt) / 1000))
                     : null
                 }
-                modelLabel={MODEL_NAME[settings.summaryModel] || t('prefs.prompts.model.default')}
+                modelLabel={
+                  settings.summaryProvider === 'codex'
+                    ? (settings.codexModel ?? PROVIDER_NAME.codex)
+                    : MODEL_NAME[settings.summaryModel] || t('prefs.prompts.model.default')
+                }
                 t={t}
                 onClose={() => setOpen(false)}
                 onOpenPublished={onOpenPublished}

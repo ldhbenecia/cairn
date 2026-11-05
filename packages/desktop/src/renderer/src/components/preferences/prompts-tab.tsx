@@ -1,7 +1,8 @@
 import { Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { SummaryModel } from '../../../../shared/ipc-types';
+import type { CodexModel, SummaryModel, SummaryProvider } from '../../../../shared/ipc-types';
 import type { I18nKey } from '../../i18n';
+import { PROVIDER_NAME } from '../../lib/summary-provider';
 import { useSettings } from '../../settings-context';
 import { Section } from './field';
 
@@ -35,6 +36,11 @@ const MODELS: { id: SummaryModel; name: string; hint: I18nKey; desc: I18nKey }[]
   },
 ];
 
+const PROVIDERS: { id: SummaryProvider; desc: I18nKey }[] = [
+  { id: 'claude', desc: 'prefs.prompts.provider.claudeDesc' },
+  { id: 'codex', desc: 'prefs.prompts.provider.codexDesc' },
+];
+
 export function PromptsTab() {
   const { settings, update, t } = useSettings();
   const selectedModel = MODELS.find((m) => m.id === settings.summaryModel) ?? MODELS[1]!;
@@ -44,44 +50,97 @@ export function PromptsTab() {
     monthly: { label: 'prefs.prompts.monthly', ph: 'prefs.prompts.monthly.ph' },
   };
 
+  const provider = settings.summaryProvider;
+  const [codexModels, setCodexModels] = useState<CodexModel[]>([]);
+  useEffect(() => {
+    if (provider !== 'codex') return;
+    let alive = true;
+    void window.cairn.connections
+      .codexModels()
+      .then((m) => alive && setCodexModels(m))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [provider]);
+
   return (
     <div className="flex flex-col gap-9">
-      <Section label={t('prefs.prompts.model')}>
+      <Section label={t('prefs.prompts.provider')}>
         <div className="pt-3">
           <p className="text-[12px] leading-relaxed text-ink-tertiary">
-            {t('prefs.prompts.modelDesc')}
+            {t('prefs.prompts.providerDesc')}
           </p>
-          <div className="mt-3 grid grid-cols-4 gap-1.5">
-            {MODELS.map((m) => {
-              const selected = settings.summaryModel === m.id;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => update({ summaryModel: m.id })}
-                  className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 transition-[border-color,background-color,color,scale] duration-200 ease-out active:scale-[0.96] ${
-                    selected
-                      ? 'border-hairline-strong bg-surface-3 text-ink'
-                      : 'border-hairline bg-surface-2 text-ink-muted hover:border-ink-tertiary hover:bg-surface-3'
-                  }`}
-                >
-                  <span className="text-[13px] font-medium">
-                    {m.name || t('prefs.prompts.model.default')}
-                  </span>
-                  <span className="text-[11px] text-ink-tertiary">{t(m.hint)}</span>
-                </button>
-              );
-            })}
+          <div className="mt-3 grid grid-cols-2 gap-1.5">
+            {PROVIDERS.map((p) => (
+              <OptionButton
+                key={p.id}
+                selected={provider === p.id}
+                onClick={() => update({ summaryProvider: p.id })}
+                name={PROVIDER_NAME[p.id]}
+              />
+            ))}
           </div>
           <p className="mt-2.5 text-[12px] leading-relaxed text-ink-tertiary">
-            <span className="font-medium text-ink-muted">
-              {selectedModel.name || t('prefs.prompts.model.default')}
-            </span>
+            <span className="font-medium text-ink-muted">{PROVIDER_NAME[provider]}</span>
             {' — '}
-            {t(selectedModel.desc)}
+            {t(PROVIDERS.find((p) => p.id === provider)!.desc)}
           </p>
         </div>
       </Section>
+
+      {provider === 'codex' && (
+        <Section label={t('prefs.prompts.codexModel')}>
+          <div className="pt-3">
+            <p className="text-[12px] leading-relaxed text-ink-tertiary">
+              {t('prefs.prompts.codexModelDesc')}
+            </p>
+            <div className="mt-3 grid grid-cols-3 gap-1.5">
+              <OptionButton
+                selected={settings.codexModel === null}
+                onClick={() => update({ codexModel: null })}
+                name={t('prefs.prompts.model.default')}
+              />
+              {codexModels.map((m) => (
+                <OptionButton
+                  key={m.slug}
+                  selected={settings.codexModel === m.slug}
+                  onClick={() => update({ codexModel: m.slug })}
+                  name={m.name}
+                />
+              ))}
+            </div>
+          </div>
+        </Section>
+      )}
+
+      {provider === 'claude' && (
+        <Section label={t('prefs.prompts.model')}>
+          <div className="pt-3">
+            <p className="text-[12px] leading-relaxed text-ink-tertiary">
+              {t('prefs.prompts.modelDesc')}
+            </p>
+            <div className="mt-3 grid grid-cols-4 gap-1.5">
+              {MODELS.map((m) => (
+                <OptionButton
+                  key={m.id}
+                  selected={settings.summaryModel === m.id}
+                  onClick={() => update({ summaryModel: m.id })}
+                  name={m.name || t('prefs.prompts.model.default')}
+                  hint={t(m.hint)}
+                />
+              ))}
+            </div>
+            <p className="mt-2.5 text-[12px] leading-relaxed text-ink-tertiary">
+              <span className="font-medium text-ink-muted">
+                {selectedModel.name || t('prefs.prompts.model.default')}
+              </span>
+              {' — '}
+              {t(selectedModel.desc)}
+            </p>
+          </div>
+        </Section>
+      )}
 
       <Section label={t('prefs.prompts.custom')}>
         <div className="flex flex-col gap-5 pt-3">
@@ -147,5 +206,32 @@ function PromptField({
         className="w-full resize-none rounded-md border border-hairline bg-surface-2 px-3 py-2 text-[13px] leading-relaxed text-ink placeholder:text-ink-tertiary focus:border-accent/50 focus:outline-none disabled:cursor-not-allowed"
       />
     </div>
+  );
+}
+
+function OptionButton({
+  selected,
+  onClick,
+  name,
+  hint,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  name: string;
+  hint?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 transition-[border-color,background-color,color,scale] duration-200 ease-out active:scale-[0.96] ${
+        selected
+          ? 'border-hairline-strong bg-surface-3 text-ink'
+          : 'border-hairline bg-surface-2 text-ink-muted hover:border-ink-tertiary hover:bg-surface-3'
+      }`}
+    >
+      <span className="text-[13px] font-medium">{name}</span>
+      {hint && <span className="text-[11px] text-ink-tertiary">{hint}</span>}
+    </button>
   );
 }

@@ -1,5 +1,6 @@
 import type {
   BackupStatus,
+  CodexModel,
   BusyState,
   CloudAuthState,
   ConfigResult,
@@ -56,6 +57,7 @@ declare global {
       connections: {
         accounts: () => Promise<ConnectionAccounts>;
         refreshGithub: () => Promise<{ ok: boolean; count?: number; error?: string }>;
+        codexModels: () => Promise<CodexModel[]>;
       };
       integrations: {
         addNotion: (payload: NotionWorkspacePayload) => Promise<{ ok: boolean; error?: string }>;

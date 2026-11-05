@@ -8,6 +8,7 @@ import {
   reconfigureAutoPublish,
 } from './auto-publish';
 import { claudePathReady } from './claude-path';
+import { codexModels } from './codex-models';
 import {
   exportStatus,
   isAllowedExportFolder,
@@ -355,6 +356,7 @@ void app.whenReady().then(() => {
   );
   ipcMain.handle('cairn:connections:accounts', () => probeConnectionAccounts());
   ipcMain.handle('cairn:connections:refresh-github', () => refreshGithubFromGhCli());
+  ipcMain.handle('cairn:connections:codex-models', () => codexModels());
   ipcMain.handle('cairn:auto-confirm:accept', () => acceptAutoConfirm());
   ipcMain.handle('cairn:auto-confirm:dismiss', () => dismissAutoConfirm());
   ipcMain.handle('cairn:integrations:add-notion', (_e, raw: unknown) => {

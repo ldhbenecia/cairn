@@ -1,7 +1,9 @@
 import type { z } from 'zod';
 import type { AgentUsage } from './agent-usage.js';
 import { runClaudeSubmitAgent } from './claude-submit-agent.js';
+import { runCodexSubmitAgent } from './codex-submit-agent.js';
 import type { CairnError } from './error.js';
+import { summaryProvider } from './summary-provider.js';
 
 // 결과를 받을 제출 명세 — provider 가 스키마로 도구·출력 형식을 만들고 결과는 항상 schema.parse 를 거침
 export interface SubmitSpec<S extends z.ZodObject> {
@@ -26,5 +28,5 @@ export interface SubmitAgentRun<T> {
 export function runSubmitAgent<S extends z.ZodObject>(
   task: SubmitTask<S>,
 ): Promise<SubmitAgentRun<z.output<S>>> {
-  return runClaudeSubmitAgent(task);
+  return summaryProvider() === 'codex' ? runCodexSubmitAgent(task) : runClaudeSubmitAgent(task);
 }

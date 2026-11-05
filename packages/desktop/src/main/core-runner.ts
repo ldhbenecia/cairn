@@ -21,7 +21,7 @@ import {
 } from './core-runner-backfill';
 import { broadcast } from './broadcast';
 import { errorMessage } from './error-message';
-import { claudeEnv, claudePathReady } from './claude-path';
+import { claudeEnv, claudePathReady, findInPath } from './claude-path';
 import { localTodayIso } from './auto-publish-schedule';
 import { pool } from '../shared/pool';
 import { syncWorklogToFolder } from './export';
@@ -161,6 +161,18 @@ function promptEnv(prompts: Settings['prompts']): Record<string, string> {
   return env;
 }
 
+function summarizerEnv(settings: Settings): Record<string, string> {
+  if (settings.summaryProvider === 'codex') {
+    const codex = findInPath('codex');
+    return {
+      CAIRN_SUMMARY_PROVIDER: 'codex',
+      ...(codex ? { CAIRN_CODEX_PATH: codex } : {}),
+      ...(settings.codexModel ? { CAIRN_CODEX_MODEL: settings.codexModel } : {}),
+    };
+  }
+  return settings.summaryModel !== 'default' ? { CAIRN_SUMMARY_MODEL: settings.summaryModel } : {};
+}
+
 // 자식 core env 조립 — 토큰은 발행 run(secrets)에만, 메인 process.env 에 올라간 시크릿 키는 그 외 fork 에서 제거
 export function coreChildEnv(
   settings: Settings,
@@ -172,7 +184,7 @@ export function coreChildEnv(
     CAIRN_PACKAGED: app.isPackaged ? 'true' : 'false',
     ...claudeEnv(),
     ...(opts.prompts ? promptEnv(settings.prompts) : {}),
-    ...(settings.summaryModel !== 'default' ? { CAIRN_SUMMARY_MODEL: settings.summaryModel } : {}),
+    ...summarizerEnv(settings),
   };
 }
 
@@ -233,10 +245,10 @@ function broadcastRunDone(mode: CoreMode, result: CoreResult): void {
 export async function probeClaude(): Promise<{ ok: boolean }> {
   await claudePathReady();
   return new Promise((resolvePromise) => {
-    const child = fork(CORE_ENTRY, ['--probe-claude'], {
+    const child = fork(CORE_ENTRY, ['--probe-summarizer'], {
       cwd: CAIRN_ROOT,
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-      // probe 는 Claude 상태만 확인 — GitHub·Notion 토큰 미전달 (최소 권한)
+      // probe 는 요약 provider 상태만 확인 — GitHub·Notion 토큰 미전달 (최소 권한)
       env: coreChildEnv(readSettings(), { secrets: false }),
     });
     let out = '';
@@ -251,8 +263,8 @@ export async function probeClaude(): Promise<{ ok: boolean }> {
       resolvePromise({ ok });
     };
     child.on('close', () => {
-      const line = out.split('\n').find((l) => l.startsWith('CLAUDE_')) ?? '';
-      finish(line === 'CLAUDE_OK', line || 'no probe output');
+      const line = out.split('\n').find((l) => l.startsWith('PROBE_')) ?? '';
+      finish(line === 'PROBE_OK', line || 'no probe output');
     });
     child.on('error', (err) => finish(false, errorMessage(err)));
   });

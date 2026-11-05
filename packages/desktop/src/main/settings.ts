@@ -37,6 +37,8 @@ const DEFAULTS: Settings = {
     confirmBeforeRun: false,
   },
   prompts: { daily: null, weekly: null, monthly: null, yearly: null },
+  summaryProvider: 'claude',
+  codexModel: null,
   summaryModel: 'sonnet',
   export: { folder: null, autoSync: false },
   graph: { enabled: true, nodeScale: 1, spread: 1, gravity: 1, labels: 'auto', showRollups: true },

@@ -21,6 +21,8 @@ const fb: Settings = {
     confirmBeforeRun: false,
   },
   prompts: { daily: null, weekly: null, monthly: null, yearly: null },
+  summaryProvider: 'claude',
+  codexModel: null,
   summaryModel: 'sonnet',
   export: { folder: null, autoSync: false },
   graph: { enabled: true, nodeScale: 1, spread: 1, gravity: 1, labels: 'auto', showRollups: true },
@@ -32,6 +34,8 @@ describe('normalizeSettings', () => {
     const valid = {
       ...fb,
       theme: 'dark',
+      summaryProvider: 'codex',
+      codexModel: 'gpt-5.6-luna',
       summaryModel: 'haiku',
       export: { folder: '/x', autoSync: true },
       quickCapture: { enabled: true },
@@ -47,6 +51,8 @@ describe('normalizeSettings', () => {
         backup: { enabled: 'true' },
         export: { folder: 42, autoSync: true },
         autoPublish: { ...fb.autoPublish, time: '25:00', backfillDays: 1.5, daily: true },
+        summaryProvider: 'gemini',
+        codexModel: '-c x=1',
         summaryModel: 'gpt',
       },
       fb,
@@ -55,6 +61,8 @@ describe('normalizeSettings', () => {
     expect(out.backup.enabled).toBe(false);
     expect(out.export).toEqual({ folder: null, autoSync: true });
     expect(out.autoPublish).toMatchObject({ time: '19:00', backfillDays: 7, daily: true });
+    expect(out.summaryProvider).toBe('claude');
+    expect(out.codexModel).toBeNull();
     expect(out.summaryModel).toBe('sonnet');
   });
 

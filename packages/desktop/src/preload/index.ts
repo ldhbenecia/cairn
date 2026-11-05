@@ -89,6 +89,10 @@ contextBridge.exposeInMainWorld('cairn', {
           health: 'ok' | 'invalid' | 'missing' | 'unreachable';
         }[];
       }>,
+    codexModels: () =>
+      ipcRenderer.invoke('cairn:connections:codex-models') as Promise<
+        { slug: string; name: string }[]
+      >,
     refreshGithub: () =>
       ipcRenderer.invoke('cairn:connections:refresh-github') as Promise<{
         ok: boolean;

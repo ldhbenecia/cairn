@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Settings, Theme } from '../../shared/ipc-types';
 import { translate, type I18nKey } from './i18n';
+import { PROVIDER_NAME } from './lib/summary-provider';
 import { mergeSettings } from '../../shared/merge-settings';
 
 // per-element 트랜지션의 잔상을 피하려고 View Transitions API 로 화면 전체를 한 번에 크로스페이드
@@ -119,7 +120,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
-  const t = useCallback((key: I18nKey) => translate(settings.language, key), [settings.language]);
+  // 요약 문구의 {engine} 은 선택한 요약 provider 이름
+  const t = useCallback(
+    (key: I18nKey) =>
+      translate(settings.language, key).replaceAll(
+        '{engine}',
+        PROVIDER_NAME[settings.summaryProvider],
+      ),
+    [settings.language, settings.summaryProvider],
+  );
 
   return (
     <SettingsContext.Provider value={{ settings, update, t }}>{children}</SettingsContext.Provider>
