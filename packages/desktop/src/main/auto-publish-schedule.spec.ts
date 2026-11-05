@@ -1,3 +1,4 @@
+import { localIsoDate } from '../shared/local-date';
 import { describe, expect, it } from 'vitest';
 import {
   lastCompletedYearAnchor,
@@ -5,7 +6,6 @@ import {
   isScheduledTimeReached,
   lastCompletedMonthAnchor,
   lastCompletedWeekAnchor,
-  localTodayIso,
   monthAnchorsToPublish,
   msUntilLocalTime,
   weekAnchorsToPublish,
@@ -70,9 +70,9 @@ describe('lastCompletedMonthAnchor', () => {
   });
 });
 
-describe('localTodayIso', () => {
+describe('localIsoDate', () => {
   it('zero-padding', () => {
-    expect(localTodayIso(new Date(2026, 0, 5))).toBe('2026-01-05');
+    expect(localIsoDate(new Date(2026, 0, 5))).toBe('2026-01-05');
   });
 });
 

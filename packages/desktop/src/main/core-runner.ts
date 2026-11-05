@@ -22,7 +22,7 @@ import {
 import { broadcast } from './broadcast';
 import { errorMessage } from './error-message';
 import { claudeEnv, claudePathReady, findInPath } from './claude-path';
-import { localTodayIso } from './auto-publish-schedule';
+import { localIsoDate } from '../shared/local-date';
 import { pool } from '../shared/pool';
 import { syncWorklogToFolder } from './export';
 import { buildExportTargets, type ExportTarget } from './export-targets';
@@ -95,7 +95,7 @@ function pruneOldRunLogs(): void {
 }
 
 function runLogPath(): string {
-  return join(LOGS_DIR, `desktop-run.${localTodayIso(new Date())}.log`);
+  return join(LOGS_DIR, `desktop-run.${localIsoDate(new Date())}.log`);
 }
 
 function openRunLog(): void {
@@ -436,7 +436,7 @@ export async function runCore(
         if (!cancelled && result.ok) void syncStats();
         if (!cancelled && result.ok && !finalNoActivity) {
           // 백필 catch-up 으로 오늘이 아닌 날이 발행됐을 수 있어 실제 발행 날짜 우선
-          const fallbackDate = options.date ?? lastPublishedDate ?? localTodayIso(new Date());
+          const fallbackDate = options.date ?? lastPublishedDate ?? localIsoDate(new Date());
           const targets = buildExportTargets({
             mode,
             fallbackDate,

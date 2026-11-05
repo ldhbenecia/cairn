@@ -17,19 +17,13 @@ import { useSettings } from '../../settings-context';
 import { ICloudMark, NotionMark, ObsidianMark } from '../brand-icons';
 import { NotionCard, type NotionEntry } from '../onboarding-cards';
 import { Toggle } from '../toggle';
+import { localIsoDate, pad2 } from '../../../../shared/local-date';
 import { Section } from './field';
-
-const pad2 = (n: number): string => String(n).padStart(2, '0');
 
 function fmtLastSync(ms: number): string {
   const d = new Date(ms);
-  const now = new Date();
-  const sameDay =
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
   const hm = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-  return sameDay ? hm : `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${hm}`;
+  return localIsoDate(d) === localIsoDate(new Date()) ? hm : `${localIsoDate(d)} ${hm}`;
 }
 
 function ServiceCard({

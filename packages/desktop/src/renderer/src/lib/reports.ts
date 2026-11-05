@@ -1,4 +1,5 @@
 // 프로젝트 뷰 순수 헬퍼 — 일지 Done 불릿을 레포×날짜 타임라인으로 변환
+import { localIsoDate, pad2 } from '../../../shared/local-date';
 
 export type DoneItem = { date: string; repo: string | null; text: string };
 
@@ -134,13 +135,6 @@ export function localDateDaysAgo(days: number): string {
 export function todayLocal(): string {
   return localIsoDate(new Date());
 }
-
-// Date 의 로컬 날짜(YYYY-MM-DD) — 로컬 getter 기준, KST·UTC 단정 금지
-export function localIsoDate(d: Date): string {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
-
-const pad2 = (n: number): string => String(n).padStart(2, '0');
 
 // ISO 날짜 문자열 달력 산술 — UTC 로만 계산해 로컬 TZ·DST 무관 (wrapped.ts 와 같은 원칙)
 const utcMs = (iso: string): number => {

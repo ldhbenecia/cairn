@@ -1,6 +1,6 @@
 // auto-publish 의 순수 날짜·시각 계산 — electron 무의존, 로컬 TZ 기준
 
-const pad2 = (n: number): string => String(n).padStart(2, '0');
+import { localIsoDate } from '../shared/local-date';
 
 export function msUntilLocalTime(time: string, now: Date = new Date()): number {
   const parts = time.split(':');
@@ -26,21 +26,17 @@ export function lastCompletedWeekAnchor(now: Date): string {
   const d = new Date(now);
   const sinceMonday = (d.getDay() + 6) % 7; // Mon→0 … Sun→6
   d.setDate(d.getDate() - sinceMonday - 1);
-  return localTodayIso(d);
+  return localIsoDate(d);
 }
 
 // 지난달 마지막 날 — monthly anchor, 한 달 내내 같은 값
 export function lastCompletedMonthAnchor(now: Date): string {
-  return localTodayIso(new Date(now.getFullYear(), now.getMonth(), 0));
+  return localIsoDate(new Date(now.getFullYear(), now.getMonth(), 0));
 }
 
 // 작년 12/31 — yearly anchor, 한 해 내내 같은 값
 export function lastCompletedYearAnchor(now: Date): string {
   return `${now.getFullYear() - 1}-12-31`;
-}
-
-export function localTodayIso(now: Date): string {
-  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
 }
 
 // 휴가 등으로 여러 기간을 놓쳤을 때 한 번에 발행할 상한 — 복귀 시 수십 개 버스트 방지
@@ -58,7 +54,7 @@ export function weekAnchorsToPublish(last: string | undefined, now: Date): strin
   const cursor = new Date(y, m - 1, d);
   while (out.length < MAX_CATCHUP) {
     cursor.setDate(cursor.getDate() + 7); // last 는 일요일 — 다음 일요일들
-    const a = localTodayIso(cursor);
+    const a = localIsoDate(cursor);
     if (a > current) break;
     out.push(a);
   }
@@ -95,7 +91,7 @@ export function monthAnchorsToPublish(last: string | undefined, now: Date): stri
       m0 = 0;
       yy += 1;
     }
-    const a = localTodayIso(new Date(yy, m0 + 1, 0)); // 그 달의 마지막 날
+    const a = localIsoDate(new Date(yy, m0 + 1, 0)); // 그 달의 마지막 날
     if (a > current) break;
     out.push(a);
   }

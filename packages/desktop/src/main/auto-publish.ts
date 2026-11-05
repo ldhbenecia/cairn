@@ -1,7 +1,7 @@
+import { localIsoDate } from '../shared/local-date';
 import { BrowserWindow, powerMonitor } from 'electron';
 import {
   isScheduledTimeReached,
-  localTodayIso,
   monthAnchorsToPublish,
   msUntilLocalTime,
   weekAnchorsToPublish,
@@ -39,7 +39,7 @@ let failureRetriesDay = '';
 
 // 일시 실패(세션 만료·네트워크 등)는 재시도로 살아나는 경우가 많음 — 반복 실패는 하루 2회 캡
 function scheduleFailureRetry(): void {
-  const today = localTodayIso(new Date());
+  const today = localIsoDate(new Date());
   if (failureRetriesDay !== today) {
     failureRetriesDay = today;
     failureRetries = 0;
@@ -67,7 +67,7 @@ function dueRuns(cfg: AutoPublish, state: AutoPublishState): DueRun[] {
   const now = new Date();
   const runs: DueRun[] = [];
   if (cfg.daily) {
-    const today = localTodayIso(now);
+    const today = localIsoDate(now);
     if (state.daily !== today) {
       runs.push({
         mode: 'daily',
