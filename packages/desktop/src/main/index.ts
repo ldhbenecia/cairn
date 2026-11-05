@@ -9,7 +9,7 @@ import {
 } from './auto-publish';
 import { claudePathReady } from './claude-path';
 import { codexModels } from './codex-models';
-import type { SummaryProvider } from '../shared/ipc-types';
+import { SUMMARY_PROVIDERS, type SummaryProvider } from '../shared/ipc-types';
 import {
   cancelEngineLogin,
   engineLoggedIn,
@@ -365,7 +365,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:connections:refresh-github', () => refreshGithubFromGhCli());
   ipcMain.handle('cairn:connections:codex-models', () => codexModels());
   const asProvider = (v: unknown): SummaryProvider | null =>
-    v === 'claude' || v === 'codex' ? v : null;
+    SUMMARY_PROVIDERS.find((p) => p === v) ?? null;
   ipcMain.handle('cairn:engine:logged-in', (_e, p: unknown) => {
     const provider = asProvider(p);
     return provider ? engineLoggedIn(provider) : false;

@@ -4,7 +4,7 @@ import type { AccountHealth, ConnectionAccounts } from '../../../../shared/ipc-t
 import { probeClaude, probeClaudeOnce, useClaudeStatus } from '../../lib/claude-status-store';
 import { useEngineLoggedIn } from '../../lib/engine-auth';
 import { PROVIDER_NAME } from '../../lib/summary-provider';
-import type { SummaryProvider } from '../../../../shared/ipc-types';
+import { SUMMARY_PROVIDERS, type SummaryProvider } from '../../../../shared/ipc-types';
 import { useSettings } from '../../settings-context';
 import { EngineLoginButton, EngineLoginPanel, useEngineLogin } from '../engine-login';
 import { AccountStatusPill } from '../account-status-pill';
@@ -163,7 +163,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
           </div>
         }
       />
-      {(['claude', 'codex'] as const).map((p) => (
+      {SUMMARY_PROVIDERS.map((p) => (
         <EngineRow
           key={p}
           provider={p}

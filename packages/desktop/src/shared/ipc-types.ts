@@ -147,7 +147,8 @@ export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'ko' | 'en';
 // 'default' 는 Claude 로그인 기본 모델
 export type SummaryModel = 'default' | 'sonnet' | 'haiku' | 'opus';
-export type SummaryProvider = 'claude' | 'codex';
+export const SUMMARY_PROVIDERS = ['claude', 'codex'] as const;
+export type SummaryProvider = (typeof SUMMARY_PROVIDERS)[number];
 export type CodexModel = { slug: string; name: string };
 
 export type CloudUser = { name: string; email: string; image: string | null };
