@@ -318,11 +318,15 @@ function EngineRow({
   onRecheck: () => void;
 }) {
   const { t } = useSettings();
-  const { loggedIn, refresh } = useEngineLoggedIn(provider, !active);
-  const login = useEngineLogin(provider, active ? onRecheck : refresh);
+  // 사용 중 엔진의 probe 실패는 쿼터·세션 한도일 수도 있음 — 로그인 버튼은 실제로 로그아웃일 때만
+  const { loggedIn, refresh } = useEngineLoggedIn(provider, !active || status === 'fail');
+  const login = useEngineLogin(provider, () => {
+    refresh();
+    if (active) onRecheck();
+  });
   const pending = active ? status === 'checking' : loggedIn === null;
   const ok = active ? status === 'ok' : loggedIn === true;
-  const needsLogin = active ? status === 'fail' : loggedIn === false;
+  const needsLogin = loggedIn === false && (!active || status === 'fail');
   return (
     <>
       <Row

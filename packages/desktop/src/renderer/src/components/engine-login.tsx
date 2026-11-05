@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import type { SummaryProvider } from '../../../shared/ipc-types';
 import { useSettings } from '../settings-context';
 
@@ -11,29 +11,50 @@ export interface EngineLogin {
   cancel: () => void;
 }
 
+// 로그인 CLI 는 main 에서 최대 5분 살아 있음 — 팝오버가 닫혀 컴포넌트가 사라져도 진행 상태를 잃지 않도록 모듈 단위로 보관
+const states: Record<SummaryProvider, LoginState> = { claude: 'idle', codex: 'idle' };
+const cancelled: Record<SummaryProvider, boolean> = { claude: false, codex: false };
+const listeners = new Set<() => void>();
+
+function setState(provider: SummaryProvider, next: LoginState): void {
+  states[provider] = next;
+  listeners.forEach((fn) => fn());
+}
+
+function subscribe(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+
+function startLogin(provider: SummaryProvider, onDone: () => void): void {
+  if (states[provider] === 'waiting') return;
+  cancelled[provider] = false;
+  setState(provider, 'waiting');
+  void window.cairn.engine
+    .login(provider)
+    .then((r) => {
+      if (r.ok) {
+        setState(provider, 'idle');
+        onDone();
+      } else if (cancelled[provider]) setState(provider, 'idle');
+      else setState(provider, r.error === 'not-installed' ? 'not-installed' : 'failed');
+    })
+    .catch(() => setState(provider, 'failed'));
+}
+
 // CLI 로그인을 앱에서 띄움 — 브라우저 로그인이 끝나면 CLI 가 스스로 종료, 코드가 표시되는 경우만 입력칸으로 이어 줌
 export function useEngineLogin(provider: SummaryProvider, onDone: () => void): EngineLogin {
-  const [state, setState] = useState<LoginState>('idle');
-  const cancelled = useRef(false);
-  const start = (): void => {
-    cancelled.current = false;
-    setState('waiting');
-    void window.cairn.engine
-      .login(provider)
-      .then((r) => {
-        if (r.ok) {
-          setState('idle');
-          onDone();
-        } else if (cancelled.current) setState('idle');
-        else setState(r.error === 'not-installed' ? 'not-installed' : 'failed');
-      })
-      .catch(() => setState('failed'));
+  const state = useSyncExternalStore(subscribe, () => states[provider]);
+  return {
+    state,
+    start: () => startLogin(provider, onDone),
+    cancel: () => {
+      cancelled[provider] = true;
+      void window.cairn.engine.cancelLogin();
+    },
   };
-  const cancel = (): void => {
-    cancelled.current = true;
-    void window.cairn.engine.cancelLogin();
-  };
-  return { state, start, cancel };
 }
 
 // 줄 오른쪽에 붙는 로그인 버튼 — 대기 중엔 스피너

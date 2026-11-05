@@ -152,6 +152,14 @@ function ClaudeStatusRow() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => keepClaudeStatusFresh(CLAUDE_PROBE_INTERVAL_MS), []);
+  // 어디서 로그인했든 사용 중 엔진일 때만 실호출 재확인 — 안 쓰는 엔진 로그인으로 사용량을 쓰지 않음
+  useEffect(
+    () =>
+      window.cairn.onEngineLoginDone((p) => {
+        if (p === provider) void probeClaude();
+      }),
+    [provider],
+  );
   // provider 를 바꾸면 이전 provider 의 결과가 남지 않게 즉시 재확인
   useEffect(() => {
     if (prevProvider.current === provider) return;
@@ -229,8 +237,9 @@ function StatusDot({ state }: { state: 'checking' | 'ok' | 'fail' | 'idle' }) {
 function EngineMenuRow({ provider, active }: { provider: SummaryProvider; active: boolean }) {
   const { update, t } = useSettings();
   const status = useClaudeStatus();
-  const { loggedIn, refresh } = useEngineLoggedIn(provider, !active);
-  const login = useEngineLogin(provider, active ? () => void probeClaude() : refresh);
+  // 사용 중 엔진의 probe 실패는 쿼터·세션 한도일 수도 있음 — 로그인 버튼은 실제로 로그아웃일 때만
+  const { loggedIn, refresh } = useEngineLoggedIn(provider, !active || status === 'fail');
+  const login = useEngineLogin(provider, refresh);
   const state = active
     ? status
     : loggedIn === null
@@ -238,7 +247,7 @@ function EngineMenuRow({ provider, active }: { provider: SummaryProvider; active
       : loggedIn
         ? ('ok' as const)
         : ('idle' as const);
-  const needsLogin = active ? status === 'fail' : loggedIn === false;
+  const needsLogin = loggedIn === false && (!active || status === 'fail');
 
   return (
     <div className="flex flex-col gap-1.5 rounded-md px-2.5 py-1.5">
