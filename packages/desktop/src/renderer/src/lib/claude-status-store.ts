@@ -78,7 +78,7 @@ export function keepClaudeStatusFresh(intervalMs: number): () => void {
 window.cairn.onRunDone(({ result }) => {
   if (
     result.summaryFailed ||
-    result.failureHint === 'claude-auth' ||
+    result.failureHint === 'engine-auth' ||
     result.failureHint === 'quota'
   ) {
     void probeClaude();

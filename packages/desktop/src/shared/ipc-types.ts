@@ -13,7 +13,7 @@ export type PublishKind = 'created' | 'recreated' | 'skipped' | 'no-target' | nu
 
 export type FailureHint =
   | 'auth'
-  | 'claude-auth'
+  | 'engine-auth'
   | 'quota'
   | 'summarize'
   | 'network'

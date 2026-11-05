@@ -2,7 +2,7 @@ import { Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { CodexModel, SummaryModel, SummaryProvider } from '../../../../shared/ipc-types';
 import type { I18nKey } from '../../i18n';
-import { PROVIDER_NAME } from '../../lib/summary-provider';
+import { PROVIDER_NAME } from '../../../../shared/summary-provider';
 import { useSettings } from '../../settings-context';
 import { Section } from './field';
 

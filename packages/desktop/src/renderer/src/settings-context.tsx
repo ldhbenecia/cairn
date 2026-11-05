@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Settings, Theme } from '../../shared/ipc-types';
 import { translate, type I18nKey } from './i18n';
-import { PROVIDER_NAME } from './lib/summary-provider';
+import { PROVIDER_NAME } from '../../shared/summary-provider';
 import { mergeSettings } from '../../shared/merge-settings';
 
 // per-element 트랜지션의 잔상을 피하려고 View Transitions API 로 화면 전체를 한 번에 크로스페이드

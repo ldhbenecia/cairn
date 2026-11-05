@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { AccountHealth, ConnectionAccounts } from '../../../../shared/ipc-types';
 import { probeClaude, probeClaudeOnce, useClaudeStatus } from '../../lib/claude-status-store';
 import { useEngineLoggedIn } from '../../lib/engine-auth';
-import { PROVIDER_NAME } from '../../lib/summary-provider';
+import { PROVIDER_NAME } from '../../../../shared/summary-provider';
 import { SUMMARY_PROVIDERS, type SummaryProvider } from '../../../../shared/ipc-types';
 import { useSettings } from '../../settings-context';
 import { EngineLoginButton, EngineLoginPanel, useEngineLogin } from '../engine-login';

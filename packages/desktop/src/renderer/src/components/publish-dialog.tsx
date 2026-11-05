@@ -9,7 +9,7 @@ import { useCloudAuth } from '../use-cloud-auth';
 import { DatePicker } from './date-picker';
 import { Segmented } from './preferences/field';
 import { Progress } from './publish-dialog-progress';
-import { PROVIDER_NAME } from '../lib/summary-provider';
+import { PROVIDER_NAME } from '../../../shared/summary-provider';
 import { deriveSinkOutcomes } from '../lib/publish-sinks';
 import { CancelledCard, ErrorCard, Result } from './publish-dialog-result';
 import { todayLocal } from '../lib/reports';

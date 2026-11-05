@@ -444,8 +444,8 @@ const STRINGS = {
     'toast.localDone': '로컬 기록 완료',
     'toast.noTarget': '발행 대상 없음',
     'fail.auth': '토큰 인증 실패 — 연결 탭에서 GitHub/Notion 토큰을 확인하세요',
-    'fail.claude-auth':
-      'Claude 로그인이 만료됐어요 — 사이드바의 엔진 상태를 눌러 다시 로그인하세요',
+    'fail.engine-auth':
+      '{engine} 로그인이 만료됐어요 — 사이드바의 엔진 상태를 눌러 다시 로그인하세요',
     'fail.quota': '{engine} 세션/쿼터 한도 — 잠시 후 다시 시도하세요',
     'fail.summarize': '{engine} 요약 실패 — 세션·쿼터를 확인하고 다시 시도하세요',
     'fail.network': '네트워크 오류 — 연결 확인 후 다시 시도하세요',
@@ -1041,8 +1041,8 @@ const STRINGS = {
     'toast.localDone': 'saved to local journal',
     'toast.noTarget': 'no publish target',
     'fail.auth': 'Token auth failed — check your GitHub/Notion tokens in Connections',
-    'fail.claude-auth':
-      'Claude login expired — click the engine status in the sidebar to log in again',
+    'fail.engine-auth':
+      '{engine} login expired — click the engine status in the sidebar to log in again',
     'fail.quota': '{engine} session/quota limit — try again later',
     'fail.summarize': '{engine} summary failed — check your session/quota and retry',
     'fail.network': 'Network error — check your connection and retry',
