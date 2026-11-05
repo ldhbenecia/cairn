@@ -75,6 +75,18 @@ contextBridge.exposeInMainWorld('cairn', {
       ipcRenderer.invoke('cairn:onboarding:finish', payload) as Promise<unknown>,
     pickFolder: () => ipcRenderer.invoke('cairn:onboarding:pick-folder') as Promise<string | null>,
   },
+  engine: {
+    loggedIn: (provider: string) =>
+      ipcRenderer.invoke('cairn:engine:logged-in', provider) as Promise<boolean>,
+    login: (provider: string) =>
+      ipcRenderer.invoke('cairn:engine:login', provider) as Promise<{
+        ok: boolean;
+        error?: 'busy' | 'not-installed' | 'failed';
+      }>,
+    submitCode: (code: string) =>
+      ipcRenderer.invoke('cairn:engine:login-code', code) as Promise<boolean>,
+    cancelLogin: () => ipcRenderer.invoke('cairn:engine:login-cancel') as Promise<void>,
+  },
   connections: {
     accounts: () =>
       ipcRenderer.invoke('cairn:connections:accounts') as Promise<{
@@ -160,6 +172,7 @@ contextBridge.exposeInMainWorld('cairn', {
   onRunProgress: subscribe<{ mode: CoreMode } & RunProgress>('cairn:run-progress'),
   onRunStep: subscribe<{ mode: CoreMode; step: RunStep }>('cairn:run-step'),
   onRunDone: subscribe<{ mode: CoreMode; result: CoreResult }>('cairn:run-done'),
+  onEngineLoginDone: subscribe<string>('cairn:engine:login-done'),
   readConfig: (): Promise<ConfigResult> =>
     ipcRenderer.invoke('cairn:config:read') as Promise<ConfigResult>,
   setLocalGitEnabled: (enabled: boolean): Promise<{ ok: boolean; error?: string }> =>

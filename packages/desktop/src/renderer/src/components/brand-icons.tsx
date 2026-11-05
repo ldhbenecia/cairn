@@ -53,6 +53,12 @@ export function ClaudeMark({ size = 16 }: { size?: number }) {
   return <img src={claudeIcon} alt="" width={size} height={size} className="rounded-[3px]" />;
 }
 
+import openaiIcon from '../assets/openai-icon.svg';
+
+export function CodexMark({ size = 16 }: { size?: number }) {
+  return <img src={openaiIcon} alt="" width={size} height={size} />;
+}
+
 import obsidianIcon from '../assets/obsidian-icon.svg';
 
 export function ObsidianMark({ size = 20 }: { size?: number }) {

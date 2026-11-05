@@ -8,18 +8,22 @@ import {
   LogIn,
   Orbit,
   LogOut,
+  RotateCw,
   Search,
   Settings2,
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useRef, useState, type Ref } from 'react';
+import type { SummaryProvider } from '../../../shared/ipc-types';
 import type { I18nKey } from '../i18n';
 import { keepClaudeStatusFresh, probeClaude, useClaudeStatus } from '../lib/claude-status-store';
+import { useEngineLoggedIn } from '../lib/engine-auth';
 import { PROVIDER_NAME } from '../lib/summary-provider';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
 import { AccountStatusPill } from './account-status-pill';
 import { BrandMark } from './brand-mark';
+import { EngineLoginButton, EngineLoginPanel, useEngineLogin } from './engine-login';
 
 export type WorklogFilter = 'all' | 'daily' | 'weekly' | 'monthly';
 export type MainView = 'worklogs' | 'stats' | 'graph' | 'reports';
@@ -143,6 +147,9 @@ function ClaudeStatusRow() {
   const status = useClaudeStatus();
   const provider = settings.summaryProvider;
   const prevProvider = useRef(provider);
+  const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => keepClaudeStatusFresh(CLAUDE_PROBE_INTERVAL_MS), []);
   // provider 를 바꾸면 이전 provider 의 결과가 남지 않게 즉시 재확인
@@ -152,11 +159,22 @@ function ClaudeStatusRow() {
     void probeClaude();
   }, [provider]);
 
-  const dot = {
-    checking: 'animate-pulse bg-ink-tertiary',
-    ok: 'bg-success',
-    fail: 'bg-danger',
-  }[status];
+  const closeMenu = (): void => {
+    setClosing(true);
+    setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+    }, 130);
+  };
+  useEffect(() => {
+    if (!open || closing) return;
+    const onDown = (e: MouseEvent): void => {
+      if (ref.current && !ref.current.contains(e.target as Node)) closeMenu();
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open, closing]);
+
   const label = {
     checking: t('claude.status.checking'),
     ok: `${PROVIDER_NAME[provider]} ${t('claude.status.ok')}`,
@@ -164,15 +182,88 @@ function ClaudeStatusRow() {
   }[status];
 
   return (
-    <button
-      type="button"
-      onClick={() => void probeClaude()}
-      title={status === 'fail' ? t('claude.status.failHint') : label}
-      className="flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-left text-[11.5px] text-ink-tertiary transition-colors hover:bg-surface-2/60 hover:text-ink-muted [-webkit-app-region:no-drag]"
-    >
-      <span className={`size-1.5 shrink-0 rounded-full ${dot}`} aria-hidden="true" />
-      {label}
-    </button>
+    <div ref={ref} className="relative [-webkit-app-region:no-drag]">
+      <button
+        type="button"
+        onClick={() => (open ? closeMenu() : setOpen(true))}
+        aria-expanded={open}
+        className={`flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-left text-[11.5px] text-ink-tertiary transition-colors hover:bg-surface-2/60 hover:text-ink-muted ${open ? 'bg-surface-2/60 text-ink-muted' : ''}`}
+      >
+        <StatusDot state={status} />
+        {label}
+      </button>
+      {open && (
+        <div
+          className={`floating-panel ${closing ? 'popover-out' : 'popover-in'} absolute bottom-full left-0 z-20 mb-1 w-64 max-w-[calc(100vw-32px)] rounded-lg border border-hairline bg-surface-1 p-1 shadow-xl shadow-black/40 [transform-origin:bottom]`}
+        >
+          {(['claude', 'codex'] as const).map((p) => (
+            <EngineMenuRow key={p} provider={p} active={p === provider} />
+          ))}
+          <div className="my-1 h-px bg-hairline" />
+          <button
+            type="button"
+            onClick={() => void probeClaude()}
+            disabled={status === 'checking'}
+            className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+          >
+            <RotateCw size={12} strokeWidth={2} className="text-ink-tertiary" />
+            {t('prefs.conn.recheck')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatusDot({ state }: { state: 'checking' | 'ok' | 'fail' | 'idle' }) {
+  const cls = {
+    checking: 'animate-pulse bg-ink-tertiary',
+    ok: 'bg-success',
+    fail: 'bg-danger',
+    idle: 'bg-ink-tertiary',
+  }[state];
+  return <span className={`size-1.5 shrink-0 rounded-full ${cls}`} aria-hidden="true" />;
+}
+
+// 사용 중 엔진은 실제 요약 probe 결과, 나머지는 모델 호출 없이 로그인 여부만
+function EngineMenuRow({ provider, active }: { provider: SummaryProvider; active: boolean }) {
+  const { update, t } = useSettings();
+  const status = useClaudeStatus();
+  const { loggedIn, refresh } = useEngineLoggedIn(provider, !active);
+  const login = useEngineLogin(provider, active ? () => void probeClaude() : refresh);
+  const state = active
+    ? status
+    : loggedIn === null
+      ? ('checking' as const)
+      : loggedIn
+        ? ('ok' as const)
+        : ('idle' as const);
+  const needsLogin = active ? status === 'fail' : loggedIn === false;
+
+  return (
+    <div className="flex flex-col gap-1.5 rounded-md px-2.5 py-1.5">
+      <div className="flex min-h-6 items-center gap-2 text-[12px]">
+        <StatusDot state={state} />
+        <span className="text-ink">{PROVIDER_NAME[provider]}</span>
+        {active && <span className="text-[11px] text-ink-tertiary">{t('engine.inUse')}</span>}
+        <span className="ml-auto flex items-center">
+          {needsLogin ? (
+            <EngineLoginButton login={login} />
+          ) : (
+            !active && (
+              <button
+                type="button"
+                onClick={() => update({ summaryProvider: provider })}
+                className="rounded px-1.5 py-0.5 text-[11px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+              >
+                {t('engine.switch')}
+              </button>
+            )
+          )}
+        </span>
+      </div>
+      {login.state !== 'idle' && <EngineLoginPanel login={login} />}
+    </div>
   );
 }
 

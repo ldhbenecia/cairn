@@ -1,6 +1,7 @@
 import type {
   BackupStatus,
   CodexModel,
+  SummaryProvider,
   BusyState,
   CloudAuthState,
   ConfigResult,
@@ -54,6 +55,14 @@ declare global {
         finish: (payload: OnboardingPayload) => Promise<{ ok: boolean; error?: string }>;
         pickFolder: () => Promise<string | null>;
       };
+      engine: {
+        loggedIn: (provider: SummaryProvider) => Promise<boolean>;
+        login: (
+          provider: SummaryProvider,
+        ) => Promise<{ ok: boolean; error?: 'busy' | 'not-installed' | 'failed' }>;
+        submitCode: (code: string) => Promise<boolean>;
+        cancelLogin: () => Promise<void>;
+      };
       connections: {
         accounts: () => Promise<ConnectionAccounts>;
         refreshGithub: () => Promise<{ ok: boolean; count?: number; error?: string }>;
@@ -101,6 +110,7 @@ declare global {
       onRunStep: (cb: (p: { mode: CoreMode; step: RunStep }) => void) => () => void;
       onRunProgress: (cb: (p: { mode: CoreMode } & RunProgress) => void) => () => void;
       onRunDone: (cb: (p: { mode: CoreMode; result: CoreResult }) => void) => () => void;
+      onEngineLoginDone: (cb: (provider: SummaryProvider) => void) => () => void;
       readConfig: () => Promise<ConfigResult>;
       setLocalGitEnabled: (enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
       listRecent: () => Promise<RecentListResult>;
