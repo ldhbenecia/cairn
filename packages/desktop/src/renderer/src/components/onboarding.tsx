@@ -33,12 +33,23 @@ const STEP_TITLE_KEY: Record<Step, I18nKey> = {
   review: 'onb.step.review',
 };
 
-export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
+// 설정 연결 탭에서 한 항목만 고칠 때 여는 단계
+export type SetupStep = 'github' | 'engine';
+
+export function Onboarding({
+  onDone,
+  onCancel,
+  only,
+}: {
+  onDone: () => void;
+  onCancel?: () => void;
+  only?: SetupStep;
+}) {
   const { settings, update, t } = useSettings();
   const provider = settings.summaryProvider;
   // onCancel 존재 = 설정에서 진입한 재설정 — 환영 스텝을 건너뛰고 문구도 재설정 톤
   const reconfigure = !!onCancel;
-  const [stepIdx, setStepIdx] = useState(reconfigure ? 1 : 0);
+  const [stepIdx, setStepIdx] = useState(only ? STEPS.indexOf(only) : reconfigure ? 1 : 0);
   const step = STEPS[stepIdx]!;
   const [github, setGithub] = useState<GithubEntry[]>([
     { label: 'Personal', token: '', status: 'idle' },
@@ -139,22 +150,44 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   // API key 는 Claude 전용, Codex 는 CLI 로그인만
   const apiKey = provider === 'claude' ? anthropicKey.trim() : '';
   const engineValid = engineStatus === 'ok' || !!apiKey;
+  const okGithub = github
+    .filter((e) => e.status === 'ok' && (e.token.trim() || e.ghLogin))
+    .map((e) =>
+      e.ghLogin
+        ? { label: e.label, ghLogin: e.ghLogin }
+        : { label: e.label, token: e.token.trim() },
+    );
+  const canSaveOnly = only === 'github' ? okGithub.length > 0 : engineValid;
 
   async function finish() {
     setFinishing(true);
     setFinishErr(null);
     const r = await window.cairn.onboarding.finish({
       notion: [],
-      github: github
-        .filter((e) => e.status === 'ok' && (e.token.trim() || e.ghLogin))
-        .map((e) =>
-          e.ghLogin
-            ? { label: e.label, ghLogin: e.ghLogin }
-            : { label: e.label, token: e.token.trim() },
-        ),
+      github: okGithub,
       anthropicApiKey: apiKey || undefined,
       localGitRepos: repos,
     });
+    setFinishing(false);
+    if (r.ok) onDone();
+    else setFinishErr(r.error ?? 'failed');
+  }
+
+  // 한 항목만 저장 — GitHub 는 기존 계정에 합치고, 엔진은 API key 만 쓰고 나머지 연결은 빈 payload 로 보존
+  async function saveOnly() {
+    setFinishing(true);
+    setFinishErr(null);
+    const r =
+      only === 'github'
+        ? await window.cairn.addGithubAccounts(okGithub)
+        : apiKey
+          ? await window.cairn.onboarding.finish({
+              notion: [],
+              github: [],
+              anthropicApiKey: apiKey,
+              localGitRepos: [],
+            })
+          : { ok: true };
     setFinishing(false);
     if (r.ok) onDone();
     else setFinishErr(r.error ?? 'failed');
@@ -214,12 +247,13 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
           )}
           {step !== 'welcome' && (
             <span className="ml-auto text-[12px] text-ink-tertiary">
-              {stepIdx} / {STEPS.length - 1} · {t(STEP_TITLE_KEY[step])}
+              {only ? '' : `${stepIdx} / ${STEPS.length - 1} · `}
+              {t(STEP_TITLE_KEY[step])}
             </span>
           )}
         </div>
         {step !== 'welcome' && (
-          <div className="flex items-center gap-1.5 pb-5">
+          <div className={`flex items-center gap-1.5 pb-5 ${only ? 'invisible' : ''}`}>
             {STEPS.slice(1).map((s, i) => (
               <span
                 key={s}
@@ -499,7 +533,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
         </AnimatePresence>
 
         <div className="flex shrink-0 items-center gap-2 border-t border-hairline py-4">
-          {stepIdx > (reconfigure ? 1 : 0) && (
+          {!only && stepIdx > (reconfigure ? 1 : 0) && (
             <button
               type="button"
               onClick={() => setStepIdx((s) => s - 1)}
@@ -517,8 +551,23 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
               {t('onb.nav.cancel')}
             </button>
           )}
+          {only && finishErr && (
+            <span className="text-[13px] text-danger">
+              {t('onb.review.failPrefix')}: {finishErr}
+            </span>
+          )}
           <div className="ml-auto">
-            {step === 'review' ? (
+            {only ? (
+              <button
+                type="button"
+                disabled={finishing || !canSaveOnly}
+                onClick={() => void saveOnly()}
+                className="flex items-center gap-1.5 rounded-md bg-ink px-4 py-2 text-[13px] font-medium text-canvas transition-[background-color,scale] hover:bg-ink/90 active:scale-[0.96] disabled:opacity-50"
+              >
+                {finishing && <Loader2 size={14} strokeWidth={2} className="animate-spin" />}
+                {t('onb.nav.save')}
+              </button>
+            ) : step === 'review' ? (
               <button
                 type="button"
                 disabled={finishing || !sourceValid || !engineValid}

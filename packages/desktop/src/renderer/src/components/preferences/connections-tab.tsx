@@ -1,4 +1,4 @@
-import { FolderGit2, FolderPlus, Loader2, RotateCw, X } from 'lucide-react';
+import { FolderGit2, FolderPlus, Loader2, RotateCw, Settings2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { AccountHealth, ConnectionAccounts } from '../../../../shared/ipc-types';
 import { probeClaude, probeClaudeOnce, useClaudeStatus } from '../../lib/claude-status-store';
@@ -10,6 +10,7 @@ import { EngineLoginButton, EngineLoginPanel, useEngineLogin } from '../engine-l
 import { AccountStatusPill } from '../account-status-pill';
 import { ClaudeMark, CodexMark, GithubMark, NotionMark } from '../brand-icons';
 import { AccordionItem } from '../accordion';
+import type { SetupStep } from '../onboarding';
 import { Toggle } from '../toggle';
 import { Section } from './field';
 import { toggleIn } from '../../lib/toggle-in';
@@ -28,7 +29,13 @@ function basename(p: string): string {
   return parts[parts.length - 1] || p;
 }
 
-export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
+export function ConnectionsTab({
+  onRerun,
+  onOpenIntegrations,
+}: {
+  onRerun: (step?: SetupStep) => void;
+  onOpenIntegrations: () => void;
+}) {
   const { settings, t } = useSettings();
   const [cfg, setCfg] = useState<ParsedConfig>({});
   const claude = useClaudeStatus();
@@ -147,6 +154,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
         items={notionItems}
         expanded={open.has('notion')}
         onToggle={() => toggle('notion')}
+        action={<EditButton onClick={onOpenIntegrations} />}
       />
       <Row
         icon={
@@ -158,6 +166,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
         items={githubItems}
         expanded={open.has('github') || githubInvalid}
         onToggle={() => toggle('github')}
+        action={<EditButton onClick={() => onRerun('github')} />}
         footer={
           <div className="flex items-center gap-2 pt-1.5">
             <button
@@ -189,6 +198,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
           active={p === settings.summaryProvider}
           status={claude}
           onRecheck={refreshClaude}
+          onEdit={() => onRerun('engine')}
         />
       ))}
       <Row
@@ -224,13 +234,32 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
       <div className="pt-4">
         <button
           type="button"
-          onClick={onRerun}
+          onClick={() => onRerun()}
           className="rounded-md border border-hairline px-3 py-1.5 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
         >
           {t('prefs.rerunSetup')}
         </button>
       </div>
     </Section>
+  );
+}
+
+// 재설정 마법사 대신 그 항목 설정만 엶
+function EditButton({ onClick }: { onClick: () => void }) {
+  const { t } = useSettings();
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      aria-label={t('prefs.conn.edit')}
+      title={t('prefs.conn.edit')}
+      className="shrink-0 rounded p-0.5 text-ink-tertiary transition-colors hover:text-ink-muted"
+    >
+      <Settings2 size={13} strokeWidth={2} />
+    </button>
   );
 }
 
@@ -352,11 +381,13 @@ function EngineRow({
   active,
   status,
   onRecheck,
+  onEdit,
 }: {
   provider: SummaryProvider;
   active: boolean;
   status: 'checking' | 'ok' | 'fail';
   onRecheck: () => void;
+  onEdit: () => void;
 }) {
   const { t } = useSettings();
   // 사용 중 엔진의 probe 실패는 쿼터·세션 한도일 수도 있음 — 로그인 버튼은 실제로 로그아웃일 때만
@@ -377,7 +408,7 @@ function EngineRow({
         }
         pending={pending}
         ok={ok}
-        action={needsLogin ? <EngineLoginButton login={login} /> : undefined}
+        action={needsLogin ? <EngineLoginButton login={login} /> : <EditButton onClick={onEdit} />}
         onRefresh={pending || needsLogin ? undefined : active ? onRecheck : refresh}
       />
       {login.state !== 'idle' && (

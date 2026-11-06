@@ -26,7 +26,7 @@ import { RunToast, type RunToastData } from './components/run-toast';
 import { useSettings } from './settings-context';
 import { Dashboard } from './components/dashboard';
 import { GraphView } from './components/graph-view';
-import { Onboarding } from './components/onboarding';
+import { Onboarding, type SetupStep } from './components/onboarding';
 import { PreferencesDialog } from './components/preferences-dialog';
 import { CommandPalette } from './components/command-palette';
 import { ReportsView } from './components/reports-view';
@@ -103,6 +103,7 @@ export function App() {
   const [standupOpen, setStandupOpen] = useState(false);
   const [wrappedOpen, setWrappedOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(window.cairn.initialSetupComplete);
+  const [setupOnly, setSetupOnly] = useState<SetupStep | undefined>();
   const [everSetup, setEverSetup] = useState(window.cairn.initialSetupComplete);
   const [selectedPage, setSelectedPage] = useState<RecentPage | null>(null);
   // 일지 상세 표시 모드 — 드로어(기본) 또는 메인 영역 전체
@@ -404,12 +405,21 @@ export function App() {
   if (!setupComplete) {
     return (
       <Onboarding
+        only={setupOnly}
         onDone={() => {
           setEverSetup(true);
           setSetupComplete(true);
+          setSetupOnly(undefined);
           void loadRecent();
         }}
-        onCancel={everSetup ? () => setSetupComplete(true) : undefined}
+        onCancel={
+          everSetup
+            ? () => {
+                setSetupComplete(true);
+                setSetupOnly(undefined);
+              }
+            : undefined
+        }
       />
     );
   }
@@ -537,7 +547,10 @@ export function App() {
           setPrefsOpen(open);
           if (!open) setPrefsTab(null);
         }}
-        onRerunSetup={() => setSetupComplete(false)}
+        onRerunSetup={(step) => {
+          setSetupOnly(step);
+          setSetupComplete(false);
+        }}
         blockEscape={cmdkOpen}
         initialTab={prefsTab?.tab ?? null}
         initialTabNonce={prefsTab?.nonce ?? 0}
