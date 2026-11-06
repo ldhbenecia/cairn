@@ -129,12 +129,7 @@ export async function listRecentMerged(): Promise<{
       );
     }),
   ].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
-  // journal 에 일지가 있으면 노션 미연동은 정상 상태 — 경고 배너 안 띄움
-  const warnings =
-    journal.length > 0
-      ? notion.warnings.filter((w) => w.code !== 'no-workspaces')
-      : notion.warnings;
-  return { pages, warnings };
+  return { pages, warnings: notion.warnings };
 }
 
 async function readExportIndex(): Promise<Set<string> | null> {

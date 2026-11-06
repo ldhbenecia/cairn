@@ -78,22 +78,19 @@ export function WorklogList({
 }: Props) {
   const { t } = useSettings();
 
-  // 메인 프로세스는 경고를 코드로만 보냄 — 여기서 i18n 매핑. string 은 구버전 로컬 캐시 호환
-  const warningText = (w: RecentWarning | string): string => {
-    if (typeof w === 'string') return w;
+  // 메인 프로세스는 경고를 코드로만 보냄 — 여기서 i18n 매핑. 구버전 로컬 캐시의 문자열·없어진 코드는 숨김
+  const warningText = (w: RecentWarning | string): string | null => {
+    if (typeof w !== 'object') return null;
     switch (w.code) {
-      case 'no-workspaces':
-        return t('list.warn.noWorkspaces');
       case 'token-missing':
-        return t('list.warn.tokenMissing')
-          .replace('{ws}', w.workspace)
-          .replace('{env}', w.tokenEnv);
-      case 'no-data-source':
-        return t('list.warn.noDataSource').replace('{ws}', w.workspace);
+        return t('list.warn.tokenMissing').replace('{ws}', w.workspace);
       case 'fetch-failed':
-        return t('list.warn.fetchFailed').replace('{ws}', w.workspace).replace('{kind}', w.kind);
+        return t('list.warn.fetchFailed').replace('{ws}', w.workspace);
+      default:
+        return null;
     }
   };
+  const warnings = (recent?.warnings ?? []).flatMap((w) => warningText(w) ?? []);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [desc, setDesc] = useState(true);
@@ -340,13 +337,11 @@ export function WorklogList({
             </motion.div>
           )}
 
-          {recent && recent.warnings.length > 0 && (
+          {warnings.length > 0 && (
             <div className="mt-3 rounded-md border border-hairline bg-surface-1 p-3 text-[12px] text-ink-tertiary">
               <p className="mb-1 font-medium text-ink-subtle">{t('list.warnings')}</p>
-              {recent.warnings.map((w, i) => (
-                <p key={i} className="font-mono">
-                  {warningText(w)}
-                </p>
+              {warnings.map((w, i) => (
+                <p key={i}>{w}</p>
               ))}
             </div>
           )}

@@ -98,9 +98,8 @@ export async function listRecentPages(): Promise<{
 }> {
   const cfg = await readConfig();
   const parsed = cfg.parsed as ParsedConfig | null;
-  if (!parsed?.notionWorkspaces?.length) {
-    return { pages: [], warnings: [{ code: 'no-workspaces' }] };
-  }
+  // 노션은 선택 연동 — 미연동·첫 발행 전(dataSourceId 없음)은 정상 상태라 경고 없음
+  if (!parsed?.notionWorkspaces?.length) return { pages: [], warnings: [] };
 
   const results = await Promise.all(parsed.notionWorkspaces.map((ws) => listWorkspacePages(ws)));
   const allPages = results.flatMap((r) => r.pages);
@@ -126,9 +125,7 @@ async function listWorkspacePages(
   const tasks: Array<Promise<void>> = [];
 
   const worklogDs = ws.worklog?.dataSourceId;
-  if (!worklogDs) {
-    warnings.push({ code: 'no-data-source', workspace: ws.label });
-  } else {
+  if (worklogDs) {
     tasks.push(
       listDailyPages(notion, worklogDs, ws.label)
         .then((dailyPages) => {
