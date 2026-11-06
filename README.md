@@ -49,7 +49,7 @@ The desktop app's first-run setup walks you through connecting these and writes 
 Paste this into Terminal — it downloads the latest release into Applications and launches it. Run the same line again to update.
 
 ```sh
-curl -fL https://github.com/ldhbenecia/cairn/releases/latest/download/Cairn-arm64-mac.zip -o /tmp/Cairn.zip && { pkill -x Cairn; ditto -x -k /tmp/Cairn.zip /Applications && open /Applications/Cairn.app; }
+curl -fL https://github.com/ldhbenecia/cairn/releases/latest/download/Cairn-arm64-mac.zip -o /tmp/Cairn.zip && { pkill -x Cairn; sleep 2; pkill -9 -x Cairn; ditto -x -k /tmp/Cairn.zip /Applications && open /Applications/Cairn.app; }
 ```
 
 Files fetched with `curl` don't get the quarantine flag that triggers the "unidentified developer" warning, so the app opens right away — which also means that check is skipped, so only do this with a source you trust. If you get a permission error on `/Applications`, replace both `/Applications` with `~/Applications` (create it with `mkdir -p ~/Applications` if missing).
