@@ -1,4 +1,4 @@
-import { FolderGit2, Loader2, RotateCw } from 'lucide-react';
+import { FolderGit2, FolderPlus, Loader2, RotateCw, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { AccountHealth, ConnectionAccounts } from '../../../../shared/ipc-types';
 import { probeClaude, probeClaudeOnce, useClaudeStatus } from '../../lib/claude-status-store';
@@ -101,6 +101,25 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
     );
   };
 
+  // 재설정 마법사를 다시 돌지 않고 로컬 Git 목록만 바꿈 — 실패하면 config 를 다시 읽어 화면을 맞춤
+  const saveRepos = (next: string[]): void => {
+    setCfg((prev) => ({ ...prev, localGitRepos: next }));
+    void window.cairn.setLocalGitRepos(next).then(
+      (r) => {
+        if (!r.ok) reload();
+      },
+      () => reload(),
+    );
+  };
+  const addRepos = async (): Promise<void> => {
+    const added = (await window.cairn.onboarding.pickFolder()).filter((p) => !repos.includes(p));
+    if (added.length === 0) return;
+    saveRepos([...repos, ...added]);
+    setOpen((prev) => new Set(prev).add('repos'));
+    // 폴더를 고른 건 수집하겠다는 뜻 — 온보딩과 같은 규칙
+    if (!localGitEnabled) onToggleLocalGit(true);
+  };
+
   const notionItems: Item[] = notion.map((w) => {
     const acc = accounts?.notion?.find((n) => n.label === w.label);
     return { primary: w.label, secondary: acc?.workspace, health: acc?.health };
@@ -178,6 +197,21 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
         items={repoItems}
         expanded={open.has('repos')}
         onToggle={() => toggle('repos')}
+        onRemove={(i) => saveRepos(repos.filter((_, x) => x !== i))}
+        action={
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              void addRepos();
+            }}
+            aria-label={t('onb.repos.add')}
+            title={t('onb.repos.add')}
+            className="shrink-0 rounded p-0.5 text-ink-tertiary transition-colors hover:text-ink-muted"
+          >
+            <FolderPlus size={13} strokeWidth={2} />
+          </button>
+        }
       />
       <div className="flex items-center justify-between py-2 pl-6 pr-2">
         <span className="text-[12px] text-ink-tertiary">{t('prefs.conn.localGitCollect')}</span>
@@ -210,6 +244,7 @@ function Row({
   action,
   expanded,
   onToggle,
+  onRemove,
   footer,
 }: {
   icon?: React.ReactNode;
@@ -221,6 +256,7 @@ function Row({
   action?: React.ReactNode;
   expanded?: boolean;
   onToggle?: () => void;
+  onRemove?: (index: number) => void;
   footer?: React.ReactNode;
 }) {
   const { t } = useSettings();
@@ -291,6 +327,16 @@ function Row({
             )}
             {it.health === 'unreachable' && (
               <span className="text-ink-tertiary">{t('prefs.conn.unreachable')}</span>
+            )}
+            {onRemove && (
+              <button
+                type="button"
+                onClick={() => onRemove(i)}
+                aria-label={t('onb.field.remove')}
+                className="ml-auto shrink-0 self-center rounded p-0.5 text-ink-tertiary transition-colors hover:text-ink-muted"
+              >
+                <X size={12} strokeWidth={2} />
+              </button>
             )}
           </div>
         ))}

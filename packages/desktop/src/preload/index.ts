@@ -180,6 +180,11 @@ contextBridge.exposeInMainWorld('cairn', {
       ok: boolean;
       error?: string;
     }>,
+  setLocalGitRepos: (repos: string[]): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('cairn:config:set-local-git-repos', repos) as Promise<{
+      ok: boolean;
+      error?: string;
+    }>,
   listRecent: (): Promise<RecentListResult> =>
     ipcRenderer.invoke('cairn:recent:list') as Promise<RecentListResult>,
   journalSearch: (query: string): Promise<unknown> =>

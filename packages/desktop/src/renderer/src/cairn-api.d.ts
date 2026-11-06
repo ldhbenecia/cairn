@@ -113,6 +113,7 @@ declare global {
       onEngineLoginDone: (cb: (provider: SummaryProvider) => void) => () => void;
       readConfig: () => Promise<ConfigResult>;
       setLocalGitEnabled: (enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
+      setLocalGitRepos: (repos: string[]) => Promise<{ ok: boolean; error?: string }>;
       listRecent: () => Promise<RecentListResult>;
       journalSearch: (query: string) => Promise<JournalSearchHit[]>;
       pageContent: (pageId: string, workspaceLabel: string) => Promise<PageContent>;

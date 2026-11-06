@@ -66,6 +66,7 @@ import {
   refreshGithubFromGhCli,
   searchNotionPages,
   setLocalGitEnabled,
+  setLocalGitRepos,
   parseNotionWorkspacePayload,
   parseOnboardingPayload,
 } from './onboarding';
@@ -317,6 +318,9 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:config:read', () => readConfig());
   ipcMain.handle('cairn:config:set-local-git-enabled', (_e, enabled: unknown) =>
     setLocalGitEnabled(enabled === true),
+  );
+  ipcMain.handle('cairn:config:set-local-git-repos', (_e, repos: unknown) =>
+    setLocalGitRepos(repos),
   );
   ipcMain.handle('cairn:recent:list', () => listRecentMerged());
   // 일지 본문 검색 — 로컬 journal md 만 스캔(파일명 패턴 가드), 외부 송신 없음

@@ -506,6 +506,14 @@ export function setLocalGitEnabled(enabled: boolean): { ok: boolean; error?: str
   return updateConfig((existing) => ({ config: { ...existing, localGitEnabled: enabled } }));
 }
 
+// 설정 화면에서 로컬 Git 목록만 바꿀 때 — 렌더러 입력이라 문자열 배열만 받음
+export function setLocalGitRepos(repos: unknown): { ok: boolean; error?: string } {
+  if (!Array.isArray(repos) || !repos.every(isStr)) return { ok: false, error: 'invalid-repos' };
+  return updateConfig((existing) => ({
+    config: { ...existing, localGitRepos: [...new Set(repos)] },
+  }));
+}
+
 export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; error?: string } {
   // 기존 config 를 먼저 읽어 자동 생성된 DB id 보존
   return updateConfig((existing) => {
