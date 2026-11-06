@@ -119,8 +119,9 @@ body,
   font-family: var(--font-text);
   font-size: 14px;
   font-weight: 400;
-  /* 한국어 어절 단위 줄바꿈 — "있습니 / 다." 같은 어색한 꺾임 방지 */
+  /* 한국어 어절 단위 줄바꿈 — "있습니 / 다." 같은 어색한 꺾임 방지, 마지막 줄에 한 어절만 남는 것도 방지 */
   word-break: keep-all;
+  text-wrap: pretty;
   line-height: 1.5;
   letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
