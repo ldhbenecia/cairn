@@ -277,7 +277,7 @@ export function Result({
           <div className="mt-1 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/[0.08] px-3 py-2.5">
             <TriangleAlert size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-warning" />
             <p className="text-[12px] leading-relaxed text-ink-muted">
-              {t('publish.result.collectPartial')} — {result.collectPartial.join(', ')}
+              {t('publish.result.collectPartial')}: {result.collectPartial.join(', ')}
             </p>
           </div>
         )}

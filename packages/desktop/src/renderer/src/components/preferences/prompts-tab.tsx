@@ -83,7 +83,7 @@ export function PromptsTab() {
           </div>
           <p className="mt-2.5 text-[12px] leading-relaxed text-ink-tertiary">
             <span className="font-medium text-ink-muted">{PROVIDER_NAME[provider]}</span>
-            {' — '}
+            {': '}
             {t(PROVIDERS.find((p) => p.id === provider)!.desc)}
           </p>
         </div>
@@ -135,7 +135,7 @@ export function PromptsTab() {
               <span className="font-medium text-ink-muted">
                 {selectedModel.name || t('prefs.prompts.model.default')}
               </span>
-              {' — '}
+              {': '}
               {t(selectedModel.desc)}
             </p>
           </div>

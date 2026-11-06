@@ -547,10 +547,10 @@ function Welcome({ t }: { t: T }) {
       </motion.div>
       <motion.ul variants={RISE} className="flex flex-col gap-1.5 text-[13px] text-ink-subtle">
         <li>
-          <span className="text-ink-muted">GitHub</span> — {t('onb.welcome.github')}
+          <span className="text-ink-muted">GitHub</span>: {t('onb.welcome.github')}
         </li>
         <li>
-          <span className="text-ink-muted">Claude · Codex</span> — {t('onb.welcome.engine')}
+          <span className="text-ink-muted">Claude · Codex</span>: {t('onb.welcome.engine')}
         </li>
       </motion.ul>
       <motion.div
