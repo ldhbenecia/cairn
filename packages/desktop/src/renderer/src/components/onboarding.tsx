@@ -52,6 +52,18 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const [ghImporting, setGhImporting] = useState(false);
   const [ghMsg, setGhMsg] = useState<I18nKey | null>(null);
 
+  useEffect(() => {
+    if (!reconfigure) return;
+    // 재설정은 기존 목록에서 시작 — 빈 목록으로 시작하면 새로 고른 폴더가 기존 목록을 덮어씀
+    void window.cairn.readConfig().then((r) => {
+      const prev = (r.parsed as { localGitRepos?: unknown } | null)?.localGitRepos;
+      if (Array.isArray(prev)) {
+        const valid = prev.filter((p): p is string => typeof p === 'string');
+        setRepos((cur) => [...valid, ...cur.filter((p) => !valid.includes(p))]);
+      }
+    });
+  }, [reconfigure]);
+
   const patchGithub = (i: number, p: Partial<GithubEntry>) =>
     setGithub((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
 
