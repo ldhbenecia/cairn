@@ -54,6 +54,7 @@ import {
   scheduleJournalBackup,
 } from './journal-git-backup';
 import {
+  addGithubAccounts,
   addNotionWorkspace,
   finishOnboarding,
   listGhCliLogins,
@@ -68,6 +69,7 @@ import {
   setLocalGitEnabled,
   setLocalGitRepos,
   parseNotionWorkspacePayload,
+  parseGithubEntries,
   parseOnboardingPayload,
 } from './onboarding';
 import { fetchRepoStars } from './repo';
@@ -322,6 +324,10 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:config:set-local-git-repos', (_e, repos: unknown) =>
     setLocalGitRepos(repos),
   );
+  ipcMain.handle('cairn:config:add-github-accounts', (_e, raw: unknown) => {
+    const parsed = parseGithubEntries(raw);
+    return parsed.ok ? addGithubAccounts(parsed.entries) : { ok: false, error: parsed.error };
+  });
   ipcMain.handle('cairn:recent:list', () => listRecentMerged());
   // 일지 본문 검색 — 로컬 journal md 만 스캔(파일명 패턴 가드), 외부 송신 없음
   ipcMain.handle('cairn:journal:search', (_e, query: string) =>

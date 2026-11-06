@@ -98,6 +98,29 @@ export function parseNotionWorkspacePayload(
   };
 }
 
+export function parseGithubEntries(
+  raw: unknown,
+): { ok: true; entries: OnboardingPayload['github'] } | { ok: false; error: string } {
+  if (!Array.isArray(raw)) return { ok: false, error: 'invalid-github' };
+  const entries: OnboardingPayload['github'] = [];
+  for (const g of raw) {
+    const gg = g as Record<string, unknown>;
+    if (typeof g !== 'object' || g === null || !isStr(gg.label) || hasCtl(gg.label)) {
+      return { ok: false, error: 'invalid-github' };
+    }
+    // gh CLI 가져오기 항목은 renderer 가 토큰 대신 login 만 보냄 — main 캐시에서 해석
+    if (isStr(gg.ghLogin)) {
+      const token = ghCliTokens.get(gg.ghLogin);
+      if (!token) return { ok: false, error: 'gh-token-missing' };
+      entries.push({ label: gg.label, token });
+      continue;
+    }
+    if (!isStr(gg.token) || hasCtl(gg.token)) return { ok: false, error: 'invalid-github' };
+    entries.push({ label: gg.label, token: gg.token });
+  }
+  return { ok: true, entries };
+}
+
 export function parseOnboardingPayload(
   raw: unknown,
 ): { ok: true; payload: OnboardingPayload } | { ok: false; error: string } {
@@ -114,22 +137,8 @@ export function parseOnboardingPayload(
     notion.push(parsed.entry);
   }
 
-  const github: OnboardingPayload['github'] = [];
-  for (const g of o.github) {
-    const gg = g as Record<string, unknown>;
-    if (typeof g !== 'object' || g === null || !isStr(gg.label) || hasCtl(gg.label)) {
-      return { ok: false, error: 'invalid-github' };
-    }
-    // gh CLI 가져오기 항목은 renderer 가 토큰 대신 login 만 보냄 — main 캐시에서 해석
-    if (isStr(gg.ghLogin)) {
-      const token = ghCliTokens.get(gg.ghLogin);
-      if (!token) return { ok: false, error: 'gh-token-missing' };
-      github.push({ label: gg.label, token });
-      continue;
-    }
-    if (!isStr(gg.token) || hasCtl(gg.token)) return { ok: false, error: 'invalid-github' };
-    github.push({ label: gg.label, token: gg.token });
-  }
+  const github = parseGithubEntries(o.github);
+  if (!github.ok) return github;
 
   if (!o.localGitRepos.every((r) => isStr(r))) {
     return { ok: false, error: 'invalid-local-repos' };
@@ -145,7 +154,7 @@ export function parseOnboardingPayload(
     ok: true,
     payload: {
       notion,
-      github,
+      github: github.entries,
       localGitRepos: o.localGitRepos,
       ...(typeof o.anthropicApiKey === 'string' ? { anthropicApiKey: o.anthropicApiKey } : {}),
     },
@@ -498,6 +507,23 @@ export async function refreshGithubFromGhCli(): Promise<{
       env,
       result: { count: ghAccounts.length },
     };
+  });
+}
+
+// 설정에서 GitHub 만 다시 연결할 때 — 전체 교체인 온보딩과 달리 같은 라벨만 바꾸고 나머지 계정은 보존
+export function addGithubAccounts(entries: OnboardingPayload['github']): {
+  ok: boolean;
+  error?: string;
+} {
+  return updateConfig((existing) => {
+    let accounts = listOf<{ label: string; tokenEnv: string }>(existing.githubAccounts);
+    const env: Record<string, string> = {};
+    for (const g of entries) {
+      const tokenEnv = envKey('GITHUB_TOKEN', g.label);
+      env[tokenEnv] = g.token;
+      accounts = upsertByLabel(accounts, { label: g.label, tokenEnv }, g.label);
+    }
+    return { config: { ...existing, githubAccounts: accounts }, env };
   });
 }
 

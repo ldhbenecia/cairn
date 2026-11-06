@@ -180,6 +180,11 @@ contextBridge.exposeInMainWorld('cairn', {
       ok: boolean;
       error?: string;
     }>,
+  addGithubAccounts: (entries: unknown): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('cairn:config:add-github-accounts', entries) as Promise<{
+      ok: boolean;
+      error?: string;
+    }>,
   setLocalGitRepos: (repos: string[]): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('cairn:config:set-local-git-repos', repos) as Promise<{
       ok: boolean;

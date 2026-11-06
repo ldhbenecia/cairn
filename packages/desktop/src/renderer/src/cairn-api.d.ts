@@ -113,6 +113,9 @@ declare global {
       onEngineLoginDone: (cb: (provider: SummaryProvider) => void) => () => void;
       readConfig: () => Promise<ConfigResult>;
       setLocalGitEnabled: (enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
+      addGithubAccounts: (
+        entries: OnboardingPayload['github'],
+      ) => Promise<{ ok: boolean; error?: string }>;
       setLocalGitRepos: (repos: string[]) => Promise<{ ok: boolean; error?: string }>;
       listRecent: () => Promise<RecentListResult>;
       journalSearch: (query: string) => Promise<JournalSearchHit[]>;
