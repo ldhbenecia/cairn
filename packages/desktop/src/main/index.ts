@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, powerMonitor, shell } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
@@ -172,6 +172,36 @@ function createWindow(startHidden: boolean): BrowserWindow {
   }
 
   return win;
+}
+
+// Cmd+Q 는 완전 종료가 아닌 트레이 전용(메뉴바 상주). 기본 앱 메뉴의 quit 만 숨기기로 바꾸고 나머지 역할은 그대로
+function installAppMenu(): void {
+  const hideToTray = (): void => {
+    BrowserWindow.getAllWindows().forEach((w) => w.hide());
+    app.dock?.hide();
+  };
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate([
+      {
+        label: app.name,
+        submenu: [
+          { role: 'about' },
+          { type: 'separator' },
+          { role: 'services' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideOthers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          { label: `Quit ${app.name}`, accelerator: 'Command+Q', click: hideToTray },
+        ],
+      },
+      { role: 'fileMenu' },
+      { role: 'editMenu' },
+      { role: 'viewMenu' },
+      { role: 'windowMenu' },
+    ]),
+  );
 }
 
 // dev 바이너리(Electron.app)가 로그인 항목에 등록되지 않게 패키지 한정 — macOS·Windows 만 지원
@@ -417,6 +447,7 @@ void app.whenReady().then(() => {
   initTelemetry();
   trackAppLaunched();
   initUpdater();
+  if (app.isPackaged && process.platform === 'darwin') installAppMenu();
 
   app.on('activate', () => {
     showWindow(win);
@@ -429,14 +460,9 @@ void app.whenReady().then(() => {
   });
 });
 
-app.on('before-quit', (e) => {
-  if (!allowQuit && app.isPackaged) {
-    e.preventDefault();
-    BrowserWindow.getAllWindows().forEach((w) => w.hide());
-    // Cmd+Q 는 완전 종료가 아닌 트레이 전용(메뉴바 상주) — 이때만 Dock 아이콘 제거
-    if (process.platform === 'darwin') app.dock?.hide();
-    return;
-  }
+// before-quit 에서 막지 않음: SIGTERM(pkill·업데이트 스크립트)도 같은 경로라 막으면 프로세스가 살아남은 채 번들이 교체됨
+app.on('before-quit', () => {
+  allowQuit = true;
   killRunning(); // 진행 중 core 자식이 고아로 남지 않게 종료 전 정리
   void shutdownTelemetry();
 });

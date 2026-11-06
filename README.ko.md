@@ -49,7 +49,7 @@ cairn 은 여러 레포·계정에 걸친 GitHub PR·커밋을 AI(Claude 또는 
 터미널에 붙여 넣으면 최신 릴리스를 받아 응용 프로그램에 넣고 바로 실행합니다. 업데이트도 같은 줄을 다시 실행하면 됩니다.
 
 ```sh
-curl -fL https://github.com/ldhbenecia/cairn/releases/latest/download/Cairn-arm64-mac.zip -o /tmp/Cairn.zip && { pkill -x Cairn; ditto -x -k /tmp/Cairn.zip /Applications && open /Applications/Cairn.app; }
+curl -fL https://github.com/ldhbenecia/cairn/releases/latest/download/Cairn-arm64-mac.zip -o /tmp/Cairn.zip && { pkill -x Cairn; sleep 2; pkill -9 -x Cairn; ditto -x -k /tmp/Cairn.zip /Applications && open /Applications/Cairn.app; }
 ```
 
 `curl` 로 받은 파일에는 "확인되지 않은 개발자" 경고를 띄우는 격리 표시가 붙지 않아 바로 열립니다. 그만큼 확인 단계를 건너뛰는 것이니 믿을 수 있는 출처에서만 쓰세요. `/Applications` 에 권한이 없다고 나오면 두 군데의 `/Applications` 를 `~/Applications` 로 바꾸면 됩니다 (없으면 `mkdir -p ~/Applications`).
