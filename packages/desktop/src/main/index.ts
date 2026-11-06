@@ -39,6 +39,7 @@ import { syncStats } from './cloud-sync';
 import { readConfig } from './files';
 import { type RecentCategory } from './notion-client';
 import { listRecentMerged, searchJournalContents } from './journal-reader';
+import { expandRepoFolders } from './repo-folders';
 import { readPageBlocks, scanReportsDone, type ReportsDoneRef } from './reports-scan';
 import {
   listJournalSnapshots,
@@ -53,6 +54,7 @@ import {
   scheduleJournalBackup,
 } from './journal-git-backup';
 import {
+  addGithubAccounts,
   addNotionWorkspace,
   finishOnboarding,
   listGhCliLogins,
@@ -65,7 +67,9 @@ import {
   refreshGithubFromGhCli,
   searchNotionPages,
   setLocalGitEnabled,
+  setLocalGitRepos,
   parseNotionWorkspacePayload,
+  parseGithubEntries,
   parseOnboardingPayload,
 } from './onboarding';
 import { fetchRepoStars } from './repo';
@@ -317,6 +321,13 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:config:set-local-git-enabled', (_e, enabled: unknown) =>
     setLocalGitEnabled(enabled === true),
   );
+  ipcMain.handle('cairn:config:set-local-git-repos', (_e, repos: unknown) =>
+    setLocalGitRepos(repos),
+  );
+  ipcMain.handle('cairn:config:add-github-accounts', (_e, raw: unknown) => {
+    const parsed = parseGithubEntries(raw);
+    return parsed.ok ? addGithubAccounts(parsed.entries) : { ok: false, error: parsed.error };
+  });
   ipcMain.handle('cairn:recent:list', () => listRecentMerged());
   // 일지 본문 검색 — 로컬 journal md 만 스캔(파일명 패턴 가드), 외부 송신 없음
   ipcMain.handle('cairn:journal:search', (_e, query: string) =>
@@ -426,8 +437,8 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:auth:sign-out', () => cloudSignOut());
   ipcMain.handle('cairn:sync:now', () => syncStats());
   ipcMain.handle('cairn:onboarding:pick-folder', async () => {
-    const r = await dialog.showOpenDialog({ properties: ['openDirectory'] });
-    return r.canceled ? null : (r.filePaths[0] ?? null);
+    const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'multiSelections'] });
+    return r.canceled ? [] : expandRepoFolders(r.filePaths);
   });
 
   const startHidden = app.isPackaged && launchedAtLogin();

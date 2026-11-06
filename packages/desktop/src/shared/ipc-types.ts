@@ -84,11 +84,7 @@ export type RecentPage = {
 };
 
 // 경고는 코드로만 — renderer 가 i18n 으로 매핑해 한국어가 EN 사용자에게 안 샘
-export type RecentWarning =
-  | { code: 'no-workspaces' }
-  | { code: 'token-missing'; workspace: string; tokenEnv: string }
-  | { code: 'no-data-source'; workspace: string }
-  | { code: 'fetch-failed'; workspace: string; kind: 'worklog' | 'rollup'; detail: string };
+export type RecentWarning = { code: 'token-missing' | 'fetch-failed'; workspace: string };
 
 export type RecentListResult = { pages: RecentPage[]; warnings: RecentWarning[] };
 

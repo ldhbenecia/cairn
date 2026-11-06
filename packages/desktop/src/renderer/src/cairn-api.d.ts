@@ -53,7 +53,7 @@ declare global {
         probeClaude: () => Promise<{ ok: boolean }>;
         probeRepo: (path: string) => Promise<LocalRepoProbe>;
         finish: (payload: OnboardingPayload) => Promise<{ ok: boolean; error?: string }>;
-        pickFolder: () => Promise<string | null>;
+        pickFolder: () => Promise<string[]>;
       };
       engine: {
         loggedIn: (provider: SummaryProvider) => Promise<boolean>;
@@ -113,6 +113,10 @@ declare global {
       onEngineLoginDone: (cb: (provider: SummaryProvider) => void) => () => void;
       readConfig: () => Promise<ConfigResult>;
       setLocalGitEnabled: (enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
+      addGithubAccounts: (
+        entries: OnboardingPayload['github'],
+      ) => Promise<{ ok: boolean; error?: string }>;
+      setLocalGitRepos: (repos: string[]) => Promise<{ ok: boolean; error?: string }>;
       listRecent: () => Promise<RecentListResult>;
       journalSearch: (query: string) => Promise<JournalSearchHit[]>;
       pageContent: (pageId: string, workspaceLabel: string) => Promise<PageContent>;

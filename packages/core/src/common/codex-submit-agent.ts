@@ -83,6 +83,43 @@ export function codexArgs(
   ];
 }
 
+type JsonSchema = { [key: string]: unknown };
+
+// --output-schema 는 strict 모드라 모든 속성이 required 여야 함 — optional 은 null 허용으로 바꿔 required 에 넣음
+export function strictOutputSchema(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(strictOutputSchema);
+  if (!node || typeof node !== 'object') return node;
+  const out: JsonSchema = Object.fromEntries(
+    Object.entries(node).map(([k, v]) => [k, strictOutputSchema(v)]),
+  );
+  const props = out.properties as JsonSchema | undefined;
+  if (props && typeof props === 'object') {
+    const required = new Set(Array.isArray(out.required) ? (out.required as string[]) : []);
+    out.properties = Object.fromEntries(
+      Object.entries(props).map(([k, v]) => [
+        k,
+        required.has(k) ? v : { anyOf: [v, { type: 'null' }] },
+      ]),
+    );
+    out.required = Object.keys(props);
+  }
+  return out;
+}
+
+// strictOutputSchema 가 optional 자리에 허용한 null 만 뺌 — 원래 스키마를 따라 내려가 다른 null 은 그대로 둠
+export function dropOptionalNulls(value: unknown, schema: unknown): unknown {
+  if (!value || typeof value !== 'object' || !schema || typeof schema !== 'object') return value;
+  const s = schema as JsonSchema;
+  if (Array.isArray(value)) return value.map((v) => dropOptionalNulls(v, s.items));
+  const props = (s.properties ?? {}) as JsonSchema;
+  const required = new Set(Array.isArray(s.required) ? (s.required as string[]) : []);
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([k, v]) => !(v === null && k in props && !required.has(k)))
+      .map(([k, v]) => [k, dropOptionalNulls(v, props[k])]),
+  );
+}
+
 interface CodexEvent {
   type?: string;
   item?: { type?: string; text?: string };
@@ -115,7 +152,8 @@ export async function runCodexSubmitAgent<S extends z.ZodObject>(
   const workDir = mkdtempSync(join(tmpdir(), 'cairn-codex-'));
   try {
     const schemaPath = join(workDir, 'schema.json');
-    writeFileSync(schemaPath, JSON.stringify(z.toJSONSchema(task.schema, { target: 'draft-7' })));
+    const jsonSchema = z.toJSONSchema(task.schema, { target: 'draft-7' });
+    writeFileSync(schemaPath, JSON.stringify(strictOutputSchema(jsonSchema)));
     const child = spawn(codexBinary(), codexArgs(workDir, schemaPath, features, codexModel()), {
       cwd: workDir,
       env,
@@ -183,7 +221,7 @@ export async function runCodexSubmitAgent<S extends z.ZodObject>(
     if (seen.lastMessage === null) return { usage, submission: null, lateError: null };
     let submission: z.output<S>;
     try {
-      submission = task.schema.parse(JSON.parse(seen.lastMessage));
+      submission = task.schema.parse(dropOptionalNulls(JSON.parse(seen.lastMessage), jsonSchema));
     } catch (err) {
       throw CairnError.from(err, 'summarizer');
     }
