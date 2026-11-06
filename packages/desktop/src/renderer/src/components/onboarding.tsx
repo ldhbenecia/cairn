@@ -9,27 +9,33 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { SUMMARY_PROVIDERS, type SummaryProvider } from '../../../shared/ipc-types';
+import { PROVIDER_NAME } from '../../../shared/summary-provider';
 import type { I18nKey } from '../i18n';
+import { useEngineLoggedIn } from '../lib/engine-auth';
 import { useSettings } from '../settings-context';
 import { useCloudAuth } from '../use-cloud-auth';
 import { BrandMark } from './brand-mark';
+import { ClaudeMark, CodexMark } from './brand-icons';
+import { EngineLoginButton, EngineLoginPanel, useEngineLogin } from './engine-login';
 import { GithubCard } from './onboarding-cards';
 import type { GithubEntry, Status } from './onboarding-cards';
 
 type T = (key: I18nKey) => string;
 
-const STEPS = ['welcome', 'github', 'claude', 'repos', 'review'] as const;
+const STEPS = ['welcome', 'github', 'engine', 'repos', 'review'] as const;
 type Step = (typeof STEPS)[number];
 const STEP_TITLE_KEY: Record<Step, I18nKey> = {
   welcome: 'onb.step.welcome',
   github: 'onb.step.github',
-  claude: 'onb.step.claude',
+  engine: 'onb.step.engine',
   repos: 'onb.step.repos',
   review: 'onb.step.review',
 };
 
 export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
-  const { t } = useSettings();
+  const { settings, update, t } = useSettings();
+  const provider = settings.summaryProvider;
   // onCancel 존재 = 설정에서 진입한 재설정 — 환영 스텝을 건너뛰고 문구도 재설정 톤
   const reconfigure = !!onCancel;
   const [stepIdx, setStepIdx] = useState(reconfigure ? 1 : 0);
@@ -42,7 +48,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   const [repoWarns, setRepoWarns] = useState<Record<string, 'not-git' | 'no-email'>>({});
   const [finishing, setFinishing] = useState(false);
   const [finishErr, setFinishErr] = useState<string | null>(null);
-  const [claudeStatus, setClaudeStatus] = useState<Status>('idle');
+  const [engineStatus, setEngineStatus] = useState<Status>('idle');
   const [ghImporting, setGhImporting] = useState(false);
   const [ghMsg, setGhMsg] = useState<I18nKey | null>(null);
 
@@ -115,10 +121,12 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     }
   }
 
-  // 최소 요건: 활동 소스(GitHub 계정 또는 로컬 Git 레포) 하나 + Claude — 노션은 Preferences 연동 탭에서
+  // 최소 요건: 활동 소스(GitHub 계정 또는 로컬 Git 레포) 하나 + 요약 엔진 — 노션은 Preferences 연동 탭에서
   const sourceValid =
     repos.length > 0 || github.some((e) => e.status === 'ok' && (e.token.trim() || e.ghLogin));
-  const claudeValid = claudeStatus === 'ok' || !!anthropicKey.trim();
+  // API key 는 Claude 전용, Codex 는 CLI 로그인만
+  const apiKey = provider === 'claude' ? anthropicKey.trim() : '';
+  const engineValid = engineStatus === 'ok' || !!apiKey;
 
   async function finish() {
     setFinishing(true);
@@ -132,7 +140,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             ? { label: e.label, ghLogin: e.ghLogin }
             : { label: e.label, token: e.token.trim() },
         ),
-      anthropicApiKey: anthropicKey.trim() || undefined,
+      anthropicApiKey: apiKey || undefined,
       localGitRepos: repos,
     });
     setFinishing(false);
@@ -140,16 +148,33 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
     else setFinishErr(r.error ?? 'failed');
   }
 
-  async function testClaude() {
-    setClaudeStatus('testing');
+  async function testEngine() {
+    setEngineStatus('testing');
     const r = await window.cairn.onboarding.probeClaude();
-    setClaudeStatus(r.ok ? 'ok' : 'err');
+    setEngineStatus(r.ok ? 'ok' : 'err');
   }
 
+  // 설정 쓰기 IPC 가 동기 처리라 뒤이은 probe 는 바뀐 엔진으로 실행됨
+  function selectEngine(p: SummaryProvider) {
+    if (p === provider) return;
+    update({ summaryProvider: p });
+    setEngineStatus('idle');
+  }
+
+  // probe 실패 원인이 로그아웃일 때만 앱 안 로그인 버튼 노출
+  const { loggedIn, refresh: refreshLoggedIn } = useEngineLoggedIn(
+    provider,
+    step === 'engine' && engineStatus === 'err',
+  );
+  const engineLogin = useEngineLogin(provider, () => {
+    refreshLoggedIn();
+    void testEngine();
+  });
+
   useEffect(() => {
-    // claude 스텝 첫 진입 시 1회 자동 확인 (idle 가드로 멱등)
-    if (step === 'claude' && claudeStatus === 'idle') void testClaude();
-  }, [step, claudeStatus]);
+    // 엔진 스텝 첫 진입 시 1회 자동 확인 (idle 가드로 멱등)
+    if (step === 'engine' && engineStatus === 'idle') void testEngine();
+  }, [step, engineStatus]);
 
   async function addRepo() {
     const p = await window.cairn.onboarding.pickFolder();
@@ -278,66 +303,102 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                 />
               </Section>
             )}
-            {step === 'claude' && (
-              <Section desc={t('onb.claude.desc')}>
+            {step === 'engine' && (
+              <Section desc={t('onb.engine.desc')}>
+                <div className="grid grid-cols-2 gap-2">
+                  {SUMMARY_PROVIDERS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => selectEngine(p)}
+                      aria-pressed={provider === p}
+                      className={[
+                        'flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-left text-[13px] transition-colors',
+                        provider === p
+                          ? 'border-ink/40 bg-surface-2 text-ink'
+                          : 'border-hairline bg-surface-1 text-ink-muted hover:bg-surface-2 hover:text-ink',
+                      ].join(' ')}
+                    >
+                      {p === 'codex' ? <CodexMark size={14} /> : <ClaudeMark size={14} />}
+                      <span className="font-medium">{PROVIDER_NAME[p]}</span>
+                    </button>
+                  ))}
+                </div>
                 <div className="rounded-lg border border-hairline bg-surface-1 p-4 text-[13px] leading-relaxed text-ink-muted">
-                  <p className="mb-2 font-medium text-ink">{t('onb.claude.autoTitle')}</p>
-                  <p className="text-ink-subtle">{t('onb.claude.autoBody')}</p>
+                  <p className="mb-2 font-medium text-ink">
+                    {t(provider === 'codex' ? 'onb.codex.autoTitle' : 'onb.claude.autoTitle')}
+                  </p>
+                  <p className="text-ink-subtle">
+                    {t(provider === 'codex' ? 'onb.codex.autoBody' : 'onb.claude.autoBody')}
+                  </p>
                   <button
                     type="button"
                     onClick={() =>
                       void window.cairn.openExternal(
-                        'https://docs.claude.com/en/docs/claude-code/setup',
+                        provider === 'codex'
+                          ? 'https://developers.openai.com/codex/cli'
+                          : 'https://docs.claude.com/en/docs/claude-code/setup',
                       )
                     }
                     className="mt-2 inline-flex items-center gap-1 text-[12px] text-accent hover:text-accent-hover"
                   >
-                    <ExternalLink size={11} strokeWidth={2} /> {t('onb.claude.install')}
+                    <ExternalLink size={11} strokeWidth={2} />{' '}
+                    {t(provider === 'codex' ? 'onb.codex.install' : 'onb.claude.install')}
                   </button>
                 </div>
-                <div>
-                  <p className="mb-1.5 text-[13px] text-ink-muted">{t('onb.claude.orApiKey')}</p>
-                  <input
-                    type="password"
-                    value={anthropicKey}
-                    onChange={(ev) => setAnthropicKey(ev.target.value)}
-                    placeholder="sk-ant-..."
-                    className="w-full rounded-md border border-hairline bg-surface-1 px-3 py-2 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/60 focus:outline-none"
-                  />
+                {provider === 'claude' && (
+                  <div>
+                    <p className="mb-1.5 text-[13px] text-ink-muted">{t('onb.claude.orApiKey')}</p>
+                    <input
+                      type="password"
+                      value={anthropicKey}
+                      onChange={(ev) => setAnthropicKey(ev.target.value)}
+                      placeholder="sk-ant-..."
+                      className="w-full rounded-md border border-hairline bg-surface-1 px-3 py-2 text-[13px] text-ink placeholder:text-ink-tertiary focus:border-accent/60 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void window.cairn.openExternal(
+                          'https://console.anthropic.com/settings/keys',
+                        )
+                      }
+                      className="mt-1.5 inline-flex items-center gap-1 text-[12px] text-accent hover:text-accent-hover"
+                    >
+                      <ExternalLink size={11} strokeWidth={2} /> {t('onb.claude.issueKey')}
+                    </button>
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center gap-2.5">
                   <button
                     type="button"
-                    onClick={() =>
-                      void window.cairn.openExternal('https://console.anthropic.com/settings/keys')
-                    }
-                    className="mt-1.5 inline-flex items-center gap-1 text-[12px] text-accent hover:text-accent-hover"
-                  >
-                    <ExternalLink size={11} strokeWidth={2} /> {t('onb.claude.issueKey')}
-                  </button>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => void testClaude()}
-                    disabled={claudeStatus === 'testing'}
+                    onClick={() => void testEngine()}
+                    disabled={engineStatus === 'testing'}
                     className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-2 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
                   >
-                    {claudeStatus === 'testing' && (
+                    {engineStatus === 'testing' && (
                       <Loader2 size={13} strokeWidth={2} className="animate-spin" />
                     )}
-                    {t('onb.claude.test')}
+                    {t('onb.engine.test')}
                   </button>
-                  {claudeStatus === 'ok' && (
+                  {engineStatus === 'ok' && (
                     <span className="inline-flex items-center gap-1 text-[13px] text-success">
-                      <Check size={14} strokeWidth={2.5} /> {t('onb.claude.connected')}
+                      <Check size={14} strokeWidth={2.5} /> {t('onb.engine.connected')}
                     </span>
                   )}
-                  {claudeStatus === 'err' && (
-                    <span className="text-[13px] text-danger">{t('onb.claude.failed')}</span>
+                  {engineStatus === 'err' && (
+                    <span className="text-[13px] text-danger">
+                      {t(provider === 'codex' ? 'onb.codex.failed' : 'onb.claude.failed')}
+                    </span>
                   )}
-                  {claudeStatus === 'testing' && (
-                    <span className="text-[12px] text-ink-tertiary">{t('onb.claude.testing')}</span>
+                  {engineStatus === 'err' && loggedIn === false && (
+                    <EngineLoginButton login={engineLogin} />
+                  )}
+                  {engineStatus === 'testing' && (
+                    <span className="text-[12px] text-ink-tertiary">{t('onb.engine.testing')}</span>
                   )}
                 </div>
+                {engineLogin.state !== 'idle' && <EngineLoginPanel login={engineLogin} />}
               </Section>
             )}
             {step === 'repos' && (
@@ -387,10 +448,8 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                     {t('onb.review.github')} {github.filter((e) => e.status === 'ok').length}
                   </li>
                   <li>
-                    {t('onb.review.claude')}{' '}
-                    {anthropicKey.trim()
-                      ? t('onb.review.claudeApiKey')
-                      : t('onb.review.claudeAuto')}
+                    {t('onb.review.engine')} {PROVIDER_NAME[provider]} ·{' '}
+                    {apiKey ? t('onb.review.engineApiKey') : t('onb.review.engineAuto')}
                   </li>
                   <li>
                     {t('onb.review.repos')} {repos.length}
@@ -402,9 +461,9 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
                     {t('onb.review.needSource')}
                   </div>
                 )}
-                {!claudeValid && (
+                {!engineValid && (
                   <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-[12px] leading-relaxed text-warning">
-                    {t('onb.review.warnNoClaude')}
+                    {t('onb.review.warnNoEngine')}
                   </div>
                 )}
                 {finishErr && (
@@ -440,7 +499,7 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             {step === 'review' ? (
               <button
                 type="button"
-                disabled={finishing || !sourceValid || !claudeValid}
+                disabled={finishing || !sourceValid || !engineValid}
                 onClick={() => void finish()}
                 className="flex items-center gap-1.5 rounded-md bg-ink px-4 py-2 text-[13px] font-medium text-canvas transition-[background-color,scale] hover:bg-ink/90 active:scale-[0.96] disabled:opacity-50"
               >
@@ -491,7 +550,7 @@ function Welcome({ t }: { t: T }) {
           <span className="text-ink-muted">GitHub</span> — {t('onb.welcome.github')}
         </li>
         <li>
-          <span className="text-ink-muted">Claude</span> — {t('onb.welcome.claude')}
+          <span className="text-ink-muted">Claude · Codex</span> — {t('onb.welcome.engine')}
         </li>
       </motion.ul>
       <motion.div

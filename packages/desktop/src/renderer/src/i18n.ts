@@ -97,14 +97,14 @@ const STRINGS = {
 
     'onb.step.welcome': '시작하기',
     'onb.step.github': 'GitHub 연결',
-    'onb.step.claude': 'Claude',
+    'onb.step.engine': '요약 엔진',
     'onb.step.repos': '로컬 Git (선택)',
     'onb.step.review': '완료',
     'onb.welcome.title': 'Cairn 에 오신 걸 환영해요',
     'onb.welcome.desc':
       '등산로의 돌탑처럼, 매일 작업 흔적을 모아 이 기기의 로컬 일지로 남깁니다. 시작하려면 두 가지만 연결하면 돼요:',
     'onb.welcome.github': 'PR·커밋 수집 (또는 로컬 Git)',
-    'onb.welcome.claude': '한국어 요약 (CLI 로그인 시 자동)',
+    'onb.welcome.engine': '한국어 요약 (구독 중인 CLI 로그인 그대로)',
     'onb.welcome.signedInAs': '{email} 로 로그인됨',
     'onb.welcome.syncNote':
       '로그인하면 일지 통계가 클라우드에 저장돼 다른 기기에서도 대시보드를 볼 수 있어요. 나중에 로그인해도 그동안 쌓인 통계가 함께 올라갑니다.',
@@ -144,17 +144,23 @@ const STRINGS = {
     'onb.github.add': '계정 추가',
     'onb.github.connected': '연결됨',
     'onb.github.ghManaged': 'gh CLI 연동 — 토큰은 앱 내부에만 보관돼요',
-    'onb.claude.desc': 'cairn 은 활동을 한국어로 요약하는 데 Claude 를 씁니다.',
+    'onb.engine.desc':
+      '활동을 한국어로 요약할 엔진을 골라 주세요. 구독 중인 쪽을 쓰면 추가 과금이 없고, 나중에 설정에서 바꿀 수 있어요.',
     'onb.claude.autoTitle': 'Claude Code CLI 가 설치·로그인돼 있으면 자동 — 추가 과금 0',
     'onb.claude.autoBody':
       'cairn 은 시스템에 설치된 Claude Code 를 사용합니다(앱에 포함하지 않음). 로그인된 Claude(Pro/Max 등) 인증을 그대로 인계받아요.',
     'onb.claude.install': 'Claude Code 설치',
     'onb.claude.orApiKey': '또는 Anthropic API key (선택)',
     'onb.claude.issueKey': 'API key 발급',
-    'onb.claude.test': '연결 확인',
-    'onb.claude.connected': 'Claude 연결됨',
-    'onb.claude.failed': '연결 안 됨 — Claude Code 설치·로그인 또는 API key 필요',
-    'onb.claude.testing': '확인 중... (최대 1분)',
+    'onb.engine.test': '연결 확인',
+    'onb.engine.connected': '연결됨',
+    'onb.claude.failed': '연결 안 됨. Claude Code 설치·로그인 또는 API key가 필요해요',
+    'onb.codex.autoTitle': 'Codex CLI가 설치·로그인돼 있으면 자동, 추가 과금 없음',
+    'onb.codex.autoBody':
+      '시스템에 설치된 Codex CLI를 사용해요(앱에 포함하지 않음). ChatGPT(Plus/Pro 등) 로그인을 그대로 인계받고, 요약 입력(PR 제목·커밋 제목 등)은 OpenAI로 전송돼요.',
+    'onb.codex.install': 'Codex CLI 설치',
+    'onb.codex.failed': '연결 안 됨. Codex CLI 설치·로그인이 필요해요',
+    'onb.engine.testing': '확인 중... (최대 1분)',
     'onb.repos.desc': '커밋을 수집할 로컬 Git 저장소 경로. (선택)',
     'onb.repos.add': '폴더 추가',
     'onb.repos.notGit': 'git 저장소가 아니에요 — 커밋을 수집할 수 없어요',
@@ -162,15 +168,15 @@ const STRINGS = {
       '이 저장소에 user.email 이 없어요 — 내 커밋을 못 찾아요 (git config user.email 설정)',
     'onb.review.desc': '아래 내용으로 설정 파일을 작성합니다.',
     'onb.review.github': 'GitHub 계정',
-    'onb.review.claude': 'Claude',
-    'onb.review.claudeApiKey': 'API key',
-    'onb.review.claudeAuto': '자동(CLI 인계)',
+    'onb.review.engine': '요약 엔진',
+    'onb.review.engineApiKey': 'API key',
+    'onb.review.engineAuto': '자동(CLI 인계)',
     'onb.review.repos': '로컬 Git',
     'onb.review.notionLater': 'Notion: 연동 안 함 — 나중에 Preferences → 연동에서 연결할 수 있어요',
     'onb.review.needSource':
       '시작하려면 활동 소스가 최소 하나 필요해요 — 이전 단계에서 GitHub 계정 또는 로컬 Git 저장소를 추가해 주세요.',
-    'onb.review.warnNoClaude':
-      '발행에는 Claude 연결이 필요해요 — 이전 단계에서 Claude Code 로그인 또는 API key 를 연결해 주세요.',
+    'onb.review.warnNoEngine':
+      '발행하려면 요약 엔진 연결이 필요해요. 이전 단계에서 Claude 또는 Codex 로그인을 마쳐 주세요.',
     'onb.review.failPrefix': '작성 실패',
     'onb.nav.prev': '이전',
     'onb.nav.cancel': '취소',
@@ -688,14 +694,14 @@ const STRINGS = {
 
     'onb.step.welcome': 'Get started',
     'onb.step.github': 'Connect GitHub',
-    'onb.step.claude': 'Claude',
+    'onb.step.engine': 'Summary engine',
     'onb.step.repos': 'Local Git (optional)',
     'onb.step.review': 'Done',
     'onb.welcome.title': 'Welcome to Cairn',
     'onb.welcome.desc':
       'Like a trail cairn, it gathers your daily work into a local journal on this machine. Connect just two things to start:',
     'onb.welcome.github': 'collect PRs & commits (or local Git)',
-    'onb.welcome.claude': 'summary (automatic when CLI is logged in)',
+    'onb.welcome.engine': 'summary (uses the CLI login you already have)',
     'onb.welcome.signedInAs': 'Signed in as {email}',
     'onb.welcome.syncNote':
       'Sign in to back up your worklog stats and view your dashboard on any device. Sign in whenever — your existing stats sync up too.',
@@ -735,7 +741,8 @@ const STRINGS = {
     'onb.github.add': 'Add account',
     'onb.github.connected': 'connected',
     'onb.github.ghManaged': 'Linked via gh CLI — token stays inside the app',
-    'onb.claude.desc': 'cairn uses Claude to summarize your activity.',
+    'onb.engine.desc':
+      'Pick the engine that summarizes your activity. Use the one you already subscribe to for no extra cost. You can switch later in Preferences.',
     'onb.claude.autoTitle':
       'Automatic when Claude Code CLI is installed and logged in — no extra cost',
     'onb.claude.autoBody':
@@ -743,10 +750,15 @@ const STRINGS = {
     'onb.claude.install': 'Install Claude Code',
     'onb.claude.orApiKey': 'Or an Anthropic API key (optional)',
     'onb.claude.issueKey': 'Get an API key',
-    'onb.claude.test': 'Check connection',
-    'onb.claude.connected': 'Claude connected',
+    'onb.engine.test': 'Check connection',
+    'onb.engine.connected': 'Connected',
     'onb.claude.failed': 'Not connected — install/log in to Claude Code or provide an API key',
-    'onb.claude.testing': 'Checking... (up to 1 min)',
+    'onb.codex.autoTitle': 'Automatic when Codex CLI is installed and logged in — no extra cost',
+    'onb.codex.autoBody':
+      'cairn uses the Codex CLI installed on your system (not bundled). It inherits your ChatGPT (Plus/Pro, etc.) login, and summary input (PR titles, commit subjects, etc.) is sent to OpenAI.',
+    'onb.codex.install': 'Install Codex CLI',
+    'onb.codex.failed': 'Not connected — install and log in to the Codex CLI',
+    'onb.engine.testing': 'Checking... (up to 1 min)',
     'onb.repos.desc': 'Local Git repository paths to collect commits from. (optional)',
     'onb.repos.add': 'Add folder',
     'onb.repos.notGit': 'Not a git repository — commits cannot be collected',
@@ -754,15 +766,15 @@ const STRINGS = {
       'user.email is not set in this repo — your commits cannot be identified (set git config user.email)',
     'onb.review.desc': 'The config file will be written with the following.',
     'onb.review.github': 'GitHub accounts',
-    'onb.review.claude': 'Claude',
-    'onb.review.claudeApiKey': 'API key',
-    'onb.review.claudeAuto': 'auto (CLI inherited)',
+    'onb.review.engine': 'Summary engine',
+    'onb.review.engineApiKey': 'API key',
+    'onb.review.engineAuto': 'auto (CLI inherited)',
     'onb.review.repos': 'Local Git',
     'onb.review.notionLater': 'Notion: not connected — add it later in Preferences → Integrations',
     'onb.review.needSource':
       'You need at least one activity source — add a GitHub account or a local Git repository in the previous steps.',
-    'onb.review.warnNoClaude':
-      'Publishing needs Claude — go back and connect a Claude Code login or an API key.',
+    'onb.review.warnNoEngine':
+      'Publishing needs a summary engine — go back and log in to Claude or Codex.',
     'onb.review.failPrefix': 'Write failed',
     'onb.nav.prev': 'Back',
     'onb.nav.cancel': 'Cancel',
