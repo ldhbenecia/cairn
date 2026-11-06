@@ -53,7 +53,7 @@ declare global {
         probeClaude: () => Promise<{ ok: boolean }>;
         probeRepo: (path: string) => Promise<LocalRepoProbe>;
         finish: (payload: OnboardingPayload) => Promise<{ ok: boolean; error?: string }>;
-        pickFolder: () => Promise<string | null>;
+        pickFolder: () => Promise<string[]>;
       };
       engine: {
         loggedIn: (provider: SummaryProvider) => Promise<boolean>;

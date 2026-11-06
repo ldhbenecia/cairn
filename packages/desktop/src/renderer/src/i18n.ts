@@ -161,7 +161,8 @@ const STRINGS = {
     'onb.codex.install': 'Codex CLI 설치',
     'onb.codex.failed': '연결 안 됨. Codex CLI 설치·로그인이 필요해요',
     'onb.engine.testing': '확인 중... (최대 1분)',
-    'onb.repos.desc': '커밋을 수집할 로컬 Git 저장소 경로. (선택)',
+    'onb.repos.desc':
+      '아직 push하지 않았거나 GitHub 밖에 있는 커밋까지 일지에 담고 싶을 때만 추가해요. 레포를 모아 둔 상위 폴더를 고르면 안의 저장소를 한 번에 가져와요. (선택)',
     'onb.repos.add': '폴더 추가',
     'onb.repos.notGit': 'git 저장소가 아니에요. 커밋을 수집할 수 없어요',
     'onb.repos.noEmail':
@@ -757,7 +758,8 @@ const STRINGS = {
     'onb.codex.install': 'Install Codex CLI',
     'onb.codex.failed': 'Not connected — install and log in to the Codex CLI',
     'onb.engine.testing': 'Checking... (up to 1 min)',
-    'onb.repos.desc': 'Local Git repository paths to collect commits from. (optional)',
+    'onb.repos.desc':
+      'Add only if you also want unpushed commits or commits outside GitHub in your worklog. Pick a folder that holds your repos to add them all at once. (optional)',
     'onb.repos.add': 'Add folder',
     'onb.repos.notGit': 'Not a git repository — commits cannot be collected',
     'onb.repos.noEmail':

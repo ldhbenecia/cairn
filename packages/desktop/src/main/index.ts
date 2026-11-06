@@ -39,6 +39,7 @@ import { syncStats } from './cloud-sync';
 import { readConfig } from './files';
 import { type RecentCategory } from './notion-client';
 import { listRecentMerged, searchJournalContents } from './journal-reader';
+import { expandRepoFolders } from './repo-folders';
 import { readPageBlocks, scanReportsDone, type ReportsDoneRef } from './reports-scan';
 import {
   listJournalSnapshots,
@@ -426,8 +427,8 @@ void app.whenReady().then(() => {
   ipcMain.handle('cairn:auth:sign-out', () => cloudSignOut());
   ipcMain.handle('cairn:sync:now', () => syncStats());
   ipcMain.handle('cairn:onboarding:pick-folder', async () => {
-    const r = await dialog.showOpenDialog({ properties: ['openDirectory'] });
-    return r.canceled ? null : (r.filePaths[0] ?? null);
+    const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'multiSelections'] });
+    return r.canceled ? [] : expandRepoFolders(r.filePaths);
   });
 
   const startHidden = app.isPackaged && launchedAtLogin();

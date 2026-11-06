@@ -177,13 +177,15 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
   }, [step, engineStatus]);
 
   async function addRepo() {
-    const p = await window.cairn.onboarding.pickFolder();
-    if (!p || repos.includes(p)) return;
-    setRepos((prev) => [...prev, p]);
+    const added = (await window.cairn.onboarding.pickFolder()).filter((p) => !repos.includes(p));
+    if (added.length === 0) return;
+    setRepos((prev) => [...prev, ...added.filter((p) => !prev.includes(p))]);
     // 경고만, 차단 안 함
-    const probe = await window.cairn.onboarding.probeRepo(p);
-    if (!probe.ok && probe.reason) {
-      setRepoWarns((prev) => ({ ...prev, [p]: probe.reason! }));
+    for (const p of added) {
+      const probe = await window.cairn.onboarding.probeRepo(p);
+      if (!probe.ok && probe.reason) {
+        setRepoWarns((prev) => ({ ...prev, [p]: probe.reason! }));
+      }
     }
   }
 

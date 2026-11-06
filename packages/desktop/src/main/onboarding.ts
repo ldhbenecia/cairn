@@ -531,7 +531,14 @@ export function finishOnboarding(payload: OnboardingPayload): { ok: boolean; err
     );
     if (payload.anthropicApiKey?.trim()) env.ANTHROPIC_API_KEY = payload.anthropicApiKey.trim();
     return {
-      config: { ...existing, localGitRepos, githubAccounts, notionWorkspaces },
+      config: {
+        ...existing,
+        localGitRepos,
+        githubAccounts,
+        notionWorkspaces,
+        // 온보딩에서 폴더를 고른 건 수집하겠다는 뜻 — 기본 OFF 토글에 막혀 아무것도 안 모이던 것 방지
+        ...(payload.localGitRepos.length > 0 && { localGitEnabled: true }),
+      },
       env,
     };
   });

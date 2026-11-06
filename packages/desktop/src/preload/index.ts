@@ -73,7 +73,7 @@ contextBridge.exposeInMainWorld('cairn', {
       }>,
     finish: (payload: unknown) =>
       ipcRenderer.invoke('cairn:onboarding:finish', payload) as Promise<unknown>,
-    pickFolder: () => ipcRenderer.invoke('cairn:onboarding:pick-folder') as Promise<string | null>,
+    pickFolder: () => ipcRenderer.invoke('cairn:onboarding:pick-folder') as Promise<string[]>,
   },
   engine: {
     loggedIn: (provider: string) =>
