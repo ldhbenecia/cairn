@@ -404,6 +404,15 @@ export function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?
             )}
             {step === 'repos' && (
               <Section desc={t('onb.repos.desc')}>
+                <div className="rounded-lg border border-hairline bg-surface-1 p-3.5 text-[12px] leading-relaxed text-ink-subtle">
+                  <p className="mb-1.5 text-[13px] font-medium text-ink-muted">
+                    {t('onb.repos.guideTitle')}
+                  </p>
+                  <p>{t('onb.repos.guideSkip')}</p>
+                  <p>{t('onb.repos.guideCollects')}</p>
+                  <p>{t('onb.repos.guideWhen')}</p>
+                  <p className="mt-1.5 text-ink-tertiary">{t('onb.repos.guideParent')}</p>
+                </div>
                 <div className="flex flex-col gap-2">
                   {repos.map((r, i) => (
                     <div

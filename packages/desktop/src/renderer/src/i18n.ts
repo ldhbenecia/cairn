@@ -161,8 +161,14 @@ const STRINGS = {
     'onb.codex.install': 'Codex CLI 설치',
     'onb.codex.failed': '연결 안 됨. Codex CLI 설치·로그인이 필요해요',
     'onb.engine.testing': '확인 중... (최대 1분)',
-    'onb.repos.desc':
-      '아직 push하지 않았거나 GitHub 밖에 있는 커밋까지 일지에 담고 싶을 때만 추가해요. 레포를 모아 둔 상위 폴더를 고르면 안의 저장소를 한 번에 가져와요. (선택)',
+    'onb.repos.desc': '로컬 Git 저장소를 추가하면 PR 밖의 커밋까지 일지에 담을 수 있어요. (선택)',
+    'onb.repos.guideTitle': '추가할지 고민된다면',
+    'onb.repos.guideSkip': '· 추가하지 않아도 GitHub PR과 그 안의 커밋은 그대로 가져와요',
+    'onb.repos.guideCollects':
+      '· 추가하면 그 저장소에서 내 git 이메일로 만든 커밋을 push 전 것까지 함께 모아요',
+    'onb.repos.guideWhen':
+      '· PR 올리기 전 작업이나 GitHub 밖(GitLab 등) 저장소도 남기고 싶을 때만 추가하면 돼요',
+    'onb.repos.guideParent': '레포를 모아 둔 상위 폴더를 고르면 안의 저장소를 한 번에 추가해요',
     'onb.repos.add': '폴더 추가',
     'onb.repos.notGit': 'git 저장소가 아니에요. 커밋을 수집할 수 없어요',
     'onb.repos.noEmail':
@@ -759,7 +765,14 @@ const STRINGS = {
     'onb.codex.failed': 'Not connected — install and log in to the Codex CLI',
     'onb.engine.testing': 'Checking... (up to 1 min)',
     'onb.repos.desc':
-      'Add only if you also want unpushed commits or commits outside GitHub in your worklog. Pick a folder that holds your repos to add them all at once. (optional)',
+      'Add local Git repositories to include commits outside your PRs in the worklog. (optional)',
+    'onb.repos.guideTitle': 'Not sure whether to add?',
+    'onb.repos.guideSkip': '· Without this, your GitHub PRs and their commits are still collected',
+    'onb.repos.guideCollects':
+      '· With it, commits you made with your git email in those repos are collected, unpushed ones included',
+    'onb.repos.guideWhen':
+      '· Add only if you also want pre-PR work or repos outside GitHub (GitLab, etc.)',
+    'onb.repos.guideParent': 'Pick a folder that holds your repos to add them all at once',
     'onb.repos.add': 'Add folder',
     'onb.repos.notGit': 'Not a git repository — commits cannot be collected',
     'onb.repos.noEmail':
