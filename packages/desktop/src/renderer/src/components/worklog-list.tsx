@@ -78,19 +78,16 @@ export function WorklogList({
 }: Props) {
   const { t } = useSettings();
 
-  // 메인 프로세스는 경고를 코드로만 보냄 — 여기서 i18n 매핑. 구버전 로컬 캐시의 문자열·없어진 코드는 숨김
-  const warningText = (w: RecentWarning | string): string | null => {
-    if (typeof w !== 'object') return null;
+  // 메인 프로세스는 경고를 코드로만 보냄 — 여기서 i18n 매핑
+  const warningText = (w: RecentWarning): string => {
     switch (w.code) {
       case 'token-missing':
         return t('list.warn.tokenMissing').replace('{ws}', w.workspace);
       case 'fetch-failed':
         return t('list.warn.fetchFailed').replace('{ws}', w.workspace);
-      default:
-        return null;
     }
   };
-  const warnings = (recent?.warnings ?? []).flatMap((w) => warningText(w) ?? []);
+  const warnings = (recent?.warnings ?? []).map(warningText);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [desc, setDesc] = useState(true);

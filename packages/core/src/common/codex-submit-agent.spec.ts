@@ -9,7 +9,7 @@ vi.mock('node:child_process', () => cp);
 import { CairnError } from './error.js';
 import {
   codexArgs,
-  dropNulls,
+  dropOptionalNulls,
   parseEnabledFeatures,
   runCodexSubmitAgent,
   strictOutputSchema,
@@ -148,10 +148,20 @@ describe('strictOutputSchema', () => {
   });
 
   it('round-trips a null optional back through the zod schema', () => {
+    const json = z.toJSONSchema(submitPeriodDocSchema, { target: 'draft-7' });
     const parsed = submitPeriodDocSchema.parse(
-      dropNulls({ overview: 'o', projects: [{ name: 'cairn', summary: null, items: ['x'] }] }),
+      dropOptionalNulls(
+        { overview: 'o', projects: [{ name: 'cairn', summary: null, items: ['x'] }] },
+        json,
+      ),
     );
     expect(parsed.projects[0]).toEqual({ name: 'cairn', items: ['x'] });
+  });
+
+  it('leaves nulls in required fields alone', () => {
+    const s = z.object({ a: z.string().nullable(), b: z.string().optional() });
+    const json = z.toJSONSchema(s, { target: 'draft-7' });
+    expect(dropOptionalNulls({ a: null, b: null }, json)).toEqual({ a: null });
   });
 });
 

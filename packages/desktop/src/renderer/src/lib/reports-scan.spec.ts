@@ -263,7 +263,7 @@ describe('prefetch / recent 대조', () => {
 
     prefetchReportsScan({
       pages: [kept],
-      warnings: [{ code: 'fetch-failed', workspace: 'ws', kind: 'worklog', detail: 'x' }],
+      warnings: [{ code: 'fetch-failed', workspace: 'ws' }],
     } satisfies RecentListResult);
     expect(assembleCached([kept, missingNow]).missing).toBe(0);
   });

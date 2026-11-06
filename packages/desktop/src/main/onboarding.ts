@@ -1,15 +1,15 @@
 import { Client } from '@notionhq/client';
 import { execFile } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { errorMessage } from './error-message';
 import { writeFileAtomic } from './atomic-write';
 import { withFileLock } from './file-lock';
-import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { claudePathReady, findInPath, searchPathEnv } from './claude-path';
 import { CONFIG_PATH } from './setup';
 import { secretEnv, writeSecretEnvMerged } from './secret-store';
 import { keepIfEmpty, upsertByLabel } from './onboarding-merge';
+import { isRepo } from './repo-folders';
 import type {
   NotionProbe,
   NotionPage,
@@ -50,8 +50,7 @@ export type OnboardingPayload = {
 const isStr = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
 
 export async function probeLocalRepo(path: string): Promise<LocalRepoProbe> {
-  // .git 은 dir·file(worktree) 둘 다 가능 — existsSync 로 커버
-  if (!isStr(path) || !existsSync(join(path, '.git'))) return { ok: false, reason: 'not-git' };
+  if (!isStr(path) || !isRepo(path)) return { ok: false, reason: 'not-git' };
   try {
     const { stdout } = await execFileAsync('git', ['-C', path, 'config', 'user.email'], {
       timeout: 3000,

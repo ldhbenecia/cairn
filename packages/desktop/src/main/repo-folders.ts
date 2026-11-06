@@ -1,7 +1,8 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const isRepo = (dir: string): boolean => existsSync(join(dir, '.git'));
+// .git 은 dir·file(worktree) 둘 다 가능 — existsSync 로 커버
+export const isRepo = (dir: string): boolean => existsSync(join(dir, '.git'));
 
 // 레포를 모아 둔 상위 폴더를 고르면 바로 아래 git 저장소들로 펼침 — 하나도 없으면 그대로 둬 not-git 경고가 뜨게 함
 export function expandRepoFolders(picked: readonly string[]): string[] {

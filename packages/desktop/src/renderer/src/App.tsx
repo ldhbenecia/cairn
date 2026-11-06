@@ -13,6 +13,7 @@ import type {
   CoreRunOptions,
   RecentListResult,
   RecentPage,
+  RecentWarning,
   RunProgress,
   RunStep,
 } from '../../shared/ipc-types';
@@ -74,7 +75,16 @@ function readRecentCache(): RecentListResult | null {
     const raw = localStorage.getItem(RECENT_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as RecentListResult;
-    return Array.isArray(parsed?.pages) ? parsed : null;
+    if (!Array.isArray(parsed?.pages)) return null;
+    // 구버전 캐시의 문자열·없어진 경고 코드는 버림
+    const known = new Set<unknown>([
+      'token-missing',
+      'fetch-failed',
+    ] satisfies RecentWarning['code'][]);
+    const warnings = (Array.isArray(parsed.warnings) ? parsed.warnings : []).filter((w) =>
+      known.has((w as { code?: unknown } | null)?.code),
+    );
+    return { ...parsed, warnings };
   } catch {
     return null;
   }
