@@ -83,6 +83,40 @@ export function codexArgs(
   ];
 }
 
+type JsonSchema = { [key: string]: unknown };
+
+// --output-schema 는 strict 모드라 모든 속성이 required 여야 함 — optional 은 null 허용으로 바꿔 required 에 넣음
+export function strictOutputSchema(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(strictOutputSchema);
+  if (!node || typeof node !== 'object') return node;
+  const out: JsonSchema = Object.fromEntries(
+    Object.entries(node).map(([k, v]) => [k, strictOutputSchema(v)]),
+  );
+  const props = out.properties as JsonSchema | undefined;
+  if (props && typeof props === 'object') {
+    const required = new Set(Array.isArray(out.required) ? (out.required as string[]) : []);
+    out.properties = Object.fromEntries(
+      Object.entries(props).map(([k, v]) => [
+        k,
+        required.has(k) ? v : { anyOf: [v, { type: 'null' }] },
+      ]),
+    );
+    out.required = Object.keys(props);
+  }
+  return out;
+}
+
+// strictOutputSchema 가 optional 자리에 둔 null 을 빼서 zod 스키마(optional)로 다시 맞춤
+export function dropNulls(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(dropNulls);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, v]) => v !== null)
+      .map(([k, v]) => [k, dropNulls(v)]),
+  );
+}
+
 interface CodexEvent {
   type?: string;
   item?: { type?: string; text?: string };
@@ -115,7 +149,10 @@ export async function runCodexSubmitAgent<S extends z.ZodObject>(
   const workDir = mkdtempSync(join(tmpdir(), 'cairn-codex-'));
   try {
     const schemaPath = join(workDir, 'schema.json');
-    writeFileSync(schemaPath, JSON.stringify(z.toJSONSchema(task.schema, { target: 'draft-7' })));
+    writeFileSync(
+      schemaPath,
+      JSON.stringify(strictOutputSchema(z.toJSONSchema(task.schema, { target: 'draft-7' }))),
+    );
     const child = spawn(codexBinary(), codexArgs(workDir, schemaPath, features, codexModel()), {
       cwd: workDir,
       env,
@@ -183,7 +220,7 @@ export async function runCodexSubmitAgent<S extends z.ZodObject>(
     if (seen.lastMessage === null) return { usage, submission: null, lateError: null };
     let submission: z.output<S>;
     try {
-      submission = task.schema.parse(JSON.parse(seen.lastMessage));
+      submission = task.schema.parse(dropNulls(JSON.parse(seen.lastMessage)));
     } catch (err) {
       throw CairnError.from(err, 'summarizer');
     }

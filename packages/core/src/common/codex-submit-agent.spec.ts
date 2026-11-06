@@ -7,7 +7,16 @@ const cp = vi.hoisted(() => ({ execFile: vi.fn(), spawn: vi.fn() }));
 vi.mock('node:child_process', () => cp);
 
 import { CairnError } from './error.js';
-import { codexArgs, parseEnabledFeatures, runCodexSubmitAgent } from './codex-submit-agent.js';
+import {
+  codexArgs,
+  dropNulls,
+  parseEnabledFeatures,
+  runCodexSubmitAgent,
+  strictOutputSchema,
+} from './codex-submit-agent.js';
+import { submitPeriodDocSchema } from '../period-doc/period-doc-tools.js';
+import { submitRollupSchema } from '../rollup/rollup-tools.js';
+import { submitSummarySchema } from '../summarizer/summarizer-tools.js';
 
 const FEATURES = [
   'apps                       stable             true',
@@ -104,6 +113,45 @@ describe('codexArgs', () => {
 
   it('passes a chosen model', () => {
     expect(codexArgs('/w', '/w/s.json', [], 'gpt-5.6-luna').join(' ')).toContain('-m gpt-5.6-luna');
+  });
+});
+
+// strict 모드 규칙 — 속성이 있는 모든 object 는 properties 키 전부가 required
+function strictViolations(node: unknown, path = '$'): string[] {
+  if (Array.isArray(node)) return node.flatMap((v, i) => strictViolations(v, `${path}[${i}]`));
+  if (!node || typeof node !== 'object') return [];
+  const o = node as Record<string, unknown>;
+  const own: string[] = [];
+  if (o.properties && typeof o.properties === 'object') {
+    const required = new Set((o.required as string[] | undefined) ?? []);
+    for (const k of Object.keys(o.properties)) if (!required.has(k)) own.push(`${path}.${k}`);
+  }
+  return [...own, ...Object.entries(o).flatMap(([k, v]) => strictViolations(v, `${path}/${k}`))];
+}
+
+describe('strictOutputSchema', () => {
+  it.each([
+    ['summary', submitSummarySchema],
+    ['rollup', submitRollupSchema],
+    ['period-doc', submitPeriodDocSchema],
+  ])('makes the %s schema acceptable to strict mode', (_name, s) => {
+    const json = z.toJSONSchema(s, { target: 'draft-7' });
+    expect(strictViolations(strictOutputSchema(json))).toEqual([]);
+  });
+
+  it('keeps optional fields optional by allowing null', () => {
+    const out = strictOutputSchema(
+      z.toJSONSchema(z.object({ a: z.string(), b: z.string().optional() }), { target: 'draft-7' }),
+    ) as { required: string[]; properties: Record<string, unknown> };
+    expect(out.required).toEqual(['a', 'b']);
+    expect(out.properties.b).toEqual({ anyOf: [{ type: 'string' }, { type: 'null' }] });
+  });
+
+  it('round-trips a null optional back through the zod schema', () => {
+    const parsed = submitPeriodDocSchema.parse(
+      dropNulls({ overview: 'o', projects: [{ name: 'cairn', summary: null, items: ['x'] }] }),
+    );
+    expect(parsed.projects[0]).toEqual({ name: 'cairn', items: ['x'] });
   });
 });
 
