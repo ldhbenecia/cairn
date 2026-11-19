@@ -1,4 +1,4 @@
-import { FolderGit2, Loader2, RotateCw } from 'lucide-react';
+import { FolderGit2, FolderPlus, Loader2, RotateCw, Settings2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { AccountHealth, ConnectionAccounts } from '../../../../shared/ipc-types';
 import { probeClaude, probeClaudeOnce, useClaudeStatus } from '../../lib/claude-status-store';
@@ -10,6 +10,7 @@ import { EngineLoginButton, EngineLoginPanel, useEngineLogin } from '../engine-l
 import { AccountStatusPill } from '../account-status-pill';
 import { ClaudeMark, CodexMark, GithubMark, NotionMark } from '../brand-icons';
 import { AccordionItem } from '../accordion';
+import type { SetupStep } from '../onboarding';
 import { Toggle } from '../toggle';
 import { Section } from './field';
 import { toggleIn } from '../../lib/toggle-in';
@@ -28,7 +29,13 @@ function basename(p: string): string {
   return parts[parts.length - 1] || p;
 }
 
-export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
+export function ConnectionsTab({
+  onRerun,
+  onOpenIntegrations,
+}: {
+  onRerun: (step?: SetupStep) => void;
+  onOpenIntegrations: () => void;
+}) {
   const { settings, t } = useSettings();
   const [cfg, setCfg] = useState<ParsedConfig>({});
   const claude = useClaudeStatus();
@@ -101,6 +108,25 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
     );
   };
 
+  // 재설정 마법사를 다시 돌지 않고 로컬 Git 목록만 바꿈 — 실패하면 config 를 다시 읽어 화면을 맞춤
+  const saveRepos = (next: string[]): void => {
+    setCfg((prev) => ({ ...prev, localGitRepos: next }));
+    void window.cairn.setLocalGitRepos(next).then(
+      (r) => {
+        if (!r.ok) reload();
+      },
+      () => reload(),
+    );
+  };
+  const addRepos = async (): Promise<void> => {
+    const added = (await window.cairn.onboarding.pickFolder()).filter((p) => !repos.includes(p));
+    if (added.length === 0) return;
+    saveRepos([...repos, ...added]);
+    setOpen((prev) => new Set(prev).add('repos'));
+    // 폴더를 고른 건 수집하겠다는 뜻 — 온보딩과 같은 규칙
+    if (!localGitEnabled) onToggleLocalGit(true);
+  };
+
   const notionItems: Item[] = notion.map((w) => {
     const acc = accounts?.notion?.find((n) => n.label === w.label);
     return { primary: w.label, secondary: acc?.workspace, health: acc?.health };
@@ -128,6 +154,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
         items={notionItems}
         expanded={open.has('notion')}
         onToggle={() => toggle('notion')}
+        action={<EditButton onClick={onOpenIntegrations} />}
       />
       <Row
         icon={
@@ -139,6 +166,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
         items={githubItems}
         expanded={open.has('github') || githubInvalid}
         onToggle={() => toggle('github')}
+        action={<EditButton onClick={() => onRerun('github')} />}
         footer={
           <div className="flex items-center gap-2 pt-1.5">
             <button
@@ -170,6 +198,7 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
           active={p === settings.summaryProvider}
           status={claude}
           onRecheck={refreshClaude}
+          onEdit={() => onRerun('engine')}
         />
       ))}
       <Row
@@ -178,6 +207,21 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
         items={repoItems}
         expanded={open.has('repos')}
         onToggle={() => toggle('repos')}
+        onRemove={(i) => saveRepos(repos.filter((_, x) => x !== i))}
+        action={
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              void addRepos();
+            }}
+            aria-label={t('onb.repos.add')}
+            title={t('onb.repos.add')}
+            className="shrink-0 rounded p-0.5 text-ink-tertiary transition-colors hover:text-ink-muted"
+          >
+            <FolderPlus size={13} strokeWidth={2} />
+          </button>
+        }
       />
       <div className="flex items-center justify-between py-2 pl-6 pr-2">
         <span className="text-[12px] text-ink-tertiary">{t('prefs.conn.localGitCollect')}</span>
@@ -190,13 +234,32 @@ export function ConnectionsTab({ onRerun }: { onRerun: () => void }) {
       <div className="pt-4">
         <button
           type="button"
-          onClick={onRerun}
+          onClick={() => onRerun()}
           className="rounded-md border border-hairline px-3 py-1.5 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
         >
           {t('prefs.rerunSetup')}
         </button>
       </div>
     </Section>
+  );
+}
+
+// 재설정 마법사 대신 그 항목 설정만 엶
+function EditButton({ onClick }: { onClick: () => void }) {
+  const { t } = useSettings();
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      aria-label={t('prefs.conn.edit')}
+      title={t('prefs.conn.edit')}
+      className="shrink-0 rounded p-0.5 text-ink-tertiary transition-colors hover:text-ink-muted"
+    >
+      <Settings2 size={13} strokeWidth={2} />
+    </button>
   );
 }
 
@@ -210,6 +273,7 @@ function Row({
   action,
   expanded,
   onToggle,
+  onRemove,
   footer,
 }: {
   icon?: React.ReactNode;
@@ -221,6 +285,7 @@ function Row({
   action?: React.ReactNode;
   expanded?: boolean;
   onToggle?: () => void;
+  onRemove?: (index: number) => void;
   footer?: React.ReactNode;
 }) {
   const { t } = useSettings();
@@ -292,6 +357,16 @@ function Row({
             {it.health === 'unreachable' && (
               <span className="text-ink-tertiary">{t('prefs.conn.unreachable')}</span>
             )}
+            {onRemove && (
+              <button
+                type="button"
+                onClick={() => onRemove(i)}
+                aria-label={t('onb.field.remove')}
+                className="ml-auto shrink-0 self-center rounded p-0.5 text-ink-tertiary transition-colors hover:text-ink-muted"
+              >
+                <X size={12} strokeWidth={2} />
+              </button>
+            )}
           </div>
         ))}
         {footer}
@@ -306,11 +381,13 @@ function EngineRow({
   active,
   status,
   onRecheck,
+  onEdit,
 }: {
   provider: SummaryProvider;
   active: boolean;
   status: 'checking' | 'ok' | 'fail';
   onRecheck: () => void;
+  onEdit: () => void;
 }) {
   const { t } = useSettings();
   // 사용 중 엔진의 probe 실패는 쿼터·세션 한도일 수도 있음 — 로그인 버튼은 실제로 로그아웃일 때만
@@ -331,7 +408,7 @@ function EngineRow({
         }
         pending={pending}
         ok={ok}
-        action={needsLogin ? <EngineLoginButton login={login} /> : undefined}
+        action={needsLogin ? <EngineLoginButton login={login} /> : <EditButton onClick={onEdit} />}
         onRefresh={pending || needsLogin ? undefined : active ? onRecheck : refresh}
       />
       {login.state !== 'idle' && (

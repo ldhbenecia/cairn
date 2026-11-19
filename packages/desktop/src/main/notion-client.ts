@@ -98,9 +98,8 @@ export async function listRecentPages(): Promise<{
 }> {
   const cfg = await readConfig();
   const parsed = cfg.parsed as ParsedConfig | null;
-  if (!parsed?.notionWorkspaces?.length) {
-    return { pages: [], warnings: [{ code: 'no-workspaces' }] };
-  }
+  // 노션은 선택 연동 — 미연동·첫 발행 전(dataSourceId 없음)은 정상 상태라 경고 없음
+  if (!parsed?.notionWorkspaces?.length) return { pages: [], warnings: [] };
 
   const results = await Promise.all(parsed.notionWorkspaces.map((ws) => listWorkspacePages(ws)));
   const allPages = results.flatMap((r) => r.pages);
@@ -118,52 +117,23 @@ async function listWorkspacePages(
 
   const token = secretValue(ws.tokenEnv);
   if (!token) {
-    warnings.push({ code: 'token-missing', workspace: ws.label, tokenEnv: ws.tokenEnv });
+    warnings.push({ code: 'token-missing', workspace: ws.label });
     return { pages, warnings };
   }
   const notion = getNotion(token);
 
-  const tasks: Array<Promise<void>> = [];
-
-  const worklogDs = ws.worklog?.dataSourceId;
-  if (!worklogDs) {
-    warnings.push({ code: 'no-data-source', workspace: ws.label });
-  } else {
-    tasks.push(
-      listDailyPages(notion, worklogDs, ws.label)
-        .then((dailyPages) => {
-          pages.push(...dailyPages);
-        })
-        .catch((err: unknown) => {
-          warnings.push({
-            code: 'fetch-failed',
-            workspace: ws.label,
-            kind: 'worklog',
-            detail: errorMessage(err),
-          });
-        }),
-    );
+  const sources = [
+    { ds: ws.worklog?.dataSourceId, list: listDailyPages },
+    { ds: ws.rollup?.dataSourceId, list: listRollupPages },
+  ];
+  const results = await Promise.allSettled(
+    sources.flatMap(({ ds, list }) => (ds ? [list(notion, ds, ws.label)] : [])),
+  );
+  for (const r of results) if (r.status === 'fulfilled') pages.push(...r.value);
+  // 일간·롤업 둘 다 실패해도 사용자에겐 같은 문구 — 워크스페이스당 한 줄
+  if (results.some((r) => r.status === 'rejected')) {
+    warnings.push({ code: 'fetch-failed', workspace: ws.label });
   }
-
-  const rollupDs = ws.rollup?.dataSourceId;
-  if (rollupDs) {
-    tasks.push(
-      listRollupPages(notion, rollupDs, ws.label)
-        .then((rollupPages) => {
-          pages.push(...rollupPages);
-        })
-        .catch((err: unknown) => {
-          warnings.push({
-            code: 'fetch-failed',
-            workspace: ws.label,
-            kind: 'rollup',
-            detail: errorMessage(err),
-          });
-        }),
-    );
-  }
-
-  await Promise.all(tasks);
   return { pages, warnings };
 }
 

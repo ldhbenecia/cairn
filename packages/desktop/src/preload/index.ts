@@ -73,7 +73,7 @@ contextBridge.exposeInMainWorld('cairn', {
       }>,
     finish: (payload: unknown) =>
       ipcRenderer.invoke('cairn:onboarding:finish', payload) as Promise<unknown>,
-    pickFolder: () => ipcRenderer.invoke('cairn:onboarding:pick-folder') as Promise<string | null>,
+    pickFolder: () => ipcRenderer.invoke('cairn:onboarding:pick-folder') as Promise<string[]>,
   },
   engine: {
     loggedIn: (provider: string) =>
@@ -177,6 +177,16 @@ contextBridge.exposeInMainWorld('cairn', {
     ipcRenderer.invoke('cairn:config:read') as Promise<ConfigResult>,
   setLocalGitEnabled: (enabled: boolean): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('cairn:config:set-local-git-enabled', enabled) as Promise<{
+      ok: boolean;
+      error?: string;
+    }>,
+  addGithubAccounts: (entries: unknown): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('cairn:config:add-github-accounts', entries) as Promise<{
+      ok: boolean;
+      error?: string;
+    }>,
+  setLocalGitRepos: (repos: string[]): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('cairn:config:set-local-git-repos', repos) as Promise<{
       ok: boolean;
       error?: string;
     }>,

@@ -7,6 +7,7 @@ import { AboutTab } from './preferences/about-tab';
 import { AppearanceTab } from './preferences/appearance-tab';
 import { AutoPublishTab } from './preferences/autopublish-tab';
 import { BillingTab } from './preferences/billing-tab';
+import type { SetupStep } from './onboarding';
 import { ConnectionsTab } from './preferences/connections-tab';
 import { FeedbackTab } from './preferences/feedback-tab';
 import { IntegrationsTab } from './preferences/integrations-tab';
@@ -49,7 +50,7 @@ const TAB_DESC: Partial<Record<TabId, I18nKey>> = {
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRerunSetup: () => void;
+  onRerunSetup: (step?: SetupStep) => void;
   blockEscape?: boolean;
   initialTab?: TabId | null;
   initialTabNonce?: number;
@@ -142,10 +143,11 @@ export function PreferencesDialog({
                 {tab === 'prompts' && <PromptsTab />}
                 {tab === 'connections' && (
                   <ConnectionsTab
-                    onRerun={() => {
+                    onRerun={(step) => {
                       onOpenChange(false);
-                      onRerunSetup();
+                      onRerunSetup(step);
                     }}
+                    onOpenIntegrations={() => setTab('integrations')}
                   />
                 )}
                 {tab === 'integrations' && <IntegrationsTab />}
