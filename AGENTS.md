@@ -104,7 +104,7 @@ Before starting non-trivial work (these `docs/` dirs are local-only / gitignored
 
 Docs and workflow:
 
-- Work logs live in `docs/progress/YYYY-MM-DD-<slug>.md` using KST dates.
+- Work logs live in `docs/progress/YYYY-MM-DD-<slug>.md` using the machine's local date.
 - Add an ADR in `docs/decisions/` for non-obvious, long-lived decisions.
 - Branch from `main` using `feature/<slug>`, `fix/<slug>`,
   `refactor/<slug>`, `docs/<slug>`, or `chore/<slug>`.

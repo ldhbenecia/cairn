@@ -26,7 +26,7 @@
 ## 구조·코드 품질 ([nestjs-conventions.md](../../../rules/nestjs-conventions.md))
 
 - `index.ts` barrel을 새로 만들지 않았나? import가 구체 파일 경로인가?
-- 파일명·클래스명이 kebab-case + 타입 suffix / PascalCase 컨벤션을 따르나?
+- 파일명·클래스명이 주변 기존 코드의 패턴(kebab-case + 타입 suffix / PascalCase)과 맞나?
 - 중복 로직이 util/helper로 분리됐나? 매직 넘버가 상수로 정의됐나?
 - 함수가 단일 책임 원칙을 따르나?
 
