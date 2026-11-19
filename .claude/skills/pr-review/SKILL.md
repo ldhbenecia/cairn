@@ -13,7 +13,7 @@ $ARGUMENTS - PR 번호 (예: `123`, `#456`)
 
 ## 작업
 
-1. **PR 정보 수집** — `./.claude/skills/pr-review/scripts/fetch-pr.sh $ARGUMENTS`로 메타데이터+diff 한 번에 가져옴 (package root 기준 경로). PR body에서 변경 의도와 맥락을 먼저 파악
+1. **PR 정보 수집** — `./.claude/skills/pr-review/scripts/fetch-pr.sh $ARGUMENTS`로 메타데이터+diff 한 번에 가져옴 (레포 루트에서 실행). PR body에서 변경 의도와 맥락을 먼저 파악
 2. **변경 파일 분석** — diff 맥락에서 코드 흐름 파악. cairn 고유 위험은 룰을 직접 참조 (중복 서술 안 함):
    - 외부 송신 — [.claude/rules/security-egress.md](../../rules/security-egress.md) (ADR 0003/0021)
    - 타임존 — [.claude/rules/timezone.md](../../rules/timezone.md)
@@ -30,7 +30,7 @@ $ARGUMENTS - PR 번호 (예: `123`, `#456`)
 
 - 코드만 보지 말고 **변경 의도**를 이해할 것
 - 단순 스타일 지적보다는 **실질적 문제**에 집중
-- **왜 이렇게 구현했는지** 맥락을 파악하려 노력할 것
+- **왜 이렇게 구현했는지** 맥락을 파악할 것
 - 룰에 명시된 의도적 설계(standalone 이라 Controller 없음 등)를 오탐으로 지적하지 말 것
 
 ## 출력 형식
